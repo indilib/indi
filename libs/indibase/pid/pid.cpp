@@ -56,6 +56,25 @@ class PIDImpl
             return m_DerivativeTerm;
         }
 
+        void setKp(double Kp)
+        {
+            m_Kp = Kp;
+        }
+        void setKi(double Ki)
+        {
+            m_Ki = Ki;
+        }
+        void setKd(double Kd)
+        {
+            m_Kd = Kd;
+        }
+        void getGains(double &Kp, double &Ki, double &Kd) const
+        {
+            Kp = m_Kp;
+            Ki = m_Ki;
+            Kd = m_Kd;
+        }
+
     private:
         // Sample Time
         double m_T {1};
@@ -115,6 +134,24 @@ double PID::derivativeTerm() const
 {
     return pimpl->derivativeTerm();
 }
+
+void PID::setKp(double Kp)
+{
+    pimpl->setKp(Kp);
+}
+void PID::setKi(double Ki)
+{
+    pimpl->setKi(Ki);
+}
+void PID::setKd(double Kd)
+{
+    pimpl->setKd(Kd);
+}
+void PID::getGains(double &Kp, double &Ki, double &Kd) const
+{
+    pimpl->getGains(Kp, Ki, Kd);
+}
+
 PID::~PID()
 {
     delete pimpl;
@@ -169,4 +206,3 @@ double PIDImpl::calculate(double setpoint, double measurement )
 PIDImpl::~PIDImpl()
 {
 }
-

@@ -39,6 +39,14 @@ class PID
         void setIntegratorLimits(double min, double max);
         void setTau(double value);
 
+        // PID Gain Setters
+        void setKp(double Kp);
+        void setKi(double Ki);
+        void setKd(double Kd);
+
+        // PID Gain Getters
+        void getGains(double &Kp, double &Ki, double &Kd) const;
+
         // Returns the manipulated variable given a setpoint and current process value
         double calculate( double setpoint, double pv );
         double propotionalTerm() const;
