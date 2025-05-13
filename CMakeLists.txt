@@ -95,6 +95,7 @@ OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
 OPTION(INDI_BUILD_XISF "Build XISF support" ON)
 OPTION(INDI_BUILD_EXAMPLES "Build INDI examples" ON)
+OPTION(INDI_INSTALL_UDEV_RULES "Install INDI udev rules" ON)
 
 # System provided or bundled libs
 OPTION(INDI_SYSTEM_HTTPLIB "Use system provided httplib" OFF)
