@@ -605,6 +605,10 @@
             <driver name="Alluna TCS2">indi_alluna_tcs2</driver>
             <version>1.0</version>
         </device>
+        <device label="Astromechanics FOC" manufacturer="Astromechanics">
+            <driver name="Astromechanics FOC">indi_astromechfoc</driver>
+            <version>0.2</version>
+        </device>
     </devGroup>
     <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true" manufacturer="Simulator">
