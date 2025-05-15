@@ -71,6 +71,8 @@ class WandererCover : public INDI::DefaultDevice, public INDI::LightBoxInterface
         virtual bool SetLightBoxBrightness(uint16_t value) override;
         virtual bool EnableLightBox(bool enable) override;
 
+        virtual void TimerHit() override;
+
     private:
         enum
         {

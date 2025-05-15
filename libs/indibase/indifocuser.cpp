@@ -127,6 +127,9 @@ bool Focuser::updateProperties()
 
 bool Focuser::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (FI::processNumber(dev, name, values, names, n))
+        return true;
+
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -136,13 +139,9 @@ bool Focuser::ISNewNumber(const char *dev, const char *name, double values[], ch
             PresetNP.setState(IPS_OK);
             PresetNP.apply();
 
-            //saveConfig();
-
+            saveConfig(PresetNP);
             return true;
         }
-
-        if (strstr(name, "FOCUS_"))
-            return FI::processNumber(dev, name, values, names, n);
     }
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -150,6 +149,9 @@ bool Focuser::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    if (FI::processSwitch(dev, name, states, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (PresetGotoSP.isNameMatch(name))
@@ -191,14 +193,9 @@ bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             PresetGotoSP.apply();
             return true;
         }
-
-        if (strstr(name, "FOCUS_"))
-            return FI::processSwitch(dev, name, states, names, n);
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
-
-    //  Nobody has claimed this, so, ignore it
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 

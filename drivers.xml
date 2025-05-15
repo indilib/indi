@@ -91,6 +91,10 @@
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
         </device>
+        <device label="AstroPhysics GTOCP2" manufacturer="Astrophysics">
+            <driver name="AstroPhysics GTOCP2">indi_lx200ap_legacy</driver>
+            <version>1.1</version>
+        </device>
         <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
             <version>2.2</version>
@@ -433,6 +437,10 @@
             <driver name="MyFocuserPro2">indi_myfocuserpro2_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="Gemini EAF" manufacturer="Gemini">
+            <driver name="MyFocuserPro2">indi_myfocuserpro2_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="DeepSkyDad AF1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>
             <version>1.0</version>
@@ -597,6 +605,10 @@
             <driver name="Alluna TCS2">indi_alluna_tcs2</driver>
             <version>1.0</version>
         </device>
+        <device label="Astromechanics FOC" manufacturer="Astromechanics">
+            <driver name="Astromechanics FOC">indi_astromechfoc</driver>
+            <version>0.2</version>
+        </device>
     </devGroup>
     <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true" manufacturer="Simulator">
@@ -727,11 +739,11 @@
         </device>
         <device label="Pegasus PPBA" manufacturer="Pegasus Astro">
             <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="Pegasus PPBM" manufacturer="Pegasus Astro">
             <driver name="Pegasus PPBM">indi_pegasus_ppba</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="Pegasus UPB" manufacturer="Pegasus Astro">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
@@ -869,12 +881,16 @@
             <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
             <version>1.0</version>
         </device>
-        <device label="IPX800v4" manufacturer="CGE Electronics">
+        <device label="IPX800v4" manufacturer="GCE Electronics">
             <driver name="IPX800v4">indi_ipx800v4</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Simulator IO" manufacturer="Simulator">
             <driver name="Simulator IO">indi_simulator_io</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Gemini Flatpanel" manufacturer="Gemini">
+            <driver name="Gemini Flatpanel">indi_gemini_flatpanel</driver>
             <version>1.0</version>
         </device>
     </devGroup>

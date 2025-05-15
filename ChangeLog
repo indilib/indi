@@ -1,3 +1,51 @@
++ From 2.1.2 to 2.1.3
+
+      019635df2 2025-03-24 Jasem Mutlaq         More progress. Use MountTypeSP in INDI::Telescope. Implement more function to handle telescope requests                                               
+      0102c188d 2025-03-23 Jasem Mutlaq         add equatorialsystem                                                                                                                                  
+      dca9c7213 2025-03-23 Jasem Mutlaq         Fix minor discovery issues                                                                                                                            
+      e70e387be 2025-03-19 Jasem Mutlaq         update documentation                                                                                                                                  
+      e3da4a643 2025-03-19 jmocenigo            Needed to change libs/indibase/indiweatherinterface.* to allow alerts for negative values (e.g., sky temperature). (#2198)                            
+      8b4de4932 2025-03-19 Jasem Mutlaq         INDI::RotatorInterface Property Migration (#2206)                                                                                                     
+      f399e3c07 2025-03-18 Jasem Mutlaq         Add Juwei mount aliases                                                                                                                               
+      d4dca6d78 2025-03-17 Jordan Maples        Refactoring more indiserver components (#2203)                                                                                                        
+      f5a8729be 2025-03-17 Jasem Mutlaq         Focus migration (#2196)                                                                                                                               
+      c28043505 2025-03-17 Artyom Beilis        Fixed in skywatcherAltAz driver: (#2205)                                                                                                              
+      b34c3a000 2025-03-16 Jasem Mutlaq         Update to use modern INDI properties and logging                                                                                                      
+      aa5adbbad 2025-03-16 Jérémie Klein        Fix(): wanderer cover positions are now saved when defined (#2200)                                                                                    
+      43b934bfa 2025-03-16 Jérémie Klein        Fix wanderer cover timer failing when other command running (#2201)                                                                                   
+      01a7e2af6 2025-03-15 Jasem Mutlaq         Add missing INDI_STANDARD_PROPERTY tags                                                                                                               
+      b95d185ed 2025-03-15 Jasem Mutlaq         Mark more properties as standard (pending focuser) to improve documentation                                                                           
+      aad4655fc 2025-03-15 Jasem Mutlaq         Add missing timeout calls. Thank to Artyom Beilis for finding the issue.                                                                              
+      28e4231ad 2025-03-15 Jérémie Klein        Fix():  Wanderer cover v3 is now working with the scheduler (#2193)                                                                                   
+      824c83e51 2025-03-15 Jérémie Klein        FIX(): Alpaca weather safety now correctly manager danger zone (#2199)                                                                                
+      1ac9ee428 2025-03-14 Jasem Mutlaq         Add dust cover simulator                                                                                                                              
+      184e62ce4 2025-03-13 Jordan Maples        Fix build warning - Removing clang-extensions for variable length arrays (#2192)                                                                      
+      63cf0e795 2025-03-14 Jérémie Klein        Fix(): wanderer rotator - the backlash value was incorrectly read during handshake (#2195)                                                            
+      b1f48b538 2025-03-11 Jasem Mutlaq         Remove websocket support as it is no longer maintained.                                                                                               
+      ec802316c 2025-03-09 Jordan Maples        Improve readability of the indiserver (#2176)                                                                                                         
+      38ec7b652 2025-03-09 Peter Englmaier      Add driver for cloudwatcher solo from lunaticoastro (#2171)                                                                                           
+      87ee9a28c 2025-03-12 Jasem Mutlaq         More fixes to conform with standard                                                                                                                   
+      b85464d67 2025-03-11 Jasem Mutlaq         more fixes                                                                                                                                            
+      8ed1a9691 2025-03-11 Jasem Mutlaq         Simplify client transaction id handling                                                                                                               
+      fecf3bd0c 2025-03-11 Jasem Mutlaq         Fix confusion between clientid and clienttransactionid                                                                                                
+      fcb1c1411 2025-03-09 Jasem Mutlaq         More progress to support Alpaca                                                                                                                       
+      d8ad4f38a 2025-03-08 hcomet               Add support for CheapoDC v2.2.0. Allows for up to 4 addtional power outputs added to the core 2 dew controller outputs. (#2191)                       
+      4b78960a1 2025-03-05 Jasem Mutlaq         Move io drivers to their own directory. Add simulator io. Fix universal ROR when input or output devices are initialized late.                        
+      e27e0b6cb 2025-03-05 Jasem Mutlaq         Fix formatting                                                                                                                                        
+      55e414502 2025-03-04 jordisese            fix unpark lx200gps.cpp (#2184)                                                                                                                       
+      579b9211d 2025-03-05 Jasem Mutlaq         Add preliminary alpaca bridge driver. Work in progress                                                                                                
+      be7c9e134 2025-03-04 Jasem Mutlaq         Use enums for keywords. Fixes #2183                                                                                                                   
+      fe727fae9 2025-03-04 Jérémie Klein        Feat(): alpaca dome and alpaca weather safety (#2177)                                                                                                 
+      350ab0759 2025-03-04 Jérémie Klein        Fix(): Test fixing pyindi-client build (#2181)                                                                                                        
+      af1127096 2025-03-03 Nelson Sousa         lx200zeq25 telescope driver: RA and DEC formats were incorrectly detected. Implemented correct format. Gotos are now accurate (#2178)                 
+      499dcd61b 2025-02-27 Jasem Mutlaq         Migrate INDI::FilterInterface properties to new style                                                                                                 
+      7cfc10d0f 2025-02-27 Jasem Mutlaq         Add missing command terminator                                                                                                                        
+      81d60d1b4 2025-02-26 Jérémie Klein        Update UPB driver to fix a bug that made the dew labels not saved and another one where autodew was not saved (#2173)                                 
+      b85fdd416 2025-02-26 Jasem Mutlaq         save autodew config                                                                                                                                   
+      83ed62d53 2025-02-22 d33psky              Respond to FLIP command (do not merge yet as code is not tested) (#2172)                                                                              
+      649758614 2025-02-21 Jasem Mutlaq         Move pulse support to the OutputInterface so that all children inherit it                                                                             
+      9903acd5a 2025-02-06 Jasem Mutlaq         Add buffer checks
+
 + From 2.1.1 to 2.1.2
 
       d3473444a 2025-01-31 Jérémie Klein        Update wanderer rotator lite v1 to latest firmware version and correct a bug when homing with rotator mini and lite v2 (#2166)                        

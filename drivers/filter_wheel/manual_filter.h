@@ -45,12 +45,7 @@ class ManualFilter : public INDI::FilterWheel
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
-        ISwitch FilterSetS[1];
-        ISwitchVectorProperty FilterSetSP;
-
-        INumber SyncN[1];
-        INumberVectorProperty SyncNP;
-
-        INumber MaxFiltersN[1];
-        INumberVectorProperty MaxFiltersNP;
+        INDI::PropertySwitch FilterSetSP {1};
+        INDI::PropertyNumber SyncNP {1};
+        INDI::PropertyNumber MaxFiltersNP {1};
 };

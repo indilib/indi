@@ -36,7 +36,7 @@ static std::unique_ptr<PegasusPPBA> ppba(new PegasusPPBA());
 
 PegasusPPBA::PegasusPPBA() : FI(this), WI(this)
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     lastSensorData.reserve(PA_N);
     lastConsumptionData.reserve(PS_N);
     lastMetricsData.reserve(PC_N);
@@ -398,7 +398,10 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
             snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
             if (sendCommand(cmd, res))
+            {
                 AdjOutVoltSP.setState(IPS_OK);
+                saveConfig(AdjOutVoltSP);
+            }
             else
             {
                 AdjOutVoltSP.reset();
@@ -664,6 +667,7 @@ bool PegasusPPBA::saveConfigItems(FILE * fp)
     WI::saveConfigItems(fp);
     AutoDewSP.save(fp);
     AutoDewSettingsNP.save(fp);
+    AdjOutVoltSP.save(fp);
     return true;
 }
 

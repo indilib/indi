@@ -1,4 +1,4 @@
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND INDI_INSTALL_UDEV_RULES)
     INSTALL(FILES 99-indi_auxiliary.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF()
 # ########## Terrans PowerBoxGo V2 ###############
@@ -357,3 +357,19 @@ SET(dragonlight_SRC
 add_executable(indi_dragon_light ${dragonlight_SRC})
 target_link_libraries(indi_dragon_light indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
+
+# ########## Gemini Flatpanel ###############
+SET(gemini_flatpanel_SRC
+    gemini_flatpanel.cpp)
+
+add_executable(indi_gemini_flatpanel ${gemini_flatpanel_SRC})
+target_link_libraries(indi_gemini_flatpanel indidriver)
+install(TARGETS indi_gemini_flatpanel RUNTIME DESTINATION bin)
+
+# ########## UPS ###############
+SET(ups_SRC
+    ups.cpp)
+
+add_executable(indi_ups_safety ${ups_SRC})
+target_link_libraries(indi_ups_safety indidriver)
+install(TARGETS indi_ups_safety RUNTIME DESTINATION bin)

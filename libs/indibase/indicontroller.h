@@ -20,7 +20,6 @@
 
 #include "defaultdevice.h"
 
-#include <ciso646> // detect std::lib
 #include <functional>
 
 namespace INDI

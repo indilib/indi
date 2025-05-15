@@ -16,12 +16,14 @@
 
 #pragma once
 
+#include "indiinputinterface.h" // Added for InputInterface
 #include "indioutputinterface.h"
 #include "defaultdevice.h"
 #include "inditimer.h"
 #include "../../libs/modbus/nanomodbus.h"
 
-class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
+class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface,
+    public INDI::InputInterface // Added InputInterface
 {
     public:
         WaveshareRelay();
@@ -51,6 +53,14 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
         virtual bool UpdateDigitalOutputs() override;
 
         /**
+         * \brief Update all digital inputs
+         * \return True if operation is successful, false otherwise
+         */
+        virtual bool UpdateDigitalInputs() override;
+
+        virtual bool UpdateAnalogInputs() override;
+
+        /**
          * \brief Send command to relay
          * \return True if operation is successful, false otherwise
          */
@@ -63,6 +73,7 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
         Connection::TCP *tcpConnection {nullptr};
         INDI::PropertyText FirmwareVersionTP {1};
         int PortFD{-1};
+        bool m_HaveInput {false};
         nmbs_t nmbs;
 
 };

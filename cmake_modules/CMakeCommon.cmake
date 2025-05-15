@@ -38,6 +38,12 @@ IF (UNIX OR APPLE OR ANDROID)
     ENDIF ()
     # Make sure to add optimization flag. Some systems require this for _FORTIFY_SOURCE.
     IF (NOT CMAKE_BUILD_TYPE MATCHES "MinSizeRel" AND NOT CMAKE_BUILD_TYPE MATCHES "Release" AND NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+        # For custom/unknown build types, add -O1 if FORTIFY_SOURCE is active
+        IF(${COMPATIBLE_FORTIFY_SOURCE})
+            SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -O1")
+        ENDIF()
+    ELSEIF (COMPATIBLE_FORTIFY_SOURCE AND CMAKE_BUILD_TYPE MATCHES "Debug")
+        # If FORTIFY_SOURCE is active in Debug mode, add minimal optimization (-O1) to satisfy it
         SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -O1")
     ENDIF ()
     IF (NOT ANDROID AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT APPLE AND NOT CYGWIN)

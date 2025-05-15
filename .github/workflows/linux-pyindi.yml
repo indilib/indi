@@ -71,25 +71,7 @@ jobs:
       - name: Build PyIndi
         run: |
           cd pyindi-client
-          # Create a temporary setup.py to handle SWIG generation
-          cat > setup.py << 'EOL'
-          from setuptools import setup, Extension
-          
-          setup(
-              name="pyindi-client",
-              ext_modules=[
-                  Extension(
-                      "_PyIndi",
-                      sources=["indiclientpython.i"],
-                      include_dirs=["/usr/include", "/usr/include/libindi", "/usr/local/include/libindi"],
-                      libraries=["z", "cfitsio", "nova", "indiclient"],
-                      language="c++",
-                      swig_opts=["-c++", "-threads", "-I/usr/include", "-I/usr/include/libindi", "-I/usr/local/include/libindi"]
-                  )
-              ]
-          )
-          EOL
-          # Build with temporary setup.py
+          # Build with the repository's setup.py
           $GITHUB_WORKSPACE/venv/bin/python setup.py build_ext --inplace
           # Build wheel
           $GITHUB_WORKSPACE/venv/bin/python -m build --wheel
