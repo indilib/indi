@@ -7,16 +7,19 @@
 #include <cerrno>
 #include <cstring>
 #include <memory>
+#include <chrono>
+#include <thread>
+
 #include <termios.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/ioctl.h>
 #include <math.h>
+
 #define CLOSE_CMD "S1#"
 #define OPEN_CMD "S0#"
 
 static std::unique_ptr<Excalibur> flatmaster(new Excalibur());
-
 
 Excalibur::Excalibur() : LightBoxInterface(this), DustCapInterface(this)
 {
@@ -82,31 +85,31 @@ const char *Excalibur::getDefaultName()
 }
 
 
-
 bool Excalibur::Ack()
 {
     PortFD = serialConnection->getPortFD();
 
     char response[16] = {0};
-    if(sendCommand("#", response))
+    // Try up to 3 times before giving up
+    for (int i = 0; i < 3; i++)
     {
-        if(strstr("FLAT.FLAP!#", response) != nullptr)
+        if(sendCommand("#", response))
         {
-            LightSP[1].setState(ISS_ON);
-            LightSP[0].setState(ISS_OFF);
-            LightSP.apply();
-            deviceStatus();
-            return true;
+            if(strstr("FLAT.FLAP!#", response) != nullptr)
+            {
+                LightSP[1].setState(ISS_ON);
+                LightSP[0].setState(ISS_OFF);
+                LightSP.apply();
+                deviceStatus();
+                return true;
 
+            }
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    else
-    {
-        LOG_ERROR("Ack failed.");
-        return false;
-    }
-
+    LOG_ERROR("Ack failed.");
     return false;
+
 }
 
 bool Excalibur::EnableLightBox(bool enable)
