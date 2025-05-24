@@ -31,6 +31,8 @@
  *
  */
 
+/// The transformations are based on the paper "Matrix Method for Coordinates Transformation" written by Toshimi Taki
+
 #pragma once
 
 #include <stdint.h>
@@ -256,7 +258,10 @@ class Angle
 /// Implements a generic Axis which can be used for equatorial or AltAz mounts for both axes.
 ///
 /// For an equatorial mount use the TrackRate to set the standard tracking rates. for the primary axis only.
+/// (TS 5.25: Axis entails the angles of the rotation around the mechanical axes of the mount.)
 /// For an AltAz mount the TrackingRateDegSec rate must be set for both axes.
+/// (TS 5.25: The tracking rates of the mechanical axes vary with the positions.
+/// See "Deriving Field Rotation Rate for an Alt-Az Mounted Telescope" by Russell P. Patera1)
 ///
 class Axis
 {
@@ -277,7 +282,7 @@ class Axis
         void setDegrees(double degrees);
         void setHours(double hours);
 
-        Angle position;         // current axis position
+        Angle position; // current angle of the telescope position about axis
 
         void StartSlew(Angle angle);
 
@@ -310,6 +315,8 @@ class Axis
         /// \return
         ///
         AXIS_TRACK_RATE TrackRate();
+
+        double getTrackingRateDegSec();
 
         ///
         /// \brief TrackingRateDegSec
