@@ -722,14 +722,16 @@ bool PegasusPPBA::getSensorData()
         PowerSensorsNP[SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
         PowerSensorsNP[SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
         PowerSensorsNP.setState(IPS_OK);
-        if (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
             PowerSensorsNP.apply();
 
         // Environment Sensors
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
         setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
         setParameterValue("WEATHER_DEWPOINT", std::stod(result[PA_DEW_POINT]));
-        if (lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
                 lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
                 lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT])
         {
@@ -743,7 +745,9 @@ bool PegasusPPBA::getSensorData()
         QuadOutSP[INDI_ENABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF);
         QuadOutSP[INDI_DISABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_OFF : ISS_ON);
         QuadOutSP.setState((std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE);
-        if (lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS] ||
+                lastSensorData[6] != result[6]) // Check index 6 as well, assuming it's covered by PA_N
             QuadOutSP.apply();
 
         // Adjustable Power Status
@@ -765,26 +769,30 @@ bool PegasusPPBA::getSensorData()
             AdjOutVoltSP[ADJOUT_9V].setState((std::stoi(result[PA_PWRADJ]) == 9) ? ISS_ON : ISS_OFF);
             AdjOutVoltSP[ADJOUT_12V].setState((std::stoi(result[PA_PWRADJ]) == 12) ? ISS_ON : ISS_OFF);
         }
-        if (lastSensorData[PA_PWRADJ] != result[PA_PWRADJ] || lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_PWRADJ] != result[PA_PWRADJ] || lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
             AdjOutVoltSP.apply();
 
         // Power Warn
         PowerWarnLP[0].setState((std::stoi(result[PA_PWR_WARN]) == 1) ? IPS_ALERT : IPS_OK);
         PowerWarnLP.setState((std::stoi(result[PA_PWR_WARN]) == 1) ? IPS_ALERT : IPS_OK);
-        if (lastSensorData[PA_PWR_WARN] != result[PA_PWR_WARN])
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_PWR_WARN] != result[PA_PWR_WARN])
             PowerWarnLP.apply();
 
         // Dew PWM
         DewPWMNP[DEW_PWM_A].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
         DewPWMNP[DEW_PWM_B].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
-        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
             DewPWMNP.apply();
 
         // Auto Dew
         AutoDewSP[INDI_DISABLED].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON);
         AutoDewSP[INDI_ENABLED].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
         AutoDewSP.setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? IPS_OK : IPS_IDLE);
-        if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             AutoDewSP.apply();
 
         lastSensorData = result;
@@ -815,8 +823,10 @@ bool PegasusPPBA::getConsumptionData()
         PowerSensorsNP[SENSOR_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
         PowerSensorsNP[SENSOR_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
         PowerSensorsNP.setState(IPS_OK);
-        if (lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] || lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS]
-                || lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
+        if (lastConsumptionData.size() < PS_N ||
+                lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] ||
+                lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] ||
+                lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
             PowerSensorsNP.apply();
 
         lastConsumptionData = result;
@@ -865,14 +875,15 @@ bool PegasusPPBA::getMetricsData()
         PowerSensorsNP[SENSOR_DEWA_CURRENT].setValue(std::stod(result[PC_DEWA_CURRENT]));
         PowerSensorsNP[SENSOR_DEWB_CURRENT].setValue(std::stod(result[PC_DEWB_CURRENT]));
         PowerSensorsNP.setState(IPS_OK);
-        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] ||
+        if (lastMetricsData.size() < PC_N ||
+                lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] ||
                 lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
                 lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
                 lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
             PowerSensorsNP.apply();
 
         std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));
-        using dhours = std::chrono::duration<double, std::ratio<3600>>;
+        using dhours = std::chrono::duration<double, std::ratio<3600 >>;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
         FirmwareTP[FIRMWARE_UPTIME].setText(ss.str().c_str());
@@ -1042,4 +1053,3 @@ std::vector<std::string> PegasusPPBA::split(const std::string &input, const std:
           last;
     return {first, last};
 }
-
