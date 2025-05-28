@@ -115,6 +115,11 @@ Axis::AXIS_TRACK_RATE Axis::TrackRate()
     return trackingRate;
 }
 
+double Axis::getTrackingRateDegSec()
+{
+    return TrackingRateDegSec.Degrees();
+}
+
 void Axis::StartGuide(double rate, uint32_t durationMs)
 {
     // rate is fraction of sidereal, signed to give the direction
@@ -149,7 +154,7 @@ void Axis::update()         // called about once a second to update the position
     {
         position += TrackingRateDegSec * interval;
         target += TrackingRateDegSec * interval;
-        //LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
+        LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
     }
 
     // handle the slew
@@ -230,23 +235,28 @@ Angle Alignment::lst()
 
 void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * apparentHa, Angle* apparentDec)
 {
-    // Primary instrument axis: "Angle" is negative PA-system looking SCP
-    // Secondary instrument axis: "Angle" is negative PA-system looking E
+
     Angle prio, seco;
     // get instrument place
     switch (mountType)
     {
         case MOUNT_TYPE::ALTAZ:
+            // Primary instrument axis: "Angle" is negative PA-system looking at zenith, origin "HA-like"!!!
+            // Secondary instrument axis: "Angle" is negative PA-system looking at E, origin opposite "DEC-like"
         case MOUNT_TYPE::EQ_FORK:
+            // Primary instrument axis: "Angle" is negative PA-system looking at pole, origin opposite HA
+            // Secondary instrument axis: "Angle" is negative PA-system looking at E, origin opposite DEC
             seco = (latitude >= 0) ? secondary : -secondary;
             prio = primary;
             break;
         case MOUNT_TYPE::EQ_GEM:
+            // Primary instrument axis: "Angle" is negative PA-system looking at pole, origin opposite HA
+            // Secondary instrument axis: "Angle" is negative PA-system looking at E, origin opposite DEC
             seco = (latitude >= 0) ? secondary : -secondary; // northern : southern hemisphere
-            if (seco > 90 || seco < -90) // pierside west/looking east (cf. apperentHaDecToMount())
+            if (seco > 90 || seco < -90) // pierside west/looking east (cf. apparentHaDecToMount())
             {
-                prio = primary + Angle(180.0);  // Ha is negative PA-system looking SCP
-                seco = Angle(180.0) - seco;     // Dec is positive PA-system looking E
+                prio = primary + Angle(180.0);  // Ha is negative PA-system looking SCP : NCP, origin HA
+                seco = Angle(180.0) - seco;     // Dec is positive PA-system looking E, origin DEC
             }
             else
             {
@@ -262,6 +272,7 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
     {
         Angle rot = latitude - Angle(90);
         Vector haDec = Vector(prio, seco).rotateY(rot);
+        // Primary instrument axis: "Angle" is negative PA-system looking zenith : nadir, origin "HA-like"
         *apparentHa = haDec.primary();
         *apparentDec = haDec.secondary();
         LOGF_EXTRA1("m2a Azm Alt %f, %f  Ha Dec %f, %f  rot %f", prio.Degrees(), seco.Degrees(), apparentHa->Degrees(),
@@ -291,6 +302,7 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         Vector altAzm = Vector(apparentHa, apparentDec).rotateY(Angle(90) - latitude);
         // for now we are making no mount corrections
         // this all leaves me wondering if the GEM corrections should be done before the mount model
+        // Primary instrument axis: "Angle" is negative PA-system looking SCP : NCP, origin "HA-like"
         *primary = altAzm.primary();
         *secondary = altAzm.secondary();
         LOGF_EXTRA1("a2M haDec %f, %f Azm Alt %f, %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
@@ -306,16 +318,22 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
     switch (mountType)
     {
         case MOUNT_TYPE::ALTAZ:
+            // Primary instrument axis: "Angle" is negative PA-system looking at zenith, origin "HA-like"!!!
+            // Secondary instrument axis: "Angle" is negative PA-system looking at E, origin opposite "DEC-like"
             break;
         case MOUNT_TYPE::EQ_FORK:
+            // Primary instrument axis: "Angle" is negative PA-system looking at pole, origin opposite HA
+            // Secondary instrument axis: "Angle" is negative PA-system looking at E, origin opposite DEC
             *primary = instrumentHa;
             *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;  // northern : southern hemisphere
             break;
         case MOUNT_TYPE::EQ_GEM:
+            // Primary instrument axis: "Angle" is negative PA-system looking at pole, origin opposite HA
+            // Secondary instrument axis: "Angle" is negative PA-system looking at E, origin opposite DEC
             if (instrumentHa < flipHourAngle)  // pierside west (looking east)
             {
-                *primary = instrumentHa + Angle(180);    // Primary instrument axis: "Angle" is negative PA-system looking SCP
-                *secondary = Angle(180) - instrumentDec; // Secondary instrument axis: "Angle" is negative PA-system looking E
+                *primary = instrumentHa + Angle(180);    // Ha is negative PA-system looking SCP : NCP, origin HA
+                *secondary = Angle(180) - instrumentDec; // Dec is positive PA-system looking E, origin DEC
             }
             else
             {
