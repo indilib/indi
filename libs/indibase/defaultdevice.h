@@ -23,6 +23,8 @@
 #include "indilogger.h"
 
 #include <stdint.h>
+#include <any>
+#include <string>
 
 namespace Connection
 {
@@ -305,6 +307,26 @@ class DefaultDevice : public ParentDevice
          * \returns True if any property was successfully processed, false otherwise.
          */
         virtual bool ISSnoopDevice(XMLEle *root);
+
+        /**
+         * @brief Generic convenience function to update a property element as if by client request,
+         *        simulating an ISNew... call.
+         *
+         * This function determines the type of the property (Switch, Number, Text) and
+         * attempts to cast the std::any value to the appropriate type before calling
+         * the corresponding ISNew... function.
+         *
+         * @param property Reference to the INDI::Property object to be updated.
+         * @param elementName The name of the element within the property to update.
+         * @param value The new value for the element, wrapped in std::any.
+         *              - For Switch properties: std::any should contain an ISState.
+         *              - For Number properties: std::any should contain a double or int.
+         *              - For Text properties: std::any should contain a const char* or std::string.
+         * @return True if the update was successfully dispatched via the appropriate ISNew...
+         *         function, false otherwise (e.g., type mismatch, element not found,
+         *         property not found).
+         */
+        bool ISNewProperty(INDI::Property &property, const std::string &elementName, const std::any &value);
 
         /**
          * @return getInterface Return the interface declared by the driver.
