@@ -275,6 +275,8 @@ bool ScopeSim::ReadScopeStatus()
                 LOGF_DEBUG("slew accuracy %f, %f", dRa * 15 * 3600, dDec * 3600);
             }
             break;
+        case SCOPE_PARKED:
+            return true;
         default:
             break;
     }
