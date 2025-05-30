@@ -46,7 +46,7 @@ void DustCapInterface::initProperties(const char *group, uint32_t capabilities)
     // Open/Close cover
     ParkCapSP[CAP_PARK].fill("PARK", "Park", ISS_OFF);
     ParkCapSP[CAP_UNPARK].fill("UNPARK", "Unpark", ISS_OFF);
-    ParkCapSP.fill(m_DefaultDevice->getDeviceName(), "CAP_PARK", "Dust Cover", group, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    ParkCapSP.fill(m_DefaultDevice->getDeviceName(), "CAP_PARK", "Dust Cover", group, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Abort motion
     AbortCapSP[0].fill("ABORT", "Abort", ISS_OFF);
