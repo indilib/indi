@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.20)
 PROJECT(libindi C CXX)
 
 # As moc files are generated in the binary dir, tell CMake
@@ -45,7 +45,7 @@ endif()
 # ####################################  INDI version  ################################################
 set(CMAKE_INDI_VERSION_MAJOR 2)
 set(CMAKE_INDI_VERSION_MINOR 1)
-set(CMAKE_INDI_VERSION_RELEASE 3)
+set(CMAKE_INDI_VERSION_RELEASE 4)
 
 set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")

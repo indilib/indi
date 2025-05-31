@@ -1,3 +1,7 @@
++ From 2.1.3 to 2.1.4
+
+      https://github.com/indilib/indi/releases/tag/v2.1.4
+      
 + From 2.1.2 to 2.1.3
 
       019635df2 2025-03-24 Jasem Mutlaq         More progress. Use MountTypeSP in INDI::Telescope. Implement more function to handle telescope requests                                               
