@@ -607,13 +607,14 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
             pprx, ppry, Scalex, Scaley);
 #endif
-
-        double theta = 270;
+        // TS: 2025-6-2: was 270. Why this strange value? Set to 0 in order to work with simulated AltAz mount
+        double theta = 0;
         if (!std::isnan(RotatorAngle))
             theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
         theta = range360(theta);
+        IDLog("RotatorAngle: %f", RotatorAngle);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
         pa = pprx * cos(theta * M_PI / 180.0);
