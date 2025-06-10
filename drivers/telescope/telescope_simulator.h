@@ -87,10 +87,13 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
-        double currentRA { 0 };
-        double currentDEC { 90 };
-        double targetRA { 0 };
-        double targetDEC { 0 };
+        double m_currentRA { 0 };
+        double m_currentDEC { 90 };
+        double m_currentAz { 180 };
+        double m_currentAlt { 0 };
+        double m_targetRA { 0 };
+        double m_targetDEC { 0 };
+        double m_sinLat, m_cosLat;
 
         /// used by GoTo and Park
         void StartSlew(double ra, double dec, TelescopeStatus status);
@@ -128,8 +131,8 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
         double m_Home[2] = {0, 0};
 
-        Axis axisPrimary { "HaAxis" };         // hour angle mount axis
-        Axis axisSecondary { "DecAxis" };       // declination mount axis
+        Axis axisPrimary { "Primary Axis" };    // entails angle of mount for primary axis
+        Axis axisSecondary { "Secondary Axis" }; // entails angle of mount for secondary axis ("mechanical DEC")
 
         int m_PierSide {-1};
         int m_MountType {-1};
