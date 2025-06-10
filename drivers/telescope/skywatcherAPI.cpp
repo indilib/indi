@@ -92,6 +92,8 @@ const char *SkywatcherAPI::mountTypeToString(uint8_t type)
             return "EQ6 Pro";
         case EQ5_PRO:
             return "EQ5 Pro";
+        case WAVE_150I:
+            return "Wave 150i";
         case GT:
             return "GT";
         case MF:
