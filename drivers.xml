@@ -376,6 +376,48 @@
             <version>0.1</version>
         </device>
     </devGroup>
+    <devGroup group="Rotators">
+        <device label="Rigelsys nFrame" manufacturer="Rigel Systems">
+            <driver name="Rigelsys nFrame">indi_nstep_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Gemini Focusing Rotator" manufacturer="Optec">
+            <driver name="Gemini Focusing Rotator">indi_gemini_focus</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pyxis" manufacturer="Optec">
+            <driver name="Pyxis">indi_pyxis_rotator</driver>
+            <version>1.1</version>
+        </device>
+        <device label="Pegasus Falcon" manufacturer="Pegasus Astro">
+            <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pegasus FalconV2" manufacturer="Pegasus Astro">
+            <driver name="Pegasus FalconV2">indi_falconv2_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Rotator Simulator" manufacturer="Simulator">
+            <driver name="Rotator Simulator">indi_simulator_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Rotator Lite" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Rotator Mini V1-2" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Rotator Mini">indi_wanderer_rotator_mini</driver>
+            <version>1.1</version>
+        </device>
+        <device label="Rotator Lite V2" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Rotator Lite V2">indi_wanderer_rotator_lite_v2</driver>
+            <version>1.0</version>
+        </device>
+        <device label="NightCrawler" manufacturer="MoonLite">
+            <driver name="NightCrawler">indi_nightcrawler_focus</driver>
+            <version>1.4</version>
+        </device>
+    </devGroup>
     <devGroup group="Focusers">
         <device label="Focuser Simulator" manufacturer="Simulator">
             <driver name="Focuser Simulator">indi_simulator_focus</driver>
@@ -416,11 +458,7 @@
         <device label="Rigelsys NStep" manufacturer="Rigel Systems">
             <driver name="Rigelsys NStep">indi_nstep_focus</driver>
             <version>1.2</version>
-        </device>
-        <device label="Rigelsys nFrame" manufacturer="Rigel Systems">
-            <driver name="Rigelsys nFrame">indi_nstep_rotator</driver>
-            <version>1.0</version>
-        </device>
+        </device>        
         <device label="RBFocus" manufacturer="RBFocus">
             <driver name="RBFocus">indi_rbfocus_focus</driver>
             <version>1.2</version>
@@ -465,10 +503,6 @@
             <driver name="NightCrawler">indi_nightcrawler_focus</driver>
             <version>1.4</version>
         </device>
-        <device label="Gemini Focusing Rotator" manufacturer="Optec">
-            <driver name="Gemini Focusing Rotator">indi_gemini_focus</driver>
-            <version>1.0</version>
-        </device>
         <device label="USBFocusV3" manufacturer="USB_Focus">
             <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
             <version>1.1</version>
@@ -496,39 +530,11 @@
         <device label="Pegasus ScopsOAG" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_pegasus_scopsoag</driver>
             <version>1.0</version>
-        </device>
-        <device label="Pyxis" manufacturer="Optec">
-            <driver name="Pyxis">indi_pyxis_rotator</driver>
-            <version>1.1</version>
-        </device>
-        <device label="Pegasus Falcon" manufacturer="Pegasus Astro">
-            <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
-            <version>1.0</version>
-        </device>
-        <device label="Pegasus FalconV2" manufacturer="Pegasus Astro">
-            <driver name="Pegasus FalconV2">indi_falconv2_rotator</driver>
-            <version>1.0</version>
-        </device>
+        </device>        
         <device label="Integra 85" manufacturer="Gemini Telescope">
             <driver name="Integra85">indi_integra_focus</driver>
             <version>1.1</version>
-        </device>
-        <device label="Rotator Simulator" manufacturer="Simulator">
-            <driver name="Rotator Simulator">indi_simulator_rotator</driver>
-            <version>1.0</version>
-        </device>
-        <device label="Rotator Lite" manufacturer="Wanderer Astro">
-            <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
-            <version>1.0</version>
-        </device>
-        <device label="Rotator Mini V1-2" manufacturer="Wanderer Astro">
-            <driver name="Wanderer Rotator Mini">indi_wanderer_rotator_mini</driver>
-            <version>1.1</version>
-        </device>
-        <device label="Rotator Lite V2" manufacturer="Wanderer Astro">
-            <driver name="Wanderer Rotator Lite V2">indi_wanderer_rotator_lite_v2</driver>
-            <version>1.0</version>
-        </device>
+        </device>        
         <device label="Microtouch" manufacturer="Starizona">
             <driver name="Microtouch">indi_microtouch_focus</driver>
             <version>0.1</version>
@@ -732,35 +738,11 @@
         <device label="SkySafari" manufacturer="Others">
             <driver name="SkySafari">indi_skysafari</driver>
             <version>0.2</version>
-        </device>
-        <device label="Pegasus PPB" manufacturer="Pegasus Astro">
-            <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
-            <version>1.1</version>
-        </device>
-        <device label="Pegasus PPBA" manufacturer="Pegasus Astro">
-            <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
-            <version>1.3</version>
-        </device>
-        <device label="Pegasus PPBM" manufacturer="Pegasus Astro">
-            <driver name="Pegasus PPBM">indi_pegasus_ppba</driver>
-            <version>1.3</version>
-        </device>
-        <device label="Pegasus UPB" manufacturer="Pegasus Astro">
-            <driver name="Pegasus UPB">indi_pegasus_upb</driver>
-            <version>1.6</version>
-        </device>
-        <device label="Pegasus UCH" manufacturer="Pegasus Astro">
-            <driver name="Pegasus UCH">indi_pegasus_uch</driver>
-            <version>1.6</version>
-        </device>
+        </device>        
         <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
             <version>1.2</version>
-        </device>
-        <device label="Pegasus Saddle Powerbox" manufacturer="Pegasus Astro">
-            <driver name="Pegasus SPB">indi_pegasus_spb</driver>
-            <version>1.2</version>
-        </device>
+        </device>        
         <device label="PlaneWave Delta-T" manufacturer="Planewave Instruments">
             <driver name="PlaneWave Delta-T">indi_planewave_deltat</driver>
             <version>1.1</version>
@@ -832,11 +814,7 @@
         <device label="myDewControllerPro" manufacturer="Robert Brown">
             <driver name="myDewControllerPro">indi_myDewControllerPro</driver>
             <version>1.0</version>
-        </device>
-        <device label="CheapoDC" manufacturer="DIY">
-            <driver name="CheapoDC">indi_cheapodc</driver>
-            <version>1.0</version>
-        </device>
+        </device>        
         <device label="MyDCP4ESP32" manufacturer="DIY">
             <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
             <version>1.0</version>
@@ -852,15 +830,7 @@
         <device label="Wanderer Cover V3" manufacturer="Wanderer Astro">
             <driver name="Wanderer Cover V3">indi_wanderer_cover</driver>
             <version>1.0</version>
-        </device>
-        <device label="WandererBox Pro V3" manufacturer="Wanderer Astro">
-            <driver name="WandererBox Pro V3">indi_wandererbox_pro_v3</driver>
-            <version>1.0</version>
-        </device>
-        <device label="WandererBox Plus V3" manufacturer="Wanderer Astro">
-            <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
-            <version>1.0</version>
-        </device>
+        </device>        
         <device label="WandererCover V4-EC" manufacturer="Wanderer Astro">
             <driver name="WandererCover V4-EC">indi_wanderercover_v4_ec</driver>
             <version>1.2</version>
@@ -868,15 +838,7 @@
         <device label="DragonLIGHT" manufacturer="Dark Dragons Astro">
             <driver name="DragonLIGHT">indi_dragon_light</driver>
             <version>1.0</version>
-        </device>
-        <device label="Terrans PowerBoxPro V2" manufacturer="Terrans Industry">
-            <driver name="Terrans PowerBoxPro V2">indi_terrans_powerboxpro_v2</driver>
-            <version>1.0</version>
-        </device>
-        <device label="Terrans PowerBoxGo V2" manufacturer="Terrans Industry">
-            <driver name="Terrans PowerBoxGo V2">indi_terrans_powerboxgo_v2</driver>
-            <version>1.0</version>
-        </device>          
+        </device>        
         <device label="Waveshare Relay" manufacturer="Waveshare">
             <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
             <version>1.0</version>
@@ -998,6 +960,52 @@
         <device label="Imager Agent" manufacturer="Others">
             <driver name="Imager Agent">indi_imager_agent</driver>
             <version>1.2</version>
+        </device>
+    </devGroup>
+    <devGroup group="Power">
+        <device label="Pegasus Saddle Powerbox" manufacturer="Pegasus Astro">
+            <driver name="Pegasus SPB">indi_pegasus_spb</driver>
+            <version>1.2</version>
+        </device>
+        <device label="Terrans PowerBoxPro V2" manufacturer="Terrans Industry">
+            <driver name="Terrans PowerBoxPro V2">indi_terrans_powerboxpro_v2</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Terrans PowerBoxGo V2" manufacturer="Terrans Industry">
+            <driver name="Terrans PowerBoxGo V2">indi_terrans_powerboxgo_v2</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pegasus PPB" manufacturer="Pegasus Astro">
+            <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
+            <version>1.1</version>
+        </device>
+        <device label="Pegasus PPBA" manufacturer="Pegasus Astro">
+            <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
+            <version>1.3</version>
+        </device>
+        <device label="Pegasus PPBM" manufacturer="Pegasus Astro">
+            <driver name="Pegasus PPBM">indi_pegasus_ppba</driver>
+            <version>1.3</version>
+        </device>
+        <device label="Pegasus UPB" manufacturer="Pegasus Astro">
+            <driver name="Pegasus UPB">indi_pegasus_upb</driver>
+            <version>1.6</version>
+        </device>
+        <device label="Pegasus UCH" manufacturer="Pegasus Astro">
+            <driver name="Pegasus UCH">indi_pegasus_uch</driver>
+            <version>1.6</version>
+        </device>
+        <device label="WandererBox Pro V3" manufacturer="Wanderer Astro">
+            <driver name="WandererBox Pro V3">indi_wandererbox_pro_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="WandererBox Plus V3" manufacturer="Wanderer Astro">
+            <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="CheapoDC" manufacturer="DIY">
+            <driver name="CheapoDC">indi_cheapodc</driver>
+            <version>1.0</version>
         </device>
     </devGroup>
 </driversList>
