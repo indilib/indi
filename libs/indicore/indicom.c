@@ -669,6 +669,11 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
 
 int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read)
 {
+    return tty_nread_section_expanded(fd, buf, nsize, stop_char, (long) timeout, (long) 0, nbytes_read);
+}
+
+int tty_nread_section_expanded(int fd, char *buf, int nsize, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read)
+{
 #ifdef _WIN32
     return TTY_ERRNO;
 #else
@@ -678,7 +683,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
 
     // For Gemini
     if (tty_gemini_udp_format || tty_generic_udp_format)
-        return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+        return tty_read_section_expanded(fd, buf, stop_char, timeout_seconds, timeout_microseconds, nbytes_read);
 
     int bytesRead = 0;
     int err       = TTY_OK;
@@ -687,11 +692,11 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     memset(buf, 0, nsize);
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %ld s %ld us timeout for fd %d\n", __FUNCTION__, stop_char, timeout_seconds, timeout_microseconds, fd);
 
     for (;;)
     {
-        if ((err = tty_timeout(fd, timeout)))
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
             return err;
 
         read_char = (uint8_t*)(buf + *nbytes_read);
@@ -718,6 +723,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
 
 #endif
 }
+
 
 #if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
