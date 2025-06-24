@@ -103,6 +103,7 @@ bool LX200AM5::initProperties()
     // Guide Rate
     GuideRateNP[0].fill("RATE", "Rate", "%.2f", 0.1, 0.9, 0.1, 0.5);
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    GuideRateNP.load();
 
     // Buzzer
     BuzzerSP[Off].fill("OFF", "Off", ISS_OFF);
@@ -138,16 +139,19 @@ bool LX200AM5::initProperties()
     MeridianFlipSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     MeridianFlipSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     MeridianFlipSP.fill(getDeviceName(), "MERIDIAN_FLIP", "Meridian Flip", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    MeridianFlipSP.load();
 
     // Post Meridian Track
     PostMeridianTrackSP[TRACK].fill("TRACK", "Track", ISS_ON);
     PostMeridianTrackSP[STOP].fill("STOP", "Stop", ISS_OFF);
     PostMeridianTrackSP.fill(getDeviceName(), "POST_MERIDIAN_TRACK", "After Meridian", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY,
                              60, IPS_IDLE);
+    PostMeridianTrackSP.load();
 
     // Meridian Flip Limit
     MeridianLimitNP[0].fill("LIMIT", "Limit (deg)", "%.f", -15, 15, 1, 0);
     MeridianLimitNP.fill(getDeviceName(), "MERIDIAN_LIMIT", "Meridian Limit", MERIDIAN_FLIP_TAB, IP_RW, 60, IPS_IDLE);
+    MeridianLimitNP.load();
 
     return true;
 }
@@ -262,6 +266,7 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                                               MeridianLimitNP[0].getValue());
             MeridianFlipSP.setState(rc ? IPS_OK : IPS_ALERT);
             MeridianFlipSP.apply();
+            saveConfig(MeridianFlipSP);
             return true;
         }
 
@@ -274,6 +279,7 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                                               MeridianLimitNP[0].getValue());
             PostMeridianTrackSP.setState(rc ? IPS_OK : IPS_ALERT);
             PostMeridianTrackSP.apply();
+            saveConfig(PostMeridianTrackSP);
             return true;
         }
 
@@ -315,6 +321,7 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
                                               MeridianLimitNP[0].getValue());
             MeridianLimitNP.setState(rc ? IPS_OK : IPS_ALERT);
             MeridianLimitNP.apply();
+            saveConfig(MeridianLimitNP);
             return true;
         }
 
@@ -323,6 +330,7 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
             GuideRateNP.update(values, names, n);
             GuideRateNP.setState(setGuideRate(GuideRateNP[0].getValue()) ? IPS_OK : IPS_ALERT);
             GuideRateNP.apply();
+            saveConfig(GuideRateNP);
             return true;
         }
     }
