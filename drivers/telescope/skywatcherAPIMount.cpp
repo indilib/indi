@@ -74,6 +74,8 @@ bool SkywatcherAPIMount::Handshake()
     if (!getActiveConnection()->name().compare("CONNECTION_TCP"))
     {
         tty_set_generic_udp_format(1);
+        // reset connection in case of packet loss
+        tty_set_auto_reset_udp_session(1); 
     }
 
     SetSerialPort(PortFD);
