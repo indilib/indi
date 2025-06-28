@@ -498,6 +498,10 @@ int tty_write_string(int fd, const char *buf, int *nbytes_written)
 
 void tty_reset_udp_session(int fd,int only_if_timeout_happened)
 {
+#ifdef _WIN32
+    (void)fd;
+    (void)only_if_timeout_happened;
+#else
     int new_fd = -1;
     struct sockaddr_in server_addr;
     struct timeval ts;
@@ -556,6 +560,7 @@ error_exit:
 
     if(new_fd >= 0)
         close(new_fd);
+#endif
 }
 
 int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
