@@ -302,6 +302,28 @@ int tty_timeout(int fd, int timeout);
 
 int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds);
 
+
+/** \brief create new UDP session to prevent packet conflict
+ *
+ * Create a new UDP connection socket (and thus new session) and replace existing descriptor with it (using dup2)
+ *
+ * Note: it is effective if and only if \a tty_set_generic_udp_format is enabled
+ * 
+ * \param fd file descriptor of UDP socket
+ * \param only_if_timeout_happened of 0 create always, if 1 do it if there was IO timout on the socket in past, resets this flag
+ */
+void tty_reset_udp_session(int fd,int only_if_timeout_happened);
+
+/** \brief automatically reset UDP session on write
+  *
+  * Allows reset UDP session automatically if error/timeout or on every IO to prevent packet misshandling
+  * in protocols that do not mark request/response relation by design
+  *
+  * \param flag 0 - disable, 1 - reset only if read timeout happened, 2 - every write regardless of timeout
+  */
+void tty_set_auto_reset_udp_session(int flag);
+
+
 /* @} */
 
 /**
