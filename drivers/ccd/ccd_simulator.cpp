@@ -144,7 +144,8 @@ bool CCDSim::initProperties()
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
-    // load() is important to fill editfields with saved values, so ISNewNumber() doesn't update with the old ones
+    // load() is important to fill all editfields with saved values, so ISNewNumber() of one filed
+    // doesn't update the other files of the group with the old ones
     SimulatorSettingsNP.load();
 
     // RGB Simulation
