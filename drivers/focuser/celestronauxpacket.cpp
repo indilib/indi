@@ -160,7 +160,7 @@ bool Communicator::sendPacket(int portFD, Target dest, Command cmd, buffer data)
 
 bool Communicator::readPacket(int portFD, Packet &reply)
 {
-    char rxbuf[] = {0};
+    char rxbuf[1] = {0};
     int nr = 0, ttyrc = 0;
     // look for header
     while(rxbuf[0] != Packet::AUX_HDR)
