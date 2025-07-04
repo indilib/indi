@@ -165,6 +165,7 @@ protected:
     float m_OAGOffset { 0 };
     float m_RotationCW { 0 };
     float m_TimeFactor { 1 };
+    double m_CameraRotation { 0 };
 
     bool m_SimulateBayer { false };
 
