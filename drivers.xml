@@ -615,6 +615,10 @@
             <driver name="Astromechanics FOC">indi_astromechfoc</driver>
             <version>0.2</version>
         </device>
+        <device label="Pinefeat CEF" manufacturer="Pinefeat">
+            <driver name="Pinefeat EF Lens Controller">indi_pinefeat_cef_focus</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true" manufacturer="Simulator">
