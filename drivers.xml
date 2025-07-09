@@ -417,6 +417,10 @@
             <driver name="NightCrawler">indi_nightcrawler_focus</driver>
             <version>1.4</version>
         </device>
+        <device label="Camelot Rotator" manufacturer="RBFocus">
+            <driver name="Camelot Rotator">indi_camelot_rotator</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Focusers">
         <device label="Focuser Simulator" manufacturer="Simulator">

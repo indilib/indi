@@ -39,7 +39,7 @@ Add under: [`indi-3rdparty/`](https://github.com/indilib/indi-3rdparty/)
 
 **Example structure:**
 
-    indi/
+    indi-3rdparty/
     └── drivers/
         └── yourdevice/
             ├── CMakeLists.txt
@@ -49,6 +49,17 @@ Add under: [`indi-3rdparty/`](https://github.com/indilib/indi-3rdparty/)
             └── doc/
                 └── index.md
 
+    indi/
+    └── drivers/
+        └── category/
+            ├── CMakeLists.txt
+            ├── yourdevice.cpp
+            ├── yourdevice.h
+            ├── ...
+            └── doc/
+                └── yourdevice
+                    └── photo.webp
+                    └── index.md
 ---
 
 ## 📄 Documentation Requirements

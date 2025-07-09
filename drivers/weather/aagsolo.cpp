@@ -54,7 +54,7 @@ const char *AAGSolo::getDefaultName()
 bool AAGSolo::Connect()
 {
     if (soloHostTP[0].getText() == nullptr
-        || soloHostTP[0].getText()[0] == '\0')
+            || soloHostTP[0].getText()[0] == '\0')
     {
         LOG_ERROR("AAG Solo Cloudwatcher host name or IP must be specified in options tab. Example: aagsolo.local.net");
         return false;
@@ -218,7 +218,7 @@ bool AAGSolo::initProperties()
 
     soloInfoTP[0].fill("CWINFO", "cwinfo", nullptr);
     soloInfoTP[1].fill("DATATIME", "GMT Time", nullptr);
-    soloInfoTP.fill(getDefaultName(), "DEVICEINFO", "Device Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    soloInfoTP.fill(getDeviceName(), "DEVICEINFO", "Device Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
     return true;
 }
 
@@ -302,7 +302,7 @@ IPState AAGSolo::updateWeather()
 
     for (auto const &x : weatherMap)
     {
-        for (int i=0; i<numKeys; i++)
+        for (int i = 0; i < numKeys; i++)
         {
             if (x.first == keys[i].key)
             {

@@ -50,6 +50,11 @@
 #include <string.h>
 #include <time.h>
 
+#if !defined(_WIN32) && !defined(__CYGWIN__)
+#include <netinet/in.h>
+#endif
+
+
 #if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/ioctl.h>
 #endif
@@ -104,6 +109,8 @@
 static int tty_debug = 0;
 static int tty_gemini_udp_format = 0;
 static int tty_generic_udp_format = 0;
+static int tty_generic_udp_read_error_occured = 0;
+static int tty_auto_reset_udp_session = 0;
 static int tty_sequence_number = 1;
 static int tty_clear_trailing_lf = 0;
 
@@ -362,6 +369,11 @@ void tty_set_debug(int debug)
     tty_debug = debug;
 }
 
+void tty_set_auto_reset_udp_session(int flag)
+{
+    tty_auto_reset_udp_session = flag;
+}
+
 void tty_set_gemini_udp_format(int enabled)
 {
     tty_gemini_udp_format = enabled;
@@ -452,6 +464,11 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
     }
 
+    if(tty_generic_udp_format && tty_auto_reset_udp_session > 0) {
+        int only_if_timeout = tty_auto_reset_udp_session == 1 ? 1 : 0;
+        tty_reset_udp_session(fd,only_if_timeout);
+    }
+
     while (nbytes > 0)
     {
         bytes_w = write(fd, buffer + (*nbytes_written), nbytes);
@@ -477,6 +494,73 @@ int tty_write_string(int fd, const char *buf, int *nbytes_written)
     nbytes = (int)strlen(buf);
 
     return tty_write(fd, buf, nbytes, nbytes_written);
+}
+
+void tty_reset_udp_session(int fd,int only_if_timeout_happened)
+{
+#ifdef _WIN32
+    (void)fd;
+    (void)only_if_timeout_happened;
+#else
+    int new_fd = -1;
+    struct sockaddr_in server_addr;
+    struct timeval ts;
+
+    if(!tty_generic_udp_format)
+        return;
+    
+    if(only_if_timeout_happened && !tty_generic_udp_read_error_occured)
+        return;
+
+    if (tty_debug) {
+        IDLog("%s: Request to reset session for fd %d\n", __FUNCTION__, fd);
+    }
+    
+    new_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(new_fd < 0)
+        return;
+    
+    socklen_t len = sizeof(server_addr);
+
+    /* Connect to same address */
+    if(getpeername(fd,(struct sockaddr *)&server_addr, &len) < 0) 
+        goto error_exit;
+
+    if (connect(new_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) 
+        goto error_exit;
+
+    /* copy timeout options */
+    len = sizeof(ts);
+    if(getsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &ts, &len) == 0) {
+        setsockopt(new_fd, SOL_SOCKET, SO_RCVTIMEO, &ts,len);
+    }
+    
+    len = sizeof(ts);
+    if(getsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &ts, &len) == 0) {
+        setsockopt(new_fd, SOL_SOCKET, SO_SNDTIMEO, &ts,len);
+    }
+
+    /* reset existing file descriptor */
+
+    if(dup2(new_fd,fd) < 0)
+        goto error_exit;
+    
+    
+    /* reset error */
+    close(new_fd);
+    tty_generic_udp_read_error_occured = 0;
+    return;
+
+error_exit:
+    if (tty_debug) {
+        IDLog("%s: Failed to create new session for fd %d: %s\n", __FUNCTION__, fd, strerror(errno));
+    }
+
+    perror("tty_reset_udp_session");
+
+    if(new_fd >= 0)
+        close(new_fd);
+#endif
 }
 
 int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
@@ -515,8 +599,11 @@ int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long 
 
     while (numBytesToRead > 0)
     {
-        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds))) {
+            if(tty_generic_udp_format)
+                tty_generic_udp_read_error_occured = 1;
             return err;
+        }
 
         bytesRead = read(fd, buffer + (*nbytes_read), ((uint32_t)numBytesToRead));
 
@@ -617,8 +704,10 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
     }
     else if (tty_generic_udp_format)
     {
-        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds))) {
+            tty_generic_udp_read_error_occured = 1;
             return err;
+        }
         bytesRead = read(fd, readBuffer, 255);
         if (bytesRead < 0)
             return TTY_READ_ERROR;
@@ -669,6 +758,11 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
 
 int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read)
 {
+    return tty_nread_section_expanded(fd, buf, nsize, stop_char, (long) timeout, (long) 0, nbytes_read);
+}
+
+int tty_nread_section_expanded(int fd, char *buf, int nsize, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read)
+{
 #ifdef _WIN32
     return TTY_ERRNO;
 #else
@@ -678,7 +772,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
 
     // For Gemini
     if (tty_gemini_udp_format || tty_generic_udp_format)
-        return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+        return tty_read_section_expanded(fd, buf, stop_char, timeout_seconds, timeout_microseconds, nbytes_read);
 
     int bytesRead = 0;
     int err       = TTY_OK;
@@ -687,11 +781,11 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     memset(buf, 0, nsize);
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %ld s %ld us timeout for fd %d\n", __FUNCTION__, stop_char, timeout_seconds, timeout_microseconds, fd);
 
     for (;;)
     {
-        if ((err = tty_timeout(fd, timeout)))
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
             return err;
 
         read_char = (uint8_t*)(buf + *nbytes_read);
@@ -718,6 +812,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
 
 #endif
 }
+
 
 #if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
