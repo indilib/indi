@@ -172,14 +172,14 @@ bool WeatherSafetyAlpaca::makeAlpacaRequest(const std::string& path, nlohmann::j
     try
     {
         // Log connection details
-        LOGF_INFO("Creating HTTP client for host: %s, port: %s", 
+        LOGF_DEBUG("Creating HTTP client for host: %s, port: %s", 
                   ServerAddressTP[0].getText(), 
                   ServerAddressTP[1].getText());
 
         httplib::Client cli(ServerAddressTP[0].getText(), std::stoi(ServerAddressTP[1].getText()));
         
         // Log timeout settings
-        LOGF_INFO("Setting timeouts - Connection: %d sec, Read: %d sec", 
+        LOGF_DEBUG("Setting timeouts - Connection: %d sec, Read: %d sec", 
                   static_cast<int>(ConnectionSettingsNP[0].getValue()),
                   static_cast<int>(ConnectionSettingsNP[0].getValue()));
 
@@ -187,7 +187,7 @@ bool WeatherSafetyAlpaca::makeAlpacaRequest(const std::string& path, nlohmann::j
         cli.set_read_timeout(static_cast<int>(ConnectionSettingsNP[0].getValue()));
 
         // Log request details
-        LOGF_INFO("Making %s request to path: %s", 
+        LOGF_DEBUG("Making %s request to path: %s", 
                   isPut ? "PUT" : "GET", 
                   path.c_str());
 
@@ -201,16 +201,16 @@ bool WeatherSafetyAlpaca::makeAlpacaRequest(const std::string& path, nlohmann::j
         }
 
         // Log response status and headers
-        LOGF_INFO("HTTP Status: %d", result->status);
+        LOGF_DEBUG("HTTP Status: %d", result->status);
         for (const auto& header : result->headers)
         {
-            LOGF_INFO("Response Header - %s: %s", 
+            LOGF_DEBUG("Response Header - %s: %s", 
                       header.first.c_str(), 
                       header.second.c_str());
         }
 
         // Log response body
-        LOGF_INFO("Response Body: %s", result->body.c_str());
+        LOGF_DEBUG("Response Body: %s", result->body.c_str());
 
         if (result->status != 200)
         {
@@ -221,7 +221,7 @@ bool WeatherSafetyAlpaca::makeAlpacaRequest(const std::string& path, nlohmann::j
         response = nlohmann::json::parse(result->body);
         
         // Log parsed JSON response
-        LOGF_INFO("Parsed JSON response: %s", response.dump(2).c_str());
+        LOGF_DEBUG("Parsed JSON response: %s", response.dump(2).c_str());
 
         if (response["ErrorNumber"].get<int>() != 0)
         {
