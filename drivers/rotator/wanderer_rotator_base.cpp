@@ -233,12 +233,27 @@ bool WandererRotatorBase::Handshake()
 
 IPState WandererRotatorBase::MoveRotator(double angle)
 {
+//    if (GotoRotatorNP.getState() == IPS_BUSY)
+//    {
+//        LOG_ERROR("MoveRotator: Rotator is already moving");
+//        return IPS_ALERT;
+//    }
+
+    LOGF_DEBUG("MoveRotator: Requested angle: %.2f degrees", angle);
+    LOGF_DEBUG("MoveRotator: Current position: %.2f degrees", GotoRotatorNP[0].getValue());
+    
     angle = angle - GotoRotatorNP[0].getValue();
+    LOGF_DEBUG("MoveRotator: Relative movement angle: %.2f degrees", angle);
 
     char cmd[16];
     int position = (int)(angle * getStepsPerDegree() + 1000000);
+    LOGF_DEBUG("MoveRotator: Steps per degree: %.2f", getStepsPerDegree());
+    LOGF_DEBUG("MoveRotator: Calculated position (steps): %d", position);
+    
     positionhistory = angle;
     snprintf(cmd, 16, "%d", position);
+    LOGF_DEBUG("MoveRotator: Sending command: %s", cmd);
+    
     Move(cmd);
 
     return IPS_BUSY;
@@ -272,6 +287,13 @@ bool WandererRotatorBase::AbortRotator()
 ///
 IPState WandererRotatorBase::HomeRotator()
 {
+
+//    if (GotoRotatorNP.getState() == IPS_BUSY)
+//    {
+//        LOG_ERROR("MoveRotator: Rotator is already moving");
+//        return IPS_ALERT;
+//    }
+
     if(GotoRotatorNP[0].getValue() != 0)
     {
         double angle = -1 * GotoRotatorNP[0].getValue();
@@ -330,6 +352,8 @@ void WandererRotatorBase::TimerHit()
             GotoRotatorNP[0].setValue(GotoRotatorNP[0].getValue() + 1 * positionhistory / abs(positionhistory));
             GotoRotatorNP.apply();
             nowtime = nowtime + 240;
+            LOGF_DEBUG("TimerHit: Moving step by step - Current time: %d, Estimated time: %d, Position history: %.2f, Current position: %.2f", 
+                      nowtime, estime, positionhistory, GotoRotatorNP[0].getValue());
             SetTimer(240);
             return;
         }
@@ -341,6 +365,7 @@ void WandererRotatorBase::TimerHit()
             char M_angle[64] = {0};
             int nbytes_read_M_angle = 0;
             rc = tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+            LOGF_DEBUG("TimerHit: First angle read - RC: %d, Raw data: %s, Bytes read: %d", rc, M_angle, nbytes_read_M_angle);
             if(rc != TTY_OK)
             {
                 LOG_ERROR("Rotator not powered!");
@@ -349,11 +374,16 @@ void WandererRotatorBase::TimerHit()
                 haltcommand = false;
                 return;
             }
-            tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+            rc = tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+            LOGF_DEBUG("TimerHit: Second angle read - RC: %d, Raw data: %s, Bytes read: %d", rc, M_angle, nbytes_read_M_angle);
 
             M_angle[nbytes_read_M_angle - 1] = '\0';
             M_angleread = std::strtod(M_angle, NULL);
+            LOGF_DEBUG("TimerHit: Movement completed - Raw angle from device: %s, Parsed angle: %.2f, Steps: %d", 
+                      M_angle, M_angleread, (int)M_angleread);
             GotoRotatorNP[0].setValue(abs(M_angleread / 1000));
+            LOGF_DEBUG("TimerHit: Final position set to: %.2f degrees", GotoRotatorNP[0].getValue());
+            positionhistory = GotoRotatorNP[0].getValue();
             GotoRotatorNP.setState(IPS_OK);
             GotoRotatorNP.apply();
             haltcommand = false;
