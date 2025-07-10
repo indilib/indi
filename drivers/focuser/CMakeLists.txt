@@ -89,6 +89,14 @@ add_executable(indi_astromechfoc ${astromech_focuser_SRC})
 target_link_libraries(indi_astromechfoc indidriver)
 install(TARGETS indi_astromechfoc RUNTIME DESTINATION bin)
 
+# ############### Pinefeat CEF Focuser ################
+SET(pinefeat_cef_SRC
+    pinefeat_cef.cpp)
+
+add_executable(indi_pinefeat_cef_focus ${pinefeat_cef_SRC})
+target_link_libraries(indi_pinefeat_cef_focus indidriver)
+install(TARGETS indi_pinefeat_cef_focus RUNTIME DESTINATION bin)
+
 # ############### Moonlite Focuser ################
 SET(moonlite_SRC
     moonlite.cpp)
