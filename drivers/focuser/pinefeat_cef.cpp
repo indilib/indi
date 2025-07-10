@@ -319,7 +319,7 @@ bool PinefeatCEF::setApertureRel(double value)
         return false;
     }
 
-    LOGF_INFO("Iris is %s by f/%.6g further.", (value > 0) ? "opened" : "closed", abs(value));
+    LOGF_INFO("Iris is %s by f/%.6g further.", (value > 0) ? "closed" : "opened", abs(value));
 
     return true;
 }
