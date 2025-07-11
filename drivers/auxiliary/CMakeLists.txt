@@ -373,3 +373,11 @@ SET(ups_SRC
 add_executable(indi_ups_safety ${ups_SRC})
 target_link_libraries(indi_ups_safety indidriver)
 install(TARGETS indi_ups_safety RUNTIME DESTINATION bin)
+
+# ########## WandererCover V4-EC###############
+SET(indi_wanderer_eclipse_SRC
+    wanderer_eclipse.cpp)
+
+add_executable(indi_wanderer_eclipse ${indi_wanderer_eclipse_SRC})
+target_link_libraries(indi_wanderer_eclipse indidriver)
+install(TARGETS indi_wanderer_eclipse RUNTIME DESTINATION bin)

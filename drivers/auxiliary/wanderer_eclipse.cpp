@@ -59,7 +59,7 @@ bool WandererEclipse::initProperties()
     TorqueSP[TORQUE_LOW].fill("TORQUE_LOW", "Low", ISS_OFF);
     TorqueSP[TORQUE_MEDIUM].fill("TORQUE_MEDIUM", "Medium", ISS_ON);
     TorqueSP[TORQUE_HIGH].fill("TORQUE_HIGH", "High", ISS_OFF);
-    TorqueSP.fill(getDeviceName(), "TORQUE", "Motor Torque", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    TorqueSP.fill(getDeviceName(), "TORQUE", "Motor Torque", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Firmware info
     FirmwareTP[FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware Version", "Unknown");
