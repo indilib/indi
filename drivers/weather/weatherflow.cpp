@@ -179,7 +179,7 @@ bool WeatherFlow::ISNewText(const char *dev, const char *name, char *texts[], ch
             wfAPIKeyTP.update(texts, names, n);
             wfAPIKeyTP.setState(IPS_OK);
             wfAPIKeyTP.apply();
-            saveConfig(true, wfAPIKeyTP.getName());
+            saveConfig(wfAPIKeyTP);
             return true;
         }
 
@@ -188,7 +188,7 @@ bool WeatherFlow::ISNewText(const char *dev, const char *name, char *texts[], ch
             wfStationIDTP.update(texts, names, n);
             wfStationIDTP.setState(IPS_OK);
             wfStationIDTP.apply();
-            saveConfig(true, wfStationIDTP.getName());
+            saveConfig(wfStationIDTP);
             return true;
         }
     }
@@ -205,7 +205,7 @@ bool WeatherFlow::ISNewNumber(const char *dev, const char *name, double values[]
             wfSettingsNP.update(values, names, n);
             wfSettingsNP.setState(IPS_OK);
             wfSettingsNP.apply();
-            saveConfig(true, wfSettingsNP.getName());
+            saveConfig(wfSettingsNP);
             return true;
         }
     }
