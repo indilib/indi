@@ -43,7 +43,7 @@ char * toHexStr(buffer data)
         sz = 100;
     for (int i = 0; i < sz; i++)
     {
-        snprintf(&debugStr[i * 3], 301, "%02X ", data[i]);
+        snprintf(&debugStr[i * 3], 301 - 3*i, "%02X ", data[i]);
     }
     return debugStr;
 }
