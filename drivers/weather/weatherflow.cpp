@@ -30,6 +30,7 @@
 #include <sstream>
 #include <iomanip>
 #include <limits>
+#include <thread>
 
 // We declare an auto pointer to WeatherFlow.
 std::unique_ptr<WeatherFlow> weatherFlow(new WeatherFlow());
@@ -443,7 +444,7 @@ bool WeatherFlow::makeAPIRequest(const std::string &endpoint, std::string &respo
 
         // Add authorization header
         struct curl_slist *headers = nullptr;
-        std::string authHeader = "Authorization: Bearer " + wfAPIKeyTP[0].getText();
+        std::string authHeader = std::string("Authorization: Bearer ") + wfAPIKeyTP[0].getText();
         headers = curl_slist_append(headers, authHeader.c_str());
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
