@@ -28,7 +28,6 @@
 #include "indipropertytext.h"
 #include "indipropertynumber.h"
 
-#include <curl/curl.h>
 #include <memory>
 #include <string>
 #include <chrono>
@@ -99,7 +98,6 @@ class WeatherFlow : public INDI::Weather
         bool parseObservationsResponse(const std::string &response);
         bool makeAPIRequest(const std::string &endpoint, std::string &response);
         bool retryRequest(const std::function<bool()> &request);
-        static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
         // State variables
         std::string m_stationID;

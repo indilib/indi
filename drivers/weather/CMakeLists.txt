@@ -87,5 +87,5 @@ SET(WeatherFlow_SRC
     weatherflow.cpp)
 
 add_executable(indi_weatherflow_weather ${WeatherFlow_SRC})
-target_link_libraries(indi_weatherflow_weather indidriver ${CURL} ${JSONLIB})
+target_link_libraries(indi_weatherflow_weather indidriver ${HTTPLIB_LIBRARY} ${JSONLIB})
 install(TARGETS indi_weatherflow_weather RUNTIME DESTINATION bin)

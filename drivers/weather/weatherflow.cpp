@@ -26,28 +26,19 @@
 
 #include "locale_compat.h"
 
-#include <cstring>
 #include <sstream>
 #include <iomanip>
+#include <third_party/httplib/httplib.h>
 #include <limits>
 #include <thread>
 
 // We declare an auto pointer to WeatherFlow.
 std::unique_ptr<WeatherFlow> weatherFlow(new WeatherFlow());
 
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    ((std::string *)userp)->append((char *)contents, size * nmemb);
-    return size * nmemb;
-}
-
 WeatherFlow::WeatherFlow()
 {
     setVersion(1, 0);
     setWeatherConnection(CONNECTION_NONE);
-
-    // Initialize CURL
-    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     // Initialize rate limiting
     m_lastRequestTime = std::chrono::system_clock::now();
@@ -56,7 +47,6 @@ WeatherFlow::WeatherFlow()
 
 WeatherFlow::~WeatherFlow()
 {
-    curl_global_cleanup();
 }
 
 const char *WeatherFlow::getDefaultName()
@@ -128,16 +118,14 @@ bool WeatherFlow::initProperties()
     INDI::Weather::initProperties();
 
     // API Key
-    char api_key[256] = {0};
-    IUGetConfigText(getDeviceName(), "WF_API_KEY", "API_KEY", api_key, 256);
-    wfAPIKeyTP[0].fill("API_KEY", "API Key", api_key);
+    wfAPIKeyTP[0].fill("API_KEY", "API Key", "");
     wfAPIKeyTP.fill(getDeviceName(), "WF_API_KEY", "WeatherFlow", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    wfAPIKeyTP.load();
 
     // Station ID (optional)
-    char station_id[256] = {0};
-    IUGetConfigText(getDeviceName(), "WF_STATION_ID", "STATION_ID", station_id, 256);
-    wfStationIDTP[0].fill("STATION_ID", "Station ID", station_id);
+    wfStationIDTP[0].fill("STATION_ID", "Station ID", "");
     wfStationIDTP.fill(getDeviceName(), "WF_STATION_ID", "WeatherFlow", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    wfStationIDTP.load();
 
     // Settings
     wfSettingsNP[WF_UPDATE_INTERVAL].fill("UPDATE_INTERVAL", "Update Interval (s)", "%.0f", 30, 3600, 30, 60);
@@ -425,66 +413,46 @@ bool WeatherFlow::makeAPIRequest(const std::string &endpoint, std::string &respo
 {
     return retryRequest([this, &endpoint, &response]() -> bool
     {
-        CURL *curl = curl_easy_init();
-        if (!curl)
+        try
         {
-            LOG_ERROR("Failed to initialize CURL.");
-            return false;
-        }
+            httplib::Client cli("swd.weatherflow.com", 443);
+            cli.set_connection_timeout(static_cast<int>(wfSettingsNP[WF_CONNECTION_TIMEOUT].getValue()));
+            cli.set_read_timeout(static_cast<int>(wfSettingsNP[WF_CONNECTION_TIMEOUT].getValue()));
 
-        std::string url = API_BASE_URL + endpoint;
-        char errorBuffer[CURL_ERROR_SIZE] = {0};
+            // Set headers
+            httplib::Headers headers;
+            headers.emplace("Authorization", "Bearer " + wfAPIKeyTP[0].getText());
+            headers.emplace("Content-Type", "application/json");
+            headers.emplace("User-Agent", "INDI-WeatherFlow/1.0");
 
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, static_cast<long>(wfSettingsNP[WF_CONNECTION_TIMEOUT].getValue()));
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "INDI-WeatherFlow/1.0");
-
-        // Add authorization header
-        struct curl_slist *headers = nullptr;
-        std::string authHeader = std::string("Authorization: Bearer ") + wfAPIKeyTP[0].getText();
-        headers = curl_slist_append(headers, authHeader.c_str());
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-        CURLcode res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK)
-        {
-            if (strlen(errorBuffer))
+            auto result = cli.Get(endpoint, headers);
+            
+            if (!result)
             {
-                LOGF_ERROR("CURL error: %s", errorBuffer);
+                LOGF_ERROR("HTTP request failed: %s", 
+                          result.error() != httplib::Error::Success ? httplib::to_string(result.error()).c_str() : "Unknown error");
+                return false;
             }
-            else
+
+            if (result->status != 200)
             {
-                LOGF_ERROR("CURL error: %s", curl_easy_strerror(res));
+                LOGF_ERROR("HTTP error: %d", result->status);
+                return false;
             }
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
-            return false;
+
+            response = result->body;
+
+            // Update rate limiting
+            m_requestCount++;
+            m_lastRequestTime = std::chrono::system_clock::now();
+
+            return true;
         }
-
-        long http_code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
-        if (http_code != 200)
+        catch (const std::exception &e)
         {
-            LOGF_ERROR("HTTP error: %ld", http_code);
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
+            LOGF_ERROR("Request error: %s", e.what());
             return false;
         }
-
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-
-        // Update rate limiting
-        m_requestCount++;
-        m_lastRequestTime = std::chrono::system_clock::now();
-
-        return true;
     });
 }
 
