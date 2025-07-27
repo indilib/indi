@@ -82,8 +82,6 @@ private:
     //DHTT
     void updateENV(double temp1,double temp2,double temp3,double DHTH,double DHTT);
     double DHTTread = 0;
-    //Total Current
-    double Tcurrentread = 0;
     
     //Power Monitor
     void updatePower(double voltage);
