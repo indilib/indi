@@ -49,6 +49,14 @@ add_executable(indi_wandererbox_pro_v3 ${indi_wandererbox_pro_v3_SRC})
 target_link_libraries(indi_wandererbox_pro_v3 indidriver)
 install(TARGETS indi_wandererbox_pro_v3 RUNTIME DESTINATION bin)
 
+# ########## Wanderer Dew Terminator ###############
+SET(indi_wanderer_dew_terminator_SRC
+    wanderer_dew_terminator.cpp)
+
+add_executable(indi_wanderer_dew_terminator ${indi_wanderer_dew_terminator_SRC})
+target_link_libraries(indi_wanderer_dew_terminator indidriver)
+install(TARGETS indi_wanderer_dew_terminator RUNTIME DESTINATION bin)
+
 # ########## Wanderer Cover V3 ###############
 SET(wandererCover_SRC
     wanderer_cover.cpp)
