@@ -68,7 +68,6 @@ private:
     bool getData();
     bool parseDeviceData(const char *data);
     
-    double torqueread=0;
     double voltageread=0;
     
     int torqueLevel = -1;
