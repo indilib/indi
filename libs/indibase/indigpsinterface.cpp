@@ -267,9 +267,8 @@ bool GPSInterface::setSystemTime(time_t &raw_time)
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
     timespec sTime = {};
     sTime.tv_sec = raw_time;
-    auto rc = clock_settime(CLOCK_REALTIME, &sTime);
-    if (rc)
-        DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING, "Failed to update system time: %s", strerror(rc));
+    if (clock_settime(CLOCK_REALTIME, &sTime) == -1)
+        DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING, "Failed to update system time: %s", strerror(errno));
 #else
     stime(&raw_time);
 #endif

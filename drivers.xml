@@ -1015,6 +1015,10 @@
             <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
             <version>1.0</version>
         </device>
+        <device label="Wanderer Dew Terminator" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Dew Terminator">indi_wanderer_dew_terminator</driver>
+            <version>1.0</version>
+        </device>
         <device label="CheapoDC" manufacturer="DIY">
             <driver name="CheapoDC">indi_cheapodc</driver>
             <version>1.0</version>
