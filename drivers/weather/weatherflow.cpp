@@ -28,7 +28,7 @@
 
 #include <sstream>
 #include <iomanip>
-#include <third_party/httplib/httplib.h>
+#include <httplib.h>
 #include <limits>
 #include <thread>
 
