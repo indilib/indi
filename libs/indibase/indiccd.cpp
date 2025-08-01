@@ -369,8 +369,8 @@ bool CCD::initProperties()
     // Camera Rotation E of N in degrees following Astrometry notation with row order Down - Top
     // TS 06-2025: Has to be transformed accordingly for KSTARS Top - Down, see KSUtils::rotationToPositionAngle(orientation)
     // @INDI_STANDARD_PROPERTY@
-    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Angle", "%g", -360, 360, 1, 0); //TS 06-2025: was labeled mistakably "Rotation"!
-    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "CCD Orientation", WCS_TAB, IP_RW, 60, //TS 06-2025 was labeled mistakably "FOV"!
+    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Angle", "%.2f", -360, 360, 1, 0);
+    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "Orientation", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // Scope focal length and aperture
