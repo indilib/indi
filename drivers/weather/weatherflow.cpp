@@ -421,7 +421,7 @@ bool WeatherFlow::makeAPIRequest(const std::string &endpoint, std::string &respo
 
             // Set headers
             httplib::Headers headers;
-            headers.emplace("Authorization", "Bearer " + wfAPIKeyTP[0].getText());
+            headers.emplace("Authorization", "Bearer " + std::string(wfAPIKeyTP[0].getText()));
             headers.emplace("Content-Type", "application/json");
             headers.emplace("User-Agent", "INDI-WeatherFlow/1.0");
 
