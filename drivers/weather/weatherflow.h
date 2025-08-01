@@ -105,8 +105,6 @@ class WeatherFlow : public INDI::Weather
         WeatherFlowData m_lastData;
         std::chrono::system_clock::time_point m_lastUpdate;
         bool m_isConnected = false;
-        int m_retryCount = 0;
-        const int MAX_RETRIES = 3;
 
         // API configuration
         const std::string API_BASE_URL = "https://swd.weatherflow.com/swd/rest/";
