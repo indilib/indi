@@ -1504,7 +1504,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             CCDRotationNP.apply();
             m_ValidCCDRotation = true;
 
-            LOGF_INFO("CCD Orientation updated to %g degrees.", CCDRotationNP[0].getValue());
+            LOGF_INFO("Camera Orientation updated to %.2f degrees.", CCDRotationNP[0].getValue());
 
             return true;
         }
