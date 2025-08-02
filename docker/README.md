@@ -29,7 +29,7 @@ used for testing of the images. For build testing it is better to use pre-built 
 The images may be used for manual interaction/build/modification. You can enter running container and
 modify it in any way you like by:
 
-	docker --rm -it jochym/indi-bionic bash
+	docker run --rm -it jochym/indi-bionic bash
 
 The above container will be removed automatically when you end its session (due to the --rm argument). 
 For further info refer to the docker documentation.
