@@ -75,7 +75,14 @@ bool CCDSim::setupParameters()
     m_PEPeriod = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
     m_PEMax = SimulatorSettingsNP[SIM_PE_MAX].getValue();
     m_TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
-    RotatorAngle = SimulatorSettingsNP[SIM_ROTATION].getValue();
+    // This is the rotation of the simulated camera respective to North.
+    // Because the simulated star field is calculated with their RA/DEC-coordinates
+    // (see DrawCcdFrame()) the origin angle of star field points north. So this value
+    // for EQ mounts normally simulate a certain camera offset and is a constant.
+    // For ALTAZ-mount this variable is altered consecutively by the value of the parallactic
+    // angle (transfered through a signal from KStars/skymapdrawabstract.cpp) and this way used
+    // to simulate the deviation of the camera orientation from N.
+    m_CameraRotation = SimulatorSettingsNP[SIM_ROTATION].getValue();
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
@@ -137,6 +144,9 @@ bool CCDSim::initProperties()
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+    // load() is important to fill all editfields with saved values also, so ISNewNumber() of one field
+    // doesn't update the other fields of the group with the "old" contents.
+    SimulatorSettingsNP.load();
 
     // RGB Simulation
     SimulateBayerSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
@@ -607,15 +617,18 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
             pprx, ppry, Scalex, Scaley);
 #endif
-
-        double theta = 270;
+        m_CameraRotation = SimulatorSettingsNP[SIM_ROTATION].getValue();
+        double theta = m_CameraRotation;
         if (!std::isnan(RotatorAngle))
             theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
         theta = range360(theta);
+        LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, m_CameraRotation);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
+        // TS: 2025-06-09: Below we have "Invert horizontally" and in the end
+        // this produces a rotation CCW with origin N (TODO: adjust matrix?)
         pa = pprx * cos(theta * M_PI / 180.0);
         pb = ppry * sin(theta * M_PI / 180.0);
 
@@ -778,7 +791,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         ccdx = pa * sx + pb * sy + pc;
                         ccdy = pd * sx + pe * sy + pf;
 
-                        // Invert horizontally
+                        // Invert horizontally and transform CW to CCW (see above)
                         ccdx = ccdW - ccdx;
 
                         rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time);
@@ -1312,7 +1325,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
             if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
             {
                 FocuserPos = atol(pcdataXMLEle(ep));
-
+                LOGF_DEBUG("Snooped FocuserPosition %g", FocuserPos);
                 // calculate FWHM
                 double focus       = FocusSimulationNP[SIM_FOCUS_POSITION].getValue();
                 double max         = FocusSimulationNP[SIM_FOCUS_MAX].getValue();
@@ -1322,6 +1335,20 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
                 double ticks = 20 * (FocuserPos - focus) / max;
 
                 seeing = 0.5625 * ticks * ticks + optimalFWHM;
+                return true;
+            }
+        }
+    }
+    else if (!strcmp(propName, "ABS_ROTATOR_ANGLE"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "ANGLE"))
+            {
+                RotatorAngle = atof(pcdataXMLEle(ep));
+                LOGF_DEBUG("Snooped RotatorAngle %f", RotatorAngle);
                 return true;
             }
         }
