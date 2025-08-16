@@ -781,7 +781,7 @@
         </device>
         <device label="RBF Excalibur" manufacturer="RB Focus">
             <driver name="RBF Excalibur">indi_Excalibur</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="GIOTTO" manufacturer="Primaluce Lab">
             <driver name="GIOTTO">indi_giotto</driver>
