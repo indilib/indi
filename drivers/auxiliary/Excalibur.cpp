@@ -304,7 +304,7 @@ void Excalibur::updateDeviceStatus()
 
     auto isClosed = pos2 <= 0;
 
-    if (ParkCapSP.getState() == IPS_BUSY)
+    if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
     {
         ParkCapSP.setState(IPS_OK);
         ParkCapSP.reset();
