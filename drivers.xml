@@ -781,7 +781,7 @@
         </device>
         <device label="RBF Excalibur" manufacturer="RB Focus">
             <driver name="RBF Excalibur">indi_Excalibur</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="GIOTTO" manufacturer="Primaluce Lab">
             <driver name="GIOTTO">indi_giotto</driver>
@@ -843,6 +843,10 @@
             <driver name="WandererCover V4-EC">indi_wanderercover_v4_ec</driver>
             <version>1.2</version>
         </device>
+        <device label="Wanderer Eclipse" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Eclipse">indi_wanderer_eclipse</driver>
+            <version>1.2</version>
+        </device>    
         <device label="DragonLIGHT" manufacturer="Dark Dragons Astro">
             <driver name="DragonLIGHT">indi_dragon_light</driver>
             <version>1.0</version>
@@ -963,6 +967,10 @@
             <driver name="Weather Safety Alpaca">indi_weather_safety_alpaca</driver>
             <version>1.0</version>
         </device>
+        <device label="WeatherFlow Tempest" manufacturer="WeatherFlow">
+            <driver name="WeatherFlow Tempest">indi_weatherflow_weather</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Agent">
         <device label="Imager Agent" manufacturer="Others">
@@ -1009,6 +1017,10 @@
         </device>
         <device label="WandererBox Plus V3" manufacturer="Wanderer Astro">
             <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Wanderer Dew Terminator" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Dew Terminator">indi_wanderer_dew_terminator</driver>
             <version>1.0</version>
         </device>
         <device label="CheapoDC" manufacturer="DIY">

@@ -473,7 +473,6 @@ bool GeminiFlatpanel::Handshake()
     if (deviceRevision == GEMINI_REVISION_UNKNOWN)
     {
         LOG_ERROR("Handshake failed. Unable to communicate with the device.");
-        LOG_ERROR("Unexpected device ID.");
         return false;
     }
 
@@ -569,7 +568,7 @@ bool GeminiFlatpanel::extractIntValue(const char *response, int startPos, int *v
     return true;
 }
 
-bool GeminiFlatpanel::sendCommand(const char *command, char *response, int timeout)
+bool GeminiFlatpanel::sendCommand(const char *command, char *response, int timeout, bool log)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
@@ -582,9 +581,12 @@ bool GeminiFlatpanel::sendCommand(const char *command, char *response, int timeo
     tcflush(PortFD, TCIOFLUSH);
     if ((rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
     {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
+        if (log)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Serial write error: %s.", errstr);
+        }
         return false;
     }
 
@@ -593,9 +595,12 @@ bool GeminiFlatpanel::sendCommand(const char *command, char *response, int timeo
 
     if ((rc = tty_nread_section(PortFD, response, MAXRBUF, commandTerminator, timeout, &nbytes_read)) != TTY_OK)
     {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        if (log)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Serial read error: %s.", errstr);
+        }
         return false;
     }
 
@@ -623,7 +628,7 @@ bool GeminiFlatpanel::pingRevision1()
     // It is used to check if the device is a revision 1 device
     char response[MAXRBUF] = {0};
 
-    if (!sendCommand(">P000#", response))
+    if (!sendCommand(">P000#", response, SERIAL_TIMEOUT_SEC, false))
     {
         return false;
     }
@@ -642,7 +647,7 @@ bool GeminiFlatpanel::pingRevision2()
     // It is used to check if the device is a revision 2 device
     char response[MAXRBUF] = {0};
 
-    if (!sendCommand(">H#", response))
+    if (!sendCommand(">H#", response, SERIAL_TIMEOUT_SEC, false))
     {
         return false;
     }
@@ -855,7 +860,7 @@ bool GeminiFlatpanel::openCover()
         return false;
     }
 
-    if (!sendCommand(command, response, 30))
+    if (!sendCommand(command, response, SERIAL_TIMEOUT_SEC_LONG))
     {
         return false;
     }
@@ -880,7 +885,7 @@ bool GeminiFlatpanel::closeCover()
         return false;
     }
 
-    if (!sendCommand(command, response, 30))
+    if (!sendCommand(command, response, SERIAL_TIMEOUT_SEC_LONG))
     {
         return false;
     }

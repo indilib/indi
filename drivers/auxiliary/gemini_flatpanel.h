@@ -8,7 +8,8 @@
 #define GEMINI_DEVICE_ID 99
 #define GEMINI_MIN_BRIGHTNESS 0
 #define GEMINI_MAX_BRIGHTNESS 255
-#define SERIAL_TIMEOUT_SEC 30
+#define SERIAL_TIMEOUT_SEC 10
+#define SERIAL_TIMEOUT_SEC_LONG 120
 #define NO_VALUE 1000 // Used to indicate that no value is provided
 
 namespace Connection
@@ -95,7 +96,7 @@ private:
     void updateConfigStatus();
 
     // Commands
-    bool sendCommand(const char *command, char *response, int timeout = SERIAL_TIMEOUT_SEC);
+    bool sendCommand(const char *command, char *response, int timeout = SERIAL_TIMEOUT_SEC, bool log = true);
     bool pingRevision1();
     bool pingRevision2();
     bool getFirmwareVersion(int *version);
