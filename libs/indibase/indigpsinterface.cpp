@@ -211,8 +211,12 @@ bool GPSInterface::processNumber(const char * dev, const char * name, double val
             m_UpdateTimer.start();
             // Need to warn user this is not recommended. Startup values should be enough
             if (prevPeriod == 0)
-                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
-                            "GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
+            {
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,  "GPS Update Timer enabled.");
+                if (SystemTimeUpdateSP[UPDATE_ON_REFRESH].getState() == ISS_ON)
+                    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                                "Updating system-wide time repeatedly may lead to undesirable side-effects.");
+            }
         }
 
         PeriodNP.setState(IPS_OK);
