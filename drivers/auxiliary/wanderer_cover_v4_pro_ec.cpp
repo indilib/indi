@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
 
-  WandererCover V4-EC
+  WandererCover V4 Pro-EC
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -22,7 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include "wanderer_cover_v4_ec.h"
+#include "wanderer_cover_v4_pro_ec.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 #include <cstring>
@@ -36,14 +36,14 @@
 #include <sstream>
 #include <algorithm>
 
-static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
+static std::unique_ptr<WandererCoverV4ProEC> wanderercoverv4ec(new WandererCoverV4ProEC());
 
 // Protocol implementations
 bool WandererCoverLegacyProtocol::supportsFeature(const std::string& feature) const
 {
     // Legacy protocol supports basic features only
     static const std::vector<std::string> supportedFeatures = {
-        "cover_control", "light_control", "heater_control", "position_setting"
+        "cover_control", "light_control",  "position_setting"
     };
     return std::find(supportedFeatures.begin(), supportedFeatures.end(), feature) != supportedFeatures.end();
 }
@@ -70,19 +70,19 @@ bool WandererCoverLegacyProtocol::detectProtocol(const char* data)
     std::string deviceName = tokens[0];
     
     // Check for exact match first
-    if (deviceName == "WandererCoverV4")
+    if (deviceName == "WandererCoverV4Pro")
     {
         // Parse firmware version
         int firmwareVersion = std::atoi(tokens[1].c_str());
         
-        // Legacy protocol for firmware < 20250404
-        return firmwareVersion < 20250404 && firmwareVersion > 0;
+        // Legacy protocol for firmware < 20250405
+        return firmwareVersion < 20250405 && firmwareVersion > 0;
     }
     
     return false;
 }
 
-bool WandererCoverLegacyProtocol::parseDeviceData(const char* data, WandererCoverV4EC* device)
+bool WandererCoverLegacyProtocol::parseDeviceData(const char* data, WandererCoverV4ProEC* device)
 {
     try
     {
@@ -119,11 +119,11 @@ bool WandererCoverLegacyProtocol::parseDeviceData(const char* data, WandererCove
         
         // Device Model - check if it's WandererCoverV4
         std::string deviceName = tokens[0];
-        if (deviceName != "WandererCoverV4")
+        if (deviceName != "WandererCoverV4Pro")
         {
             // Check for similar devices that might be compatible
             if (deviceName == "ZXWBProV3" || deviceName == "ZXWBPlusV3" || 
-                deviceName == "UltimateV2" || deviceName == "PlusV2")
+                deviceName == "UltimateV2" || deviceName == "PlusV2"|| deviceName == "WandererEclipse"|| deviceName == "WandererCoverV4")
             {
                 // Note: Can't use LOG_WARN here as we don't have access to getDeviceName()
             }
@@ -175,7 +175,7 @@ bool WandererCoverLegacyProtocol::parseDeviceData(const char* data, WandererCove
         device->statusData.voltage = device->voltageread;
         
         // Update the UI with the parsed data
-        device->updateData(device->closesetread, device->opensetread, device->positionread, device->voltageread,device->flatpanelbrightnessread, device->dewheaterpowerread,device->asiaircontrolenabledread);
+        device->updateData(device->closesetread, device->opensetread, device->positionread, device->voltageread, device->flatpanelbrightnessread, device->asiaircontrolenabledread);
         
         // Update the Close and Open position settings with the values from the device
         device->CloseSetNP[device->CloseSet].setValue(device->closesetread);
@@ -201,9 +201,6 @@ std::string WandererCoverLegacyProtocol::generateSetBrightnessCommand(uint16_t v
 std::string WandererCoverLegacyProtocol::generateTurnOffLightCommand() const { return "9999"; }
 std::string WandererCoverLegacyProtocol::generateSetOpenPositionCommand(double value) const { return std::to_string((int)(value * 100 + 40000)); }
 std::string WandererCoverLegacyProtocol::generateSetClosePositionCommand(double value) const { return std::to_string((int)(value * 100 + 10000)); }
-std::string WandererCoverLegacyProtocol::generateAutoDetectOpenPositionCommand() const { return "100001"; }
-std::string WandererCoverLegacyProtocol::generateAutoDetectClosePositionCommand() const { return "100000"; }
-std::string WandererCoverLegacyProtocol::generateDewHeaterCommand(int value) const { return std::to_string(2000 + value); }
 std::string WandererCoverLegacyProtocol::generateASIAIRControlCommand(bool enable) const { return enable ? "1500003" : "1500004"; }
 std::string WandererCoverLegacyProtocol::generateCustomBrightnessCommand(int brightness, int customNumber) const { return std::to_string(customNumber * 1000000 + brightness); }
 
@@ -212,8 +209,8 @@ bool WandererCoverModernProtocol::supportsFeature(const std::string& feature) co
 {
     // Modern protocol supports all features
     static const std::vector<std::string> supportedFeatures = {
-        "cover_control", "light_control", "heater_control", "position_setting",
-        "asiair_control", "custom_brightness", "auto_detect", "extended_status"
+        "cover_control", "light_control", "position_setting",
+        "asiair_control", "custom_brightness", "extended_status"
     };
     return std::find(supportedFeatures.begin(), supportedFeatures.end(), feature) != supportedFeatures.end();
 }
@@ -240,19 +237,19 @@ bool WandererCoverModernProtocol::detectProtocol(const char* data)
     std::string deviceName = tokens[0];
     
     // Check for exact match first
-    if (deviceName == "WandererCoverV4")
+    if (deviceName == "WandererCoverV4Pro")
     {
         // Parse firmware version
         int firmwareVersion = std::atoi(tokens[1].c_str());
         
-        // Modern protocol for firmware >= 20250404
-        return firmwareVersion >= 20250404;
+        // Modern protocol for firmware >= 20250405
+        return firmwareVersion >= 20250405;
     }
     
     return false;
 }
 
-bool WandererCoverModernProtocol::parseDeviceData(const char* data, WandererCoverV4EC* device)
+bool WandererCoverModernProtocol::parseDeviceData(const char* data, WandererCoverV4ProEC* device)
 {
     try
     {
@@ -271,11 +268,11 @@ bool WandererCoverModernProtocol::parseDeviceData(const char* data, WandererCove
         
         // Enhanced device detection for modern protocol
         std::string deviceName = tokens[0];
-        if (deviceName != "WandererCoverV4")
+        if (deviceName != "WandererCoverV4Pro")
         {
             // Check for similar devices that might be compatible
             if (deviceName == "ZXWBProV3" || deviceName == "ZXWBPlusV3" || 
-                deviceName == "UltimateV2" || deviceName == "PlusV2")
+                deviceName == "UltimateV2" || deviceName == "PlusV2"|| deviceName == "WandererEclipse"|| deviceName == "WandererDewTerminator"|| deviceName == "WandererCoverV4")
             {
                 // Note: Can't use LOG_WARN here as we don't have access to getDeviceName()
             }
@@ -307,10 +304,11 @@ bool WandererCoverModernProtocol::parseDeviceData(const char* data, WandererCove
         {
             device->flatpanelbrightnessread = std::atoi(tokens[6].c_str());
             device->statusData.flatPanelBrightness = device->flatpanelbrightnessread;
-            device->dewheaterpowerread = std::atoi(tokens[7].c_str());
-            device->statusData.dewHeaterPower = device->dewheaterpowerread;
+            
             device->asiaircontrolenabledread = (tokens.size() > 8) ? (std::atoi(tokens[8].c_str()) == 1) : false;
             device->statusData.asiairControlEnabled = device->asiaircontrolenabledread;
+            
+
         }
         
         // Update status data
@@ -321,7 +319,7 @@ bool WandererCoverModernProtocol::parseDeviceData(const char* data, WandererCove
         device->statusData.voltage = device->voltageread;
         
         // Update the UI with the parsed data
-        device->updateData(device->closesetread, device->opensetread, device->positionread, device->voltageread,device->flatpanelbrightnessread, device->dewheaterpowerread,device->asiaircontrolenabledread);
+        device->updateData(device->closesetread, device->opensetread, device->positionread, device->voltageread, device->flatpanelbrightnessread, device->asiaircontrolenabledread);
         
         // Update the Close and Open position settings with the values from the device
         device->CloseSetNP[device->CloseSet].setValue(device->closesetread);
@@ -347,13 +345,10 @@ std::string WandererCoverModernProtocol::generateSetBrightnessCommand(uint16_t v
 std::string WandererCoverModernProtocol::generateTurnOffLightCommand() const { return "9999"; }
 std::string WandererCoverModernProtocol::generateSetOpenPositionCommand(double value) const { return std::to_string((int)(value * 100 + 40000)); }
 std::string WandererCoverModernProtocol::generateSetClosePositionCommand(double value) const { return std::to_string((int)(value * 100 + 10000)); }
-std::string WandererCoverModernProtocol::generateAutoDetectOpenPositionCommand() const { return "100001"; }
-std::string WandererCoverModernProtocol::generateAutoDetectClosePositionCommand() const { return "100000"; }
-std::string WandererCoverModernProtocol::generateDewHeaterCommand(int value) const { return std::to_string(2000 + value); }
 std::string WandererCoverModernProtocol::generateASIAIRControlCommand(bool enable) const { return enable ? "1500003" : "1500004"; }
 std::string WandererCoverModernProtocol::generateCustomBrightnessCommand(int brightness, int customNumber) const { return std::to_string(customNumber * 1000000 + brightness); }
 
-WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(this), LightBoxInterface(this)
+WandererCoverV4ProEC::WandererCoverV4ProEC() : DustCapInterface(this), LightBoxInterface(this)
 {
     setVersion(1, 3);
 }
@@ -361,15 +356,15 @@ WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(this), LightBoxInterfa
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char *WandererCoverV4EC::getDefaultName()
+const char *WandererCoverV4ProEC::getDefaultName()
 {
-    return "WandererCover V4-EC";
+    return "WandererCover V4 Pro-EC";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::initProperties()
+bool WandererCoverV4ProEC::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
@@ -385,7 +380,6 @@ bool WandererCoverV4EC::initProperties()
     DataNP[position_read].fill( "Current_Position", "Current Position(°)", "%4.2f", 0, 999, 100, 0);
     DataNP[voltage_read].fill( "Voltage", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     DataNP[flat_panel_brightness_read].fill( "Flat_Panel_Brightness", "Flat Panel Brightness", "%4.2f", 0, 255, 1, 0);
-    DataNP[dew_heater_power_read].fill( "Dew_Heater_Power", "Dew Heater Power", "%4.2f", 0, 150, 1, 0);
     DataNP[asiair_control_enabled_read].fill( "ASIAIR_Control_Enabled", "ASIAIR Control Enabled", "%4.2f", 0, 1, 1, 0);
     DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -396,9 +390,6 @@ bool WandererCoverV4EC::initProperties()
     LightIntensityNP[0].setMax(255);
     LightIntensityNP[0].setValue(100);
 
-    // Heater
-    SetHeaterNP[Heat].fill( "Heater", "PWM", "%.2f", 0, 150, 50, 0);
-    SetHeaterNP.fill(getDeviceName(), "Heater", "Dew Heater", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Close Set
     CloseSetNP[CloseSet].fill( "CloseSet", "10-90", "%.2f", 10, 90, 0.01, 20);
@@ -418,9 +409,6 @@ bool WandererCoverV4EC::initProperties()
     CustomBrightnessNP[CUSTOM_BRIGHTNESS_3].fill("CUSTOM_BRIGHTNESS_3", "Custom Brightness 3", "%1.0f", 0, 255, 1, 255);
     CustomBrightnessNP.fill(getDeviceName(), "CUSTOM_BRIGHTNESS", "Custom Brightness", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    AutoDetectSP[AUTO_DETECT_OPEN].fill("AUTO_DETECT_OPEN", "Auto Detect Open Position", ISS_OFF);
-    AutoDetectSP[AUTO_DETECT_CLOSE].fill("AUTO_DETECT_CLOSE", "Auto Detect Close Position", ISS_OFF);
-    AutoDetectSP.fill(getDeviceName(), "AUTO_DETECT", "Auto Detection", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     setDefaultPollingPeriod(2000);
 
@@ -438,7 +426,7 @@ bool WandererCoverV4EC::initProperties()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::updateProperties()
+bool WandererCoverV4ProEC::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
@@ -456,7 +444,6 @@ bool WandererCoverV4EC::updateProperties()
 
         defineProperty(DataNP);
         defineProperty(FirmwareTP);
-        defineProperty(SetHeaterNP);
         defineProperty(CloseSetNP);
         defineProperty(OpenSetNP);
 
@@ -469,21 +456,16 @@ bool WandererCoverV4EC::updateProperties()
         {
             defineProperty(CustomBrightnessNP);
         }
-        if (currentProtocol && currentProtocol->supportsFeature("auto_detect"))
-        {
-            defineProperty(AutoDetectSP);
-        }
+
     }
     else
     {
         deleteProperty(DataNP);
         deleteProperty(FirmwareTP);
-        deleteProperty(SetHeaterNP);
         deleteProperty(OpenSetNP);
         deleteProperty(CloseSetNP);
         deleteProperty(ASIAIRControlSP);
         deleteProperty(CustomBrightnessNP);
-        deleteProperty(AutoDetectSP);
     }
 
     DI::updateProperties();
@@ -494,7 +476,7 @@ bool WandererCoverV4EC::updateProperties()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void WandererCoverV4EC::ISGetProperties(const char *dev)
+void WandererCoverV4ProEC::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
     LI::ISGetProperties(dev);
@@ -503,7 +485,7 @@ void WandererCoverV4EC::ISGetProperties(const char *dev)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::ISSnoopDevice(XMLEle *root)
+bool WandererCoverV4ProEC::ISSnoopDevice(XMLEle *root)
 {
     LI::snoop(root);
     return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -512,7 +494,7 @@ bool WandererCoverV4EC::ISSnoopDevice(XMLEle *root)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::detectProtocol()
+bool WandererCoverV4ProEC::detectProtocol()
 {
     try
     {
@@ -600,21 +582,21 @@ bool WandererCoverV4EC::detectProtocol()
         LOGF_DEBUG("Device identification: '%s'", deviceName.c_str());
         
         // Check for exact match first
-        if (deviceName == "WandererCoverV4")
+        if (deviceName == "WandererCoverV4Pro")
         {
-            LOG_INFO("WandererCover V4-EC device detected");
+            LOG_INFO("WandererCover V4 Pro-EC device detected");
         }
         // Check for similar devices that might be compatible
-	else if (deviceName == "ZXWBProV3" || deviceName == "ZXWBPlusV3" || 
-                deviceName == "UltimateV2" || deviceName == "PlusV2"|| deviceName == "WandererEclipse"|| deviceName == "WandererDewTerminator"|| deviceName == "WandererCoverV4Pro")
+        else if (deviceName == "ZXWBProV3" || deviceName == "ZXWBPlusV3" || 
+                deviceName == "UltimateV2" || deviceName == "PlusV2"|| deviceName == "WandererEclipse"|| deviceName == "WandererDewTerminator"|| deviceName == "WandererCoverV4")
         {
-            LOGF_ERROR("WandererAstro products detected, but the model does not match: '%s'. This driver is designed for WandererCover V4-EC only, please choose the right driver or try another serial port!", deviceName.c_str());
+            LOGF_ERROR("WandererAstro products detected, but the model does not match:'%s'. This driver is designed for WandererCover V4 Pro-EC, please choose the right driver or try another serial port!", deviceName.c_str());
             return false;
         }
         else
         {
-            LOGF_ERROR("Unsupported device detected: '%s'. Expected 'WandererCoverV4'", deviceName.c_str());
-            LOG_ERROR("This driver is specifically designed for WandererCover V4-EC devices only.");
+            LOGF_ERROR("Unsupported device detected: '%s'. Expected 'WandererCoverV4Pro'", deviceName.c_str());
+            LOG_ERROR("This driver is specifically designed for WandererCover V4 Pro-EC devices only.");
             return false;
         }
         
@@ -630,18 +612,18 @@ bool WandererCoverV4EC::detectProtocol()
         }
         
         // Choose protocol based on firmware version
-        if (firmwareVersion >= 20250404)
+        if (firmwareVersion >= 20250405)
         {
             std::unique_ptr<WandererCoverModernProtocol> modernProtocol = std::make_unique<WandererCoverModernProtocol>();
             setProtocol(std::move(modernProtocol));
-            LOG_INFO("Using modern protocol (firmware >= 20250404) Please note that in the newer firmware, to protect dark conditions, the flat light will remain off whenever the Cover is open.");
+            LOG_INFO("Using modern protocol (firmware >= 20250405) Please note that in the newer firmware, to protect dark conditions, the flat light will remain off whenever the Cover is open.");
             return true;
         }
         else if (firmwareVersion > 0)
         {
             std::unique_ptr<WandererCoverLegacyProtocol> legacyProtocol = std::make_unique<WandererCoverLegacyProtocol>();
             setProtocol(std::move(legacyProtocol));
-            LOG_INFO("Using legacy protocol (firmware < 20250404) Firmware update recommended.");
+            LOG_INFO("Using legacy protocol (firmware < 20250405) Firmware update recommended.");
             return true;
         }
         else
@@ -657,16 +639,16 @@ bool WandererCoverV4EC::detectProtocol()
     }
 }
 
-void WandererCoverV4EC::setProtocol(std::unique_ptr<IWandererCoverProtocol> protocol)
+void WandererCoverV4ProEC::setProtocol(std::unique_ptr<IWandererCoverProtocol> protocol)
 {
     currentProtocol = std::move(protocol);
-    
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::getData()
+bool WandererCoverV4ProEC::getData()
 {
     // Try to lock the mutex with a short timeout
     if (!serialPortMutex.try_lock_for(std::chrono::milliseconds(100)))
@@ -720,7 +702,7 @@ bool WandererCoverV4EC::getData()
     return true;
 }
 
-bool WandererCoverV4EC::parseDeviceData(const char *data)
+bool WandererCoverV4ProEC::parseDeviceData(const char *data)
 {
     if (!currentProtocol)
     {
@@ -735,7 +717,7 @@ bool WandererCoverV4EC::parseDeviceData(const char *data)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void WandererCoverV4EC::updateData(double closesetread, double opensetread, double positionread, double voltageread,double flatpanelbrightnessread,double dewheaterpowerread, double asiaircontrolenabledread)
+void WandererCoverV4ProEC::updateData(double closesetread, double opensetread, double positionread, double voltageread, double flatpanelbrightnessread, double asiaircontrolenabledread)
 {
     // Update basic data
     DataNP[closeset_read].setValue(closesetread);
@@ -743,21 +725,21 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
     DataNP[position_read].setValue(positionread);
     DataNP[voltage_read].setValue(voltageread);
     
+
     // Update extended data only if supported by current protocol
     if (currentProtocol && currentProtocol->supportsFeature("extended_status"))
     {
         DataNP[flat_panel_brightness_read].setValue(flatpanelbrightnessread);
-        DataNP[dew_heater_power_read].setValue(dewheaterpowerread);
         DataNP[asiair_control_enabled_read].setValue(asiaircontrolenabledread);
     }
     else
     {
         // For legacy protocol, set default values for unsupported features
         DataNP[flat_panel_brightness_read].setValue(-1);
-        DataNP[dew_heater_power_read].setValue(-1);
         DataNP[asiair_control_enabled_read].setValue(-1);
     }
     
+
     DataNP.setState(IPS_OK);
     DataNP.apply();
 
@@ -780,7 +762,7 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool WandererCoverV4ProEC::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (LI::processText(dev, name, texts, names, n))
         return true;
@@ -791,7 +773,7 @@ bool WandererCoverV4EC::ISNewText(const char *dev, const char *name, char *texts
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool WandererCoverV4ProEC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (LI::processSwitch(dev, name, states, names, n))
         return true;
@@ -832,36 +814,7 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
             return true;
         }
 
-        // Auto Detection
-        if (AutoDetectSP.isNameMatch(name))
-        {
-            if (!currentProtocol || !currentProtocol->supportsFeature("auto_detect"))
-            {
-                LOG_ERROR("Auto detection not supported by current protocol");
-                AutoDetectSP.setState(IPS_ALERT);
-                AutoDetectSP.apply();
-                return true;
-            }
-
-            bool rc = false;
-            for (int i = 0; i < n; i++)
-            {
-                if (strcmp(names[i], "AUTO_DETECT_OPEN") == 0 && states[i] == ISS_ON)
-                {
-                    rc = sendCommand(currentProtocol->generateAutoDetectOpenPositionCommand());
-                }
-                else if (strcmp(names[i], "AUTO_DETECT_CLOSE") == 0 && states[i] == ISS_ON)
-                {
-                    rc = sendCommand(currentProtocol->generateAutoDetectClosePositionCommand());
-                }
-            }
-
-            AutoDetectSP.setState(rc ? IPS_OK : IPS_ALERT);
-            if (AutoDetectSP.getState() == IPS_OK)
-                AutoDetectSP.update(states, names, n);
-            AutoDetectSP.apply();
-            return true;
-        }
+        
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -870,36 +823,14 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+bool WandererCoverV4ProEC::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // Heater
-        if (SetHeaterNP.isNameMatch(name))
-        {
-            if (!currentProtocol)
-            {
-                LOG_ERROR("No protocol handler available");
-                SetHeaterNP.setState(IPS_ALERT);
-                SetHeaterNP.apply();
-                return true;
-            }
-
-            bool rc1 = false;
-            for (int i = 0; i < n; i++)
-            {
-                rc1 = setDewPWM(2, static_cast<int>(values[i]));
-            }
-
-            SetHeaterNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
-            if (SetHeaterNP.getState() == IPS_OK)
-                SetHeaterNP.update(values, names, n);
-            SetHeaterNP.apply();
-            return true;
-        }
+        
         // Close Set
         if (CloseSetNP.isNameMatch(name))
         {
@@ -1008,7 +939,7 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::toggleCover(bool open)
+bool WandererCoverV4ProEC::toggleCover(bool open)
 {
     if (!currentProtocol)
     {
@@ -1023,7 +954,7 @@ bool WandererCoverV4EC::toggleCover(bool open)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-IPState WandererCoverV4EC::ParkCap()
+IPState WandererCoverV4ProEC::ParkCap()
 {
     // Set park status to busy
     ParkCapSP.setState(IPS_BUSY);
@@ -1043,7 +974,7 @@ IPState WandererCoverV4EC::ParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-IPState WandererCoverV4EC::UnParkCap()
+IPState WandererCoverV4ProEC::UnParkCap()
 {
     // Set park status to busy
     ParkCapSP.setState(IPS_BUSY);
@@ -1063,7 +994,7 @@ IPState WandererCoverV4EC::UnParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
+bool WandererCoverV4ProEC::SetLightBoxBrightness(uint16_t value)
 {
     if (!currentProtocol)
     {
@@ -1093,7 +1024,7 @@ bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::EnableLightBox(bool enable)
+bool WandererCoverV4ProEC::EnableLightBox(bool enable)
 {
     if (!currentProtocol)
     {
@@ -1113,7 +1044,7 @@ bool WandererCoverV4EC::EnableLightBox(bool enable)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::sendCommand(std::string command)
+bool WandererCoverV4ProEC::sendCommand(std::string command)
 {
     // Lock the mutex for the duration of this function
     std::lock_guard<std::timed_mutex> lock(serialPortMutex);
@@ -1132,26 +1063,11 @@ bool WandererCoverV4EC::sendCommand(std::string command)
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::setDewPWM(int id, int value)
-{
-    if (!currentProtocol)
-    {
-        LOG_ERROR("No protocol handler available");
-        return false;
-    }
-
-    char cmd[64] = {0};
-    snprintf(cmd, 64, "%d%03d", id, value);
-    return sendCommand(cmd);
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::setClose(double value)
+bool WandererCoverV4ProEC::setClose(double value)
 {
     if (!currentProtocol)
     {
@@ -1165,7 +1081,7 @@ bool WandererCoverV4EC::setClose(double value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::setOpen(double value)
+bool WandererCoverV4ProEC::setOpen(double value)
 {
     if (!currentProtocol)
     {
@@ -1179,7 +1095,7 @@ bool WandererCoverV4EC::setOpen(double value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void WandererCoverV4EC::TimerHit()
+void WandererCoverV4ProEC::TimerHit()
 {
     if (!isConnected())
     {
@@ -1194,11 +1110,10 @@ void WandererCoverV4EC::TimerHit()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::saveConfigItems(FILE * fp)
+bool WandererCoverV4ProEC::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    SetHeaterNP.save(fp);
     CloseSetNP.save(fp);
     OpenSetNP.save(fp);
     CustomBrightnessNP.save(fp);

@@ -25,6 +25,14 @@ add_executable(indi_wanderercover_v4_ec ${indi_wanderercover_v4_ec_SRC})
 target_link_libraries(indi_wanderercover_v4_ec indidriver)
 install(TARGETS indi_wanderercover_v4_ec RUNTIME DESTINATION bin)
 
+# ########## WandererCover V4 Pro-EC###############
+SET(indi_wanderercover_v4_pro_ec_SRC
+    wanderer_cover_v4_pro_ec.cpp)
+
+add_executable(indi_wanderercover_v4_pro_ec ${indi_wanderercover_v4_pro_ec_SRC})
+target_link_libraries(indi_wanderercover_v4_pro_ec indidriver)
+install(TARGETS indi_wanderercover_v4_pro_ec RUNTIME DESTINATION bin)
+
 # ########## Wanderer Eclipse###############
 SET(indi_wanderer_eclipse_SRC
     wanderer_eclipse.cpp)
