@@ -37,8 +37,8 @@ class AlpacaClient : public INDI::BaseClient
         ~AlpacaClient();
 
         // Connect to INDI server
-        bool connectServer();
-        bool disconnectServer();
+        bool connectServer() override;
+        bool disconnectServer(int exist_code = 0) override;
 
     protected:
         // BaseClient overrides

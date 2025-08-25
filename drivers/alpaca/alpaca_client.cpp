@@ -43,10 +43,10 @@ bool AlpacaClient::connectServer()
     return INDI::BaseClient::connectServer();
 }
 
-bool AlpacaClient::disconnectServer()
+bool AlpacaClient::disconnectServer(int exit_code)
 {
     DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Disconnecting from INDI server");
-    return INDI::BaseClient::disconnectServer();
+    return INDI::BaseClient::disconnectServer(exit_code);
 }
 
 void AlpacaClient::newDevice(INDI::BaseDevice dp)
