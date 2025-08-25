@@ -89,14 +89,16 @@ bool LightBoxInterface::updateProperties()
     if (m_DefaultDevice->isConnected())
     {
         m_DefaultDevice->defineProperty(LightSP);
-        m_DefaultDevice->defineProperty(LightIntensityNP);
+        if (m_Capabilities & 0b1)
+            m_DefaultDevice->defineProperty(LightIntensityNP);
         if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->defineProperty(FilterIntensityNP);
     }
     else
     {
         m_DefaultDevice->deleteProperty(LightSP);
-        m_DefaultDevice->deleteProperty(LightIntensityNP);
+        if (m_Capabilities & 0b1)
+            m_DefaultDevice->deleteProperty(LightIntensityNP);
 
         if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->deleteProperty(FilterIntensityNP);
