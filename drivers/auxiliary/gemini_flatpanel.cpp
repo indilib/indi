@@ -146,6 +146,7 @@ bool GeminiFlatpanel::ISNewSwitch(const char *dev, const char *name, ISState *st
             DeviceTypeSP.update(states, names, n);
             DeviceTypeSP.setState(IPS_OK);
             DeviceTypeSP.apply();
+            saveConfig(DeviceTypeSP);
             return true;
         }
 
