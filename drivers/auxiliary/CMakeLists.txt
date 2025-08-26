@@ -384,7 +384,8 @@ install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
 
 # ########## Gemini Flatpanel ###############
 SET(gemini_flatpanel_SRC
-    gemini_flatpanel.cpp)
+    gemini_flatpanel.cpp
+    gemini_flatpanel_adapters.cpp)
 
 add_executable(indi_gemini_flatpanel ${gemini_flatpanel_SRC})
 target_link_libraries(indi_gemini_flatpanel indidriver)
