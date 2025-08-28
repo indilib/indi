@@ -29,7 +29,7 @@
 
 /* See Apple Technical Note TN2187 for details on IOHidManager. */
 
-#include "hidapi.h"
+#include "indi_hidapi.h"
 
 #include <IOKit/hid/IOHIDManager.h>
 #include <IOKit/hid/IOHIDKeys.h>
