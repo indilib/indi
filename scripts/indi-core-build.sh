@@ -31,5 +31,5 @@ cmake \
     -DINDI_BUILD_QT5_CLIENT=ON \
     . $SRCS
 
-make -j$(($(nproc)+1))
+make VERBOSE=1 -j$(($(nproc)+1))
 popd

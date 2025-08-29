@@ -29,7 +29,7 @@ SET(fcusb_SRC
     fcusb.cpp)
 
 add_executable(indi_fcusb_focus ${fcusb_SRC})
-target_link_libraries(indi_fcusb_focus indidriver)
+target_link_libraries(indi_fcusb_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_fcusb_focus RUNTIME DESTINATION bin)
 
 # ############### Rigelsys NFocus Focuser ################
@@ -180,7 +180,7 @@ install(TARGETS indi_esattoarco_focus RUNTIME DESTINATION bin)
 # focusmaster.cpp)
 
 # add_executable(indi_focusmaster_focus ${focusmaster_SRC})
-# target_link_libraries(indi_focusmaster_focus indidriver)
+# target_link_libraries(indi_focusmaster_focus indidriver ${HIDAPILIB})
 # install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
 
 # ############### RainbowAstro RSF Focuser ################
@@ -310,7 +310,7 @@ SET(perfectstar_SRC
     perfectstar.cpp)
 
 add_executable(indi_perfectstar_focus ${perfectstar_SRC})
-target_link_libraries(indi_perfectstar_focus indidriver)
+target_link_libraries(indi_perfectstar_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
 
 # ############### Starlight Instruments EFS ################
@@ -318,7 +318,7 @@ SET(siefs_SRC
     si_efs.cpp)
 
 add_executable(indi_siefs_focus ${siefs_SRC})
-target_link_libraries(indi_siefs_focus indidriver)
+target_link_libraries(indi_siefs_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_siefs_focus RUNTIME DESTINATION bin)
 
 # ############### hitechfocus Focuser ################
@@ -326,7 +326,7 @@ SET(hitecastrodcfocuser_SRC
     hitecastrodcfocuser.cpp)
 
 add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
-target_link_libraries(indi_hitecastrodc_focus indidriver)
+target_link_libraries(indi_hitecastrodc_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
 
 # ############### DeepSky Dad AF1 ################
@@ -398,5 +398,5 @@ SET(activefocuser_SRC
 
 add_executable(indi_activefocuser_focus ${activefocuser_SRC})
 
-target_link_libraries(indi_activefocuser_focus indidriver)
+target_link_libraries(indi_activefocuser_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_activefocuser_focus RUNTIME DESTINATION bin)

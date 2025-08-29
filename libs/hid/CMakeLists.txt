@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
-project(hid C)
+project(indi_hid C)
 
 add_library(${PROJECT_NAME} OBJECT "")
 
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
-    hidapi.h
+    indi_hidapi.h
 )
 
 list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
@@ -48,5 +48,5 @@ elseif(CYGWIN OR UNIX)
 endif()
 
 add_executable(indi_hid_test hidtest.cpp)
-target_link_libraries(indi_hid_test hid ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+target_link_libraries(indi_hid_test indi_hid ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
 install(TARGETS indi_hid_test RUNTIME DESTINATION bin)

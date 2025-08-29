@@ -15,7 +15,7 @@ list(APPEND ${PROJECT_NAME}_LIBS
     eventloop
     dsp
     fpack
-    hid
+    ${HIDAPILIB}
     ${USB1_LIBRARIES}
     ${NOVA_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
