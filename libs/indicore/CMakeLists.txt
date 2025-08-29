@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(indicore C CXX)
+cmake_policy(SET CMP0177 NEW)
 
 if(NOT WIN32)
     find_package(Nova)

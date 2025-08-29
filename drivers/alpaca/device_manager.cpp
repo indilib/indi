@@ -25,6 +25,7 @@
 #include "device_manager.h"
 #include "bridges/device_bridge.h"
 #include "bridges/telescope_bridge.h"
+#include "bridges/camera_bridge.h"
 #include "alpaca_client.h"
 #include "indilogger.h"
 
@@ -263,12 +264,13 @@ std::unique_ptr<IDeviceBridge> DeviceManager::createBridge(INDI::BaseDevice devi
                      device.getDeviceName());
         return std::make_unique<TelescopeBridge>(device, deviceNumber);
     }
+    else if (interface & INDI::BaseDevice::CCD_INTERFACE)
+    {
+        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Creating camera bridge for device %s",
+                     device.getDeviceName());
+        return std::make_unique<CameraBridge>(device, deviceNumber);
+    }
     // Add more device types here as they are implemented
-    // else if (interface & INDI::BaseDevice::CCD_INTERFACE)
-    // {
-    //     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Creating camera bridge for device %s", device.getDeviceName());
-    //     return std::make_unique<CameraBridge>(device, deviceNumber);
-    // }
     // else if (interface & INDI::BaseDevice::DOME_INTERFACE)
     // {
     //     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Creating dome bridge for device %s", device.getDeviceName());

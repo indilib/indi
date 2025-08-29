@@ -6,6 +6,8 @@ set(indi_alpaca_SRCS
     alpaca_discovery.cpp
     bridges/telescope_bridge_base.cpp
     bridges/telescope_bridge_handlers.cpp
+    bridges/camera_bridge_base.cpp
+    bridges/camera_bridge_handlers.cpp
 )
 
 add_executable(indi_alpaca_server ${indi_alpaca_SRCS})

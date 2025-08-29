@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(indidriver C CXX)
+cmake_policy(SET CMP0177 NEW)
 
 include_directories(.)
 include_directories(timer)
@@ -273,7 +274,7 @@ if(INDI_BUILD_STATIC)
     add_library(${TARGET_STATIC} STATIC)
 
     target_link_libraries(${TARGET_STATIC} ${TARGET_OBJECT} ${${PROJECT_NAME}_LIBS})
-    target_include_directories(${TARGET_STATIC} PUBLIC .)
+    target_include_directories(${TARGET_STATIC} PUBLIC . timer thread stream)
 
     set_target_properties(${TARGET_STATIC} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
@@ -291,7 +292,7 @@ if(INDI_BUILD_SHARED)
     add_library(${TARGET_SHARED} SHARED)
 
     target_link_libraries(${TARGET_SHARED} PUBLIC ${TARGET_OBJECT} ${${PROJECT_NAME}_LIBS})
-    target_include_directories(${TARGET_SHARED} PUBLIC .)
+    target_include_directories(${TARGET_SHARED} PUBLIC . timer thread stream)
 
     set_target_properties(${TARGET_SHARED} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}

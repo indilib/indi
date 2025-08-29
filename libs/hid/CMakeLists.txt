@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(hid C)
+cmake_policy(SET CMP0177 NEW)
 
 add_library(${PROJECT_NAME} OBJECT "")
 

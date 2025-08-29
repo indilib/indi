@@ -633,6 +633,10 @@
             <driver name="Guide Simulator">indi_simulator_guide</driver>
             <version>1.0</version>
         </device>
+        <device label="Alpaca Camera" manufacturer="Alpaca">
+            <driver name="Alpaca Camera">indi_alpaca_ccd</driver>
+            <version>1.0</version>
+        </device>
         <device label="DMK CCD" manufacturer="DMK">
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>

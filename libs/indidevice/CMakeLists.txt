@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(indidevice C CXX)
+cmake_policy(SET CMP0177 NEW)
 
 # Dependency
 find_package(ZLIB REQUIRED)
