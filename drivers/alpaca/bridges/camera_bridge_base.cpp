@@ -164,6 +164,8 @@ void CameraBridge::handleRequest(const std::string &method, const httplib::Reque
         handleBayerOffsetX(req, res);
     else if (method == "bayeroffsety")
         handleBayerOffsetY(req, res);
+    else if (method == "sensorname")
+        handleSensorName(req, res);
     // Exposure control
     else if (method == "startexposure")
         handleStartExposure(req, res);
@@ -181,6 +183,10 @@ void CameraBridge::handleRequest(const std::string &method, const httplib::Reque
         handleLastExposureDuration(req, res);
     else if (method == "lastexposurestarttime")
         handleLastExposureStartTime(req, res);
+    else if (method == "exposuremin")
+        handleExposureMin(req, res);
+    else if (method == "exposuremax")
+        handleExposureMax(req, res);
     // Image data
     else if (method == "imagearray")
         handleImageArray(req, res);
@@ -372,9 +378,12 @@ void CameraBridge::updateProperty(INDI::Property property)
             m_CameraState = 5; // Error
         }
 
+        m_ExposureMin = numberProperty[0].getMin();
+        m_ExposureMax = numberProperty[0].getMax();
+
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG,
-                     "Updated exposure state: %s, duration: %.3f",
-                     m_IsExposing ? "EXPOSING" : "IDLE", m_LastExposureDuration);
+                     "Updated exposure state: %s, duration: %.3f, min: %.3f, max: %.3f",
+                     m_IsExposing ? "EXPOSING" : "IDLE", m_LastExposureDuration, m_ExposureMin, m_ExposureMax);
     }
     else if (property.isNameMatch("CCD1"))
     {

@@ -115,6 +115,7 @@ class CameraBridge : public IDeviceBridge
         void handleSensorType(const httplib::Request &req, httplib::Response &res);
         void handleBayerOffsetX(const httplib::Request &req, httplib::Response &res);
         void handleBayerOffsetY(const httplib::Request &req, httplib::Response &res);
+        void handleSensorName(const httplib::Request &req, httplib::Response &res);
 
         // Camera-specific Alpaca API methods - Exposure
         void handleStartExposure(const httplib::Request &req, httplib::Response &res);
@@ -125,6 +126,8 @@ class CameraBridge : public IDeviceBridge
         void handlePercentCompleted(const httplib::Request &req, httplib::Response &res);
         void handleLastExposureDuration(const httplib::Request &req, httplib::Response &res);
         void handleLastExposureStartTime(const httplib::Request &req, httplib::Response &res);
+        void handleExposureMin(const httplib::Request &req, httplib::Response &res);
+        void handleExposureMax(const httplib::Request &req, httplib::Response &res);
 
         // Camera-specific Alpaca API methods - Image Data
         void handleImageArray(const httplib::Request &req, httplib::Response &res);
@@ -228,6 +231,8 @@ class CameraBridge : public IDeviceBridge
         double m_LastExposureDuration {0.0};
         std::string m_LastExposureStartTime;
         std::chrono::steady_clock::time_point m_ExposureStartTime;
+        double m_ExposureMin {0.0};
+        double m_ExposureMax {10000.0};
 
         // Current state tracking - Image Data
         std::vector<uint8_t> m_LastImageData;

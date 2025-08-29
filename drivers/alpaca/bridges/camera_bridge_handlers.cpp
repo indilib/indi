@@ -156,8 +156,31 @@ void CameraBridge::handleBinX(const httplib::Request &req, httplib::Response &re
     }
     else if (req.method == "PUT")
     {
-        // Set binning X - would need to send to INDI
-        sendResponseStatus(res, false, "Setting binning not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("BinX"))
+        {
+            int newBinX = std::stoi(params.find("BinX")->second);
+            INDI::Property binningProperty = m_Device.getProperty("CCD_BINNING");
+            if (binningProperty.isValid() && binningProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(binningProperty);
+                auto horBinElement = numberProperty.findWidgetByName("HOR_BIN");
+                if (horBinElement)
+                {
+                    horBinElement->setValue(newBinX);
+                    requestNewNumber(numberProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+            }
+            sendResponseStatus(res, false, "Failed to set BinX: CCD_BINNING property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'BinX' parameter in request body");
+        }
     }
 }
 
@@ -171,8 +194,31 @@ void CameraBridge::handleBinY(const httplib::Request &req, httplib::Response &re
     }
     else if (req.method == "PUT")
     {
-        // Set binning Y - would need to send to INDI
-        sendResponseStatus(res, false, "Setting binning not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("BinY"))
+        {
+            int newBinY = std::stoi(params.find("BinY")->second);
+            INDI::Property binningProperty = m_Device.getProperty("CCD_BINNING");
+            if (binningProperty.isValid() && binningProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(binningProperty);
+                auto verBinElement = numberProperty.findWidgetByName("VER_BIN");
+                if (verBinElement)
+                {
+                    verBinElement->setValue(newBinY);
+                    requestNewNumber(numberProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+            }
+            sendResponseStatus(res, false, "Failed to set BinY: CCD_BINNING property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'BinY' parameter in request body");
+        }
     }
 }
 
@@ -186,8 +232,31 @@ void CameraBridge::handleStartX(const httplib::Request &req, httplib::Response &
     }
     else if (req.method == "PUT")
     {
-        // Set start X - would need to send to INDI
-        sendResponseStatus(res, false, "Setting frame not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("StartX"))
+        {
+            int newStartX = std::stoi(params.find("StartX")->second);
+            INDI::Property frameProperty = m_Device.getProperty("CCD_FRAME");
+            if (frameProperty.isValid() && frameProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(frameProperty);
+                auto xElement = numberProperty.findWidgetByName("X");
+                if (xElement)
+                {
+                    xElement->setValue(newStartX);
+                    requestNewNumber(numberProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+            }
+            sendResponseStatus(res, false, "Failed to set StartX: CCD_FRAME property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'StartX' parameter in request body");
+        }
     }
 }
 
@@ -201,8 +270,31 @@ void CameraBridge::handleStartY(const httplib::Request &req, httplib::Response &
     }
     else if (req.method == "PUT")
     {
-        // Set start Y - would need to send to INDI
-        sendResponseStatus(res, false, "Setting frame not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("StartY"))
+        {
+            int newStartY = std::stoi(params.find("StartY")->second);
+            INDI::Property frameProperty = m_Device.getProperty("CCD_FRAME");
+            if (frameProperty.isValid() && frameProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(frameProperty);
+                auto yElement = numberProperty.findWidgetByName("Y");
+                if (yElement)
+                {
+                    yElement->setValue(newStartY);
+                    requestNewNumber(numberProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+            }
+            sendResponseStatus(res, false, "Failed to set StartY: CCD_FRAME property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'StartY' parameter in request body");
+        }
     }
 }
 
@@ -216,8 +308,31 @@ void CameraBridge::handleNumX(const httplib::Request &req, httplib::Response &re
     }
     else if (req.method == "PUT")
     {
-        // Set num X - would need to send to INDI
-        sendResponseStatus(res, false, "Setting frame not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("NumX"))
+        {
+            int newNumX = std::stoi(params.find("NumX")->second);
+            INDI::Property frameProperty = m_Device.getProperty("CCD_FRAME");
+            if (frameProperty.isValid() && frameProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(frameProperty);
+                auto widthElement = numberProperty.findWidgetByName("WIDTH");
+                if (widthElement)
+                {
+                    widthElement->setValue(newNumX);
+                    requestNewNumber(numberProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+            }
+            sendResponseStatus(res, false, "Failed to set NumX: CCD_FRAME property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'NumX' parameter in request body");
+        }
     }
 }
 
@@ -231,8 +346,31 @@ void CameraBridge::handleNumY(const httplib::Request &req, httplib::Response &re
     }
     else if (req.method == "PUT")
     {
-        // Set num Y - would need to send to INDI
-        sendResponseStatus(res, false, "Setting frame not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("NumY"))
+        {
+            int newNumY = std::stoi(params.find("NumY")->second);
+            INDI::Property frameProperty = m_Device.getProperty("CCD_FRAME");
+            if (frameProperty.isValid() && frameProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(frameProperty);
+                auto heightElement = numberProperty.findWidgetByName("HEIGHT");
+                if (heightElement)
+                {
+                    heightElement->setValue(newNumY);
+                    requestNewNumber(numberProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+            }
+            sendResponseStatus(res, false, "Failed to set NumY: CCD_FRAME property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'NumY' parameter in request body");
+        }
     }
 }
 
@@ -290,8 +428,36 @@ void CameraBridge::handleCoolerOn(const httplib::Request &req, httplib::Response
     }
     else if (req.method == "PUT")
     {
-        // Set cooler state - would need to send to INDI
-        sendResponseStatus(res, false, "Setting cooler not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("CoolerOn"))
+        {
+            bool newCoolerOn = (params.find("CoolerOn")->second == "true");
+            INDI::Property coolerProperty = m_Device.getProperty("CCD_COOLER");
+            if (coolerProperty.isValid() && coolerProperty.getType() == INDI_SWITCH)
+            {
+                INDI::PropertySwitch switchProperty(coolerProperty);
+                if (newCoolerOn)
+                {
+                    switchProperty.findWidgetByName("COOLER_ON")->setState(ISS_ON);
+                    switchProperty.findWidgetByName("COOLER_OFF")->setState(ISS_OFF);
+                }
+                else
+                {
+                    switchProperty.findWidgetByName("COOLER_ON")->setState(ISS_OFF);
+                    switchProperty.findWidgetByName("COOLER_OFF")->setState(ISS_ON);
+                }
+                requestNewSwitch(switchProperty);
+                sendResponseStatus(res, true, "");
+                return;
+            }
+            sendResponseStatus(res, false, "Failed to set CoolerOn: CCD_COOLER property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'CoolerOn' parameter in request body");
+        }
     }
 }
 
@@ -306,8 +472,27 @@ void CameraBridge::handleSetCCDTemperature(const httplib::Request &req, httplib:
 {
     if (req.method == "PUT")
     {
-        // Set temperature - would need to send to INDI
-        sendResponseStatus(res, false, "Setting temperature not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("SetCCDTemperature"))
+        {
+            double newTemperature = std::stod(params.find("SetCCDTemperature")->second);
+            INDI::Property temperatureProperty = m_Device.getProperty("CCD_TEMPERATURE");
+            if (temperatureProperty.isValid() && temperatureProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(temperatureProperty);
+                numberProperty[0].setValue(newTemperature);
+                requestNewNumber(numberProperty);
+                sendResponseStatus(res, true, "");
+                return;
+            }
+            sendResponseStatus(res, false, "Failed to set CCDTemperature: CCD_TEMPERATURE property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'SetCCDTemperature' parameter in request body");
+        }
     }
     else
     {
@@ -328,7 +513,7 @@ void CameraBridge::handleGain(const httplib::Request &req, httplib::Response &re
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_Gain);
+        sendResponseValue(res, static_cast<int>(m_Gain));
     }
     else if (req.method == "PUT")
     {
@@ -383,7 +568,7 @@ void CameraBridge::handleGainMin(const httplib::Request &req, httplib::Response 
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasGain)
-        sendResponseValue(res, m_GainMin);
+        sendResponseValue(res, static_cast<int>(m_GainMin));
     else
         sendResponseStatus(res, false, "Gain not supported");
 }
@@ -394,7 +579,7 @@ void CameraBridge::handleGainMax(const httplib::Request &req, httplib::Response 
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasGain)
-        sendResponseValue(res, m_GainMax);
+        sendResponseValue(res, static_cast<int>(m_GainMax));
     else
         sendResponseStatus(res, false, "Gain not supported");
 }
@@ -429,7 +614,7 @@ void CameraBridge::handleOffset(const httplib::Request &req, httplib::Response &
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_Offset);
+        sendResponseValue(res, static_cast<int>(m_Offset));
     }
     else if (req.method == "PUT")
     {
@@ -484,7 +669,7 @@ void CameraBridge::handleOffsetMin(const httplib::Request &req, httplib::Respons
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasOffset)
-        sendResponseValue(res, m_OffsetMin);
+        sendResponseValue(res, static_cast<int>(m_OffsetMin));
     else
         sendResponseStatus(res, false, "Offset not supported");
 }
@@ -495,7 +680,7 @@ void CameraBridge::handleOffsetMax(const httplib::Request &req, httplib::Respons
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasOffset)
-        sendResponseValue(res, m_OffsetMax);
+        sendResponseValue(res, static_cast<int>(m_OffsetMax));
     else
         sendResponseStatus(res, false, "Offset not supported");
 }
@@ -529,8 +714,42 @@ void CameraBridge::handleReadoutMode(const httplib::Request &req, httplib::Respo
     }
     else if (req.method == "PUT")
     {
-        // Set readout mode - would need to send to INDI
-        sendResponseStatus(res, false, "Setting readout mode not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("ReadoutMode"))
+        {
+            int newReadoutModeIndex = std::stoi(params.find("ReadoutMode")->second);
+
+            if (newReadoutModeIndex >= 0 && static_cast<size_t>(newReadoutModeIndex) < m_ReadoutModes.size())
+            {
+                std::string newReadoutModeName = m_ReadoutModes[newReadoutModeIndex];
+                INDI::Property readoutModeProperty = m_Device.getProperty("CCD_READOUT_MODE");
+                if (readoutModeProperty.isValid() && readoutModeProperty.getType() == INDI_SWITCH)
+                {
+                    INDI::PropertySwitch switchProperty(readoutModeProperty);
+                    for (auto &sw : switchProperty)
+                    {
+                        if (sw.isNameMatch(newReadoutModeName.c_str()))
+                            sw.setState(ISS_ON);
+                        else
+                            sw.setState(ISS_OFF);
+                    }
+                    requestNewSwitch(switchProperty);
+                    sendResponseStatus(res, true, "");
+                    return;
+                }
+                sendResponseStatus(res, false, "Failed to set ReadoutMode: CCD_READOUT_MODE property not found or invalid.");
+            }
+            else
+            {
+                sendResponseStatus(res, false, "Invalid ReadoutMode index.");
+            }
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'ReadoutMode' parameter in request body");
+        }
     }
 }
 
@@ -566,13 +785,39 @@ void CameraBridge::handleBayerOffsetY(const httplib::Request &req, httplib::Resp
     sendResponseValue(res, m_BayerOffsetY);
 }
 
+void CameraBridge::handleSensorName(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    sendResponseValue(res, std::string());
+}
+
 // Exposure Control
 void CameraBridge::handleStartExposure(const httplib::Request &req, httplib::Response &res)
 {
     if (req.method == "PUT")
     {
-        // Start exposure - would need to send to INDI
-        sendResponseStatus(res, false, "Starting exposure not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("ExposureDuration"))
+        {
+            double exposureDuration = std::stod(params.find("ExposureDuration")->second);
+            INDI::Property exposureProperty = m_Device.getProperty("CCD_EXPOSURE");
+            if (exposureProperty.isValid() && exposureProperty.getType() == INDI_NUMBER)
+            {
+                INDI::PropertyNumber numberProperty(exposureProperty);
+                numberProperty[0].setValue(exposureDuration);
+                requestNewNumber(numberProperty);
+                sendResponseStatus(res, true, "");
+                return;
+            }
+            sendResponseStatus(res, false, "Failed to start exposure: CCD_EXPOSURE property not found or invalid.");
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'ExposureDuration' parameter in request body");
+        }
     }
     else
     {
@@ -584,8 +829,20 @@ void CameraBridge::handleStopExposure(const httplib::Request &req, httplib::Resp
 {
     if (req.method == "PUT")
     {
-        // Stop exposure - would need to send to INDI
-        sendResponseStatus(res, false, "Stopping exposure not implemented yet");
+        INDI::Property abortProperty = m_Device.getProperty("CCD_ABORT_EXPOSURE");
+        if (abortProperty.isValid() && abortProperty.getType() == INDI_SWITCH)
+        {
+            INDI::PropertySwitch switchProperty(abortProperty);
+            auto abortElement = switchProperty.findWidgetByName("ABORT");
+            if (abortElement)
+            {
+                abortElement->setState(ISS_ON);
+                requestNewSwitch(switchProperty);
+                sendResponseStatus(res, true, "");
+                return;
+            }
+        }
+        sendResponseStatus(res, false, "Failed to stop exposure: CCD_ABORT_EXPOSURE property not found or invalid.");
     }
     else
     {
@@ -597,8 +854,20 @@ void CameraBridge::handleAbortExposure(const httplib::Request &req, httplib::Res
 {
     if (req.method == "PUT")
     {
-        // Abort exposure - would need to send to INDI
-        sendResponseStatus(res, false, "Aborting exposure not implemented yet");
+        INDI::Property abortProperty = m_Device.getProperty("CCD_ABORT_EXPOSURE");
+        if (abortProperty.isValid() && abortProperty.getType() == INDI_SWITCH)
+        {
+            INDI::PropertySwitch switchProperty(abortProperty);
+            auto abortElement = switchProperty.findWidgetByName("ABORT");
+            if (abortElement)
+            {
+                abortElement->setState(ISS_ON);
+                requestNewSwitch(switchProperty);
+                sendResponseStatus(res, true, "");
+                return;
+            }
+        }
+        sendResponseStatus(res, false, "Failed to abort exposure: CCD_ABORT_EXPOSURE property not found or invalid.");
     }
     else
     {
@@ -653,6 +922,20 @@ void CameraBridge::handleLastExposureStartTime(const httplib::Request &req, http
     sendResponseValue(res, m_LastExposureStartTime);
 }
 
+void CameraBridge::handleExposureMin(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    sendResponseValue(res, m_ExposureMin);
+}
+
+void CameraBridge::handleExposureMax(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    sendResponseValue(res, m_ExposureMax);
+}
+
 // Image Data
 void CameraBridge::handleImageArray(const httplib::Request &req, httplib::Response &res)
 {
@@ -702,8 +985,96 @@ void CameraBridge::handlePulseGuide(const httplib::Request &req, httplib::Respon
 {
     if (req.method == "PUT")
     {
-        // Pulse guide - would need to send to INDI
-        sendResponseStatus(res, false, "Pulse guiding not implemented yet");
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("Direction") && params.count("Duration"))
+        {
+            int direction = std::stoi(params.find("Direction")->second);
+            double duration = std::stod(params.find("Duration")->second); // Duration in milliseconds
+
+            INDI::Property guideNSProperty = m_Device.getProperty("TELESCOPE_TIMED_GUIDE_NS");
+            INDI::Property guideWEProperty = m_Device.getProperty("TELESCOPE_TIMED_GUIDE_WE");
+
+            if (!guideNSProperty.isValid() && !guideWEProperty.isValid())
+            {
+                sendResponseStatus(res, false, "Pulse guiding properties (TELESCOPE_TIMED_GUIDE_NS, TELESCOPE_TIMED_GUIDE_WE) not found.");
+                return;
+            }
+
+            if (direction == 0) // East
+            {
+                if (guideWEProperty.isValid() && guideWEProperty.getType() == INDI_NUMBER)
+                {
+                    INDI::PropertyNumber numberProperty(guideWEProperty);
+                    auto eastElement = numberProperty.findWidgetByName("TIMED_GUIDE_E");
+                    if (eastElement)
+                    {
+                        eastElement->setValue(duration);
+                        requestNewNumber(numberProperty);
+                        sendResponseStatus(res, true, "");
+                        return;
+                    }
+                }
+                sendResponseStatus(res, false, "Failed to pulse guide East.");
+            }
+            else if (direction == 1) // North
+            {
+                if (guideNSProperty.isValid() && guideNSProperty.getType() == INDI_NUMBER)
+                {
+                    INDI::PropertyNumber numberProperty(guideNSProperty);
+                    auto northElement = numberProperty.findWidgetByName("TIMED_GUIDE_N");
+                    if (northElement)
+                    {
+                        northElement->setValue(duration);
+                        requestNewNumber(numberProperty);
+                        sendResponseStatus(res, true, "");
+                        return;
+                    }
+                }
+                sendResponseStatus(res, false, "Failed to pulse guide North.");
+            }
+            else if (direction == 2) // South
+            {
+                if (guideNSProperty.isValid() && guideNSProperty.getType() == INDI_NUMBER)
+                {
+                    INDI::PropertyNumber numberProperty(guideNSProperty);
+                    auto southElement = numberProperty.findWidgetByName("TIMED_GUIDE_S");
+                    if (southElement)
+                    {
+                        southElement->setValue(duration);
+                        requestNewNumber(numberProperty);
+                        sendResponseStatus(res, true, "");
+                        return;
+                    }
+                }
+                sendResponseStatus(res, false, "Failed to pulse guide South.");
+            }
+            else if (direction == 3) // West
+            {
+                if (guideWEProperty.isValid() && guideWEProperty.getType() == INDI_NUMBER)
+                {
+                    INDI::PropertyNumber numberProperty(guideWEProperty);
+                    auto westElement = numberProperty.findWidgetByName("TIMED_GUIDE_W");
+                    if (westElement)
+                    {
+                        westElement->setValue(duration);
+                        requestNewNumber(numberProperty);
+                        sendResponseStatus(res, true, "");
+                        return;
+                    }
+                }
+                sendResponseStatus(res, false, "Failed to pulse guide West.");
+            }
+            else
+            {
+                sendResponseStatus(res, false, "Invalid 'Direction' parameter.");
+            }
+        }
+        else
+        {
+            sendResponseStatus(res, false, "Missing 'Direction' or 'Duration' parameter in request body");
+        }
     }
     else
     {
