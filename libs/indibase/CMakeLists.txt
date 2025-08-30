@@ -1,6 +1,8 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 project(indidriver C CXX)
-cmake_policy(SET CMP0177 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
 
 include_directories(.)
 include_directories(timer)
