@@ -252,14 +252,14 @@ bool DSC::ReadScopeStatus()
     // Send 'Q'
     char CR[1] = { 0x51 };
     // Response
-    char response[16] = { 0 };
+    char response[18] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     LOGF_DEBUG("CMD: %#02X", CR[0]);
 
     if (isSimulation())
     {
-        snprintf(response, 16, "%06.f\t%06.f", SimEncoderN[AXIS1_ENCODER].value, SimEncoderN[AXIS2_ENCODER].value);
+        snprintf(response, 18, "%06.f\t%06.f", SimEncoderN[AXIS1_ENCODER].value, SimEncoderN[AXIS2_ENCODER].value);
     }
     else
     {

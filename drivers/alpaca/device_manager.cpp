@@ -506,8 +506,8 @@ bool DeviceManager::extractTransactionIDs(const httplib::Request &req, httplib::
         try
         {
             // Check if the string is a valid uint32
-            long value = std::stol(clientTransactionIdStr);
-            if (value < 0 || value > UINT32_MAX)
+            unsigned long value = std::stoul(clientTransactionIdStr);
+            if (value > UINT32_MAX)
             {
                 // Invalid range for uint32
                 DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "clienttransactionid out of range for uint32");
