@@ -549,7 +549,7 @@ bool WandererCover::SetLightBoxBrightness(uint16_t value)
     }
     char response[WANDERER_RESPONSE_SIZE];
     char command[5] = {0};
-    snprintf(command, 3, "%03d\n", value);
+    snprintf(command, 5, "%03d\n", value);
     if (!sendCommand(command, response, false))
         return false;
 
