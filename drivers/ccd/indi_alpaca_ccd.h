@@ -82,17 +82,15 @@ class AlpacaCCD : public INDI::CCD
 
     private:
         // Internal state variables
-        float m_ExposureDuration {0};
         bool m_ExposureInProgress {false};
         std::string m_CurrentReadoutModeName {"0"}; // Default to mode 0
         int m_CurrentReadoutModeIndex {0};
-        time_t m_ExposureStartTime;
 
         // Alpaca Communication
         std::unique_ptr<httplib::Client> httpClient; // Declared here
-        bool sendAlpacaGET(const std::string& endpoint, nlohmann::json& response);
-        bool sendAlpacaPUT(const std::string& endpoint, const nlohmann::json& request, nlohmann::json& response);
-        std::string getAlpacaURL(const std::string& endpoint);
+        bool sendAlpacaGET(const std::string &endpoint, nlohmann::json &response);
+        bool sendAlpacaPUT(const std::string &endpoint, const nlohmann::json &request, nlohmann::json &response);
+        std::string getAlpacaURL(const std::string &endpoint);
         uint32_t getTransactionId()
         {
             return ++m_ClientTransactionID;
@@ -132,9 +130,9 @@ class AlpacaCCD : public INDI::CCD
         ImageMetadata m_CurrentImage;
         bool alpacaGetImageReady(); // Declared here
         bool alpacaGetImageArrayImageBytes(uint8_t** buffer, size_t* buffer_size, ImageBytesMetadata* metadata);
-        bool alpacaGetImageArrayJSON(ImageMetadata& meta, uint8_t** buffer, size_t* buffer_size);
+        bool alpacaGetImageArrayJSON(ImageMetadata &meta, uint8_t** buffer, size_t* buffer_size);
         bool downloadImage();
-        bool processImageBytesData(uint8_t* buffer, size_t buffer_size, const ImageBytesMetadata& metadata);
+        bool processImageBytesData(uint8_t* buffer, size_t buffer_size, const ImageBytesMetadata &metadata);
         bool processMonoImage(uint8_t* buffer);
         bool processColorImage(uint8_t* buffer); // Placeholder for color image processing
 
@@ -145,7 +143,7 @@ class AlpacaCCD : public INDI::CCD
                                        int32_t transmission_type);
 
         // Data Translation
-        void translateCoordinates(uint8_t* buffer, const ImageMetadata& meta);
+        void translateCoordinates(uint8_t* buffer, const ImageMetadata &meta);
         virtual void addFITSKeywords(INDI::CCDChip * targetChip, std::vector<INDI::FITSRecord> &fitsKeywords) override;
 
         // Worker thread for exposure handling
