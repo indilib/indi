@@ -267,6 +267,9 @@ bool SkywatcherAPIMount::initProperties()
     Axis2TrackRateNP.fill(getDeviceName(), "AXIS2TrackRate", "Axis 2 Track", TRACKING_TAB, IP_RW, 60, IPS_IDLE);
 
 
+    MountTypeSP.reset();
+    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+
     tcpConnection->setDefaultHost("192.168.4.1");
     tcpConnection->setDefaultPort(11880);
     tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
@@ -612,9 +615,10 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     SilentSlewMode = (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") != nullptr
                       && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON);
 
-    if(TrackState != SCOPE_SLEWING) {
-        long deltaAz  = DegreesToMicrosteps(AXIS1,AZ_BACKLASH_DEG);
-        long deltaAlt = DegreesToMicrosteps(AXIS2,ALT_BACKLASH_DEG);
+    if(TrackState != SCOPE_SLEWING)
+    {
+        long deltaAz  = DegreesToMicrosteps(AXIS1, AZ_BACKLASH_DEG);
+        long deltaAlt = DegreesToMicrosteps(AXIS2, ALT_BACKLASH_DEG);
         AzimuthOffsetMicrosteps -= deltaAz;
         AltitudeOffsetMicrosteps -= deltaAlt;
     }
@@ -1945,8 +1949,8 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
     // Convert offsets from arcsecs to steps
     offsetSteps[AXIS_AZ] = offsetAngle[AXIS_AZ] * AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC].value;
     offsetSteps[AXIS_ALT] = offsetAngle[AXIS_ALT] * AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC].value;
-    
-    /// AZ tracking 
+
+    /// AZ tracking
     {
         m_OffsetSwitchSettle[AXIS_AZ] = 0;
         m_LastOffset[AXIS_AZ] = offsetSteps[AXIS_AZ];
@@ -1975,14 +1979,14 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
         trackByRate(AXIS1, trackRates[AXIS_AZ]);
     }
 
-    /// Alt tracking 
+    /// Alt tracking
     {
         m_OffsetSwitchSettle[AXIS_ALT] = 0;
         m_LastOffset[AXIS_ALT] = offsetAngle[AXIS_ALT];
         targetSteps[AXIS_ALT]  = DegreesToMicrosteps(AXIS2, targetMountAxisCoordinates.altitude);
         // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
         trackRates[AXIS_ALT] = predRate[AXIS_ALT] + m_Controllers[AXIS_ALT]->calculate(0, -offsetAngle[AXIS_ALT]);
-        
+
         //
         // make sure we never change direction of the trackRate - reduce to predRate * MIN_TRACK_RATE_FACTOR in same direction
         // since tracking direction change can lead to poor tracking

@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 PROJECT(libindi C CXX)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
 
 # As moc files are generated in the binary dir, tell CMake
 # to always look for includes there:

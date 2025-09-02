@@ -589,6 +589,10 @@ bool SynscanDriver::SetAltAzMode(bool enable)
 {
     IUResetSwitch(&GotoModeSP);
 
+    MountTypeSP.reset();
+    MountTypeSP[MOUNT_ALTAZ].setState(enable ? ISS_ON : ISS_OFF);
+    MountTypeSP[MOUNT_EQ_GEM].setState(!enable ? ISS_ON : ISS_OFF);
+
     if (enable)
     {
         ISwitch *sp = IUFindSwitch(&GotoModeSP, "ALTAZ");

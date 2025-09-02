@@ -64,12 +64,11 @@ bool ScopeSim::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+    // Override the mount type property to make it writable in the simulator
+    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
 #ifdef USE_SIM_TAB
-    // mount type and alignment properties, these are in the Simulation tab
-    mountTypeSP[ALTAZ].fill("ALTAZ", "ALTAZ", ISS_OFF);
-    mountTypeSP[EQ_FORK].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
-    mountTypeSP[EQ_GEM].fill("EQ_GEM", "GEM", ISS_OFF);
-    mountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+    // alignment properties, these are in the Simulation tab
 
     simPierSideSP[PS_OFF].fill("PS_OFF", "Off", ISS_OFF);
     simPierSideSP[PS_ON].fill("PS_ON", "On", ISS_ON);
@@ -140,8 +139,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
 #ifdef USE_SIM_TAB
-    defineProperty(mountTypeSP);
-    mountTypeSP.load();
+    // Load mount type settings
+    MountTypeSP.load();
     defineProperty(simPierSideSP);
     simPierSideSP.load();
     defineProperty(mountModelNP);
@@ -460,13 +459,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 #ifdef USE_SIM_TAB
-        if (mountTypeSP.isNameMatch(name))
+        if (MountTypeSP.isNameMatch(name))
         {
-            if (!mountTypeSP.update(states, names, n))
+            if (!MountTypeSP.update(states, names, n))
                 return false;
 
-            mountTypeSP.setState(IPS_OK);
-            mountTypeSP.apply();
+            MountTypeSP.setState(IPS_OK);
+            MountTypeSP.apply();
             updateMountAndPierSide();
             return true;
         }
@@ -687,7 +686,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
 
 #ifdef USE_SIM_TAB
     GuideRateNP.save(fp);
-    mountTypeSP.save(fp);
+    MountTypeSP.save(fp);
     simPierSideSP.save(fp);
     mountModelNP.save(fp);
     flipHourAngleNP.save(fp);
@@ -711,7 +710,7 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 bool ScopeSim::updateMountAndPierSide()
 {
 #ifdef USE_SIM_TAB
-    int mountType = mountTypeSP.findOnSwitchIndex();
+    int mountType = MountTypeSP.findOnSwitchIndex();
     int pierSide = simPierSideSP.findOnSwitchIndex();
     if (mountType < 0 || pierSide < 0)
         return false;

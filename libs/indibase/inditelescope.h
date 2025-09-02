@@ -910,6 +910,15 @@ class Telescope : public DefaultDevice
         // PEC State
         INDI::PropertySwitch PECStateSP {2};
 
+        // Mount Type
+        INDI::PropertySwitch MountTypeSP {3};
+        enum
+        {
+            MOUNT_ALTAZ,
+            MOUNT_EQ_FORK,
+            MOUNT_EQ_GEM
+        };
+
         // Track Mode
         INDI::PropertySwitch TrackModeSP {0};
 

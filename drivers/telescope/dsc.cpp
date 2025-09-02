@@ -82,6 +82,11 @@ bool DSC::initProperties()
     IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
+
+    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    MountTypeSP.reset();
+    MountTypeSP[ALTAZ].setState(ISS_ON);
+
     // Offsets applied to raw encoder values to adjust them as necessary
 #if 0
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 1);
@@ -93,12 +98,6 @@ bool DSC::initProperties()
     IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 6, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0,
                        IPS_IDLE);
 #endif
-
-    // Mount Type
-    IUFillSwitch(&MountTypeS[MOUNT_EQUATORIAL], "MOUNT_EQUATORIAL", "Equatorial", ISS_ON);
-    IUFillSwitch(&MountTypeS[MOUNT_ALTAZ], "MOUNT_ALTAZ", "AltAz", ISS_OFF);
-    IUFillSwitchVector(&MountTypeSP, MountTypeS, 2, getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Simulation encoder values
     IUFillNumber(&SimEncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", -1e6, 1e6, 0, 0);
@@ -124,7 +123,6 @@ bool DSC::updateProperties()
         defineProperty(&AxisRangeSP);
         defineProperty(&ReverseSP);
         //defineProperty(&EncoderOffsetNP);
-        defineProperty(&MountTypeSP);
 
         if (isSimulation())
             defineProperty(&SimEncoderNP);
@@ -138,7 +136,6 @@ bool DSC::updateProperties()
         deleteProperty(AxisRangeSP.name);
         deleteProperty(ReverseSP.name);
         //deleteProperty(EncoderOffsetNP.name);
-        deleteProperty(MountTypeSP.name);
 
         if (isSimulation())
             deleteProperty(SimEncoderNP.name);
@@ -155,7 +152,7 @@ bool DSC::saveConfigItems(FILE *fp)
     //IUSaveConfigNumber(fp, &EncoderOffsetNP);
     IUSaveConfigSwitch(fp, &AxisRangeSP);
     IUSaveConfigSwitch(fp, &ReverseSP);
-    IUSaveConfigSwitch(fp, &MountTypeSP);
+    MountTypeSP.save(fp);
 
     return true;
 }
@@ -213,11 +210,11 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             return true;
         }
 
-        if (strcmp(name, MountTypeSP.name) == 0)
+        if (MountTypeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MountTypeSP, states, names, n);
-            MountTypeSP.s = IPS_OK;
-            IDSetSwitch(&MountTypeSP, nullptr);
+            MountTypeSP.update(states, names, n);
+            MountTypeSP.setState(IPS_OK);
+            MountTypeSP.apply();
             return true;
         }
 
@@ -255,14 +252,14 @@ bool DSC::ReadScopeStatus()
     // Send 'Q'
     char CR[1] = { 0x51 };
     // Response
-    char response[16] = { 0 };
+    char response[18] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     LOGF_DEBUG("CMD: %#02X", CR[0]);
 
     if (isSimulation())
     {
-        snprintf(response, 16, "%06.f\t%06.f", SimEncoderN[AXIS1_ENCODER].value, SimEncoderN[AXIS2_ENCODER].value);
+        snprintf(response, 18, "%06.f\t%06.f", SimEncoderN[AXIS1_ENCODER].value, SimEncoderN[AXIS2_ENCODER].value);
     }
     else
     {
@@ -370,7 +367,7 @@ bool DSC::ReadScopeStatus()
     INDI::IEquatorialCoordinates eq { 0, 0 };
 
     // Now we proceed depending on mount type
-    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    if (MountTypeSP[MOUNT_EQ_GEM].s == ISS_ON)
     {
         encoderEquatorialCoordinates.rightascension = Axis1Degrees / 15.0;
 
@@ -410,7 +407,7 @@ bool DSC::Sync(double ra, double dec)
     INDI::IEquatorialCoordinates RaDec { 0, 0 };
     INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    if (MountTypeSP[MOUNT_EQ_GEM].getState() == ISS_ON)
     {
         double LST = get_local_sidereal_time(m_Location.longitude);
         RaDec.rightascension = range24(LST - encoderEquatorialCoordinates.rightascension);
@@ -426,7 +423,7 @@ bool DSC::Sync(double ra, double dec)
     NewEntry.RightAscension = ra;
     NewEntry.Declination   = dec;
 
-    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    if (MountTypeSP[MOUNT_EQ_GEM].getState() == ISS_ON)
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
     else
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
