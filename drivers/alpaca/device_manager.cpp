@@ -29,7 +29,6 @@
 #include "alpaca_client.h"
 #include "indilogger.h"
 
-#include <httplib.h>
 #include <cstring>
 #include <sstream>
 

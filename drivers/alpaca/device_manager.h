@@ -31,13 +31,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
-
-// Forward declarations
-namespace httplib
-{
-class Request;
-class Response;
-}
+#include <httplib.h>
 
 class IDeviceBridge;
 
