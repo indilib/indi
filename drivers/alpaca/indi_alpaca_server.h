@@ -29,12 +29,7 @@
 #include <memory>
 #include <thread>
 #include <atomic>
-
-// Forward declarations
-namespace httplib
-{
-class Server;
-}
+#include <httplib.h>
 
 class AlpacaClient;
 class DeviceManager;

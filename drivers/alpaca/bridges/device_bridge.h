@@ -27,13 +27,7 @@
 #include "basedevice.h"
 #include "indiproperty.h"
 #include <string>
-
-// Forward declarations
-namespace httplib
-{
-class Request;
-class Response;
-}
+#include <httplib.h>
 
 class IDeviceBridge
 {

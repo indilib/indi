@@ -29,7 +29,6 @@
 #include "indilogger.h"
 #include "inditimer.h"
 
-#include <httplib.h>
 #include <memory>
 #include <thread>
 #include <chrono>
