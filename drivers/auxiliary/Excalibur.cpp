@@ -144,6 +144,11 @@ bool Excalibur::EnableLightBox(bool enable)
 //////////////////////////////////////////////////////////////////////
 bool Excalibur::SetLightBoxBrightness(uint16_t value)
 {
+    // If light box is not on, then we simply accept the value as-is
+    // without dispatching the command to the device
+    if (value > 0 && LightSP[FLAT_LIGHT_ON].getState() != ISS_ON)
+        return true;
+
     if( ParkCapSP[0].getState() != ISS_ON)
     {
         LOG_ERROR("You must Park eXcalibur first.");
