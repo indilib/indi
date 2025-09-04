@@ -135,18 +135,8 @@ bool Excalibur::EnableLightBox(bool enable)
 {
     char response[20] = {0};
     char cmd[16] = {0};
-    if (!enable)
-    {
-        snprintf(cmd, 16, "L%d##", 0);
-        return sendCommand(cmd, response);
-    }
-    else
-    {
-        snprintf(cmd, 16, "L%d##", (int)LightIntensityNP[0].getValue());
-
-        return sendCommand(cmd, response);
-    }
-
+    snprintf(cmd, 16, "L%d##", enable ? static_cast<int>(LightIntensityNP[0].getValue()) : 0);
+    return sendCommand(cmd, response);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -154,19 +144,12 @@ bool Excalibur::EnableLightBox(bool enable)
 //////////////////////////////////////////////////////////////////////
 bool Excalibur::SetLightBoxBrightness(uint16_t value)
 {
-    if(LightSP[FLAT_LIGHT_ON].getState() != ISS_ON)
-    {
-        LOG_ERROR("You must set On the Flat Light first.");
-        return false;
-    }
-
     if( ParkCapSP[0].getState() != ISS_ON)
     {
         LOG_ERROR("You must Park eXcalibur first.");
         return false;
     }
 
-    //char response[20] = {0};
     char cmd[DRIVER_RES] = {0};
     snprintf(cmd, 30, "L%d##", value);
     return sendCommand(cmd);
