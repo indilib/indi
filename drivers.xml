@@ -863,6 +863,10 @@
             <driver name="Gemini Flatpanel">indi_gemini_flatpanel</driver>
             <version>1.0</version>
         </device>
+        <device label="NUT UPS Safety" manufacturer="NUT UPS Safety">
+            <driver name="UPS Safety">indi_ups_safety</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
