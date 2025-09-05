@@ -71,7 +71,7 @@ bool I2C::ISNewText(const char *dev, const char *name, char *texts[], char *name
     {
         if (I2CConnectionTP.isNameMatch(name))
         {
-            I2CConnectionTP.update(texts);
+            I2CConnectionTP.update(texts, names, n);
             I2CConnectionTP.setState(IPS_OK);
             I2CConnectionTP.apply();
             return true;
