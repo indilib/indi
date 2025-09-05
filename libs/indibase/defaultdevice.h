@@ -649,6 +649,7 @@ class DefaultDevice : public ParentDevice
         friend class OutputInterface;
         friend class InputInterface;
         friend class PowerInterface;
+        friend class IMUInterface;
 
     protected:
         DefaultDevice(const std::shared_ptr<DefaultDevicePrivate> &dd);

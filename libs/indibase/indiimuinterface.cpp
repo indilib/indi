@@ -22,6 +22,7 @@
 #include "defaultdevice.h"
 #include "indilogger.h"
 #include "indipropertylight.h"
+#include <cmath>
 
 namespace INDI
 {
@@ -90,29 +91,33 @@ void IMUInterface::initProperties(const std::string &groupName)
     PowerModeSP[POWER_MODE_NORMAL].fill("NORMAL", "Normal", ISS_ON);
     PowerModeSP[POWER_MODE_LOW_POWER].fill("LOW_POWER", "Low Power", ISS_OFF);
     PowerModeSP[POWER_MODE_SUSPEND].fill("SUSPEND", "Suspend", ISS_OFF);
-    PowerModeSP.fill(m_defaultDevice->getDeviceName(), "POWER_MODE", "Power Mode", CONFIG_TAB.c_str(), IP_RW, ISR_1OFMANY, 0,
+    PowerModeSP.fill(m_defaultDevice->getDeviceName(), "POWER_MODE", "Power Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                      IPS_IDLE);
 
     OperationModeSP[OPERATION_MODE_IMU].fill("IMU", "IMU", ISS_ON);
     OperationModeSP[OPERATION_MODE_COMPASS].fill("COMPASS", "Compass", ISS_OFF);
     OperationModeSP[OPERATION_MODE_M4G].fill("M4G", "M4G", ISS_OFF);
     OperationModeSP[OPERATION_MODE_NDOF].fill("NDOF", "NDOF", ISS_OFF);
-    OperationModeSP.fill(m_defaultDevice->getDeviceName(), "OPERATION_MODE", "Operation Mode", CONFIG_TAB.c_str(), IP_RW,
+    OperationModeSP.fill(m_defaultDevice->getDeviceName(), "OPERATION_MODE", "Operation Mode", OPTIONS_TAB, IP_RW,
                          ISR_1OFMANY, 0, IPS_IDLE);
 
     UnitsSP[UNITS_METRIC].fill("METRIC", "Metric", ISS_ON);
     UnitsSP[UNITS_IMPERIAL].fill("IMPERIAL", "Imperial", ISS_OFF);
     UnitsSP[UNITS_DEGREES].fill("DEGREES", "Degrees", ISS_ON);
     UnitsSP[UNITS_RADIANS].fill("RADIANS", "Radians", ISS_OFF);
-    UnitsSP.fill(m_defaultDevice->getDeviceName(), "UNITS", "Units", CONFIG_TAB.c_str(), IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    UnitsSP.fill(m_defaultDevice->getDeviceName(), "UNITS", "Units", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     UpdateRateNP[UPDATE_RATE_RATE].fill("RATE", "Update Rate (Hz)", "%.2f", 1, 100, 1, 10);
-    UpdateRateNP.fill(m_defaultDevice->getDeviceName(), "UPDATE_RATE", "Update Rate", CONFIG_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+    UpdateRateNP.fill(m_defaultDevice->getDeviceName(), "UPDATE_RATE", "Update Rate", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     OffsetsNP[OFFSETS_X].fill("OFFSET_X", "X Offset", "%.4f", -180, 180, 0, 0);
     OffsetsNP[OFFSETS_Y].fill("OFFSET_Y", "Y Offset", "%.4f", -180, 180, 0, 0);
     OffsetsNP[OFFSETS_Z].fill("OFFSET_Z", "Z Offset", "%.4f", -180, 180, 0, 0);
-    OffsetsNP.fill(m_defaultDevice->getDeviceName(), "OFFSETS", "Manual Offsets", CONFIG_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+    OffsetsNP.fill(m_defaultDevice->getDeviceName(), "OFFSETS", "Manual Offsets", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    DataThresholdNP[0].fill("DATA_THRESHOLD", "Data Threshold", "%.4f", 0, 1, 0, 0.01);
+    DataThresholdNP.fill(m_defaultDevice->getDeviceName(), "DATA_THRESHOLD_PROPERTY", "Data Threshold", OPTIONS_TAB,
+                         IP_RW, 0, IPS_IDLE);
 
     // Status and Info Properties
     DeviceInfoTP[DEVICE_INFO_CHIP_ID].fill("CHIP_ID", "Chip ID", "");
@@ -162,6 +167,7 @@ bool IMUInterface::updateProperties()
         m_defaultDevice->defineProperty(UnitsSP);
         m_defaultDevice->defineProperty(UpdateRateNP);
         m_defaultDevice->defineProperty(OffsetsNP);
+        m_defaultDevice->defineProperty(DataThresholdNP);
         m_defaultDevice->defineProperty(DeviceInfoTP);
 
         if (HasTemperature())
@@ -191,6 +197,7 @@ bool IMUInterface::updateProperties()
         m_defaultDevice->deleteProperty(UnitsSP);
         m_defaultDevice->deleteProperty(UpdateRateNP);
         m_defaultDevice->deleteProperty(OffsetsNP);
+        m_defaultDevice->deleteProperty(DataThresholdNP);
         m_defaultDevice->deleteProperty(DeviceInfoTP);
 
         if (HasTemperature())
@@ -207,7 +214,16 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
     if (dev != m_defaultDevice->getDeviceName())
         return false;
 
-    if (name == UpdateRateNP.getName())
+    if (DataThresholdNP.isNameMatch(name))
+    {
+        DataThresholdNP.update(values, names, n);
+        DataThresholdNP.setState(IPS_OK);
+        DataThresholdNP.apply();
+        m_defaultDevice->saveConfig(DataThresholdNP);
+        return true;
+    }
+
+    if (UpdateRateNP.isNameMatch(name))
     {
         UpdateRateNP.update(values, names, n);
         UpdateRateNP.setState(IPS_OK);
@@ -216,7 +232,7 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
         return true;
     }
 
-    if (name == OffsetsNP.getName())
+    if (OffsetsNP.isNameMatch(name))
     {
         OffsetsNP.update(values, names, n);
         OffsetsNP.setState(IPS_OK);
@@ -225,7 +241,7 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
         return true;
     }
 
-    if (HasStabilityMonitoring() && name == StabilityMonitoringNP.getName())
+    if (HasStabilityMonitoring() && StabilityMonitoringNP.isNameMatch(name))
     {
         StabilityMonitoringNP.update(values, names, n);
         StabilityMonitoringNP.setState(IPS_OK);
@@ -243,7 +259,7 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
     if (dev != m_defaultDevice->getDeviceName())
         return false;
 
-    if (name == PowerModeSP.getName())
+    if (PowerModeSP.isNameMatch(name))
     {
         PowerModeSP.update(states, names, n);
         PowerModeSP.setState(IPS_OK);
@@ -255,7 +271,7 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
         return true;
     }
 
-    if (name == OperationModeSP.getName())
+    if (OperationModeSP.isNameMatch(name))
     {
         OperationModeSP.update(states, names, n);
         OperationModeSP.setState(IPS_OK);
@@ -267,7 +283,7 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
         return true;
     }
 
-    if (name == UnitsSP.getName())
+    if (UnitsSP.isNameMatch(name))
     {
         UnitsSP.update(states, names, n);
         UnitsSP.setState(IPS_OK);
@@ -279,7 +295,7 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
         return true;
     }
 
-    if (HasCalibration() && name == CalibrationControlSP.getName())
+    if (HasCalibration() && CalibrationControlSP.isNameMatch(name))
     {
         CalibrationControlSP.update(states, names, n);
         CalibrationControlSP.setState(IPS_BUSY);
@@ -328,6 +344,13 @@ bool IMUInterface::SetOrientationData(double roll, double pitch, double yaw, dou
     if (!HasOrientation())
         return false;
 
+    double threshold = DataThresholdNP[0].getValue();
+    if (std::abs(OrientationNP[ORIENTATION_ROLL].getValue() - roll) < threshold &&
+            std::abs(OrientationNP[ORIENTATION_PITCH].getValue() - pitch) < threshold &&
+            std::abs(OrientationNP[ORIENTATION_YAW].getValue() - yaw) < threshold &&
+            std::abs(OrientationNP[ORIENTATION_QUATERNION_W].getValue() - w) < threshold)
+        return false;
+
     OrientationNP[ORIENTATION_ROLL].setValue(roll);
     OrientationNP[ORIENTATION_PITCH].setValue(pitch);
     OrientationNP[ORIENTATION_YAW].setValue(yaw);
@@ -340,6 +363,12 @@ bool IMUInterface::SetOrientationData(double roll, double pitch, double yaw, dou
 bool IMUInterface::SetAccelerationData(double x, double y, double z)
 {
     if (!HasAcceleration())
+        return false;
+
+    double threshold = DataThresholdNP[0].getValue();
+    if (std::abs(AccelerationNP[ACCELERATION_X].getValue() - x) < threshold &&
+            std::abs(AccelerationNP[ACCELERATION_Y].getValue() - y) < threshold &&
+            std::abs(AccelerationNP[ACCELERATION_Z].getValue() - z) < threshold)
         return false;
 
     AccelerationNP[ACCELERATION_X].setValue(x);
@@ -355,6 +384,12 @@ bool IMUInterface::SetGyroscopeData(double x, double y, double z)
     if (!HasGyroscope())
         return false;
 
+    double threshold = DataThresholdNP[0].getValue();
+    if (std::abs(GyroscopeNP[GYROSCOPE_X].getValue() - x) < threshold &&
+            std::abs(GyroscopeNP[GYROSCOPE_Y].getValue() - y) < threshold &&
+            std::abs(GyroscopeNP[GYROSCOPE_Z].getValue() - z) < threshold)
+        return false;
+
     GyroscopeNP[GYROSCOPE_X].setValue(x);
     GyroscopeNP[GYROSCOPE_Y].setValue(y);
     GyroscopeNP[GYROSCOPE_Z].setValue(z);
@@ -366,6 +401,12 @@ bool IMUInterface::SetGyroscopeData(double x, double y, double z)
 bool IMUInterface::SetMagnetometerData(double x, double y, double z)
 {
     if (!HasMagnetometer())
+        return false;
+
+    double threshold = DataThresholdNP[0].getValue();
+    if (std::abs(MagnetometerNP[MAGNETOMETER_X].getValue() - x) < threshold &&
+            std::abs(MagnetometerNP[MAGNETOMETER_Y].getValue() - y) < threshold &&
+            std::abs(MagnetometerNP[MAGNETOMETER_Z].getValue() - z) < threshold)
         return false;
 
     MagnetometerNP[MAGNETOMETER_X].setValue(x);
@@ -510,6 +551,7 @@ bool IMUInterface::saveConfigItems(FILE *fp)
     UnitsSP.save(fp);
     UpdateRateNP.save(fp);
     OffsetsNP.save(fp);
+    DataThresholdNP.save(fp);
 
     if (HasStabilityMonitoring())
         StabilityMonitoringNP.save(fp);

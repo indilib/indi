@@ -390,6 +390,7 @@ class IMUInterface
         INDI::PropertySwitch UnitsSP {UNITS_PROPERTY_COUNT}; // Metric/Imperial, degrees/radians
         INDI::PropertyNumber UpdateRateNP {UPDATE_RATE_PROPERTY_COUNT}; // Sensor polling frequency (Hz)
         INDI::PropertyNumber OffsetsNP {OFFSETS_PROPERTY_COUNT}; // Manual offset corrections
+        INDI::PropertyNumber DataThresholdNP {1}; // Data change threshold
 
         // Status and Info Properties
         INDI::PropertyText DeviceInfoTP {DEVICE_INFO_PROPERTY_COUNT}; // Chip ID, firmware version, sensor status
@@ -405,7 +406,6 @@ class IMUInterface
     protected:
         const std::string IMU_TAB {"IMU"};
         const std::string CALIBRATION_TAB {"Calibration"};
-        const std::string CONFIG_TAB {"Configuration"};
         const std::string STATUS_TAB {"Status"};
         const std::string ASTRONOMICAL_TAB {"Astronomical"};
 };
