@@ -143,7 +143,7 @@ void IMUInterface::initProperties(const std::string &groupName)
         StabilityMonitoringNP[STABILITY_MONITORING_STABILITY_THRESHOLD].fill("STABILITY_MONITORING_STABILITY_THRESHOLD",
                 "Stability Threshold (RMS)", "%.4f", 0, 100, 0, 5);
         StabilityMonitoringNP.fill(m_defaultDevice->getDeviceName(), "STABILITY_MONITORING", "Stability Monitoring",
-                                   ASTRONOMICAL_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+                                   COORDINATES_TAB.c_str(), IP_RW, 0, IPS_IDLE);
     }
 }
 

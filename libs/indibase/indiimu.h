@@ -110,11 +110,28 @@ class IMU : public DefaultDevice, public IMUInterface
         virtual bool SetStabilityMonitoring(double vibrationLevel, double stabilityThreshold) override;
 
         // Additional properties for astronomical coordinates and mount alignment at the driver level
+        enum
+        {
+            AXIS1_OFFSET = 0,
+            AXIS2_OFFSET,
+            ROTATION_OFFSET
+        };
+
+        enum
+        {
+            AXIS1 = 0,
+            AXIS2
+        };
+
+        enum
+        {
+            COORD_EQUATORIAL = 0,
+            COORD_ALTAZ
+        };
+
         INDI::PropertyNumber MountAlignmentNP {3}; // OFFSET_ALT, OFFSET_AZ, ROTATION_OFFSET
         INDI::PropertyNumber AstroCoordinatesNP {2}; // HA/DEC or AZ/ALT
         INDI::PropertySwitch AstroCoordsTypeSP {2}; // Equatorial/Alt-Az
-
-        const std::string ASTRO_COORDS_TAB {"Astro Coordinates"};
 
         Connection::Serial *serialConnection = nullptr;
         Connection::I2C *i2cConnection       = nullptr;

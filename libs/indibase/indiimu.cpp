@@ -58,19 +58,19 @@ bool IMU::initProperties()
     IMUInterface::initProperties(IMU_TAB);
 
     // Initialize driver-specific properties
-    MountAlignmentNP[0].fill("AXIS1_OFFSET", "Axis 1 Offset", "deg", 0, 360, 0, 0);
-    MountAlignmentNP[1].fill("AXIS2_OFFSET", "Axis 2 Offset", "deg", 0, 360, 0, 0);
-    MountAlignmentNP[2].fill("ROTATION_OFFSET", "Rotation Offset", "deg", 0, 360, 0, 0);
-    MountAlignmentNP.fill(getDeviceName(), "MOUNT_ALIGNMENT", "Mount Alignment", ASTRO_COORDS_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+    MountAlignmentNP[AXIS1_OFFSET].fill("AXIS1_OFFSET", "Axis 1 Offset (deg)", "%.2f", 0, 360, 0, 0);
+    MountAlignmentNP[AXIS2_OFFSET].fill("AXIS2_OFFSET", "Axis 2 Offset (deg)", "%.2f", 0, 360, 0, 0);
+    MountAlignmentNP[ROTATION_OFFSET].fill("ROTATION_OFFSET", "Rotation Offset (deg)", "%.2f", 0, 360, 0, 0);
+    MountAlignmentNP.fill(getDeviceName(), "MOUNT_ALIGNMENT", "Mount Alignment", COORDINATES_TAB.c_str(), IP_RW, 0, IPS_IDLE);
 
-    AstroCoordinatesNP[0].fill("AXIS1", "Axis 1", "deg", 0, 360, 0, 0);
-    AstroCoordinatesNP[1].fill("AXIS2", "Axis 2", "deg", 0, 360, 0, 0);
-    AstroCoordinatesNP.fill(getDeviceName(), "ASTRO_COORDINATES", "Astronomical Coordinates", ASTRO_COORDS_TAB.c_str(), IP_RO,
+    AstroCoordinatesNP[AXIS1].fill("AXIS1", "Axis 1 (deg)", "%.2f", 0, 360, 0, 0);
+    AstroCoordinatesNP[AXIS2].fill("AXIS2", "Axis 2 (deg)", "%.2f", 0, 360, 0, 0);
+    AstroCoordinatesNP.fill(getDeviceName(), "COORDINATES", "Coordinates", COORDINATES_TAB.c_str(), IP_RO,
                             0, IPS_IDLE);
 
-    AstroCoordsTypeSP[0].fill("EQUATORIAL", "Equatorial (HA/DEC)", ISS_ON);
-    AstroCoordsTypeSP[1].fill("ALTAZ", "Alt-Az (AZ/ALT)", ISS_OFF);
-    AstroCoordsTypeSP.fill(getDeviceName(), "ASTRO_COORDS_TYPE", "Coordinate Type", ASTRO_COORDS_TAB.c_str(), IP_RW,
+    AstroCoordsTypeSP[COORD_EQUATORIAL].fill("EQUATORIAL", "Equatorial (HA/DEC)", ISS_ON);
+    AstroCoordsTypeSP[COORD_ALTAZ].fill("ALTAZ", "Alt-Az (AZ/ALT)", ISS_OFF);
+    AstroCoordsTypeSP.fill(getDeviceName(), "COORDS_TYPE", "Coordinate Type", COORDINATES_TAB.c_str(), IP_RW,
                            ISR_1OFMANY, 0, IPS_IDLE);
 
     if (imuConnection & CONNECTION_SERIAL)

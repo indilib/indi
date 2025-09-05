@@ -419,7 +419,7 @@ class IMUInterface
         const std::string IMU_TAB {"IMU"};
         const std::string CALIBRATION_TAB {"Calibration"};
         const std::string STATUS_TAB {"Status"};
-        const std::string ASTRONOMICAL_TAB {"Astronomical"};
+        const std::string COORDINATES_TAB {"Coordinates"};
 };
 
 }
