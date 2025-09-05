@@ -94,9 +94,6 @@ bool AlpacaCCD::initProperties()
     DeviceInfoTP[3].fill("NAME", "Name", "");
     DeviceInfoTP.fill(getDeviceName(), "DEVICE_INFO", "Device Info", CONNECTION_TAB, IP_RO, 60, IPS_IDLE);
 
-    // Initialize CCDChip parameters (these will be updated from Alpaca API)
-    SetCCDParams(1, 1, 16, 1.0, 1.0); // Dummy values, will be updated on connect
-
     // Camera State property
     CameraStateTP[0].fill("STATE", "State", "Idle");
     CameraStateTP.fill(getDeviceName(), "CCD_CAMERA_STATE", "Camera State", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
@@ -238,19 +235,19 @@ bool AlpacaCCD::Connect()
     success = sendAlpacaGET("/sensortype", response);
     if (success)
     {
-        uint8_t sensorType = response["Value"].get<uint8_t>();
-        std::string sensorTypeStr = getSensorTypeString(sensorType);
-        LOGF_INFO("Camera sensor type: %d (%s)", sensorType, sensorTypeStr.c_str());
+        m_SensorType = response["Value"].get<uint8_t>();
+        std::string sensorTypeStr = getSensorTypeString(m_SensorType);
+        LOGF_INFO("Camera sensor type: %d (%s)", m_SensorType, sensorTypeStr.c_str());
 
         // Sensor types: 0=Monochrome, 1=Color, 2=RGGB Bayer, 3=CMYG Bayer, etc.
-        bool isColorCamWithBayer = (sensorType >= 2); // Bayer patterns start at type 2
+        bool isColorCamWithBayer = (m_SensorType >= 2); // Bayer patterns start at type 2
 
         if (isColorCamWithBayer)
         {
             cap |= INDI::CCD::CCD_HAS_BAYER;
             LOG_INFO("Camera has Bayer color sensor - enabling Bayer capability.");
         }
-        else if (sensorType == 1)
+        else if (m_SensorType == 1)
         {
             LOG_INFO("Camera has color sensor (non-Bayer).");
         }
@@ -266,33 +263,31 @@ bool AlpacaCCD::Connect()
 
 
     // Get sensor type to determine available capture formats
-    uint8_t sensorType = 0; // Default to mono
-    if (sendAlpacaGET("/sensortype", response))
-    {
-        sensorType = response["Value"].get<uint8_t>();
-        std::string sensorTypeStr = getSensorTypeString(sensorType);
-        LOGF_INFO("Setting up capture formats for sensor type: %d (%s)", sensorType, sensorTypeStr.c_str());
-    }
+    std::string sensorTypeStr = getSensorTypeString(m_SensorType);
+    LOGF_INFO("Setting up capture formats for sensor type: %d (%s)", m_SensorType, sensorTypeStr.c_str());
 
     // Clear existing capture formats from base class
     m_CaptureFormats.clear();
 
     // Add capture formats based on sensor type and typical Alpaca camera capabilities
     // Most Alpaca cameras support both 8-bit and 16-bit modes
-    switch (sensorType)
+    switch (m_SensorType)
     {
         case 0: // Monochrome
-            addCaptureFormat({"MONO_8", "Mono 8-bit", 8, true});
-            addCaptureFormat({"MONO_16", "Mono 16-bit", 16, false});
+            addCaptureFormat({"MONO_8", "Mono 8-bit", 8, false});
+            addCaptureFormat({"MONO_16", "Mono 16-bit", 16, true});
             break;
         case 1: // Color (RGB)
             addCaptureFormat({"RGB_8", "RGB 8-bit", 8, true});
             addCaptureFormat({"RGB_16", "RGB 16-bit", 16, false});
             break;
         case 2: // RGGB Bayer
+            BayerTP[CFA_TYPE].setText("RGGB");
+            BayerTP.apply();
+            [[fallthrough]];
         case 3: // CMYG Bayer
-            addCaptureFormat({"RAW_8", "Raw 8-bit", 8, true});
-            addCaptureFormat({"RAW_16", "Raw 16-bit", 16, false});
+            addCaptureFormat({"RAW_8", "Raw 8-bit", 8, false});
+            addCaptureFormat({"RAW_16", "Raw 16-bit", 16, true});
             cap |= CCD_HAS_BAYER;
             break;
         default:
@@ -311,6 +306,67 @@ bool AlpacaCCD::Connect()
 
     SetTimer(getCurrentPollingPeriod());
     return true;
+}
+
+void AlpacaCCD::updateCameraCapabilities()
+{
+    if (!isConnected())
+    {
+        LOG_WARN("Not connected to Alpaca camera, cannot update camera capabilities.");
+        return;
+    }
+
+    nlohmann::json response;
+    bool success;
+
+    // Get camera capabilities and update INDI properties
+    success = sendAlpacaGET("/cameraxsize", response);
+    if (success) m_CameraXSize = response["Value"].get<int>();
+
+    success = sendAlpacaGET("/cameraysize", response);
+    if (success) m_CameraYSize = response["Value"].get<int>();
+
+    success = sendAlpacaGET("/pixelsizex", response);
+    if (success) m_PixelSizeX = response["Value"].get<double>();
+
+    success = sendAlpacaGET("/pixelsizey", response);
+    if (success) m_PixelSizeY = response["Value"].get<double>();
+
+    // Update CCDParams
+    SetCCDParams(m_CameraXSize, m_CameraYSize, PrimaryCCD.getBPP(), m_PixelSizeX, m_PixelSizeY);
+
+    success = sendAlpacaGET("/description", response);
+    if (success) m_Description = response["Value"].get<std::string>();
+
+    success = sendAlpacaGET("/driverinfo", response);
+    if (success) m_DriverInfo = response["Value"].get<std::string>();
+
+    success = sendAlpacaGET("/driverversion", response);
+    if (success) m_DriverVersion = response["Value"].get<std::string>();
+
+    success = sendAlpacaGET("/name", response);
+    if (success) m_CameraName = response["Value"].get<std::string>();
+
+    if (m_HasGain)
+    {
+        success = sendAlpacaGET("/gainmin", response);
+        if (success) m_GainMin = response["Value"].get<double>();
+
+        success = sendAlpacaGET("/gainmax", response);
+        if (success) m_GainMax = response["Value"].get<double>();
+    }
+
+    success = sendAlpacaGET("/maxadu", response);
+    if (success) m_MaxADU = response["Value"].get<uint32_t>();
+
+    if (m_SensorType >= 2)
+    {
+        if (sendAlpacaGET("/bayeroffsetx", response))
+            m_BayerOffsetX = response["Value"].get<uint8_t>();
+
+        if (sendAlpacaGET("/bayeroffsety", response))
+            m_BayerOffsetY = response["Value"].get<uint8_t>();
+    }
 }
 
 bool AlpacaCCD::Disconnect()
@@ -389,39 +445,23 @@ bool AlpacaCCD::ISNewNumber(const char *dev, const char *name, double values[], 
         }
         else if (GainNP.isNameMatch(name))
         {
-            nlohmann::json response;
-            nlohmann::json body = {{"Gain", values[0]}};
-            bool success = sendAlpacaPUT("/gain", body, response);
-
-            if (success)
+            updateProperty(GainNP, values, names, n, [this, values]()
             {
-                GainNP.update(values, names, n);
-                GainNP.setState(IPS_OK);
-                GainNP.apply();
-                saveConfig();
-                LOG_INFO("Gain updated.");
-                return true;
-            }
-            LOG_ERROR("Failed to set gain.");
-            return false;
+                nlohmann::json response;
+                nlohmann::json body = {{"Gain", values[0]}};
+                return sendAlpacaPUT("/gain", body, response);
+            }, true);
+            return true;
         }
         else if (OffsetNP.isNameMatch(name))
         {
-            nlohmann::json response;
-            nlohmann::json body = {{"Offset", values[0]}};
-            bool success = sendAlpacaPUT("/offset", body, response);
-
-            if (success)
+            updateProperty(OffsetNP, values, names, n, [this, values]()
             {
-                OffsetNP.update(values, names, n);
-                OffsetNP.setState(IPS_OK);
-                OffsetNP.apply();
-                saveConfig();
-                LOG_INFO("Offset updated.");
-                return true;
-            }
-            LOG_ERROR("Failed to set offset.");
-            return false;
+                nlohmann::json response;
+                nlohmann::json body = {{"Offset", values[0]}};
+                return sendAlpacaPUT("/offset", body, response);
+            }, true);
+            return true;
         }
     }
 
@@ -437,22 +477,14 @@ bool AlpacaCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     {
         if (CoolerSP.isNameMatch(name))
         {
-            CoolerSP.update(states, names, n);
-            bool coolerOn = CoolerSP[0].getState() == ISS_ON; // Assuming CoolerOn is the first switch
-
-            nlohmann::json response;
-            nlohmann::json body = {{"CoolerOn", coolerOn}};
-            bool success = sendAlpacaPUT("/cooleron", body, response);
-
-            if (success)
+            updateProperty(CoolerSP, states, names, n, [this, states]()
             {
-                CoolerSP.setState(IPS_OK);
-                CoolerSP.apply();
-                LOGF_INFO("Cooler set to %s.", coolerOn ? "ON" : "OFF");
-                return true;
-            }
-            LOG_ERROR("Failed to set cooler state.");
-            return false;
+                bool coolerOn = states[0] == ISS_ON;
+                nlohmann::json response;
+                nlohmann::json body = {{"CoolerOn", coolerOn}};
+                return sendAlpacaPUT("/cooleron", body, response);
+            });
+            return true;
         }
         else if (ReadoutModeSP.isNameMatch(name))
         {
@@ -494,6 +526,10 @@ bool AlpacaCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
 bool AlpacaCCD::updateProperties()
 {
+    // Update capabilities first
+    if (isConnected())
+        updateCameraCapabilities();
+
     INDI::CCD::updateProperties();
 
     if (isConnected())
@@ -502,40 +538,14 @@ bool AlpacaCCD::updateProperties()
 
         nlohmann::json response;
         bool success;
-
-        // Get camera capabilities and update INDI properties
-        int cameraXSize = 1, cameraYSize = 1;
-        double pixelSizeX = 1.0, pixelSizeY = 1.0;
-
-        success = sendAlpacaGET("/cameraxsize", response);
-        if (success) cameraXSize = response["Value"].get<int>();
-
-        success = sendAlpacaGET("/cameraysize", response);
-        if (success) cameraYSize = response["Value"].get<int>();
-
-        success = sendAlpacaGET("/pixelsizex", response);
-        if (success) pixelSizeX = response["Value"].get<double>();
-
-        success = sendAlpacaGET("/pixelsizey", response);
-        if (success) pixelSizeY = response["Value"].get<double>();
-
-        // Update CCDParams
-        SetCCDParams(cameraXSize, cameraYSize, PrimaryCCD.getBPP(), pixelSizeX, pixelSizeY);
         defineProperty(CameraStateTP);
 
         // Device Info properties
         defineProperty(DeviceInfoTP);
-        success = sendAlpacaGET("/description", response);
-        if (success) DeviceInfoTP[0].setText(response["Value"].get<std::string>().c_str());
-
-        success = sendAlpacaGET("/driverinfo", response);
-        if (success) DeviceInfoTP[1].setText(response["Value"].get<std::string>().c_str());
-
-        success = sendAlpacaGET("/driverversion", response);
-        if (success) DeviceInfoTP[2].setText(response["Value"].get<std::string>().c_str());
-
-        success = sendAlpacaGET("/name", response);
-        if (success) DeviceInfoTP[3].setText(response["Value"].get<std::string>().c_str());
+        DeviceInfoTP[0].setText(m_Description.c_str());
+        DeviceInfoTP[1].setText(m_DriverInfo.c_str());
+        DeviceInfoTP[2].setText(m_DriverVersion.c_str());
+        DeviceInfoTP[3].setText(m_CameraName.c_str());
         DeviceInfoTP.setState(IPS_OK);
         DeviceInfoTP.apply();
 
@@ -555,12 +565,9 @@ bool AlpacaCCD::updateProperties()
                 LOG_WARN("Failed to get gain.");
             }
 
-            // Get gain min/max
-            success = sendAlpacaGET("/gainmin", response);
-            if (success) GainNP[0].setMin(response["Value"].get<double>());
-
-            success = sendAlpacaGET("/gainmax", response);
-            if (success) GainNP[0].setMax(response["Value"].get<double>());
+            // Set gain min/max from cached values
+            GainNP[0].setMin(m_GainMin);
+            GainNP[0].setMax(m_GainMax);
         }
 
         if (m_HasOffset)
@@ -585,51 +592,19 @@ bool AlpacaCCD::updateProperties()
         defineProperty(TemperatureNP);
         defineProperty(CoolerPowerNP);
 
-        // Check pulse guide capability
-        success = sendAlpacaGET("/canpulseguide", response);
-        if (success)
-        {
-            m_CanPulseGuide = response["Value"].get<bool>();
-            if (m_CanPulseGuide)
-            {
-                SetCCDCapability(GetCCDCapability() | INDI::CCD::CCD_HAS_ST4_PORT);
-                LOG_INFO("Camera supports pulse guiding.");
-            }
-            else
-            {
-                LOG_INFO("Camera does not support pulse guiding.");
-            }
-        }
-        else
-        {
-            LOG_WARN("Failed to query CanPulseGuide, assuming no pulse guide support.");
-            m_CanPulseGuide = false;
-        }
-
-        // Check can stop exposure capability
-        success = sendAlpacaGET("/canstopexposure", response);
-        if (success)
-        {
-            m_CanStopExposure = response["Value"].get<bool>();
-            if (m_CanStopExposure)
-            {
-                // If supported, ensure the "Stop" switch in CCD_ABORT_EXPOSURE is enabled.
-                // This is handled by the base class if CCD_CAN_ABORT is set.
-                LOG_INFO("Camera supports stopping exposure.");
-            }
-            else
-            {
-                LOG_INFO("Camera does not support stopping exposure.");
-            }
-        }
-        else
-        {
-            LOG_WARN("Failed to query CanStopExposure, assuming no stop exposure support.");
-            m_CanStopExposure = false;
-        }
-
         defineProperty(ReadoutModeSP);
         updateReadoutModes();
+
+        if (m_SensorType >= 2)
+        {
+            char offsetX[2], offsetY[2];
+            snprintf(offsetX, sizeof(offsetX), "%d", m_BayerOffsetX);
+            snprintf(offsetY, sizeof(offsetY), "%d", m_BayerOffsetY);
+            BayerTP[CFA_OFFSET_X].setText(offsetX);
+            BayerTP[CFA_OFFSET_Y].setText(offsetY);
+            BayerTP.apply();
+            LOGF_DEBUG("Bayer offsets: X=%s, Y=%s", BayerTP[CFA_OFFSET_X].getText(), BayerTP[CFA_OFFSET_Y].getText());
+        }
     }
     else
     {
@@ -641,6 +616,7 @@ bool AlpacaCCD::updateProperties()
         deleteProperty(CoolerPowerNP);
         deleteProperty(DeviceInfoTP);
         deleteProperty(ReadoutModeSP);
+        deleteProperty(CameraStateTP);
     }
 
     return true;
@@ -778,10 +754,12 @@ bool AlpacaCCD::UpdateCCDFrame(int x, int y, int w, int h)
     success = sendAlpacaPUT("/starty", body, response);
     if (!success) return false;
 
+    //body = {{"NumX", w / PrimaryCCD.getBinX()}};
     body = {{"NumX", w}};
     success = sendAlpacaPUT("/numx", body, response);
     if (!success) return false;
 
+    //body = {{"NumY", h / PrimaryCCD.getBinY()}};
     body = {{"NumY", h}};
     success = sendAlpacaPUT("/numy", body, response);
     if (success)
@@ -988,6 +966,8 @@ bool AlpacaCCD::sendAlpacaGET(const std::string& endpoint, nlohmann::json& respo
     std::string url = getAlpacaURL(endpoint);
     url += "?ClientID=" + std::to_string(getpid()) + "&ClientTransactionID=" + std::to_string(getTransactionId());
 
+    // 5 seconds timeout
+    httpClient->set_read_timeout(5, 0);
     auto result = httpClient->Get(url.c_str());
 
     if (!result)
@@ -1098,8 +1078,8 @@ bool AlpacaCCD::sendAlpacaPUT(const std::string& endpoint, const nlohmann::json&
 
             // JM 2025.08.29: For some reason, I always get error 1025 when setting temperature
             // even though value is in range. Ignore this error for now.
-            if (response["ErrorNumber"].get<int>() == 1025)
-                return true;
+            // if (response["ErrorNumber"].get<int>() == 1025)
+            //     return true;
 
             LOGF_ERROR("Alpaca error in %s: %d - %s", endpoint.c_str(),
                        response["ErrorNumber"].get<int>(),
@@ -1261,7 +1241,8 @@ bool AlpacaCCD::alpacaGetImageArrayImageBytes(uint8_t** buffer, size_t* buffer_s
 
     // Allocate buffer for image data
     *buffer_size = expected_data_size;
-    *buffer = static_cast<uint8_t*>(malloc(*buffer_size));
+    PrimaryCCD.setFrameBufferSize(*buffer_size);
+    *buffer = PrimaryCCD.getFrameBuffer();
     if (!*buffer)
     {
         LOG_ERROR("Failed to allocate image buffer");
@@ -1329,7 +1310,8 @@ bool AlpacaCCD::alpacaGetImageArrayJSON(ImageMetadata& meta, uint8_t** buffer, s
     // Allocate buffer (assume 32-bit integers as per ASCOM standard)
     size_t pixel_count = meta.width * meta.height * (meta.planes > 0 ? meta.planes : 1);
     *buffer_size = pixel_count * sizeof(int32_t);
-    *buffer = static_cast<uint8_t*>(malloc(*buffer_size));
+    PrimaryCCD.setFrameBufferSize(*buffer_size);
+    *buffer = PrimaryCCD.getFrameBuffer();
     if (!*buffer)
     {
         LOG_ERROR("Failed to allocate image buffer");
@@ -1369,25 +1351,12 @@ bool AlpacaCCD::alpacaGetImageArrayJSON(ImageMetadata& meta, uint8_t** buffer, s
     meta.type = 2; // Int32
 
     // Get additional metadata for FITS headers
-    nlohmann::json prop_response;
-    if (sendAlpacaGET("/maxadu", prop_response))
+    meta.max_adu = m_MaxADU;
+    meta.sensor_type = m_SensorType;
+    if (meta.sensor_type >= 2)
     {
-        meta.max_adu = prop_response["Value"].get<uint32_t>();
-    }
-    if (sendAlpacaGET("/sensortype", prop_response))
-    {
-        meta.sensor_type = prop_response["Value"].get<uint8_t>();
-        if (meta.sensor_type >= 2)
-        {
-            if (sendAlpacaGET("/bayeroffsetx", prop_response))
-            {
-                meta.bayer_offset_x = prop_response["Value"].get<uint8_t>();
-            }
-            if (sendAlpacaGET("/bayeroffsety", prop_response))
-            {
-                meta.bayer_offset_y = prop_response["Value"].get<uint8_t>();
-            }
-        }
+        meta.bayer_offset_x = atoi(BayerTP[CFA_OFFSET_X].getText());
+        meta.bayer_offset_y = atoi(BayerTP[CFA_OFFSET_Y].getText());
     }
 
     LOG_INFO("Downloaded image via JSON fallback");
@@ -1459,28 +1428,13 @@ bool AlpacaCCD::downloadImage()
         }
 
         // Get additional metadata for FITS headers
-        nlohmann::json prop_response;
-        if (sendAlpacaGET("/maxadu", prop_response))
+        m_CurrentImage.max_adu = m_MaxADU;
+        m_CurrentImage.sensor_type = m_SensorType;
+        if (m_CurrentImage.sensor_type >= 2)
         {
-            m_CurrentImage.max_adu = prop_response["Value"].get<uint32_t>();
-            LOGF_DEBUG("Max ADU: %u", m_CurrentImage.max_adu);
-        }
-        if (sendAlpacaGET("/sensortype", prop_response))
-        {
-            m_CurrentImage.sensor_type = prop_response["Value"].get<uint8_t>();
-            LOGF_DEBUG("Sensor type: %d (%s)", m_CurrentImage.sensor_type, getSensorTypeString(m_CurrentImage.sensor_type).c_str());
-            if (m_CurrentImage.sensor_type >= 2)
-            {
-                if (sendAlpacaGET("/bayeroffsetx", prop_response))
-                {
-                    m_CurrentImage.bayer_offset_x = prop_response["Value"].get<uint8_t>();
-                }
-                if (sendAlpacaGET("/bayeroffsety", prop_response))
-                {
-                    m_CurrentImage.bayer_offset_y = prop_response["Value"].get<uint8_t>();
-                }
-                LOGF_DEBUG("Bayer offsets: X=%d, Y=%d", m_CurrentImage.bayer_offset_x, m_CurrentImage.bayer_offset_y);
-            }
+            m_CurrentImage.bayer_offset_x = atoi(BayerTP[CFA_OFFSET_X].getText());
+            m_CurrentImage.bayer_offset_y = atoi(BayerTP[CFA_OFFSET_Y].getText());
+            LOGF_DEBUG("Bayer offsets: X=%d, Y=%d", m_CurrentImage.bayer_offset_x, m_CurrentImage.bayer_offset_y);
         }
 
         LOGF_DEBUG("Final image metadata: %dx%d, planes=%d, rank=%d, type=%d",
@@ -1525,7 +1479,8 @@ bool AlpacaCCD::downloadImage()
     // Clean up
     if (image_buffer)
     {
-        free(image_buffer);
+        // Since we are using the PrimaryCCD buffer, we don't need to free it here.
+        // The INDI::CCD class will handle the memory management.
     }
 
     m_ExposureInProgress = false;
@@ -1747,21 +1702,27 @@ void AlpacaCCD::updateCameraState()
         {
             case 0: // CameraState_Idle
                 CameraStateTP[0].setText("Idle");
+                CameraStateTP.setState(IPS_IDLE);
                 break;
             case 1: // CameraState_Waiting
                 CameraStateTP[0].setText("Waiting");
+                CameraStateTP.setState(IPS_BUSY);
                 break;
             case 2: // CameraState_Exposing
                 CameraStateTP[0].setText("Exposing");
+                CameraStateTP.setState(IPS_BUSY);
                 break;
             case 3: // CameraState_Reading
                 CameraStateTP[0].setText("Reading");
+                CameraStateTP.setState(IPS_BUSY);
                 break;
             case 4: // CameraState_Download
                 CameraStateTP[0].setText("Downloading");
+                CameraStateTP.setState(IPS_BUSY);
                 break;
             case 5: // CameraState_Error
                 CameraStateTP[0].setText("Error");
+                CameraStateTP.setState(IPS_ALERT);
                 break;
             default:
                 CameraStateTP[0].setText("Unknown");
@@ -1770,7 +1731,6 @@ void AlpacaCCD::updateCameraState()
         // Only update if necessary
         if (previousState != CameraStateTP[0].getText())
         {
-            CameraStateTP.setState(IPS_OK);
             CameraStateTP.apply();
         }
     }
@@ -1839,7 +1799,8 @@ bool AlpacaCCD::processImageBytesData(uint8_t* buffer, size_t buffer_size, const
 
     // Convert ImageBytes data to INDI format (typically 16-bit)
     size_t indi_buffer_size = width * height * sizeof(uint16_t);
-    uint16_t* indi_buffer = static_cast<uint16_t*>(malloc(indi_buffer_size));
+    PrimaryCCD.setFrameBufferSize(indi_buffer_size);
+    uint16_t* indi_buffer = reinterpret_cast<uint16_t*>(PrimaryCCD.getFrameBuffer());
     if (!indi_buffer)
     {
         LOG_ERROR("Failed to allocate INDI buffer");
@@ -1868,7 +1829,6 @@ bool AlpacaCCD::processImageBytesData(uint8_t* buffer, size_t buffer_size, const
     }
     else
     {
-        free(indi_buffer);
         LOGF_ERROR("Unsupported image rank: %d", metadata.Rank);
         return false;
     }
@@ -1901,11 +1861,13 @@ bool AlpacaCCD::processMonoImage(uint8_t* buffer)
     // Convert data type if needed (INDI typically expects 16-bit)
     uint16_t* indi_buffer = nullptr;
     size_t pixel_count = m_CurrentImage.width * m_CurrentImage.height;
+    size_t indi_buffer_size = pixel_count * sizeof(uint16_t);
+    PrimaryCCD.setFrameBufferSize(indi_buffer_size);
+    indi_buffer = reinterpret_cast<uint16_t*>(PrimaryCCD.getFrameBuffer());
 
     switch (m_CurrentImage.type)
     {
         case 1: // 8-bit to 16-bit
-            indi_buffer = static_cast<uint16_t*>(malloc(pixel_count * sizeof(uint16_t)));
             for (size_t i = 0; i < pixel_count; i++)
             {
                 indi_buffer[i] = static_cast<uint16_t>(buffer[i]) << 8; // Scale to 16-bit
@@ -1913,13 +1875,11 @@ bool AlpacaCCD::processMonoImage(uint8_t* buffer)
             break;
 
         case 2: // 16-bit (direct copy)
-            indi_buffer = static_cast<uint16_t*>(malloc(pixel_count * sizeof(uint16_t)));
             memcpy(indi_buffer, buffer, pixel_count * sizeof(uint16_t));
             break;
 
         case 3: // 32-bit to 16-bit (scale down)
         {
-            indi_buffer = static_cast<uint16_t*>(malloc(pixel_count * sizeof(uint16_t)));
             uint32_t* src32 = reinterpret_cast<uint32_t*>(buffer);
             for (size_t i = 0; i < pixel_count; i++)
             {
@@ -2098,7 +2058,7 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
                 {
                     // Scale down from 32-bit to 16-bit
                     int32_t val = src[x * height + y];
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(val >> 16);
+                    dst_buffer[dst_index++] = static_cast<uint16_t>(val);
                 }
             }
             break;
@@ -2112,7 +2072,7 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
                 {
                     // Scale down from 32-bit to 16-bit
                     uint32_t val = src[x * height + y];
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(val >> 16);
+                    dst_buffer[dst_index++] = static_cast<uint16_t>(val);
                 }
             }
             break;

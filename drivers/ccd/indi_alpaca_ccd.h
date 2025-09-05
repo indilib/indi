@@ -85,6 +85,13 @@ class AlpacaCCD : public INDI::CCD
         bool m_ExposureInProgress {false};
         std::string m_CurrentReadoutModeName {"0"}; // Default to mode 0
         int m_CurrentReadoutModeIndex {0};
+        uint32_t m_MaxADU { 0 };
+        uint8_t m_SensorType { 0 };
+        int m_CameraXSize {1}, m_CameraYSize {1};
+        double m_PixelSizeX {1.0}, m_PixelSizeY {1.0};
+        std::string m_Description, m_DriverInfo, m_DriverVersion, m_CameraName;
+        double m_GainMin {0}, m_GainMax {0};
+        uint8_t m_BayerOffsetX {0}, m_BayerOffsetY {0};
 
         // Alpaca Communication
         std::unique_ptr<httplib::Client> httpClient; // Declared here
@@ -154,6 +161,7 @@ class AlpacaCCD : public INDI::CCD
         void updateCoolerStatus();
         void updateCameraState();
         void updateReadoutModes();
+        void updateCameraCapabilities();
 
         bool sendPulseGuide(ALPACA_GUIDE_DIRECTION direction, long duration);
         std::string getSensorTypeString(uint8_t sensorType);
@@ -184,6 +192,7 @@ class AlpacaCCD : public INDI::CCD
         double m_TargetTemperature {std::numeric_limits<double>::quiet_NaN()};
 
         static const constexpr char* CONNECTION_TAB = "Connection";
-        static constexpr int TEMP_TIMER_MS = 1000; // Temperature polling time (ms)
-        static constexpr double TEMP_THRESHOLD = 0.25; // Differential temperature threshold (C)
+        static constexpr int TEMP_TIMER_MS = 10000;
+        // Differential temperature threshold (C)
+        static constexpr double TEMP_THRESHOLD = 0.25;
 };
