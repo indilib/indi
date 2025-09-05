@@ -55,7 +55,8 @@ class Excalibur : public INDI::DefaultDevice, public INDI::LightBoxInterface, pu
         bool Ack();
         int PortFD{ -1 };
         bool sendCommand(const char * cmd, char * res = nullptr);
-        void updateDeviceStatus();
+        void getParkingStatus();
+        void getLightIntensity();
 
         static const uint32_t DRIVER_RES { 32 };
         static const char DRIVER_DEL { '#' };
