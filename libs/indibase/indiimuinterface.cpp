@@ -101,11 +101,15 @@ void IMUInterface::initProperties(const std::string &groupName)
     OperationModeSP.fill(m_defaultDevice->getDeviceName(), "OPERATION_MODE", "Operation Mode", OPTIONS_TAB, IP_RW,
                          ISR_1OFMANY, 0, IPS_IDLE);
 
-    UnitsSP[UNITS_METRIC].fill("METRIC", "Metric", ISS_ON);
-    UnitsSP[UNITS_IMPERIAL].fill("IMPERIAL", "Imperial", ISS_OFF);
-    UnitsSP[UNITS_DEGREES].fill("DEGREES", "Degrees", ISS_ON);
-    UnitsSP[UNITS_RADIANS].fill("RADIANS", "Radians", ISS_OFF);
-    UnitsSP.fill(m_defaultDevice->getDeviceName(), "UNITS", "Units", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    DistanceUnitsSP[DISTANCE_UNITS_METRIC].fill("METRIC", "Metric", ISS_ON);
+    DistanceUnitsSP[DISTANCE_UNITS_IMPERIAL].fill("IMPERIAL", "Imperial", ISS_OFF);
+    DistanceUnitsSP.fill(m_defaultDevice->getDeviceName(), "DISTANCE_UNITS", "Distance Units", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+                         0, IPS_IDLE);
+
+    AngularUnitsSP[ANGULAR_UNITS_DEGREES].fill("DEGREES", "Degrees", ISS_ON);
+    AngularUnitsSP[ANGULAR_UNITS_RADIANS].fill("RADIANS", "Radians", ISS_OFF);
+    AngularUnitsSP.fill(m_defaultDevice->getDeviceName(), "ANGULAR_UNITS", "Angular Units", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                        IPS_IDLE);
 
     UpdateRateNP[UPDATE_RATE_RATE].fill("RATE", "Update Rate (Hz)", "%.2f", 1, 100, 1, 10);
     UpdateRateNP.fill(m_defaultDevice->getDeviceName(), "UPDATE_RATE", "Update Rate", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
@@ -164,7 +168,8 @@ bool IMUInterface::updateProperties()
 
         m_defaultDevice->defineProperty(PowerModeSP);
         m_defaultDevice->defineProperty(OperationModeSP);
-        m_defaultDevice->defineProperty(UnitsSP);
+        m_defaultDevice->defineProperty(DistanceUnitsSP);
+        m_defaultDevice->defineProperty(AngularUnitsSP);
         m_defaultDevice->defineProperty(UpdateRateNP);
         m_defaultDevice->defineProperty(OffsetsNP);
         m_defaultDevice->defineProperty(DataThresholdNP);
@@ -194,7 +199,8 @@ bool IMUInterface::updateProperties()
 
         m_defaultDevice->deleteProperty(PowerModeSP);
         m_defaultDevice->deleteProperty(OperationModeSP);
-        m_defaultDevice->deleteProperty(UnitsSP);
+        m_defaultDevice->deleteProperty(DistanceUnitsSP);
+        m_defaultDevice->deleteProperty(AngularUnitsSP);
         m_defaultDevice->deleteProperty(UpdateRateNP);
         m_defaultDevice->deleteProperty(OffsetsNP);
         m_defaultDevice->deleteProperty(DataThresholdNP);
@@ -283,15 +289,27 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
         return true;
     }
 
-    if (UnitsSP.isNameMatch(name))
+    if (DistanceUnitsSP.isNameMatch(name))
     {
-        UnitsSP.update(states, names, n);
-        UnitsSP.setState(IPS_OK);
-        UnitsSP.apply();
+        DistanceUnitsSP.update(states, names, n);
+        DistanceUnitsSP.setState(IPS_OK);
+        DistanceUnitsSP.apply();
+        m_defaultDevice->saveConfig(DistanceUnitsSP);
 
-        bool metric = UnitsSP[UNITS_METRIC].getState() == ISS_ON;
-        bool degrees = UnitsSP[UNITS_DEGREES].getState() == ISS_ON;
-        SetUnits(metric, degrees);
+        bool metric = DistanceUnitsSP[DISTANCE_UNITS_METRIC].getState() == ISS_ON;
+        SetDistanceUnits(metric);
+        return true;
+    }
+
+    if (AngularUnitsSP.isNameMatch(name))
+    {
+        AngularUnitsSP.update(states, names, n);
+        AngularUnitsSP.setState(IPS_OK);
+        AngularUnitsSP.apply();
+        m_defaultDevice->saveConfig(AngularUnitsSP);
+
+        bool degrees = AngularUnitsSP[ANGULAR_UNITS_DEGREES].getState() == ISS_ON;
+        SetAngularUnits(degrees);
         return true;
     }
 
@@ -486,9 +504,15 @@ bool IMUInterface::SetOperationMode(const std::string &mode)
     return false;
 }
 
-bool IMUInterface::SetUnits(bool metric, bool degrees)
+bool IMUInterface::SetDistanceUnits(bool metric)
 {
     INDI_UNUSED(metric);
+    // Default implementation - should be overridden by concrete drivers
+    return false;
+}
+
+bool IMUInterface::SetAngularUnits(bool degrees)
+{
     INDI_UNUSED(degrees);
     // Default implementation - should be overridden by concrete drivers
     return false;
@@ -548,7 +572,8 @@ bool IMUInterface::saveConfigItems(FILE *fp)
 {
     PowerModeSP.save(fp);
     OperationModeSP.save(fp);
-    UnitsSP.save(fp);
+    DistanceUnitsSP.save(fp);
+    AngularUnitsSP.save(fp);
     UpdateRateNP.save(fp);
     OffsetsNP.save(fp);
     DataThresholdNP.save(fp);

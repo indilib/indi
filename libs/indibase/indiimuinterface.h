@@ -118,13 +118,18 @@ class IMUInterface
             OPERATION_MODE_PROPERTY_COUNT
         };
 
-        enum UnitsProperty
+        enum DistanceUnitsProperty
         {
-            UNITS_METRIC = 0,
-            UNITS_IMPERIAL,
-            UNITS_DEGREES,
-            UNITS_RADIANS,
-            UNITS_PROPERTY_COUNT
+            DISTANCE_UNITS_METRIC = 0,
+            DISTANCE_UNITS_IMPERIAL,
+            DISTANCE_UNITS_PROPERTY_COUNT
+        };
+
+        enum AngularUnitsProperty
+        {
+            ANGULAR_UNITS_DEGREES = 0,
+            ANGULAR_UNITS_RADIANS,
+            ANGULAR_UNITS_PROPERTY_COUNT
         };
 
         enum UpdateRateProperty
@@ -322,10 +327,16 @@ class IMUInterface
         /**
          * @brief SetUnits Set the units for sensor data
          * @param metric True for metric, false for imperial
+         * @return True if successful, false otherwise
+         */
+        virtual bool SetDistanceUnits(bool metric);
+
+        /**
+         * @brief SetAngularUnits Set the angular units for sensor data
          * @param degrees True for degrees, false for radians
          * @return True if successful, false otherwise
          */
-        virtual bool SetUnits(bool metric, bool degrees);
+        virtual bool SetAngularUnits(bool degrees);
 
         /**
          * @brief SetUpdateRate Set the sensor polling frequency
@@ -387,7 +398,8 @@ class IMUInterface
         // Configuration Properties
         INDI::PropertySwitch PowerModeSP {POWER_MODE_PROPERTY_COUNT}; // Normal/Low Power/Suspend
         INDI::PropertySwitch OperationModeSP {OPERATION_MODE_PROPERTY_COUNT}; // IMU/Compass/M4G/NDOF
-        INDI::PropertySwitch UnitsSP {UNITS_PROPERTY_COUNT}; // Metric/Imperial, degrees/radians
+        INDI::PropertySwitch DistanceUnitsSP {DISTANCE_UNITS_PROPERTY_COUNT}; // Metric/Imperial
+        INDI::PropertySwitch AngularUnitsSP {ANGULAR_UNITS_PROPERTY_COUNT}; // degrees/radians
         INDI::PropertyNumber UpdateRateNP {UPDATE_RATE_PROPERTY_COUNT}; // Sensor polling frequency (Hz)
         INDI::PropertyNumber OffsetsNP {OFFSETS_PROPERTY_COUNT}; // Manual offset corrections
         INDI::PropertyNumber DataThresholdNP {1}; // Data change threshold

@@ -253,9 +253,13 @@ bool IMU::SetOperationMode(const std::string &mode)
     INDI_UNUSED(mode);
     return false;
 }
-bool IMU::SetUnits(bool metric, bool degrees)
+bool IMU::SetDistanceUnits(bool metric)
 {
     INDI_UNUSED(metric);
+    return false;
+}
+bool IMU::SetAngularUnits(bool degrees)
+{
     INDI_UNUSED(degrees);
     return false;
 }
