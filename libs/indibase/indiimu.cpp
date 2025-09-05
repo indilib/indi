@@ -41,6 +41,14 @@ IMU::~IMU()
 
 void IMU::setSupportedConnections(const uint8_t &value)
 {
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_I2C | CONNECTION_NONE;
+
+    if (value == 0 || (mask & value) == 0)
+    {
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
     imuConnection = value;
 }
 
@@ -57,11 +65,34 @@ bool IMU::initProperties()
 
     AstroCoordinatesNP[0].fill("AXIS1", "Axis 1", "deg", 0, 360, 0, 0);
     AstroCoordinatesNP[1].fill("AXIS2", "Axis 2", "deg", 0, 360, 0, 0);
-    AstroCoordinatesNP.fill(getDeviceName(), "ASTRO_COORDINATES", "Astronomical Coordinates", ASTRO_COORDS_TAB.c_str(), IP_RO, 0, IPS_IDLE);
+    AstroCoordinatesNP.fill(getDeviceName(), "ASTRO_COORDINATES", "Astronomical Coordinates", ASTRO_COORDS_TAB.c_str(), IP_RO,
+                            0, IPS_IDLE);
 
-    AstroCoordsTypeSP[0].fill("EQUATORIAL", "Equatorial (HA/DEC)", ISS_ON); // Default to Equatorial
+    AstroCoordsTypeSP[0].fill("EQUATORIAL", "Equatorial (HA/DEC)", ISS_ON);
     AstroCoordsTypeSP[1].fill("ALTAZ", "Alt-Az (AZ/ALT)", ISS_OFF);
-    AstroCoordsTypeSP.fill(getDeviceName(), "ASTRO_COORDS_TYPE", "Coordinate Type", ASTRO_COORDS_TAB.c_str(), IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    AstroCoordsTypeSP.fill(getDeviceName(), "ASTRO_COORDS_TYPE", "Coordinate Type", ASTRO_COORDS_TAB.c_str(), IP_RW,
+                           ISR_1OFMANY, 0, IPS_IDLE);
+
+    if (imuConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(serialConnection);
+    }
+
+    if (imuConnection & CONNECTION_I2C)
+    {
+        i2cConnection = new Connection::I2C(this);
+        i2cConnection->setDefaultBusPath("/dev/i2c-1");
+        i2cConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(i2cConnection);
+    }
 
     return true;
 }
