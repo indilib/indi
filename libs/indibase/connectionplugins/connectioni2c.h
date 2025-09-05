@@ -22,7 +22,6 @@
 
 #include "connectioninterface.h"
 #include "indipropertytext.h"
-#include "indipropertynumber.h"
 #include <string>
 #include <stdint.h>
 
@@ -37,6 +36,13 @@ namespace Connection
 class I2C : public Interface
 {
     public:
+        enum I2CConnectionText
+        {
+            I2C_BUS = 0,
+            I2C_ADDRESS,
+        };
+
+
         I2C(INDI::DefaultDevice *dev, IPerm permission = IP_RW);
         virtual ~I2C();
 
@@ -59,10 +65,7 @@ class I2C : public Interface
         /**
          * @return Currently active I2C bus path
          */
-        virtual const char *busPath()
-        {
-            return I2CBusTP[0].getText();
-        }
+        virtual const char *busPath();
 
         /**
          * @return Currently active I2C device address
@@ -92,7 +95,6 @@ class I2C : public Interface
             return PortFD;
         }
 
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
@@ -108,8 +110,7 @@ class I2C : public Interface
 
         virtual bool processHandshake();
 
-        INDI::PropertyText I2CBusTP {1};
-        INDI::PropertyNumber I2CAddressNP {1};
+        INDI::PropertyText I2CConnectionTP {2};
 
         int PortFD = -1;
 
