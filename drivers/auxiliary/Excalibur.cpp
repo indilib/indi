@@ -236,7 +236,6 @@ bool Excalibur::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 bool Excalibur::ISSnoopDevice(XMLEle *root)
 {
     LI::snoop(root);
-
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
@@ -246,7 +245,6 @@ bool Excalibur::ISSnoopDevice(XMLEle *root)
 bool Excalibur::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
-
     return LI::saveConfigItems(fp);
 }
 
@@ -257,40 +255,12 @@ void Excalibur::updateDeviceStatus()
 {
     char res[DRIVER_RES] = {0};
 
-    // Get Light Intensity Status
-    sendCommand("O#", res);
-
-    int32_t pos;
-    int rc = sscanf(res, "%d#", &pos);
-
-    auto previousIntensity = LightIntensityNP[0].getValue();
-
-    if (rc > 0)
-    {
-        LightIntensityNP[0].setValue(pos);
-        // Only update if necessary
-        if (previousIntensity != pos)
-            LightIntensityNP.apply();
-    }
-
-    auto haveLight = LightIntensityNP[0].getValue() > 0;
-
-    // If we have light, but switch is off, then turn it on and vice versa
-    if ( (haveLight && LightSP[FLAT_LIGHT_OFF].getState() == ISS_ON) || (!haveLight
-            && LightSP[FLAT_LIGHT_ON].getState() == ISS_ON) )
-    {
-        LightSP.reset();
-        LightSP[FLAT_LIGHT_ON].setState(haveLight ? ISS_ON : ISS_OFF);
-        LightSP[FLAT_LIGHT_OFF].setState(haveLight ? ISS_OFF : ISS_ON);
-        LightSP.apply();
-    }
-
     // Get Dust Cap Status
     sendCommand("P#", res);
-    int32_t pos2;
-    sscanf(res, "%d#", &pos2);
+    int32_t value;
+    sscanf(res, "%d#", &value);
 
-    auto isClosed = pos2 <= 0;
+    auto isClosed = value <= 0;
 
     if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
     {
