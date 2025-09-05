@@ -43,6 +43,8 @@ class Excalibur : public INDI::DefaultDevice, public INDI::LightBoxInterface, pu
         virtual bool ISSnoopDevice(XMLEle *root) override;
         virtual void TimerHit() override;
 
+        virtual bool Disconnect() override;
+
     protected:
         virtual bool SetLightBoxBrightness(uint16_t value) override;
         virtual bool EnableLightBox(bool enable) override;
