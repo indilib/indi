@@ -89,7 +89,10 @@ bool Excalibur::updateProperties()
     LI::updateProperties();
 
     if (isConnected())
+    {
+        getParkingStatus();
         getLightIntensity();
+    }
 
     return true;
 }
@@ -129,6 +132,15 @@ bool Excalibur::Ack()
     LOG_ERROR("Ack failed.");
     return false;
 
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool Excalibur::Disconnect()
+{
+    EnableLightBox(false);
+    return INDI::DefaultDevice::Disconnect();
 }
 
 //////////////////////////////////////////////////////////////////////
