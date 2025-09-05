@@ -35,97 +35,106 @@ void IMUInterface::initProperties(const std::string &groupName)
     // Core Sensor Data Properties
     if (HasOrientation())
     {
-        OrientationNP[0].fill("ROLL", "Roll", "deg", -180, 180, 0, 0);
-        OrientationNP[1].fill("PITCH", "Pitch", "deg", -90, 90, 0, 0);
-        OrientationNP[2].fill("YAW", "Yaw", "deg", 0, 360, 0, 0);
-        OrientationNP[3].fill("QUATERNION_W", "Quaternion W", "", -1, 1, 0, 0);
+        OrientationNP[ORIENTATION_ROLL].fill("ROLL", "Roll (deg)", "%.4f", -180, 180, 0, 0);
+        OrientationNP[ORIENTATION_PITCH].fill("PITCH", "Pitch (deg)", "%.4f", -90, 90, 0, 0);
+        OrientationNP[ORIENTATION_YAW].fill("YAW", "Yaw (deg)", "%.4f", 0, 360, 0, 0);
+        OrientationNP[ORIENTATION_QUATERNION_W].fill("QUATERNION_W", "Quaternion W", "%.4f", -1, 1, 0, 0);
         OrientationNP.fill(m_defaultDevice->getDeviceName(), "ORIENTATION", "Orientation", groupName.c_str(), IP_RO, 0, IPS_IDLE);
     }
 
     if (HasAcceleration())
     {
-        AccelerationNP[0].fill("ACCEL_X", "X Acceleration", "m/s²", -100, 100, 0, 0);
-        AccelerationNP[1].fill("ACCEL_Y", "Y Acceleration", "m/s²", -100, 100, 0, 0);
-        AccelerationNP[2].fill("ACCEL_Z", "Z Acceleration", "m/s²", -100, 100, 0, 0);
-        AccelerationNP.fill(m_defaultDevice->getDeviceName(), "ACCELERATION", "Acceleration", groupName.c_str(), IP_RO, 0, IPS_IDLE);
+        AccelerationNP[ACCELERATION_X].fill("ACCEL_X", "X Acceleration (m/s²)", "%.4f", -100, 100, 0, 0);
+        AccelerationNP[ACCELERATION_Y].fill("ACCEL_Y", "Y Acceleration (m/s²)", "%.4f", -100, 100, 0, 0);
+        AccelerationNP[ACCELERATION_Z].fill("ACCEL_Z", "Z Acceleration (m/s²)", "%.4f", -100, 100, 0, 0);
+        AccelerationNP.fill(m_defaultDevice->getDeviceName(), "ACCELERATION", "Acceleration", groupName.c_str(), IP_RO, 0,
+                            IPS_IDLE);
     }
 
     if (HasGyroscope())
     {
-        GyroscopeNP[0].fill("GYRO_X", "X Angular Velocity", "rad/s", -10, 10, 0, 0);
-        GyroscopeNP[1].fill("GYRO_Y", "Y Angular Velocity", "rad/s", -10, 10, 0, 0);
-        GyroscopeNP[2].fill("GYRO_Z", "Z Angular Velocity", "rad/s", -10, 10, 0, 0);
+        GyroscopeNP[GYROSCOPE_X].fill("GYRO_X", "X Angular Velocity (rad/s)", "%.4f", -10, 10, 0, 0);
+        GyroscopeNP[GYROSCOPE_Y].fill("GYRO_Y", "Y Angular Velocity (rad/s)", "%.4f", -10, 10, 0, 0);
+        GyroscopeNP[GYROSCOPE_Z].fill("GYRO_Z", "Z Angular Velocity (rad/s)", "%.4f", -10, 10, 0, 0);
         GyroscopeNP.fill(m_defaultDevice->getDeviceName(), "GYROSCOPE", "Gyroscope", groupName.c_str(), IP_RO, 0, IPS_IDLE);
     }
 
     if (HasMagnetometer())
     {
-        MagnetometerNP[0].fill("MAG_X", "X Magnetic Field", "µT", -1000, 1000, 0, 0);
-        MagnetometerNP[1].fill("MAG_Y", "Y Magnetic Field", "µT", -1000, 1000, 0, 0);
-        MagnetometerNP[2].fill("MAG_Z", "Z Magnetic Field", "µT", -1000, 1000, 0, 0);
-        MagnetometerNP.fill(m_defaultDevice->getDeviceName(), "MAGNETOMETER", "Magnetometer", groupName.c_str(), IP_RO, 0, IPS_IDLE);
+        MagnetometerNP[MAGNETOMETER_X].fill("MAG_X", "X Magnetic Field (µT)", "%.4f", -1000, 1000, 0, 0);
+        MagnetometerNP[MAGNETOMETER_Y].fill("MAG_Y", "Y Magnetic Field (µT)", "%.4f", -1000, 1000, 0, 0);
+        MagnetometerNP[MAGNETOMETER_Z].fill("MAG_Z", "Z Magnetic Field (µT)", "%.4f", -1000, 1000, 0, 0);
+        MagnetometerNP.fill(m_defaultDevice->getDeviceName(), "MAGNETOMETER", "Magnetometer", groupName.c_str(), IP_RO, 0,
+                            IPS_IDLE);
     }
 
     // Calibration Properties
     if (HasCalibration())
     {
-        CalibrationStatusLP[0].fill("CAL_SYS", "System", IPS_IDLE);
-        CalibrationStatusLP[1].fill("CAL_GYRO", "Gyroscope", IPS_IDLE);
-        CalibrationStatusLP[2].fill("CAL_ACCEL", "Accelerometer", IPS_IDLE);
-        CalibrationStatusLP[3].fill("CAL_MAG", "Magnetometer", IPS_IDLE);
-        CalibrationStatusLP.fill(m_defaultDevice->getDeviceName(), "CALIBRATION_STATUS", "Calibration Status", CALIBRATION_TAB.c_str(), IPS_IDLE);
+        CalibrationStatusLP[CALIBRATION_STATUS_SYS].fill("CAL_SYS", "System", IPS_IDLE);
+        CalibrationStatusLP[CALIBRATION_STATUS_GYRO].fill("CAL_GYRO", "Gyroscope", IPS_IDLE);
+        CalibrationStatusLP[CALIBRATION_STATUS_ACCEL].fill("CAL_ACCEL", "Accelerometer", IPS_IDLE);
+        CalibrationStatusLP[CALIBRATION_STATUS_MAG].fill("CAL_MAG", "Magnetometer", IPS_IDLE);
+        CalibrationStatusLP.fill(m_defaultDevice->getDeviceName(), "CALIBRATION_STATUS", "Calibration Status",
+                                 CALIBRATION_TAB.c_str(), IPS_IDLE);
 
-        CalibrationControlSP[0].fill("CAL_START", "Start Calibration", ISS_OFF);
-        CalibrationControlSP[1].fill("CAL_SAVE", "Save Calibration", ISS_OFF);
-        CalibrationControlSP[2].fill("CAL_LOAD", "Load Calibration", ISS_OFF);
-        CalibrationControlSP[3].fill("CAL_RESET", "Reset Calibration", ISS_OFF);
-        CalibrationControlSP.fill(m_defaultDevice->getDeviceName(), "CALIBRATION_CONTROL", "Calibration Control", CALIBRATION_TAB.c_str(), IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        CalibrationControlSP[CALIBRATION_CONTROL_START].fill("CAL_START", "Start Calibration", ISS_OFF);
+        CalibrationControlSP[CALIBRATION_CONTROL_SAVE].fill("CAL_SAVE", "Save Calibration", ISS_OFF);
+        CalibrationControlSP[CALIBRATION_CONTROL_LOAD].fill("CAL_LOAD", "Load Calibration", ISS_OFF);
+        CalibrationControlSP[CALIBRATION_CONTROL_RESET].fill("CAL_RESET", "Reset Calibration", ISS_OFF);
+        CalibrationControlSP.fill(m_defaultDevice->getDeviceName(), "CALIBRATION_CONTROL", "Calibration Control",
+                                  CALIBRATION_TAB.c_str(), IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     }
 
     // Configuration Properties
-    PowerModeSP[0].fill("NORMAL", "Normal", ISS_ON);
-    PowerModeSP[1].fill("LOW_POWER", "Low Power", ISS_OFF);
-    PowerModeSP[2].fill("SUSPEND", "Suspend", ISS_OFF);
-    PowerModeSP.fill(m_defaultDevice->getDeviceName(), "POWER_MODE", "Power Mode", CONFIG_TAB.c_str(), IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    PowerModeSP[POWER_MODE_NORMAL].fill("NORMAL", "Normal", ISS_ON);
+    PowerModeSP[POWER_MODE_LOW_POWER].fill("LOW_POWER", "Low Power", ISS_OFF);
+    PowerModeSP[POWER_MODE_SUSPEND].fill("SUSPEND", "Suspend", ISS_OFF);
+    PowerModeSP.fill(m_defaultDevice->getDeviceName(), "POWER_MODE", "Power Mode", CONFIG_TAB.c_str(), IP_RW, ISR_1OFMANY, 0,
+                     IPS_IDLE);
 
-    OperationModeSP[0].fill("IMU", "IMU", ISS_ON);
-    OperationModeSP[1].fill("COMPASS", "Compass", ISS_OFF);
-    OperationModeSP[2].fill("M4G", "M4G", ISS_OFF);
-    OperationModeSP[3].fill("NDOF", "NDOF", ISS_OFF);
-    OperationModeSP.fill(m_defaultDevice->getDeviceName(), "OPERATION_MODE", "Operation Mode", CONFIG_TAB.c_str(), IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    OperationModeSP[OPERATION_MODE_IMU].fill("IMU", "IMU", ISS_ON);
+    OperationModeSP[OPERATION_MODE_COMPASS].fill("COMPASS", "Compass", ISS_OFF);
+    OperationModeSP[OPERATION_MODE_M4G].fill("M4G", "M4G", ISS_OFF);
+    OperationModeSP[OPERATION_MODE_NDOF].fill("NDOF", "NDOF", ISS_OFF);
+    OperationModeSP.fill(m_defaultDevice->getDeviceName(), "OPERATION_MODE", "Operation Mode", CONFIG_TAB.c_str(), IP_RW,
+                         ISR_1OFMANY, 0, IPS_IDLE);
 
-    UnitsSP[0].fill("METRIC", "Metric", ISS_ON);
-    UnitsSP[1].fill("IMPERIAL", "Imperial", ISS_OFF);
-    UnitsSP[2].fill("DEGREES", "Degrees", ISS_ON);
-    UnitsSP[3].fill("RADIANS", "Radians", ISS_OFF);
+    UnitsSP[UNITS_METRIC].fill("METRIC", "Metric", ISS_ON);
+    UnitsSP[UNITS_IMPERIAL].fill("IMPERIAL", "Imperial", ISS_OFF);
+    UnitsSP[UNITS_DEGREES].fill("DEGREES", "Degrees", ISS_ON);
+    UnitsSP[UNITS_RADIANS].fill("RADIANS", "Radians", ISS_OFF);
     UnitsSP.fill(m_defaultDevice->getDeviceName(), "UNITS", "Units", CONFIG_TAB.c_str(), IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
-    UpdateRateNP[0].fill("RATE", "Update Rate", "Hz", 1, 100, 1, 10);
+    UpdateRateNP[UPDATE_RATE_RATE].fill("RATE", "Update Rate (Hz)", "%.2f", 1, 100, 1, 10);
     UpdateRateNP.fill(m_defaultDevice->getDeviceName(), "UPDATE_RATE", "Update Rate", CONFIG_TAB.c_str(), IP_RW, 0, IPS_IDLE);
 
-    OffsetsNP[0].fill("OFFSET_X", "X Offset", "", -180, 180, 0, 0);
-    OffsetsNP[1].fill("OFFSET_Y", "Y Offset", "", -180, 180, 0, 0);
-    OffsetsNP[2].fill("OFFSET_Z", "Z Offset", "", -180, 180, 0, 0);
+    OffsetsNP[OFFSETS_X].fill("OFFSET_X", "X Offset", "%.4f", -180, 180, 0, 0);
+    OffsetsNP[OFFSETS_Y].fill("OFFSET_Y", "Y Offset", "%.4f", -180, 180, 0, 0);
+    OffsetsNP[OFFSETS_Z].fill("OFFSET_Z", "Z Offset", "%.4f", -180, 180, 0, 0);
     OffsetsNP.fill(m_defaultDevice->getDeviceName(), "OFFSETS", "Manual Offsets", CONFIG_TAB.c_str(), IP_RW, 0, IPS_IDLE);
 
     // Status and Info Properties
-    DeviceInfoTP[0].fill("CHIP_ID", "Chip ID", "");
-    DeviceInfoTP[1].fill("FIRMWARE_VERSION", "Firmware Version", "");
-    DeviceInfoTP[2].fill("SENSOR_STATUS", "Sensor Status", "");
+    DeviceInfoTP[DEVICE_INFO_CHIP_ID].fill("CHIP_ID", "Chip ID", "");
+    DeviceInfoTP[DEVICE_INFO_FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware Version", "");
+    DeviceInfoTP[DEVICE_INFO_SENSOR_STATUS].fill("SENSOR_STATUS", "Sensor Status", "");
     DeviceInfoTP.fill(m_defaultDevice->getDeviceName(), "DEVICE_INFO", "Device Info", STATUS_TAB.c_str(), IP_RO, 0, IPS_IDLE);
 
     if (HasTemperature())
     {
-        TemperatureNP[0].fill("TEMPERATURE", "Temperature", "°C", -40, 85, 0, 0);
+        TemperatureNP[TEMPERATURE_VALUE].fill("TEMPERATURE", "Temperature (°C)", "%.2f", -40, 85, 0, 0);
         TemperatureNP.fill(m_defaultDevice->getDeviceName(), "TEMPERATURE", "Temperature", STATUS_TAB.c_str(), IP_RO, 0, IPS_IDLE);
     }
 
     // Astronomical-Specific Properties
     if (HasStabilityMonitoring())
     {
-        StabilityMonitoringNP[0].fill("VIBRATION_LEVEL", "Vibration Level", "RMS", 0, 100, 0, 0);
-        StabilityMonitoringNP[1].fill("STABILITY_THRESHOLD", "Stability Threshold", "RMS", 0, 100, 0, 5);
-        StabilityMonitoringNP.fill(m_defaultDevice->getDeviceName(), "STABILITY_MONITORING", "Stability Monitoring", ASTRONOMICAL_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+        StabilityMonitoringNP[STABILITY_MONITORING_VIBRATION_LEVEL].fill("VIBRATION_LEVEL", "Vibration Level (RMS)", "%.4f", 0, 100,
+                0, 0);
+        StabilityMonitoringNP[STABILITY_MONITORING_STABILITY_THRESHOLD].fill("STABILITY_MONITORING_STABILITY_THRESHOLD",
+                "Stability Threshold (RMS)", "%.4f", 0, 100, 0, 5);
+        StabilityMonitoringNP.fill(m_defaultDevice->getDeviceName(), "STABILITY_MONITORING", "Stability Monitoring",
+                                   ASTRONOMICAL_TAB.c_str(), IP_RW, 0, IPS_IDLE);
     }
 }
 
@@ -203,7 +212,7 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
         UpdateRateNP.update(values, names, n);
         UpdateRateNP.setState(IPS_OK);
         UpdateRateNP.apply();
-        SetUpdateRate(UpdateRateNP[0].getValue());
+        SetUpdateRate(UpdateRateNP[UPDATE_RATE_RATE].getValue());
         return true;
     }
 
@@ -212,7 +221,7 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
         OffsetsNP.update(values, names, n);
         OffsetsNP.setState(IPS_OK);
         OffsetsNP.apply();
-        SetOffsets(OffsetsNP[0].getValue(), OffsetsNP[1].getValue(), OffsetsNP[2].getValue());
+        SetOffsets(OffsetsNP[OFFSETS_X].getValue(), OffsetsNP[OFFSETS_Y].getValue(), OffsetsNP[OFFSETS_Z].getValue());
         return true;
     }
 
@@ -221,7 +230,8 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
         StabilityMonitoringNP.update(values, names, n);
         StabilityMonitoringNP.setState(IPS_OK);
         StabilityMonitoringNP.apply();
-        SetStabilityMonitoring(StabilityMonitoringNP[0].getValue(), StabilityMonitoringNP[1].getValue());
+        SetStabilityMonitoring(StabilityMonitoringNP[STABILITY_MONITORING_VIBRATION_LEVEL].getValue(),
+                               StabilityMonitoringNP[STABILITY_MONITORING_STABILITY_THRESHOLD].getValue());
         return true;
     }
 
@@ -263,8 +273,8 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
         UnitsSP.setState(IPS_OK);
         UnitsSP.apply();
 
-        bool metric = UnitsSP[0].getState() == ISS_ON;
-        bool degrees = UnitsSP[2].getState() == ISS_ON;
+        bool metric = UnitsSP[UNITS_METRIC].getState() == ISS_ON;
+        bool degrees = UnitsSP[UNITS_DEGREES].getState() == ISS_ON;
         SetUnits(metric, degrees);
         return true;
     }
@@ -282,13 +292,13 @@ bool IMUInterface::processSwitch(const std::string &dev, const std::string &name
                 std::string switchName = names[i];
                 bool result = false;
 
-                if (switchName == "CAL_START")
+                if (switchName == CalibrationControlSP[CALIBRATION_CONTROL_START].getName())
                     result = StartCalibration();
-                else if (switchName == "CAL_SAVE")
+                else if (switchName == CalibrationControlSP[CALIBRATION_CONTROL_SAVE].getName())
                     result = SaveCalibrationData();
-                else if (switchName == "CAL_LOAD")
+                else if (switchName == CalibrationControlSP[CALIBRATION_CONTROL_LOAD].getName())
                     result = LoadCalibrationData();
-                else if (switchName == "CAL_RESET")
+                else if (switchName == CalibrationControlSP[CALIBRATION_CONTROL_RESET].getName())
                     result = ResetCalibration();
 
                 CalibrationControlSP.setState(result ? IPS_OK : IPS_ALERT);
@@ -318,10 +328,10 @@ bool IMUInterface::SetOrientationData(double roll, double pitch, double yaw, dou
     if (!HasOrientation())
         return false;
 
-    OrientationNP[0].setValue(roll);
-    OrientationNP[1].setValue(pitch);
-    OrientationNP[2].setValue(yaw);
-    OrientationNP[3].setValue(w);
+    OrientationNP[ORIENTATION_ROLL].setValue(roll);
+    OrientationNP[ORIENTATION_PITCH].setValue(pitch);
+    OrientationNP[ORIENTATION_YAW].setValue(yaw);
+    OrientationNP[ORIENTATION_QUATERNION_W].setValue(w);
     OrientationNP.setState(IPS_OK);
     OrientationNP.apply();
     return true;
@@ -332,9 +342,9 @@ bool IMUInterface::SetAccelerationData(double x, double y, double z)
     if (!HasAcceleration())
         return false;
 
-    AccelerationNP[0].setValue(x);
-    AccelerationNP[1].setValue(y);
-    AccelerationNP[2].setValue(z);
+    AccelerationNP[ACCELERATION_X].setValue(x);
+    AccelerationNP[ACCELERATION_Y].setValue(y);
+    AccelerationNP[ACCELERATION_Z].setValue(z);
     AccelerationNP.setState(IPS_OK);
     AccelerationNP.apply();
     return true;
@@ -345,9 +355,9 @@ bool IMUInterface::SetGyroscopeData(double x, double y, double z)
     if (!HasGyroscope())
         return false;
 
-    GyroscopeNP[0].setValue(x);
-    GyroscopeNP[1].setValue(y);
-    GyroscopeNP[2].setValue(z);
+    GyroscopeNP[GYROSCOPE_X].setValue(x);
+    GyroscopeNP[GYROSCOPE_Y].setValue(y);
+    GyroscopeNP[GYROSCOPE_Z].setValue(z);
     GyroscopeNP.setState(IPS_OK);
     GyroscopeNP.apply();
     return true;
@@ -358,9 +368,9 @@ bool IMUInterface::SetMagnetometerData(double x, double y, double z)
     if (!HasMagnetometer())
         return false;
 
-    MagnetometerNP[0].setValue(x);
-    MagnetometerNP[1].setValue(y);
-    MagnetometerNP[2].setValue(z);
+    MagnetometerNP[MAGNETOMETER_X].setValue(x);
+    MagnetometerNP[MAGNETOMETER_Y].setValue(y);
+    MagnetometerNP[MAGNETOMETER_Z].setValue(z);
     MagnetometerNP.setState(IPS_OK);
     MagnetometerNP.apply();
     return true;
@@ -389,10 +399,10 @@ bool IMUInterface::SetCalibrationStatus(int sys, int gyro, int accel, int mag)
         }
     };
 
-    CalibrationStatusLP[0].setState(getCalibrationState(sys));
-    CalibrationStatusLP[1].setState(getCalibrationState(gyro));
-    CalibrationStatusLP[2].setState(getCalibrationState(accel));
-    CalibrationStatusLP[3].setState(getCalibrationState(mag));
+    CalibrationStatusLP[CALIBRATION_STATUS_SYS].setState(getCalibrationState(sys));
+    CalibrationStatusLP[CALIBRATION_STATUS_GYRO].setState(getCalibrationState(gyro));
+    CalibrationStatusLP[CALIBRATION_STATUS_ACCEL].setState(getCalibrationState(accel));
+    CalibrationStatusLP[CALIBRATION_STATUS_MAG].setState(getCalibrationState(mag));
     CalibrationStatusLP.apply();
     return true;
 }
@@ -459,11 +469,12 @@ bool IMUInterface::SetOffsets(double x, double y, double z)
     return false;
 }
 
-bool IMUInterface::SetDeviceInfo(const std::string &chipID, const std::string &firmwareVersion, const std::string &sensorStatus)
+bool IMUInterface::SetDeviceInfo(const std::string &chipID, const std::string &firmwareVersion,
+                                 const std::string &sensorStatus)
 {
-    DeviceInfoTP[0].setText(chipID.c_str());
-    DeviceInfoTP[1].setText(firmwareVersion.c_str());
-    DeviceInfoTP[2].setText(sensorStatus.c_str());
+    DeviceInfoTP[DEVICE_INFO_CHIP_ID].setText(chipID.c_str());
+    DeviceInfoTP[DEVICE_INFO_FIRMWARE_VERSION].setText(firmwareVersion.c_str());
+    DeviceInfoTP[DEVICE_INFO_SENSOR_STATUS].setText(sensorStatus.c_str());
     DeviceInfoTP.setState(IPS_OK);
     DeviceInfoTP.apply();
     return true;
@@ -474,7 +485,7 @@ bool IMUInterface::SetTemperature(double temperature)
     if (!HasTemperature())
         return false;
 
-    TemperatureNP[0].setValue(temperature);
+    TemperatureNP[TEMPERATURE_VALUE].setValue(temperature);
     TemperatureNP.setState(IPS_OK);
     TemperatureNP.apply();
     return true;
@@ -485,8 +496,8 @@ bool IMUInterface::SetStabilityMonitoring(double vibrationLevel, double stabilit
     if (!HasStabilityMonitoring())
         return false;
 
-    StabilityMonitoringNP[0].setValue(vibrationLevel);
-    StabilityMonitoringNP[1].setValue(stabilityThreshold);
+    StabilityMonitoringNP[STABILITY_MONITORING_VIBRATION_LEVEL].setValue(vibrationLevel);
+    StabilityMonitoringNP[STABILITY_MONITORING_STABILITY_THRESHOLD].setValue(stabilityThreshold);
     StabilityMonitoringNP.setState(IPS_OK);
     StabilityMonitoringNP.apply();
     return true;

@@ -39,7 +39,7 @@ class IMUInterface
          * \struct IMUCapability
          * \brief Holds the capabilities of an IMU device
          */
-        enum
+        enum IMUCapability
         {
             IMU_HAS_ORIENTATION     = 1 << 0, /*!< Has orientation data (Roll, Pitch, Yaw) */
             IMU_HAS_ACCELERATION    = 1 << 1, /*!< Has acceleration data */
@@ -48,7 +48,119 @@ class IMUInterface
             IMU_HAS_CALIBRATION     = 1 << 4, /*!< Supports calibration */
             IMU_HAS_TEMPERATURE     = 1 << 5, /*!< Has temperature sensor */
             IMU_HAS_STABILITY_MON   = 1 << 6  /*!< Supports stability monitoring */
-        } IMUCapability;
+        };
+
+        enum OrientationProperty
+        {
+            ORIENTATION_ROLL = 0,
+            ORIENTATION_PITCH,
+            ORIENTATION_YAW,
+            ORIENTATION_QUATERNION_W,
+            ORIENTATION_PROPERTY_COUNT
+        };
+
+        enum AccelerationProperty
+        {
+            ACCELERATION_X = 0,
+            ACCELERATION_Y,
+            ACCELERATION_Z,
+            ACCELERATION_PROPERTY_COUNT
+        };
+
+        enum GyroscopeProperty
+        {
+            GYROSCOPE_X = 0,
+            GYROSCOPE_Y,
+            GYROSCOPE_Z,
+            GYROSCOPE_PROPERTY_COUNT
+        };
+
+        enum MagnetometerProperty
+        {
+            MAGNETOMETER_X = 0,
+            MAGNETOMETER_Y,
+            MAGNETOMETER_Z,
+            MAGNETOMETER_PROPERTY_COUNT
+        };
+
+        enum CalibrationStatusProperty
+        {
+            CALIBRATION_STATUS_SYS = 0,
+            CALIBRATION_STATUS_GYRO,
+            CALIBRATION_STATUS_ACCEL,
+            CALIBRATION_STATUS_MAG,
+            CALIBRATION_STATUS_PROPERTY_COUNT
+        };
+
+        enum CalibrationControlProperty
+        {
+            CALIBRATION_CONTROL_START = 0,
+            CALIBRATION_CONTROL_SAVE,
+            CALIBRATION_CONTROL_LOAD,
+            CALIBRATION_CONTROL_RESET,
+            CALIBRATION_CONTROL_PROPERTY_COUNT
+        };
+
+        enum PowerModeProperty
+        {
+            POWER_MODE_NORMAL = 0,
+            POWER_MODE_LOW_POWER,
+            POWER_MODE_SUSPEND,
+            POWER_MODE_PROPERTY_COUNT
+        };
+
+        enum OperationModeProperty
+        {
+            OPERATION_MODE_IMU = 0,
+            OPERATION_MODE_COMPASS,
+            OPERATION_MODE_M4G,
+            OPERATION_MODE_NDOF,
+            OPERATION_MODE_PROPERTY_COUNT
+        };
+
+        enum UnitsProperty
+        {
+            UNITS_METRIC = 0,
+            UNITS_IMPERIAL,
+            UNITS_DEGREES,
+            UNITS_RADIANS,
+            UNITS_PROPERTY_COUNT
+        };
+
+        enum UpdateRateProperty
+        {
+            UPDATE_RATE_RATE = 0,
+            UPDATE_RATE_PROPERTY_COUNT
+        };
+
+        enum OffsetsProperty
+        {
+            OFFSETS_X = 0,
+            OFFSETS_Y,
+            OFFSETS_Z,
+            OFFSETS_PROPERTY_COUNT
+        };
+
+        enum DeviceInfoProperty
+        {
+            DEVICE_INFO_CHIP_ID = 0,
+            DEVICE_INFO_FIRMWARE_VERSION,
+            DEVICE_INFO_SENSOR_STATUS,
+            DEVICE_INFO_PROPERTY_COUNT
+        };
+
+        enum TemperatureProperty
+        {
+            TEMPERATURE_VALUE = 0,
+            TEMPERATURE_PROPERTY_COUNT
+        };
+
+        enum StabilityMonitoringProperty
+        {
+            STABILITY_MONITORING_VIBRATION_LEVEL = 0,
+            STABILITY_MONITORING_STABILITY_THRESHOLD,
+            STABILITY_MONITORING_PROPERTY_COUNT
+        };
 
         /**
          * @brief GetIMUCapability returns the capability of the IMU device
@@ -263,28 +375,28 @@ class IMUInterface
         virtual bool saveConfigItems(FILE *fp);
 
         // Core Sensor Data Properties
-        INDI::PropertyNumber OrientationNP {4}; // Roll, Pitch, Yaw, Quaternion W
-        INDI::PropertyNumber AccelerationNP {3}; // ACCEL_X, ACCEL_Y, ACCEL_Z
-        INDI::PropertyNumber GyroscopeNP {3};    // GYRO_X, GYRO_Y, GYRO_Z
-        INDI::PropertyNumber MagnetometerNP {3}; // MAG_X, MAG_Y, MAG_Z
+        INDI::PropertyNumber OrientationNP {ORIENTATION_PROPERTY_COUNT}; // Roll, Pitch, Yaw, Quaternion W
+        INDI::PropertyNumber AccelerationNP {ACCELERATION_PROPERTY_COUNT}; // ACCEL_X, ACCEL_Y, ACCEL_Z
+        INDI::PropertyNumber GyroscopeNP {GYROSCOPE_PROPERTY_COUNT};    // GYRO_X, GYRO_Y, GYRO_Z
+        INDI::PropertyNumber MagnetometerNP {MAGNETOMETER_PROPERTY_COUNT}; // MAG_X, MAG_Y, MAG_Z
 
         // Calibration Properties
-        INDI::PropertyLight CalibrationStatusLP {4}; // CAL_SYS, CAL_GYRO, CAL_ACCEL, CAL_MAG
-        INDI::PropertySwitch CalibrationControlSP {4}; // CAL_START, CAL_SAVE, CAL_LOAD, CAL_RESET
+        INDI::PropertyLight CalibrationStatusLP {CALIBRATION_STATUS_PROPERTY_COUNT}; // CAL_SYS, CAL_GYRO, CAL_ACCEL, CAL_MAG
+        INDI::PropertySwitch CalibrationControlSP {CALIBRATION_CONTROL_PROPERTY_COUNT}; // CAL_START, CAL_SAVE, CAL_LOAD, CAL_RESET
 
         // Configuration Properties
-        INDI::PropertySwitch PowerModeSP {3}; // Normal/Low Power/Suspend
-        INDI::PropertySwitch OperationModeSP {4}; // IMU/Compass/M4G/NDOF
-        INDI::PropertySwitch UnitsSP {4}; // Metric/Imperial, degrees/radians
-        INDI::PropertyNumber UpdateRateNP {1}; // Sensor polling frequency (Hz)
-        INDI::PropertyNumber OffsetsNP {3}; // Manual offset corrections
+        INDI::PropertySwitch PowerModeSP {POWER_MODE_PROPERTY_COUNT}; // Normal/Low Power/Suspend
+        INDI::PropertySwitch OperationModeSP {OPERATION_MODE_PROPERTY_COUNT}; // IMU/Compass/M4G/NDOF
+        INDI::PropertySwitch UnitsSP {UNITS_PROPERTY_COUNT}; // Metric/Imperial, degrees/radians
+        INDI::PropertyNumber UpdateRateNP {UPDATE_RATE_PROPERTY_COUNT}; // Sensor polling frequency (Hz)
+        INDI::PropertyNumber OffsetsNP {OFFSETS_PROPERTY_COUNT}; // Manual offset corrections
 
         // Status and Info Properties
-        INDI::PropertyText DeviceInfoTP {3}; // Chip ID, firmware version, sensor status
-        INDI::PropertyNumber TemperatureNP {1}; // Internal chip temperature
+        INDI::PropertyText DeviceInfoTP {DEVICE_INFO_PROPERTY_COUNT}; // Chip ID, firmware version, sensor status
+        INDI::PropertyNumber TemperatureNP {TEMPERATURE_PROPERTY_COUNT}; // Internal chip temperature
 
         // Astronomical-Specific Properties (moved to driver level)
-        INDI::PropertyNumber StabilityMonitoringNP {2}; // VIBRATION_LEVEL, STABILITY_THRESHOLD
+        INDI::PropertyNumber StabilityMonitoringNP {STABILITY_MONITORING_PROPERTY_COUNT}; // VIBRATION_LEVEL, STABILITY_THRESHOLD
 
     private:
         uint32_t imuCapability = 0;
