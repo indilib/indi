@@ -138,6 +138,13 @@ bool Telescope::initProperties()
     PECStateSP.fill(getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                     IPS_IDLE);
 
+    // Mount Type
+    // @INDI_STANDARD_PROPERTY@
+    MountTypeSP[MOUNT_ALTAZ].fill("ALTAZ", "ALTAZ", ISS_OFF);
+    MountTypeSP[MOUNT_EQ_FORK].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
+    MountTypeSP[MOUNT_EQ_GEM].fill("EQ_GEM", "GEM", ISS_ON);
+    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RO, ISR_1OFMANY, 60, IPS_IDLE);
+
     // Track Mode. Child class must call AddTrackMode to add members
     // @INDI_STANDARD_PROPERTY@
     TrackModeSP.fill(getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
@@ -364,6 +371,8 @@ bool Telescope::updateProperties()
             defineProperty(TargetNP);
         }
 
+        defineProperty(MountTypeSP);
+
         if (HasTime())
             defineProperty(TimeTP);
         if (HasLocation())
@@ -424,6 +433,8 @@ bool Telescope::updateProperties()
                 deleteProperty(SlewRateSP);
             deleteProperty(TargetNP);
         }
+
+        deleteProperty(MountTypeSP);
 
         if (HasTime())
             deleteProperty(TimeTP);

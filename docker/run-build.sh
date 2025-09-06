@@ -12,9 +12,10 @@ else
     export CIRCLE_BRANCH=$2 ; 
 fi 
 
-git clone https://github.com/$REPO/indi.git 
+# Use shallow clone to fetch only the latest commit of the specified branch
+# This is much faster and uses significantly less bandwidth/disk space
+git clone --depth 1 --single-branch --branch $CIRCLE_BRANCH https://github.com/$REPO/indi.git 
 cd indi 
-git checkout $CIRCLE_BRANCH
 
 ./.circleci/build-all.sh
 ./.circleci/run-tests.sh

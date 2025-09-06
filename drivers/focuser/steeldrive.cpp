@@ -436,7 +436,7 @@ bool SteelDrive::updatePosition()
 
         if (sim)
         {
-            snprintf(resp, STEELDRIVE_CMD_LONG, ":F8%07u#", (int)simPosition);
+            snprintf(resp, STEELDRIVE_CMD_LONG + 1, ":F8%07u#", (int)simPosition);
             nbytes_read = STEELDRIVE_CMD_LONG;
             break;
         }

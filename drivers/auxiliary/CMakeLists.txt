@@ -25,6 +25,22 @@ add_executable(indi_wanderercover_v4_ec ${indi_wanderercover_v4_ec_SRC})
 target_link_libraries(indi_wanderercover_v4_ec indidriver)
 install(TARGETS indi_wanderercover_v4_ec RUNTIME DESTINATION bin)
 
+# ########## WandererCover V4 Pro-EC###############
+SET(indi_wanderercover_v4_pro_ec_SRC
+    wanderer_cover_v4_pro_ec.cpp)
+
+add_executable(indi_wanderercover_v4_pro_ec ${indi_wanderercover_v4_pro_ec_SRC})
+target_link_libraries(indi_wanderercover_v4_pro_ec indidriver)
+install(TARGETS indi_wanderercover_v4_pro_ec RUNTIME DESTINATION bin)
+
+# ########## Wanderer Eclipse###############
+SET(indi_wanderer_eclipse_SRC
+    wanderer_eclipse.cpp)
+
+add_executable(indi_wanderer_eclipse ${indi_wanderer_eclipse_SRC})
+target_link_libraries(indi_wanderer_eclipse indidriver)
+install(TARGETS indi_wanderer_eclipse RUNTIME DESTINATION bin)
+
 # ########## Astrolink-4###############
 SET(indi_astrolink4_SRC
     indi_astrolink4.cpp)
@@ -48,6 +64,14 @@ SET(indi_wandererbox_pro_v3_SRC
 add_executable(indi_wandererbox_pro_v3 ${indi_wandererbox_pro_v3_SRC})
 target_link_libraries(indi_wandererbox_pro_v3 indidriver)
 install(TARGETS indi_wandererbox_pro_v3 RUNTIME DESTINATION bin)
+
+# ########## Wanderer Dew Terminator ###############
+SET(indi_wanderer_dew_terminator_SRC
+    wanderer_dew_terminator.cpp)
+
+add_executable(indi_wanderer_dew_terminator ${indi_wanderer_dew_terminator_SRC})
+target_link_libraries(indi_wanderer_dew_terminator indidriver)
+install(TARGETS indi_wanderer_dew_terminator RUNTIME DESTINATION bin)
 
 # ########## Wanderer Cover V3 ###############
 SET(wandererCover_SRC
@@ -360,7 +384,8 @@ install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
 
 # ########## Gemini Flatpanel ###############
 SET(gemini_flatpanel_SRC
-    gemini_flatpanel.cpp)
+    gemini_flatpanel.cpp
+    gemini_flatpanel_adapters.cpp)
 
 add_executable(indi_gemini_flatpanel ${gemini_flatpanel_SRC})
 target_link_libraries(indi_gemini_flatpanel indidriver)

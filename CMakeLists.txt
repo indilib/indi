@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 PROJECT(libindi C CXX)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
 
 # As moc files are generated in the binary dir, tell CMake
 # to always look for includes there:
@@ -45,7 +48,7 @@ endif()
 # ####################################  INDI version  ################################################
 set(CMAKE_INDI_VERSION_MAJOR 2)
 set(CMAKE_INDI_VERSION_MINOR 1)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 
 set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")

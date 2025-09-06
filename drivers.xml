@@ -101,19 +101,19 @@
         </device>
         <device label="ZWO AM5 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="ZWO AM5 USB" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="ZWO AM3 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="ZWO AM3 USB" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="Celestron GPS" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
@@ -633,6 +633,14 @@
             <driver name="Guide Simulator">indi_simulator_guide</driver>
             <version>1.0</version>
         </device>
+        <device label="Alpaca Camera" manufacturer="Alpaca">
+            <driver name="Alpaca Camera">indi_alpaca_ccd</driver>
+            <version>1.0</version>
+        </device>
+        <device label="SmartEye" manufacturer="Pegasus Astro">
+            <driver name="Alpaca Camera">indi_alpaca_ccd</driver>
+            <version>1.0</version>
+        </device>
         <device label="DMK CCD" manufacturer="DMK">
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>
@@ -739,6 +747,10 @@
             <driver name="Astrometry">indi_astrometry</driver>
             <version>0.1</version>
         </device>
+        <device label="INDI Alpaca Server" manufacturer="Alpaca">
+            <driver name="INDI Alpaca Server">indi_alpaca_server</driver>
+            <version>0.1</version>
+        </device>
         <device label="AstroLink 4 mini II" manufacturer="Astrojolo">
             <driver name="AstroLink 4 mini II">indi_astrolink4mini2</driver>
             <version>0.2</version>
@@ -781,7 +793,7 @@
         </device>
         <device label="RBF Excalibur" manufacturer="RB Focus">
             <driver name="RBF Excalibur">indi_Excalibur</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="GIOTTO" manufacturer="Primaluce Lab">
             <driver name="GIOTTO">indi_giotto</driver>
@@ -843,6 +855,14 @@
             <driver name="WandererCover V4-EC">indi_wanderercover_v4_ec</driver>
             <version>1.2</version>
         </device>
+        <device label="WandererCover V4 Pro-EC" manufacturer="Wanderer Astro">
+            <driver name="WandererCover V4 Pro-EC">indi_wanderercover_v4_pro_ec</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Wanderer Eclipse" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Eclipse">indi_wanderer_eclipse</driver>
+            <version>1.2</version>
+        </device>    
         <device label="DragonLIGHT" manufacturer="Dark Dragons Astro">
             <driver name="DragonLIGHT">indi_dragon_light</driver>
             <version>1.0</version>
@@ -967,6 +987,10 @@
             <driver name="Weather Safety Alpaca">indi_weather_safety_alpaca</driver>
             <version>1.0</version>
         </device>
+        <device label="WeatherFlow Tempest" manufacturer="WeatherFlow">
+            <driver name="WeatherFlow Tempest">indi_weatherflow_weather</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Agent">
         <device label="Imager Agent" manufacturer="Others">
@@ -1013,6 +1037,10 @@
         </device>
         <device label="WandererBox Plus V3" manufacturer="Wanderer Astro">
             <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Wanderer Dew Terminator" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Dew Terminator">indi_wanderer_dew_terminator</driver>
             <version>1.0</version>
         </device>
         <device label="CheapoDC" manufacturer="DIY">
