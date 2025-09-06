@@ -128,6 +128,8 @@ bool I2C::Connect(const char *busPath, uint8_t addr)
         return true;
 
 #ifndef __linux__
+    INDI_UNUSED(busPath);
+    INDI_UNUSED(addr);
     LOG_ERROR("I2C connection is not supported on this platform.");
     return false;
 #else
