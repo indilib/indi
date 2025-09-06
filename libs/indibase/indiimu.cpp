@@ -342,19 +342,19 @@ void IMU::RecalculateAstroCoordinates()
            finalRollDeg, finalPitchDeg, finalYawDeg);
 
     // Adjust Yaw to be 0-360 degrees and align with Azimuth (North=0, East=90)
-    double azimuth = range360(finalYawDeg);
+    double azimuth = range360(-finalYawDeg);
 
     // Adjust Pitch to be Altitude (-90 to +90, or 0-90 for visible sky)
-    double altitude = range180(finalPitchDeg);
+    double altitude = finalPitchDeg;
+
+    // Log final Alt/Az values before updating properties
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Final Alt/Az (deg): Azimuth=%.2f, Altitude=%.2f", azimuth, altitude);
 
     // Update AstroCoordinatesNP (Azimuth, Altitude)
     AstroCoordinatesNP[AXIS1].setValue(azimuth);
     AstroCoordinatesNP[AXIS2].setValue(altitude);
     AstroCoordinatesNP.setState(IPS_OK);
     AstroCoordinatesNP.apply();
-
-    // Log final Alt/Az values
-    DEBUGF(Logger::DBG_DEBUG, "IMU: Final Alt/Az (deg): Azimuth=%.2f, Altitude=%.2f", azimuth, altitude);
 }
 
 // Implement virtual functions from IMUInterface
