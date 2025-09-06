@@ -222,22 +222,29 @@ class IMUInterface
          * initProperties() of your primary device
          * \param groupName Group or tab name to be used to define IMU properties.
          */
-        virtual void initProperties(const std::string &groupName);
+        void initProperties(const std::string &groupName);
 
         /**
          * @brief updateProperties Define or Delete IMU properties based on the connection status of the base device
          * @return True if successful, false otherwise.
          */
-        virtual bool updateProperties();
+        bool updateProperties();
 
         /** \brief Process IMU number properties */
-        virtual bool processNumber(const std::string &dev, const std::string &name, double values[], char *names[], int n);
+        bool processNumber(const std::string &dev, const std::string &name, double values[], char *names[], int n);
 
         /** \brief Process IMU switch properties */
-        virtual bool processSwitch(const std::string &dev, const std::string &name, ISState *states, char *names[], int n);
+        bool processSwitch(const std::string &dev, const std::string &name, ISState *states, char *names[], int n);
 
         /** \brief Process IMU text properties */
-        virtual bool processText(const std::string &dev, const std::string &name, char *texts[], char *names[], int n);
+        bool processText(const std::string &dev, const std::string &name, char *texts[], char *names[], int n);
+
+        /**
+         * @brief saveConfigItems Save IMU properties in config file
+         * @param fp Pointer to config file
+         * @return Always return true
+         */
+        bool saveConfigItems(FILE *fp);
 
         /**
          * @brief SetOrientationData Set the orientation data (Roll, Pitch, Yaw, Quaternion W)
@@ -377,13 +384,6 @@ class IMUInterface
          * @return True if successful, false otherwise
          */
         virtual bool SetStabilityMonitoring(double vibrationLevel, double stabilityThreshold);
-
-        /**
-         * @brief saveConfigItems Save IMU properties in config file
-         * @param fp Pointer to config file
-         * @return Always return true
-         */
-        virtual bool saveConfigItems(FILE *fp);
 
         // Core Sensor Data Properties
         INDI::PropertyNumber OrientationNP {ORIENTATION_PROPERTY_COUNT}; // Roll, Pitch, Yaw, Quaternion W
