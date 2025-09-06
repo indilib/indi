@@ -222,35 +222,118 @@ bool IMU::callHandshake()
     return Handshake();
 }
 
-// Default implementations for IMUInterface virtual functions
-bool IMU::SetOrientationData(double roll, double pitch, double yaw, double w)
+// Helper function to convert quaternion to Euler angles (roll, pitch, yaw)
+// Angles are in radians
+void IMU::QuaternionToEuler(double i, double j, double k, double w, double &roll, double &pitch, double &yaw)
 {
-    INDI_UNUSED(roll);
-    INDI_UNUSED(pitch);
-    INDI_UNUSED(yaw);
-    INDI_UNUSED(w);
-    return false;
+    // Roll (x-axis rotation)
+    double sinr_cosp = 2 * (w * i + j * k);
+    double cosr_cosp = 1 - 2 * (i * i + j * j);
+    roll             = std::atan2(sinr_cosp, cosr_cosp);
+
+    // Pitch (y-axis rotation)
+    double sinp = 2 * (w * j - k * i);
+    if (std::abs(sinp) >= 1)
+        pitch = std::copysign(M_PI / 2, sinp); // Use 90 degrees if out of range
+    else
+        pitch = std::asin(sinp);
+
+    // Yaw (z-axis rotation)
+    double siny_cosp = 2 * (w * k + i * j);
+    double cosy_cosp = 1 - 2 * (j * j + k * k);
+    yaw              = std::atan2(siny_cosp, cosy_cosp);
 }
+
+// Implement virtual functions from IMUInterface
+bool IMU::SetOrientationData(double i, double j, double k, double w)
+{
+    double rollRad, pitchRad, yawRad;
+    QuaternionToEuler(i, j, k, w, rollRad, pitchRad, yawRad);
+
+    // Convert radians to degrees for INDI properties
+    double rollDeg  = rollRad * 180.0 / M_PI;
+    double pitchDeg = pitchRad * 180.0 / M_PI;
+    double yawDeg   = yawRad * 180.0 / M_PI;
+
+    // Update INDI Orientation properties (Roll, Pitch, Yaw in degrees)
+    OrientationNP[ORIENTATION_ROLL].setValue(rollDeg);
+    OrientationNP[ORIENTATION_PITCH].setValue(pitchDeg);
+    OrientationNP[ORIENTATION_YAW].setValue(yawDeg);
+    OrientationNP[ORIENTATION_QUATERNION_W].setValue(w); // Keep quaternion 'w' for completeness if needed elsewhere
+    OrientationNP.setState(IPS_OK);
+    OrientationNP.apply();
+
+    // For now, we only support Alt-Az coordinates
+    if (AstroCoordsTypeSP[COORD_ALTAZ].s != ISS_ON)
+        return true;
+
+    // Correct for magnetic declination to get true north
+    double magneticDeclination = MagneticDeclinationNP[0].getValue();
+    double trueYawDeg          = yawDeg + magneticDeclination;
+
+    // Apply mount alignment offsets
+    double axis1Offset    = MountAlignmentNP[AXIS1_OFFSET].getValue();
+    double axis2Offset    = MountAlignmentNP[AXIS2_OFFSET].getValue();
+    //double rotationOffset = MountAlignmentNP[ROTATION_OFFSET].getValue();
+
+    // Apply offsets. This is a simplified model. A more accurate model would involve quaternion rotation.
+    double correctedPitch = pitchDeg + axis1Offset;
+    double correctedYaw   = trueYawDeg + axis2Offset;
+    //double correctedRoll  = rollDeg + rotationOffset; // User commented this out
+
+    // For Alt/Az, we need to map the IMU's orientation to the local horizontal coordinate system.
+    // Assuming:
+    // - Yaw (heading) corresponds to Azimuth (0-360 degrees, typically North=0, East=90)
+    // - Pitch corresponds to Altitude (-90 to +90 degrees, typically horizontal=0, zenith=90)
+    // - Roll is rotation around the pointing axis, which might be used for field rotation or ignored for basic Alt/Az.
+
+    // Adjust Yaw to be 0-360 degrees and align with Azimuth (North=0, East=90)
+    double azimuth = correctedYaw;
+    if (azimuth < 0)
+        azimuth += 360.0; // Ensure positive
+    azimuth = fmod(azimuth, 360.0); // Ensure within 0-360
+
+    // Adjust Pitch to be Altitude (-90 to +90, or 0-90 for visible sky)
+    double altitude = correctedPitch;
+
+    // Update AstroCoordinatesNP (Altitude, Azimuth)
+    // Assuming AstroCoordinatesNP[0] = Altitude, AstroCoordinatesNP[1] = Azimuth
+    AstroCoordinatesNP[0].setValue(altitude);
+    AstroCoordinatesNP[1].setValue(azimuth);
+    AstroCoordinatesNP.setState(IPS_OK);
+    AstroCoordinatesNP.apply();
+
+    return true;
+}
+
 bool IMU::SetAccelerationData(double x, double y, double z)
 {
-    INDI_UNUSED(x);
-    INDI_UNUSED(y);
-    INDI_UNUSED(z);
-    return false;
+    AccelerationNP[ACCELERATION_X].setValue(x);
+    AccelerationNP[ACCELERATION_Y].setValue(y);
+    AccelerationNP[ACCELERATION_Z].setValue(z);
+    AccelerationNP.setState(IPS_OK);
+    AccelerationNP.apply();
+    return true;
 }
+
 bool IMU::SetGyroscopeData(double x, double y, double z)
 {
-    INDI_UNUSED(x);
-    INDI_UNUSED(y);
-    INDI_UNUSED(z);
-    return false;
+    GyroscopeNP[GYROSCOPE_X].setValue(x);
+    GyroscopeNP[GYROSCOPE_Y].setValue(y);
+    GyroscopeNP[GYROSCOPE_Z].setValue(z);
+    GyroscopeNP.setState(IPS_OK);
+    GyroscopeNP.apply();
+    return true;
 }
+
 bool IMU::SetMagnetometerData(double x, double y, double z)
 {
-    INDI_UNUSED(x);
-    INDI_UNUSED(y);
-    INDI_UNUSED(z);
-    return false;
+    MagnetometerNP[MAGNETOMETER_X].setValue(x);
+    MagnetometerNP[MAGNETOMETER_Y].setValue(y);
+    MagnetometerNP[MAGNETOMETER_Z].setValue(z);
+    MagnetometerNP.setState(IPS_OK);
+    MagnetometerNP.apply();
+    return true;
 }
 bool IMU::SetCalibrationStatus(int sys, int gyro, int accel, int mag)
 {

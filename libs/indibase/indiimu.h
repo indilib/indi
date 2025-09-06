@@ -82,17 +82,22 @@ class IMU : public DefaultDevice, public IMUInterface
         virtual bool Handshake();
 
     protected:
+        // Helper function to convert quaternion to Euler angles (roll, pitch, yaw) in radians
+        void QuaternionToEuler(double i, double j, double k, double w, double &roll, double &pitch, double &yaw);
+
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
+        // Called by the concrete class
+        bool SetOrientationData(double roll, double pitch, double yaw, double w = 0.0) override;
+        bool SetAccelerationData(double x, double y, double z) override;
+        bool SetGyroscopeData(double x, double y, double z) override;
+        bool SetMagnetometerData(double x, double y, double z) override;
+
     protected:
         // Virtual functions from IMUInterface to be implemented by concrete drivers
-        virtual bool SetOrientationData(double roll, double pitch, double yaw, double w = 0.0) override;
-        virtual bool SetAccelerationData(double x, double y, double z) override;
-        virtual bool SetGyroscopeData(double x, double y, double z) override;
-        virtual bool SetMagnetometerData(double x, double y, double z) override;
         virtual bool SetCalibrationStatus(int sys, int gyro, int accel, int mag) override;
         virtual bool StartCalibration() override;
         virtual bool SaveCalibrationData() override;
