@@ -71,6 +71,29 @@ bool Camelot::initProperties()
 /////////////////////////////////////////////////////////////////////////////
 bool Camelot::updateProperties()
 {
+    // Need to call this before INDI::Rotator::updateProperties();
+    if (isConnected())
+    {
+        char res[DRIVER_LEN] = {0};
+
+        // Position
+        if (sendCommand("P#", res))
+        {
+            double position = std::stod(res) / 10.0;
+            GotoRotatorNP[0].setValue(position);
+            GotoRotatorNP.setState(IPS_OK);
+        }
+
+        // Direction
+        if (sendCommand("K#", res))
+        {
+            if (strstr(res, "Normal"))
+                ReverseRotatorSP[INDI_DISABLED].setState(ISS_ON);
+            else
+                ReverseRotatorSP[INDI_ENABLED].setState(ISS_ON);
+        }
+    }
+
     INDI::Rotator::updateProperties();
 
     if (isConnected())
@@ -208,14 +231,6 @@ bool Camelot::queryStatus()
 {
     char res[DRIVER_LEN] = {0};
 
-    // Position
-    if (sendCommand("P#", res))
-    {
-        double position = std::stod(res) / 10.0;
-        GotoRotatorNP[0].setValue(position);
-        GotoRotatorNP.setState(IPS_OK);
-    }
-
     // Speed
     if (sendCommand("Y#", res))
     {
@@ -225,15 +240,6 @@ bool Camelot::queryStatus()
             RotatorSpeedSP[SPEED_MEDIUM].setState(ISS_ON);
         else if (strstr(res, "Slow"))
             RotatorSpeedSP[SPEED_SLOW].setState(ISS_ON);
-    }
-
-    // Direction
-    if (sendCommand("K#", res))
-    {
-        if (strstr(res, "Normal"))
-            ReverseRotatorSP[INDI_DISABLED].setState(ISS_ON);
-        else
-            ReverseRotatorSP[INDI_ENABLED].setState(ISS_ON);
     }
 
     // Power
@@ -263,15 +269,15 @@ void Camelot::TimerHit()
     double current_pos = GotoRotatorNP[0].getValue();
     IPState current_state = GotoRotatorNP.getState();
 
-    if (sendCommand("P#", res))
-    {
-        GotoRotatorNP[0].setValue(std::stod(res) / 10.0);
-    }
-
     if (current_state == IPS_BUSY)
     {
         if (sendCommand("J#", res) && strstr(res, "M0:OK"))
             GotoRotatorNP.setState(IPS_OK);
+    }
+
+    if (sendCommand("P#", res))
+    {
+        GotoRotatorNP[0].setValue(std::stod(res) / 10.0);
     }
 
     if (std::abs(current_pos - GotoRotatorNP[0].getValue()) > 0.1 || current_state != GotoRotatorNP.getState())
@@ -339,7 +345,7 @@ bool Camelot::sendCommand(const char * cmd, char * res, int cmd_len, int res_len
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        LOGF_ERROR("%s Serial read error: %s.", cmd, errstr);
         return false;
     }
 
