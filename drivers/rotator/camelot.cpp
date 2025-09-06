@@ -59,8 +59,8 @@ bool Camelot::initProperties()
     RotatorSpeedSP.fill(getDeviceName(), "ROTATOR_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Power
-    RotatorPowerNP[POWER_NORMAL].fill("POWER_NORMAL", "Normal", "%d", 0, 255, 1, 120);
-    RotatorPowerNP[POWER_HOLD].fill("POWER_HOLD", "Hold", "%d", 0, 255, 1, 100);
+    RotatorPowerNP[POWER_NORMAL].fill("POWER_NORMAL", "Normal", "%.f", 0, 255, 1, 120);
+    RotatorPowerNP[POWER_HOLD].fill("POWER_HOLD", "Hold", "%.f", 0, 255, 1, 100);
     RotatorPowerNP.fill(getDeviceName(), "ROTATOR_POWER", "Power", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
@@ -164,24 +164,12 @@ bool Camelot::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     {
         if (RotatorSpeedSP.isNameMatch(name))
         {
-            auto prevSpeed = RotatorSpeedSP.findOnSwitchIndex();
-            RotatorSpeedSP.update(states, names, n);
-            auto newSpeed = RotatorSpeedSP.findOnSwitchIndex();
-
-            char cmd[DRIVER_LEN] = {0};
-            snprintf(cmd, DRIVER_LEN, "Z%d", newSpeed);
-            if (sendCommand(cmd))
+            updateProperty(RotatorSpeedSP, states, names, n, [this, states, n]
             {
-                RotatorSpeedSP.setState(IPS_OK);
-            }
-            else
-            {
-                RotatorSpeedSP.reset();
-                RotatorSpeedSP[prevSpeed].setState(ISS_ON);
-                RotatorSpeedSP.setState(IPS_ALERT);
-            }
-
-            RotatorSpeedSP.apply();
+                char cmd[DRIVER_LEN] = {0};
+                snprintf(cmd, DRIVER_LEN, "Z%d", IUFindOnStateIndex(states, n));
+                return sendCommand(cmd);
+            }, true);
             return true;
         }
     }
@@ -198,14 +186,15 @@ bool Camelot::ISNewNumber(const char *dev, const char *name, double values[], ch
     {
         if (RotatorPowerNP.isNameMatch(name))
         {
-            RotatorPowerNP.update(values, names, n);
-            char cmd[DRIVER_LEN] = {0};
-            snprintf(cmd, DRIVER_LEN, "*%d", static_cast<int>(values[POWER_NORMAL]));
-            auto normalOk = sendCommand(cmd);
-            snprintf(cmd, DRIVER_LEN, "+%d", static_cast<int>(values[POWER_HOLD]));
-            auto holdOk = sendCommand(cmd);
-            RotatorPowerNP.setState((normalOk && holdOk) ? IPS_OK : IPS_ALERT);
-            RotatorPowerNP.apply();
+            updateProperty(RotatorPowerNP, values, names, n, [this, values]()
+            {
+                char cmd[DRIVER_LEN] = {0};
+                snprintf(cmd, DRIVER_LEN, "*%d", static_cast<int>(values[POWER_NORMAL]));
+                auto normalOk = sendCommand(cmd);
+                snprintf(cmd, DRIVER_LEN, "+%d", static_cast<int>(values[POWER_HOLD]));
+                auto holdOk = sendCommand(cmd);
+                return normalOk && holdOk;
+            }, true);
             return true;
         }
     }
@@ -294,6 +283,18 @@ void Camelot::TimerHit()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Save configuration items
+/////////////////////////////////////////////////////////////////////////////
+bool Camelot::saveConfigItems(FILE *fp)
+{
+    INDI::Rotator::saveConfigItems(fp);
+    RotatorSpeedSP.save(fp);
+    RotatorPowerNP.save(fp);
+    return true;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
 bool Camelot::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
@@ -314,7 +315,7 @@ bool Camelot::sendCommand(const char * cmd, char * res, int cmd_len, int res_len
         LOGF_DEBUG("CMD <%s>", cmd);
 
         char formatted_command[DRIVER_LEN] = {0};
-        snprintf(formatted_command, DRIVER_LEN, "%s\n", cmd);
+        snprintf(formatted_command, DRIVER_LEN, "%s", cmd);
         rc = tty_write_string(PortFD, formatted_command, &nbytes_written);
     }
 
