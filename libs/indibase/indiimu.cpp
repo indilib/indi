@@ -73,6 +73,15 @@ bool IMU::initProperties()
     AstroCoordsTypeSP.fill(getDeviceName(), "COORDS_TYPE", "Coordinate Type", COORDINATES_TAB.c_str(), IP_RW,
                            ISR_1OFMANY, 0, IPS_IDLE);
 
+    GeographicCoordNP[LOCATION_LATITUDE].fill("LAT", "Latitude", "+%08.4f", -90, 90, 0, 0);
+    GeographicCoordNP[LOCATION_LONGITUDE].fill("LONG", "Longitude", "+%08.4f", 0, 360, 0, 0);
+    GeographicCoordNP[LOCATION_ELEVATION].fill("ELEV", "Elevation", "%.f", 0, 10000, 0, 0);
+    GeographicCoordNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+    MagneticDeclinationNP[0].fill("MAGNETIC_DECLINATION", "Magnetic Declination", "%.4f", -180, 180, 0, 0);
+    MagneticDeclinationNP.fill(getDeviceName(), "MAGNETIC_DECLINATION", "Magnetic Declination", MAIN_CONTROL_TAB, IP_RW, 0,
+                               IPS_IDLE);
+
     if (imuConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
@@ -108,6 +117,8 @@ bool IMU::updateProperties()
         defineProperty(MountAlignmentNP);
         defineProperty(AstroCoordinatesNP);
         defineProperty(AstroCoordsTypeSP);
+        defineProperty(GeographicCoordNP);
+        defineProperty(MagneticDeclinationNP);
     }
     else
     {
@@ -115,6 +126,8 @@ bool IMU::updateProperties()
         deleteProperty(MountAlignmentNP);
         deleteProperty(AstroCoordinatesNP);
         deleteProperty(AstroCoordsTypeSP);
+        deleteProperty(GeographicCoordNP);
+        deleteProperty(MagneticDeclinationNP);
     }
     return true;
 }
@@ -128,6 +141,24 @@ bool IMU::ISNewNumber(const char *dev, const char *name, double values[], char *
     {
         // Process Mount Alignment properties
         // This will be handled by the concrete driver
+        return true;
+    }
+
+    if (GeographicCoordNP.isNameMatch(name))
+    {
+        updateProperty(GeographicCoordNP, values, names, n, []()
+        {
+            return true;
+        }, true);
+        return true;
+    }
+
+    if (MagneticDeclinationNP.isNameMatch(name))
+    {
+        updateProperty(MagneticDeclinationNP, values, names, n, []()
+        {
+            return true;
+        }, true);
         return true;
     }
 
@@ -165,6 +196,8 @@ bool IMU::saveConfigItems(FILE *fp)
     // Save driver-specific properties
     MountAlignmentNP.save(fp);
     AstroCoordsTypeSP.save(fp);
+    GeographicCoordNP.save(fp);
+    MagneticDeclinationNP.save(fp);
 
     return true;
 }

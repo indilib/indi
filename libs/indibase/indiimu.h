@@ -129,9 +129,22 @@ class IMU : public DefaultDevice, public IMUInterface
             COORD_ALTAZ
         };
 
+        enum Location
+        {
+            LOCATION_LATITUDE,
+            LOCATION_LONGITUDE,
+            LOCATION_ELEVATION
+        };
+
         INDI::PropertyNumber MountAlignmentNP {3}; // OFFSET_ALT, OFFSET_AZ, ROTATION_OFFSET
         INDI::PropertyNumber AstroCoordinatesNP {2}; // HA/DEC or AZ/ALT
         INDI::PropertySwitch AstroCoordsTypeSP {2}; // Equatorial/Alt-Az
+
+        // Geographic Location
+        INDI::PropertyNumber GeographicCoordNP {3}; // LAT, LONG, ELEV
+
+        // Magnetic Declination
+        INDI::PropertyNumber MagneticDeclinationNP {1};
 
         Connection::Serial *serialConnection = nullptr;
         Connection::I2C *i2cConnection       = nullptr;
