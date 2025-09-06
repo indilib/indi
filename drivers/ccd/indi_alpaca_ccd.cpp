@@ -508,7 +508,7 @@ bool AlpacaCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     m_CurrentReadoutModeIndex = index;
                     ReadoutModeSP.setState(IPS_OK);
                     ReadoutModeSP.apply();
-                    LOGF_INFO("Readout mode set to index %d: %s", index, ReadoutModeSP[index].getLabel());
+                    LOGF_DEBUG("Readout mode set to index %d: %s", index, ReadoutModeSP[index].getLabel());
                     return true;
                 }
                 else
@@ -534,8 +534,6 @@ bool AlpacaCCD::updateProperties()
 
     if (isConnected())
     {
-        LOG_INFO("Alpaca camera is ready for operation.");
-
         nlohmann::json response;
         bool success;
         defineProperty(CameraStateTP);
@@ -726,8 +724,8 @@ int AlpacaCCD::SetTemperature(double temperature)
 
     if (success)
     {
-        LOGF_INFO("Setting temperature to %.2f C.", temperature);
-        return 0; // Indicate that setting temperature takes time
+        LOGF_DEBUG("Setting temperature to %.2f C.", temperature);
+        return 0;
     }
 
     LOGF_ERROR("Failed to set target temperature to %.2f C.", temperature);
@@ -754,22 +752,12 @@ bool AlpacaCCD::UpdateCCDFrame(int x, int y, int w, int h)
     success = sendAlpacaPUT("/starty", body, response);
     if (!success) return false;
 
-    //body = {{"NumX", w / PrimaryCCD.getBinX()}};
-    body = {{"NumX", w}};
+    body = {{"NumX", w / PrimaryCCD.getBinX()}};
     success = sendAlpacaPUT("/numx", body, response);
     if (!success) return false;
 
-    //body = {{"NumY", h / PrimaryCCD.getBinY()}};
-    body = {{"NumY", h}};
-    success = sendAlpacaPUT("/numy", body, response);
-    if (success)
-    {
-        LOGF_INFO("Subframe set to X:%d Y:%d W:%d H:%d", x, y, w, h);
-        return true;
-    }
-
-    LOG_ERROR("Failed to set subframe.");
-    return false;
+    body = {{"NumY", h / PrimaryCCD.getBinY()}};
+    return sendAlpacaPUT("/numy", body, response);
 }
 
 bool AlpacaCCD::UpdateCCDBin(int hor, int ver)
@@ -790,13 +778,9 @@ bool AlpacaCCD::UpdateCCDBin(int hor, int ver)
 
     body = {{"BinY", ver}};
     success = sendAlpacaPUT("/biny", body, response);
+    // We need to update ROI *after* setting binning in Alpaca (at least for Pegasus SmartEye for now)
     if (success)
-    {
-        LOGF_INFO("Binning set to %dx%d", hor, ver);
-        return true;
-    }
-
-    LOG_ERROR("Failed to set binning.");
+        return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
     return false;
 }
 
@@ -825,7 +809,7 @@ bool AlpacaCCD::SetCaptureFormat(uint8_t index)
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    LOGF_INFO("Capture format set to %s (%d-bit)", format.label.c_str(), bpp);
+    LOGF_DEBUG("Capture format set to %s (%d-bit)", format.label.c_str(), bpp);
     return true;
 }
 
@@ -868,16 +852,8 @@ bool AlpacaCCD::sendPulseGuide(ALPACA_GUIDE_DIRECTION direction, long duration)
     }
 
     body = {{"Direction", alpacaDirection}, {"Duration", duration}};
-    bool success = sendAlpacaPUT("/pulseguide", body, response);
+    return sendAlpacaPUT("/pulseguide", body, response);
 
-    if (success)
-    {
-        LOGF_INFO("Pulse guide sent: Direction %d, Duration %ld ms.", alpacaDirection, duration);
-        return true;
-    }
-
-    LOG_ERROR("Failed to send pulse guide.");
-    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1378,7 +1354,6 @@ bool AlpacaCCD::downloadImage()
     ImageBytesMetadata imagebytes_meta;
     if (alpacaGetImageArrayImageBytes(&image_buffer, &buffer_size, &imagebytes_meta))
     {
-        LOG_INFO("Downloaded image using ImageBytes protocol");
         LOGF_DEBUG("ImageBytes metadata: %dx%dx%d, rank=%d, image_type=%d, transmission_type=%d",
                    imagebytes_meta.Dimension1, imagebytes_meta.Dimension2,
                    (imagebytes_meta.Rank == 3) ? imagebytes_meta.Dimension3 : 1,
@@ -1449,7 +1424,7 @@ bool AlpacaCCD::downloadImage()
     else
     {
         // Fallback to JSON ImageArray method
-        LOG_INFO("ImageBytes not supported, falling back to JSON ImageArray");
+        LOG_DEBUG("ImageBytes not supported, falling back to JSON ImageArray");
         if (alpacaGetImageArrayJSON(m_CurrentImage, &image_buffer, &buffer_size))
         {
             LOGF_DEBUG("JSON image metadata: %dx%d, planes=%d, rank=%d, type=%d",
@@ -1978,7 +1953,7 @@ void AlpacaCCD::temperatureTimerTimeout()
     }
     else
     {
-        LOG_DEBUG("Failed to get temperature from Alpaca camera.");
+        LOG_WARN("Failed to get temperature from Alpaca camera.");
         newState = IPS_ALERT;
     }
 
