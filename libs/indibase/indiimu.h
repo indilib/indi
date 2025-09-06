@@ -141,7 +141,7 @@ class IMU : public DefaultDevice, public IMUInterface
             LOCATION_ELEVATION
         };
 
-        INDI::PropertyNumber MountAlignmentNP {3}; // OFFSET_ALT, OFFSET_AZ, ROTATION_OFFSET
+        INDI::PropertyNumber MountOffsetNP {3}; // OFFSET_ALT, OFFSET_AZ, ROTATION_OFFSET
         INDI::PropertyNumber AstroCoordinatesNP {2}; // HA/DEC or AZ/ALT
         INDI::PropertySwitch AstroCoordsTypeSP {2}; // Equatorial/Alt-Az
 

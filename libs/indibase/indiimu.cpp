@@ -58,10 +58,10 @@ bool IMU::initProperties()
     IMUInterface::initProperties(IMU_TAB);
 
     // Initialize driver-specific properties
-    MountAlignmentNP[AXIS1_OFFSET].fill("AXIS1_OFFSET", "Axis 1 Offset (deg)", "%.2f", 0, 360, 0, 0);
-    MountAlignmentNP[AXIS2_OFFSET].fill("AXIS2_OFFSET", "Axis 2 Offset (deg)", "%.2f", 0, 360, 0, 0);
-    MountAlignmentNP[ROTATION_OFFSET].fill("ROTATION_OFFSET", "Rotation Offset (deg)", "%.2f", 0, 360, 0, 0);
-    MountAlignmentNP.fill(getDeviceName(), "MOUNT_ALIGNMENT", "Mount Alignment", COORDINATES_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+    MountOffsetNP[AXIS1_OFFSET].fill("AXIS1_OFFSET", "Axis 1 Offset (deg)", "%.2f", 0, 360, 0, 0);
+    MountOffsetNP[AXIS2_OFFSET].fill("AXIS2_OFFSET", "Axis 2 Offset (deg)", "%.2f", 0, 360, 0, 0);
+    MountOffsetNP[ROTATION_OFFSET].fill("ROTATION_OFFSET", "Rotation Offset (deg)", "%.2f", 0, 360, 0, 0);
+    MountOffsetNP.fill(getDeviceName(), "MOUNT_OFFSET", "Mount Offset", COORDINATES_TAB.c_str(), IP_RW, 0, IPS_IDLE);
 
     AstroCoordinatesNP[AXIS1].fill("AXIS1", "Axis 1 (deg)", "%.2f", 0, 360, 0, 0);
     AstroCoordinatesNP[AXIS2].fill("AXIS2", "Axis 2 (deg)", "%.2f", 0, 360, 0, 0);
@@ -114,7 +114,7 @@ bool IMU::updateProperties()
     if (isConnected())
     {
         // Define driver-specific properties when connected
-        defineProperty(MountAlignmentNP);
+        defineProperty(MountOffsetNP);
         defineProperty(AstroCoordinatesNP);
         defineProperty(AstroCoordsTypeSP);
         defineProperty(GeographicCoordNP);
@@ -123,7 +123,7 @@ bool IMU::updateProperties()
     else
     {
         // Delete driver-specific properties when disconnected
-        deleteProperty(MountAlignmentNP);
+        deleteProperty(MountOffsetNP);
         deleteProperty(AstroCoordinatesNP);
         deleteProperty(AstroCoordsTypeSP);
         deleteProperty(GeographicCoordNP);
@@ -137,10 +137,12 @@ bool IMU::ISNewNumber(const char *dev, const char *name, double values[], char *
     if (IMUInterface::processNumber(dev, name, values, names, n))
         return true;
 
-    if (strcmp(name, MountAlignmentNP.getName()) == 0)
+    if (MountOffsetNP.isNameMatch(name))
     {
-        // Process Mount Alignment properties
-        // This will be handled by the concrete driver
+        updateProperty(MountOffsetNP, values, names, n, []()
+        {
+            return true;
+        }, true);
         return true;
     }
 
@@ -196,7 +198,7 @@ bool IMU::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
 
     // Save driver-specific properties
-    MountAlignmentNP.save(fp);
+    MountOffsetNP.save(fp);
     AstroCoordsTypeSP.save(fp);
     GeographicCoordNP.save(fp);
     MagneticDeclinationNP.save(fp);
@@ -274,9 +276,9 @@ bool IMU::SetOrientationData(double i, double j, double k, double w)
     double trueYawDeg          = yawDeg + magneticDeclination;
 
     // Apply mount alignment offsets
-    double axis1Offset    = MountAlignmentNP[AXIS1_OFFSET].getValue();
-    double axis2Offset    = MountAlignmentNP[AXIS2_OFFSET].getValue();
-    //double rotationOffset = MountAlignmentNP[ROTATION_OFFSET].getValue();
+    double axis1Offset    = MountOffsetNP[AXIS1_OFFSET].getValue();
+    double axis2Offset    = MountOffsetNP[AXIS2_OFFSET].getValue();
+    //double rotationOffset = MountOffsetNP[ROTATION_OFFSET].getValue();
 
     // Apply offsets. This is a simplified model. A more accurate model would involve quaternion rotation.
     double correctedPitch = pitchDeg + axis1Offset;
