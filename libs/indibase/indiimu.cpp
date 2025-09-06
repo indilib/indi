@@ -172,8 +172,10 @@ bool IMU::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 
     if (AstroCoordsTypeSP.isNameMatch(name))
     {
-        // Process Astro Coordinates Type switch
-        // This will be handled by the concrete driver
+        updateProperty(AstroCoordsTypeSP, states, names, n, []()
+        {
+            return true;
+        }, true);
         return true;
     }
 
