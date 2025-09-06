@@ -32,6 +32,7 @@ namespace Connection
 class Interface;
 class Serial;
 class TCP;
+class I2C;
 }
 /**
  * @brief COMMUNICATION_TAB Where all the properties required to connect/disconnect from
@@ -640,6 +641,7 @@ class DefaultDevice : public ParentDevice
         // Connection Plugins
         friend class Connection::Serial;
         friend class Connection::TCP;
+        friend class Connection::I2C;
         friend class FilterInterface;
         friend class FocuserInterface;
         friend class WeatherInterface;
@@ -647,6 +649,7 @@ class DefaultDevice : public ParentDevice
         friend class OutputInterface;
         friend class InputInterface;
         friend class PowerInterface;
+        friend class IMUInterface;
 
     protected:
         DefaultDevice(const std::shared_ptr<DefaultDevicePrivate> &dd);
