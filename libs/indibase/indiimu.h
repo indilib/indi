@@ -85,6 +85,9 @@ class IMU : public DefaultDevice, public IMUInterface
         // Helper function to convert quaternion to Euler angles (roll, pitch, yaw) in radians
         void QuaternionToEuler(double i, double j, double k, double w, double &roll, double &pitch, double &yaw);
 
+        // Helper function to convert Euler angles (roll, pitch, yaw) in radians to a quaternion
+        void EulerToQuaternion(double roll, double pitch, double yaw, double &i, double &j, double &k, double &w);
+
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
@@ -159,6 +162,16 @@ class IMU : public DefaultDevice, public IMUInterface
     private:
         bool callHandshake();
         uint8_t imuConnection = CONNECTION_SERIAL | CONNECTION_I2C;
+
+        // Last known quaternion values for recalculation
+        double last_q_i = 0.0;
+        double last_q_j = 0.0;
+        double last_q_k = 0.0;
+        double last_q_w = 1.0; // Default to identity quaternion
+
+    protected:
+        // Function to recalculate astronomical coordinates using last known quaternion
+        void RecalculateAstroCoordinates();
 };
 
 }
