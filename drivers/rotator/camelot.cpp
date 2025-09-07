@@ -306,46 +306,64 @@ bool Camelot::saveConfigItems(FILE *fp)
 bool Camelot::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    int retries = 0;
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if (cmd_len > 0)
+    do
     {
-        char hex_cmd[DRIVER_LEN * 3] = {0};
-        hexDump(hex_cmd, cmd, cmd_len);
-        LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-    }
-    else
-    {
-        LOGF_DEBUG("CMD <%s>", cmd);
+        tcflush(PortFD, TCIOFLUSH);
 
-        char formatted_command[DRIVER_LEN] = {0};
-        snprintf(formatted_command, DRIVER_LEN, "%s", cmd);
-        rc = tty_write_string(PortFD, formatted_command, &nbytes_written);
+        if (cmd_len > 0)
+        {
+            char hex_cmd[DRIVER_LEN * 3] = {0};
+            hexDump(hex_cmd, cmd, cmd_len);
+            LOGF_DEBUG("CMD <%s>", hex_cmd);
+            rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+        }
+        else
+        {
+            LOGF_DEBUG("CMD <%s>", cmd);
+
+            char formatted_command[DRIVER_LEN] = {0};
+            snprintf(formatted_command, DRIVER_LEN, "%s", cmd);
+            rc = tty_write_string(PortFD, formatted_command, &nbytes_written);
+        }
+
+        if (rc != TTY_OK)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Serial write error: %s.", errstr);
+            return false;
+        }
+
+        if (res == nullptr)
+            return true;
+
+        if (res_len > 0)
+            rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+        else
+            rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+
+        if (rc == TTY_OK)
+            break;
+
+        if (rc == TTY_TIME_OUT)
+            retries++;
+        else
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("%s Serial read error: %s.", cmd, errstr);
+            return false;
+        }
     }
+    while (retries < 3);
 
     if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
-        return false;
-    }
-
-    if (res == nullptr)
-        return true;
-
-    if (res_len > 0)
-        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
-    else
-        rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
-
-    if (rc != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s Serial read error: %s.", cmd, errstr);
+        LOGF_ERROR("%s Serial read error after 3 retries: %s.", cmd, errstr);
         return false;
     }
 
@@ -361,8 +379,6 @@ bool Camelot::sendCommand(const char * cmd, char * res, int cmd_len, int res_len
         res[nbytes_read - 1] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
-
-    tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }

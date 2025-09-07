@@ -92,6 +92,6 @@ class Camelot : public INDI::Rotator
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         static constexpr const uint8_t DRIVER_STOP_CHAR {0x23};
-        static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        static constexpr const uint8_t DRIVER_TIMEOUT {2};
         static constexpr const uint8_t DRIVER_LEN {64};
 };
