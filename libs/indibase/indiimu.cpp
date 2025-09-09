@@ -543,6 +543,32 @@ void IMU::RecalculateAstroCoordinates()
     double vy = TelescopeVectorNP[TELESCOPE_VECTOR_Y].getValue();
     double vz = TelescopeVectorNP[TELESCOPE_VECTOR_Z].getValue();
 
+    // Log telescope vector configuration
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Telescope Vector: X=%.4f, Y=%.4f, Z=%.4f", vx, vy, vz);
+
+    // Log IMU frame setting
+    IMUFrame currentFrame = static_cast<IMUFrame>(IMUFrameSP.findOnSwitchIndex());
+    DEBUGF(Logger::DBG_DEBUG, "IMU: IMU Frame: %s (%d)", IMUFrameSP.findOnSwitch()->getLabel(), currentFrame);
+
+    // Log geographic location
+    double latitude = GeographicCoordNP[LOCATION_LATITUDE].getValue();
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Geographic Latitude=%.6f°", latitude);
+
+    // Log orientation adjustments
+    double rollMultiplier = OrientationAdjustmentsNP[ROLL_MULTIPLIER].getValue();
+    double pitchMultiplier = OrientationAdjustmentsNP[PITCH_MULTIPLIER].getValue();
+    double yawMultiplier = OrientationAdjustmentsNP[YAW_MULTIPLIER].getValue();
+    double rollOffset = OrientationAdjustmentsNP[ROLL_OFFSET].getValue();
+    double pitchOffset = OrientationAdjustmentsNP[PITCH_OFFSET].getValue();
+    double yawOffset = OrientationAdjustmentsNP[YAW_OFFSET].getValue();
+    double magneticDeclination = MagneticDeclinationNP[0].getValue();
+
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Orientation Multipliers: Roll=%.2f, Pitch=%.2f, Yaw=%.2f",
+           rollMultiplier, pitchMultiplier, yawMultiplier);
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Orientation Offsets (deg): Roll=%.2f, Pitch=%.2f, Yaw=%.2f",
+           rollOffset, pitchOffset, yawOffset);
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Magnetic Declination=%.4f°", magneticDeclination);
+
     // Step 2: Rotate this vector by the IMU's adjusted quaternion to get the pointing
     // direction in the local horizon frame. This is a standard quaternion-vector rotation.
     // Formula: V' = q * V * q_conjugate, where V is a pure quaternion (0, vx, vy, vz)
@@ -552,30 +578,36 @@ void IMU::RecalculateAstroCoordinates()
     double z_hor = vx * (2 * qx * qz - 2 * qy * qw) + vy * (2 * qy * qz + 2 * qx * qw) + vz * (1 - 2 * qx * qx - 2 * qy * qy);
 
     INDI::AlignmentSubsystem::TelescopeDirectionVector imu_vector(x_hor, y_hor, z_hor);
+
+    // Log IMU vector before frame conversion
+    DEBUGF(Logger::DBG_DEBUG, "IMU: IMU Vector (before frame conversion): X=%.4f, Y=%.4f, Z=%.4f", x_hor, y_hor, z_hor);
+
     INDI::AlignmentSubsystem::TelescopeDirectionVector horizontal_vector;
 
-    // The imu_vector is in the IMU's native coordinate system. We need to convert
-    // it to the standard ENU (East-North-Up) frame for the rest of the calculations.
+    // The imu_vector is in ENU coordinates. We need to convert
+    // it to the telescope's coordinate system for proper interpretation.
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Converting from ENU to %s telescope frame", IMUFrameSP.findOnSwitch()->getLabel());
     switch (IMUFrameSP.findOnSwitchIndex())
     {
         case ENU:
-            // No conversion needed
+            // Telescope uses ENU - no conversion needed
             horizontal_vector = imu_vector;
             break;
         case NWU:
-            // North-West-Up to East-North-Up
-            // X_enu = -Y_nwu
-            // Y_enu =  X_nwu
-            // Z_enu =  Z_nwu
-            horizontal_vector.x = -imu_vector.y;
-            horizontal_vector.y = imu_vector.x;
+            // Convert East-North-Up to North-West-Up telescope frame
+            // Since telescope NORTH is along IMU EAST:
+            // X_nwu = X_enu (North = ENU_X, since telescope North is along IMU East)
+            // Y_nwu = -Y_enu (West = -ENU_Y)
+            // Z_nwu = Z_enu (Up = ENU_Z)
+            horizontal_vector.x = imu_vector.x;
+            horizontal_vector.y = -imu_vector.y;
             horizontal_vector.z = imu_vector.z;
             break;
         case SWU:
-            // South-West-Up to East-North-Up
-            // X_enu = -Y_swu
-            // Y_enu = -X_swu
-            // Z_enu =  Z_swu
+            // Convert East-North-Up to South-West-Up telescope frame
+            // X_swu = -Y_enu (South = -ENU_Y)
+            // Y_swu = -X_enu (West = -ENU_X)
+            // Z_swu = Z_enu (Up = ENU_Z)
             horizontal_vector.x = -imu_vector.y;
             horizontal_vector.y = -imu_vector.x;
             horizontal_vector.z = imu_vector.z;
@@ -589,27 +621,30 @@ void IMU::RecalculateAstroCoordinates()
     if (AstroCoordsTypeSP[COORD_EQUATORIAL].s == ISS_ON)
     {
         // Step 3: Rotate the horizontal vector to the equatorial frame based on latitude.
-        double latitude = GeographicCoordNP[LOCATION_LATITUDE].getValue();
         double lat_rad = DEG_TO_RAD(latitude);
         double sin_lat = sin(lat_rad);
         double cos_lat = cos(lat_rad);
 
-        // The transformation from the horizontal frame (East, North, Up) to the
-        // equatorial frame (South, West, Celestial Pole).
-        // horizontal_vector.x = East component (v_e)
-        // horizontal_vector.y = North component (v_n)
+        // Log transformation parameters
+        DEBUGF(Logger::DBG_DEBUG, "IMU: Horizontal→Equatorial transformation: lat_rad=%.6f, sin_lat=%.6f, cos_lat=%.6f",
+               lat_rad, sin_lat, cos_lat);
+
+        // The transformation from the horizontal frame to the equatorial frame based on latitude.
+        // For NWU telescope frame:
+        // horizontal_vector.x = North component (v_n)
+        // horizontal_vector.y = West component (v_w)
         // horizontal_vector.z = Up component (v_u)
         //
         // The equatorial frame is defined as:
         // X_eq points to the meridian, Y_eq points West, Z_eq points to the North Celestial Pole
         //
-        // The correct transformation is:
-        // x_eq =  v_u * cos(lat) - v_n * sin(lat)
-        // y_eq = -v_e
+        // The transformation for NWU input is:
+        // x_eq =  v_u * cos(lat) + v_n * sin(lat)  (Add North component for meridian direction)
+        // y_eq =  v_w (West component stays West)
         // z_eq =  v_u * sin(lat) + v_n * cos(lat)
-        double x_eq = (horizontal_vector.z * cos_lat) - (horizontal_vector.y * sin_lat);
-        double y_eq = -horizontal_vector.x;
-        double z_eq = (horizontal_vector.z * sin_lat) + (horizontal_vector.y * cos_lat);
+        double x_eq = (horizontal_vector.z * cos_lat) + (horizontal_vector.x * sin_lat);
+        double y_eq = horizontal_vector.y;
+        double z_eq = (horizontal_vector.z * sin_lat) + (horizontal_vector.x * cos_lat);
 
         INDI::AlignmentSubsystem::TelescopeDirectionVector equatorial_vector(x_eq, y_eq, z_eq);
 
@@ -620,6 +655,11 @@ void IMU::RecalculateAstroCoordinates()
         INDI::IEquatorialCoordinates eq_coords;
         INDI::AlignmentSubsystem::TelescopeDirectionVectorSupportFunctions tdv_functions;
         tdv_functions.LocalHourAngleDeclinationFromTelescopeDirectionVector(equatorial_vector, eq_coords);
+
+        // Log intermediate calculation details
+        DEBUGF(Logger::DBG_DEBUG,
+               "IMU: LocalHourAngleDeclinationFromTelescopeDirectionVector returned: HA=%.6f hours, Dec=%.6f deg",
+               eq_coords.rightascension, eq_coords.declination);
 
         // Step 5: Update INDI properties.
         // The support function returns HA in hours, so we convert it to degrees for the property.
