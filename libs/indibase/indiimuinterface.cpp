@@ -114,11 +114,6 @@ void IMUInterface::initProperties(const std::string &groupName)
     UpdateRateNP[UPDATE_RATE_RATE].fill("RATE", "Update Rate (Hz)", "%.2f", 1, 100, 1, 10);
     UpdateRateNP.fill(m_defaultDevice->getDeviceName(), "UPDATE_RATE", "Update Rate", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    OffsetsNP[OFFSETS_X].fill("OFFSET_X", "X Offset", "%.4f", -180, 180, 0, 0);
-    OffsetsNP[OFFSETS_Y].fill("OFFSET_Y", "Y Offset", "%.4f", -180, 180, 0, 0);
-    OffsetsNP[OFFSETS_Z].fill("OFFSET_Z", "Z Offset", "%.4f", -180, 180, 0, 0);
-    OffsetsNP.fill(m_defaultDevice->getDeviceName(), "OFFSETS", "Manual Offsets", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
     DataThresholdNP[0].fill("DATA_THRESHOLD", "Data Threshold", "%.4f", 0, 1, 0, 0.01);
     DataThresholdNP.fill(m_defaultDevice->getDeviceName(), "DATA_THRESHOLD_PROPERTY", "Data Threshold", OPTIONS_TAB,
                          IP_RW, 0, IPS_IDLE);
@@ -171,7 +166,6 @@ bool IMUInterface::updateProperties()
         m_defaultDevice->defineProperty(DistanceUnitsSP);
         m_defaultDevice->defineProperty(AngularUnitsSP);
         m_defaultDevice->defineProperty(UpdateRateNP);
-        m_defaultDevice->defineProperty(OffsetsNP);
         m_defaultDevice->defineProperty(DataThresholdNP);
         m_defaultDevice->defineProperty(DeviceInfoTP);
 
@@ -202,7 +196,6 @@ bool IMUInterface::updateProperties()
         m_defaultDevice->deleteProperty(DistanceUnitsSP);
         m_defaultDevice->deleteProperty(AngularUnitsSP);
         m_defaultDevice->deleteProperty(UpdateRateNP);
-        m_defaultDevice->deleteProperty(OffsetsNP);
         m_defaultDevice->deleteProperty(DataThresholdNP);
         m_defaultDevice->deleteProperty(DeviceInfoTP);
 
@@ -235,15 +228,6 @@ bool IMUInterface::processNumber(const std::string &dev, const std::string &name
         UpdateRateNP.setState(IPS_OK);
         UpdateRateNP.apply();
         SetUpdateRate(UpdateRateNP[UPDATE_RATE_RATE].getValue());
-        return true;
-    }
-
-    if (OffsetsNP.isNameMatch(name))
-    {
-        OffsetsNP.update(values, names, n);
-        OffsetsNP.setState(IPS_OK);
-        OffsetsNP.apply();
-        SetOffsets(OffsetsNP[OFFSETS_X].getValue(), OffsetsNP[OFFSETS_Y].getValue(), OffsetsNP[OFFSETS_Z].getValue());
         return true;
     }
 
@@ -525,15 +509,6 @@ bool IMUInterface::SetUpdateRate(double rate)
     return false;
 }
 
-bool IMUInterface::SetOffsets(double x, double y, double z)
-{
-    INDI_UNUSED(x);
-    INDI_UNUSED(y);
-    INDI_UNUSED(z);
-    // Default implementation - should be overridden by concrete drivers
-    return false;
-}
-
 bool IMUInterface::SetDeviceInfo(const std::string &chipID, const std::string &firmwareVersion,
                                  const std::string &sensorStatus)
 {
@@ -575,7 +550,6 @@ bool IMUInterface::saveConfigItems(FILE *fp)
     DistanceUnitsSP.save(fp);
     AngularUnitsSP.save(fp);
     UpdateRateNP.save(fp);
-    OffsetsNP.save(fp);
     DataThresholdNP.save(fp);
 
     if (HasStabilityMonitoring())

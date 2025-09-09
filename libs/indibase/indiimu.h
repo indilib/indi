@@ -111,7 +111,6 @@ class IMU : public DefaultDevice, public IMUInterface
         virtual bool SetDistanceUnits(bool metric) override;
         virtual bool SetAngularUnits(bool degrees) override;
         virtual bool SetUpdateRate(double rate) override;
-        virtual bool SetOffsets(double x, double y, double z) override;
         virtual bool SetDeviceInfo(const std::string &chipID, const std::string &firmwareVersion,
                                    const std::string &sensorStatus) override;
         virtual bool SetTemperature(double temperature) override;
@@ -137,6 +136,13 @@ class IMU : public DefaultDevice, public IMUInterface
             COORD_ALTAZ
         };
 
+        enum IMUFrame
+        {
+            ENU = 0,
+            NWU,
+            SWU
+        };
+
         enum Location
         {
             LOCATION_LATITUDE,
@@ -144,13 +150,36 @@ class IMU : public DefaultDevice, public IMUInterface
             LOCATION_ELEVATION
         };
 
-        INDI::PropertyNumber MountOffsetNP {3}; // OFFSET_ALT, OFFSET_AZ, ROTATION_OFFSET
         INDI::PropertyNumber AstroCoordinatesNP {2}; // HA/DEC or AZ/ALT
         INDI::PropertySwitch AstroCoordsTypeSP {2}; // Equatorial/Alt-Az
+        INDI::PropertySwitch IMUFrameSP {3};
+
+        // New properties for IMU orientation adjustment
+        enum OrientationAdjustments
+        {
+            ROLL_MULTIPLIER = 0,
+            PITCH_MULTIPLIER,
+            YAW_MULTIPLIER,
+            ROLL_OFFSET,
+            PITCH_OFFSET,
+            YAW_OFFSET
+        };
+        INDI::PropertyNumber OrientationAdjustmentsNP {6};
+
+        // New properties for Sync Axis
+        INDI::PropertyNumber SyncAxisNP {2};
+
+        // New properties for Telescope pointing vector
+        enum TelescopeVector
+        {
+            TELESCOPE_VECTOR_X = 0,
+            TELESCOPE_VECTOR_Y,
+            TELESCOPE_VECTOR_Z
+        };
+        INDI::PropertyNumber TelescopeVectorNP {3};
 
         // Geographic Location
-        INDI::PropertyNumber GeographicCoordNP {3}; // LAT, LONG, ELEV
-
+        INDI::PropertyNumber GeographicCoordNP {3};
         // Magnetic Declination
         INDI::PropertyNumber MagneticDeclinationNP {1};
 
@@ -168,6 +197,12 @@ class IMU : public DefaultDevice, public IMUInterface
         double last_q_j = 0.0;
         double last_q_k = 0.0;
         double last_q_w = 1.0; // Default to identity quaternion
+
+        // Last known raw quaternion values from the sensor
+        double last_raw_q_i = 0.0;
+        double last_raw_q_j = 0.0;
+        double last_raw_q_k = 0.0;
+        double last_raw_q_w = 1.0; // Default to identity quaternion
 
     protected:
         // Function to recalculate astronomical coordinates using last known quaternion

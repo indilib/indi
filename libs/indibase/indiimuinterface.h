@@ -353,15 +353,6 @@ class IMUInterface
         virtual bool SetUpdateRate(double rate);
 
         /**
-         * @brief SetOffsets Set manual offset corrections
-         * @param x X-axis offset
-         * @param y Y-axis offset
-         * @param z Z-axis offset
-         * @return True if successful, false otherwise
-         */
-        virtual bool SetOffsets(double x, double y, double z);
-
-        /**
          * @brief SetDeviceInfo Set chip ID, firmware version, and sensor status
          * @param chipID Chip ID string
          * @param firmwareVersion Firmware version string
@@ -401,7 +392,6 @@ class IMUInterface
         INDI::PropertySwitch DistanceUnitsSP {DISTANCE_UNITS_PROPERTY_COUNT}; // Metric/Imperial
         INDI::PropertySwitch AngularUnitsSP {ANGULAR_UNITS_PROPERTY_COUNT}; // degrees/radians
         INDI::PropertyNumber UpdateRateNP {UPDATE_RATE_PROPERTY_COUNT}; // Sensor polling frequency (Hz)
-        INDI::PropertyNumber OffsetsNP {OFFSETS_PROPERTY_COUNT}; // Manual offset corrections
         INDI::PropertyNumber DataThresholdNP {1}; // Data change threshold
 
         // Status and Info Properties
