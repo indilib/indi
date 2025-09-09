@@ -522,23 +522,75 @@ void IMU::EulerToQuaternion(double roll, double pitch, double yaw, double &i, do
 
 void IMU::RecalculateAstroCoordinates()
 {
-    // Log raw quaternion values
+    /*
+     * COORDINATE TRANSFORMATION SYSTEM OVERVIEW
+     * ========================================
+     *
+     * This function implements a multi-stage coordinate transformation chain to convert
+     * IMU sensor orientation data into astronomical coordinates (Hour Angle/Declination
+     * or Azimuth/Altitude). The transformation addresses the fundamental challenge of
+     * German Equatorial Mount (GEM) axis coupling.
+     *
+     * GERMAN EQUATORIAL MOUNT AXIS COUPLING PROBLEM:
+     * ----------------------------------------------
+     * In a German Equatorial Mount, the telescope's orientation is determined by two
+     * coupled axes:
+     * 1. Right Ascension (RA) axis - aligned with Earth's rotation axis
+     * 2. Declination (DEC) axis - perpendicular to RA axis
+     *
+     * The coupling issue arises because:
+     * - A single IMU sensor measures the telescope's absolute orientation in space
+     * - But the mount's axes are mechanically coupled - rotating one affects the other
+     * - The same celestial target can be reached by multiple combinations of RA/DEC positions
+     * - This creates ambiguity in determining individual axis positions from IMU data alone
+     *
+     * CURRENT APPROACH - DIRECT COORDINATE TRANSFORMATION:
+     * ---------------------------------------------------
+     * Instead of trying to decouple individual axis positions, this implementation:
+     * 1. Uses the IMU to determine the telescope's absolute pointing direction
+     * 2. Transforms this direction through multiple coordinate frames
+     * 3. Converts the final direction to astronomical coordinates
+     *
+     * This approach provides accurate pointing information but doesn't solve the
+     * fundamental axis decoupling problem for mount control.
+     *
+     * COORDINATE TRANSFORMATION CHAIN:
+     * -------------------------------
+     * IMU Sensor Frame → Local Horizon Frame → Equatorial Frame → Astronomical Coordinates
+     *
+     * Each stage is documented in detail below.
+     */
+
+    // Log raw quaternion values for debugging
     DEBUGF(Logger::DBG_DEBUG, "IMU: Recalculating Astro Coordinates from stored Quaternion: i=%.4f, j=%.4f, k=%.4f, w=%.4f",
            last_q_i, last_q_j, last_q_k, last_q_w);
 
     double rollRad, pitchRad, yawRad;
     QuaternionToEuler(last_q_i, last_q_j, last_q_k, last_q_w, rollRad, pitchRad, yawRad);
 
-    // Convert radians to degrees for INDI properties
-    // The quaternion (last_q_w, last_q_i, last_q_j, last_q_k) now represents the
-    // IMU's orientation after applying user-defined multipliers and offsets.
+    /*
+     * STAGE 1: IMU SENSOR FRAME TO TELESCOPE POINTING VECTOR
+     * =====================================================
+     *
+     * The quaternion (last_q_w, last_q_i, last_q_j, last_q_k) represents the IMU's
+     * orientation after applying user-defined multipliers, offsets, and magnetic declination.
+     * This quaternion describes the rotation from the IMU's reference frame to the
+     * local horizon frame.
+     */
     double qw = last_q_w;
     double qx = last_q_i;
     double qy = last_q_j;
     double qz = last_q_k;
 
-    // Step 1: Define the telescope's pointing vector in the IMU's own reference frame.
-    // This vector is now configurable via the TELESCOPE_VECTOR property.
+    /*
+     * Define the telescope's pointing vector in the IMU's own reference frame.
+     * This vector represents the direction the telescope is pointing relative to
+     * the IMU sensor's coordinate system.
+     *
+     * Default: (1, 0, 0) assumes telescope points along IMU's X-axis
+     * This vector is configurable via the TELESCOPE_VECTOR property to accommodate
+     * different physical mounting orientations of the IMU on the telescope.
+     */
     double vx = TelescopeVectorNP[TELESCOPE_VECTOR_X].getValue();
     double vy = TelescopeVectorNP[TELESCOPE_VECTOR_Y].getValue();
     double vz = TelescopeVectorNP[TELESCOPE_VECTOR_Z].getValue();
@@ -569,10 +621,23 @@ void IMU::RecalculateAstroCoordinates()
            rollOffset, pitchOffset, yawOffset);
     DEBUGF(Logger::DBG_DEBUG, "IMU: Magnetic Declination=%.4f°", magneticDeclination);
 
-    // Step 2: Rotate this vector by the IMU's adjusted quaternion to get the pointing
-    // direction in the local horizon frame. This is a standard quaternion-vector rotation.
-    // Formula: V' = q * V * q_conjugate, where V is a pure quaternion (0, vx, vy, vz)
-    // Expanded formula for rotated vector components (x', y', z'):
+    /*
+     * STAGE 2: QUATERNION-VECTOR ROTATION
+     * ===================================
+     *
+     * Rotate the telescope pointing vector by the IMU's adjusted quaternion to get the
+     * pointing direction in the local horizon frame. This is a standard quaternion-vector
+     * rotation that transforms the telescope vector from the IMU's reference frame to
+     * the local horizon frame.
+     *
+     * Mathematical Formula: V' = q * V * q_conjugate
+     * Where V is treated as a pure quaternion (0, vx, vy, vz)
+     *
+     * The expanded formula for rotated vector components (x', y', z') is:
+     * x' = vx*(1-2*qy²-2*qz²) + vy*(2*qx*qy-2*qz*qw) + vz*(2*qx*qz+2*qy*qw)
+     * y' = vx*(2*qx*qy+2*qz*qw) + vy*(1-2*qx²-2*qz²) + vz*(2*qy*qz-2*qx*qw)
+     * z' = vx*(2*qx*qz-2*qy*qw) + vy*(2*qy*qz+2*qx*qw) + vz*(1-2*qx²-2*qy²)
+     */
     double x_hor = vx * (1 - 2 * qy * qy - 2 * qz * qz) + vy * (2 * qx * qy - 2 * qz * qw) + vz * (2 * qx * qz + 2 * qy * qw);
     double y_hor = vx * (2 * qx * qy + 2 * qz * qw) + vy * (1 - 2 * qx * qx - 2 * qz * qz) + vz * (2 * qy * qz - 2 * qx * qw);
     double z_hor = vx * (2 * qx * qz - 2 * qy * qw) + vy * (2 * qy * qz + 2 * qx * qw) + vz * (1 - 2 * qx * qx - 2 * qy * qy);
@@ -582,10 +647,27 @@ void IMU::RecalculateAstroCoordinates()
     // Log IMU vector before frame conversion
     DEBUGF(Logger::DBG_DEBUG, "IMU: IMU Vector (before frame conversion): X=%.4f, Y=%.4f, Z=%.4f", x_hor, y_hor, z_hor);
 
+    /*
+     * STAGE 3: IMU COORDINATE FRAME CONVERSION
+     * =======================================
+     *
+     * Convert between different IMU coordinate frame conventions. Different IMU sensors
+     * and mounting orientations may use different coordinate frame definitions:
+     *
+     * - ENU (East-North-Up): X=East, Y=North, Z=Up
+     * - NWU (North-West-Up): X=North, Y=West, Z=Up
+     * - SWU (South-West-Up): X=South, Y=West, Z=Up
+     *
+     * The imu_vector is initially in the IMU's native frame. We need to convert it to
+     * a standardized local horizon frame for subsequent astronomical calculations.
+     *
+     * COORDINATE FRAME TRANSFORMATION MATRICES:
+     * ----------------------------------------
+     * ENU → NWU: [X_nwu, Y_nwu, Z_nwu] = [X_enu, -Y_enu, Z_enu]
+     * ENU → SWU: [X_swu, Y_swu, Z_swu] = [-Y_enu, -X_enu, Z_enu]
+     */
     INDI::AlignmentSubsystem::TelescopeDirectionVector horizontal_vector;
 
-    // The imu_vector is in ENU coordinates. We need to convert
-    // it to the telescope's coordinate system for proper interpretation.
     DEBUGF(Logger::DBG_DEBUG, "IMU: Converting from ENU to %s telescope frame", IMUFrameSP.findOnSwitch()->getLabel());
     switch (IMUFrameSP.findOnSwitchIndex())
     {
@@ -620,7 +702,42 @@ void IMU::RecalculateAstroCoordinates()
 
     if (AstroCoordsTypeSP[COORD_EQUATORIAL].s == ISS_ON)
     {
-        // Step 3: Rotate the horizontal vector to the equatorial frame based on latitude.
+        /*
+         * STAGE 4: LOCAL HORIZON TO EQUATORIAL COORDINATE TRANSFORMATION
+         * =============================================================
+         *
+         * Transform the horizontal vector to the equatorial frame based on the observer's
+         * geographic latitude. This is a fundamental astronomical coordinate transformation
+         * that accounts for the Earth's rotation and the observer's position.
+         *
+         * COORDINATE FRAME DEFINITIONS:
+         * ----------------------------
+         * Horizontal Frame (NWU):
+         *   - X = North component (v_n)
+         *   - Y = West component (v_w)
+         *   - Z = Up component (v_u)
+         *
+         * Equatorial Frame:
+         *   - X_eq = Points toward the meridian (local hour angle = 0)
+         *   - Y_eq = Points West (same as horizontal frame)
+         *   - Z_eq = Points toward the North Celestial Pole
+         *
+         * TRANSFORMATION MATHEMATICS:
+         * --------------------------
+         * The transformation rotates the horizontal frame around the East-West axis
+         * by the complement of the latitude angle (90° - latitude).
+         *
+         * For NWU input coordinates:
+         * x_eq = v_u * cos(lat) + v_n * sin(lat)  [Meridian component]
+         * y_eq = v_w                              [West component unchanged]
+         * z_eq = v_u * sin(lat) + v_n * cos(lat)  [Celestial pole component]
+         *
+         * PHYSICAL INTERPRETATION:
+         * -----------------------
+         * - At latitude 0° (equator): horizontal up = equatorial meridian
+         * - At latitude 90° (pole): horizontal north = equatorial meridian
+         * - The West component remains unchanged in both frames
+         */
         double lat_rad = DEG_TO_RAD(latitude);
         double sin_lat = sin(lat_rad);
         double cos_lat = cos(lat_rad);
@@ -629,19 +746,7 @@ void IMU::RecalculateAstroCoordinates()
         DEBUGF(Logger::DBG_DEBUG, "IMU: Horizontal→Equatorial transformation: lat_rad=%.6f, sin_lat=%.6f, cos_lat=%.6f",
                lat_rad, sin_lat, cos_lat);
 
-        // The transformation from the horizontal frame to the equatorial frame based on latitude.
-        // For NWU telescope frame:
-        // horizontal_vector.x = North component (v_n)
-        // horizontal_vector.y = West component (v_w)
-        // horizontal_vector.z = Up component (v_u)
-        //
-        // The equatorial frame is defined as:
-        // X_eq points to the meridian, Y_eq points West, Z_eq points to the North Celestial Pole
-        //
-        // The transformation for NWU input is:
-        // x_eq =  v_u * cos(lat) + v_n * sin(lat)  (Add North component for meridian direction)
-        // y_eq =  v_w (West component stays West)
-        // z_eq =  v_u * sin(lat) + v_n * cos(lat)
+        // Apply the latitude-based rotation transformation
         double x_eq = (horizontal_vector.z * cos_lat) + (horizontal_vector.x * sin_lat);
         double y_eq = horizontal_vector.y;
         double z_eq = (horizontal_vector.z * sin_lat) + (horizontal_vector.x * cos_lat);
@@ -651,7 +756,28 @@ void IMU::RecalculateAstroCoordinates()
         // Log the equatorial vector
         DEBUGF(Logger::DBG_DEBUG, "IMU: Equatorial Vector: X=%.4f, Y=%.4f, Z=%.4f", x_eq, y_eq, z_eq);
 
-        // Step 4: Extract HA and Dec from the final equatorial vector.
+        /*
+         * STAGE 5: EQUATORIAL VECTOR TO ASTRONOMICAL COORDINATES
+         * =====================================================
+         *
+         * Convert the equatorial direction vector to Hour Angle and Declination.
+         * This uses the INDI Alignment Subsystem's support functions which implement
+         * the standard astronomical coordinate conversion algorithms.
+         *
+         * The LocalHourAngleDeclinationFromTelescopeDirectionVector function:
+         * - Expects a unit vector in the equatorial frame
+         * - Returns Hour Angle in hours (not degrees)
+         * - Returns Declination in degrees
+         *
+         * COORDINATE INTERPRETATION:
+         * -------------------------
+         * - Hour Angle = 0: telescope pointing at meridian (due south)
+         * - Hour Angle = 6h: telescope pointing west
+         * - Hour Angle = 12h: telescope pointing north
+         * - Hour Angle = 18h: telescope pointing east
+         * - Declination = +90°: pointing at North Celestial Pole
+         * - Declination = -90°: pointing at South Celestial Pole
+         */
         INDI::IEquatorialCoordinates eq_coords;
         INDI::AlignmentSubsystem::TelescopeDirectionVectorSupportFunctions tdv_functions;
         tdv_functions.LocalHourAngleDeclinationFromTelescopeDirectionVector(equatorial_vector, eq_coords);
@@ -661,8 +787,8 @@ void IMU::RecalculateAstroCoordinates()
                "IMU: LocalHourAngleDeclinationFromTelescopeDirectionVector returned: HA=%.6f hours, Dec=%.6f deg",
                eq_coords.rightascension, eq_coords.declination);
 
-        // Step 5: Update INDI properties.
-        // The support function returns HA in hours, so we convert it to degrees for the property.
+        // Update INDI properties with final astronomical coordinates
+        // Convert Hour Angle from hours to degrees for the property display
         AstroCoordinatesNP[AXIS1].setValue(eq_coords.rightascension * 15.0); // HA in degrees
         AstroCoordinatesNP[AXIS2].setValue(eq_coords.declination);
         DEBUGF(Logger::DBG_DEBUG, "IMU: Calculated HA=%.2f deg, Dec=%.2f deg", eq_coords.rightascension * 15.0,
@@ -670,29 +796,100 @@ void IMU::RecalculateAstroCoordinates()
     }
     else // Alt-Az calculation
     {
-        // For Alt-Az, the AltitudeAzimuthFromTelescopeDirectionVector function expects a vector in the
-        // NWU (North-West-Up) frame. The imu_vector is already in the correct IMU frame, which should be NWU
-        // if the user has selected it.
+        /*
+         * ALTERNATIVE PATH: ALTITUDE-AZIMUTH COORDINATES
+         * =============================================
+         *
+         * For Alt-Az coordinate output, we use the horizontal frame vector directly.
+         * The AltitudeAzimuthFromTelescopeDirectionVector function expects a vector
+         * in the NWU (North-West-Up) frame, which matches our horizontal_vector after
+         * frame conversion.
+         *
+         * ALTITUDE-AZIMUTH COORDINATE SYSTEM:
+         * ----------------------------------
+         * - Azimuth = 0°: North, 90°: East, 180°: South, 270°: West
+         * - Altitude = 0°: Horizon, +90°: Zenith, -90°: Nadir
+         *
+         * This coordinate system is simpler than equatorial coordinates as it doesn't
+         * require the latitude-based transformation. However, Alt-Az coordinates are
+         * time-dependent due to Earth's rotation, while equatorial coordinates are
+         * more stable for tracking celestial objects.
+         */
         INDI::IHorizontalCoordinates horiz_coords;
         INDI::AlignmentSubsystem::TelescopeDirectionVectorSupportFunctions tdv_functions;
-        tdv_functions.AltitudeAzimuthFromTelescopeDirectionVector(imu_vector, horiz_coords);
+        tdv_functions.AltitudeAzimuthFromTelescopeDirectionVector(horizontal_vector, horiz_coords);
 
         AstroCoordinatesNP[AXIS1].setValue(horiz_coords.azimuth);
         AstroCoordinatesNP[AXIS2].setValue(horiz_coords.altitude);
-        DEBUGF(Logger::DBG_DEBUG, "IMU: NWU Vector for Alt/Az calc: X=%.4f, Y=%.4f, Z=%.4f", imu_vector.x, imu_vector.y,
-               imu_vector.z);
+        DEBUGF(Logger::DBG_DEBUG, "IMU: Horizontal Vector for Alt/Az calc: X=%.4f, Y=%.4f, Z=%.4f",
+               horizontal_vector.x, horizontal_vector.y, horizontal_vector.z);
         DEBUGF(Logger::DBG_DEBUG, "IMU: Calculated Az=%.2f deg, Alt=%.2f deg", horiz_coords.azimuth, horiz_coords.altitude);
     }
+
+    /*
+     * FINAL STEP: UPDATE INDI PROPERTIES
+     * ==================================
+     */
 
     // Common code to send the update
     AstroCoordinatesNP.setState(IPS_OK);
     AstroCoordinatesNP.apply();
 }
 
-// Implement virtual functions from IMUInterface
+/*
+ * ORIENTATION DATA PROCESSING AND ADJUSTMENT SYSTEM
+ * =================================================
+ *
+ * This function processes raw IMU orientation data and applies a series of adjustments
+ * to compensate for mounting orientation, sensor calibration issues, and magnetic
+ * declination. The processed orientation is then used for astronomical coordinate
+ * calculations.
+ *
+ * ADJUSTMENT PIPELINE OVERVIEW:
+ * ----------------------------
+ * Raw Sensor Data → Multiplier Adjustments → Offset Adjustments → Magnetic Declination → Final Orientation
+ *
+ * PURPOSE OF EACH ADJUSTMENT STAGE:
+ * --------------------------------
+ * 1. MULTIPLIER ADJUSTMENTS: Correct for sensor axis inversions or scaling issues
+ *    - Roll/Pitch/Yaw multipliers can be set to -1 to flip axes
+ *    - Useful when IMU is mounted in non-standard orientations
+ *
+ * 2. OFFSET ADJUSTMENTS: Apply fixed angular corrections
+ *    - Compensate for mounting alignment errors
+ *    - Can be manually set or calculated via sync operations
+ *
+ * 3. MAGNETIC DECLINATION: Correct for difference between magnetic and true north
+ *    - Essential for accurate azimuth/bearing calculations
+ *    - Varies by geographic location and changes over time
+ *
+ * QUATERNION PROCESSING RATIONALE:
+ * -------------------------------
+ * While adjustments are conceptually easier to understand in Euler angles,
+ * the implementation uses quaternions for the final calculations to avoid
+ * gimbal lock issues and maintain numerical stability. The process:
+ * 1. Convert raw quaternion to Euler angles for multiplier application
+ * 2. Convert back to quaternion for offset and magnetic declination application
+ * 3. Use quaternion multiplication for final composition
+ *
+ * RELATIONSHIP TO COORDINATE TRANSFORMATION:
+ * -----------------------------------------
+ * The final adjusted quaternion (last_q_*) is used by RecalculateAstroCoordinates()
+ * to transform the telescope pointing vector from the IMU frame to astronomical
+ * coordinates. This creates a complete chain from raw sensor data to sky coordinates.
+ */
 bool IMU::SetOrientationData(double i, double j, double k, double w)
 {
-    // Store raw quaternion values from the sensor
+    /*
+     * STAGE 1: STORE RAW SENSOR DATA
+     * =============================
+     *
+     * Preserve the original, unmodified quaternion from the IMU sensor.
+     * This raw data is essential for:
+     * - Sync operations that need to calculate correction offsets
+     * - Debugging and diagnostics
+     * - Potential future recalibration without losing original data
+     */
     last_raw_q_i = i;
     last_raw_q_j = j;
     last_raw_q_k = k;
@@ -700,7 +897,15 @@ bool IMU::SetOrientationData(double i, double j, double k, double w)
 
     DEBUGF(Logger::DBG_DEBUG, "IMU: Raw Quaternion: i=%.4f, j=%.4f, k=%.4f, w=%.4f", i, j, k, w);
 
-    // Get multipliers and offsets from properties
+    /*
+     * STAGE 2: RETRIEVE USER-CONFIGURED ADJUSTMENTS
+     * =============================================
+     *
+     * Load all adjustment parameters from INDI properties. These values can be:
+     * - Set manually by the user through the client interface
+     * - Calculated automatically by sync operations
+     * - Loaded from saved configuration files
+     */
     double rollMultiplier  = OrientationAdjustmentsNP[ROLL_MULTIPLIER].getValue();
     double pitchMultiplier = OrientationAdjustmentsNP[PITCH_MULTIPLIER].getValue();
     double yawMultiplier   = OrientationAdjustmentsNP[YAW_MULTIPLIER].getValue();
@@ -709,47 +914,119 @@ bool IMU::SetOrientationData(double i, double j, double k, double w)
     double yawOffset       = DEG_TO_RAD(OrientationAdjustmentsNP[YAW_OFFSET].getValue());
     double magneticDeclinationRad = DEG_TO_RAD(MagneticDeclinationNP[0].getValue());
 
-    // Convert raw quaternion to Euler angles to apply multipliers
+    /*
+     * STAGE 3: APPLY MULTIPLIER ADJUSTMENTS
+     * =====================================
+     *
+     * Multipliers are applied in Euler angle space to handle axis inversions
+     * and scaling corrections. This is necessary because:
+     * - IMU mounting orientation may not match telescope coordinate system
+     * - Some sensors may have inverted axes that need correction
+     * - Multipliers of -1 effectively flip axis directions
+     *
+     * MATHEMATICAL PROCESS:
+     * 1. Convert quaternion to Euler angles (roll, pitch, yaw)
+     * 2. Apply multipliers: angle_adjusted = angle_raw * multiplier
+     * 3. Convert back to quaternion for subsequent processing
+     */
     double rawRollRad, rawPitchRad, rawYawRad;
     QuaternionToEuler(i, j, k, w, rawRollRad, rawPitchRad, rawYawRad);
 
-    // Apply multipliers
+    // Apply axis multipliers to handle mounting orientation corrections
     rawRollRad *= rollMultiplier;
     rawPitchRad *= pitchMultiplier;
     rawYawRad *= yawMultiplier;
 
-    // Convert modified Euler angles back to a temporary quaternion
+    // Convert multiplier-adjusted Euler angles back to quaternion
     double temp_i, temp_j, temp_k, temp_w;
     EulerToQuaternion(rawRollRad, rawPitchRad, rawYawRad, temp_i, temp_j, temp_k, temp_w);
 
-    // Convert Euler offsets to an offset quaternion
+    /*
+     * STAGE 4: PREPARE OFFSET AND MAGNETIC DECLINATION QUATERNIONS
+     * ============================================================
+     *
+     * Convert the offset angles and magnetic declination to quaternion form
+     * for proper quaternion multiplication. This approach:
+     * - Avoids gimbal lock issues that can occur with Euler angle arithmetic
+     * - Maintains numerical precision for small angle corrections
+     * - Allows proper composition of multiple rotations
+     */
+
+    // Convert user-defined offset angles to a quaternion
     double offset_i, offset_j, offset_k, offset_w;
     EulerToQuaternion(rollOffset, pitchOffset, yawOffset, offset_i, offset_j, offset_k, offset_w);
 
-    // Convert magnetic declination to a quaternion
+    // Convert magnetic declination (yaw-only rotation) to a quaternion
     double mag_i, mag_j, mag_k, mag_w;
     EulerToQuaternion(0, 0, magneticDeclinationRad, mag_i, mag_j, mag_k, mag_w);
 
-    // Apply the offset and magnetic declination to the raw quaternion using quaternion multiplication.
-    // adjusted_q = offset_q * temp_q (where temp_q is the multiplier-adjusted quaternion)
+    /*
+     * STAGE 5: QUATERNION COMPOSITION
+     * ===============================
+     *
+     * Apply offset and magnetic declination corrections using quaternion multiplication.
+     * The order of operations is critical:
+     *
+     * COMPOSITION ORDER: final_q = mag_q * offset_q * temp_q
+     * Where:
+     * - temp_q = multiplier-adjusted raw quaternion
+     * - offset_q = user-defined offset corrections
+     * - mag_q = magnetic declination correction
+     *
+     * MATHEMATICAL JUSTIFICATION:
+     * Quaternion multiplication represents rotation composition. The rightmost
+     * quaternion is applied first, so this order means:
+     * 1. First apply multiplier adjustments (temp_q)
+     * 2. Then apply offset corrections (offset_q)
+     * 3. Finally apply magnetic declination (mag_q)
+     *
+     * QUATERNION MULTIPLICATION FORMULA:
+     * For q1 * q2 = (w1*w2 - x1*x2 - y1*y2 - z1*z2,
+     *                w1*x2 + x1*w2 + y1*z2 - z1*y2,
+     *                w1*y2 - x1*z2 + y1*w2 + z1*x2,
+     *                w1*z2 + x1*y2 - y1*x2 + z1*w2)
+     */
+
+    // First composition: adjusted_q = offset_q * temp_q
     double adjusted_w = offset_w * temp_w - offset_i * temp_i - offset_j * temp_j - offset_k * temp_k;
     double adjusted_i = offset_w * temp_i + offset_i * temp_w + offset_j * temp_k - offset_k * temp_j;
     double adjusted_j = offset_w * temp_j - offset_i * temp_k + offset_j * temp_w + offset_k * temp_i;
     double adjusted_k = offset_w * temp_k + offset_i * temp_j - offset_j * temp_i + offset_k * temp_w;
 
-    // final_q = mag_q * adjusted_q
+    // Final composition: final_q = mag_q * adjusted_q
     last_q_w = mag_w * adjusted_w - mag_i * adjusted_i - mag_j * adjusted_j - mag_k * adjusted_k;
     last_q_i = mag_w * adjusted_i + mag_i * adjusted_w + mag_j * adjusted_k - mag_k * adjusted_j;
     last_q_j = mag_w * adjusted_j - mag_i * adjusted_k + mag_j * adjusted_w + mag_k * adjusted_i;
     last_q_k = mag_w * adjusted_k + mag_i * adjusted_j - mag_j * adjusted_i + mag_k * adjusted_w;
 
-    // For logging, convert the final adjusted quaternion back to Euler angles.
+    /*
+     * STAGE 6: LOGGING AND DIAGNOSTICS
+     * ================================
+     *
+     * Convert the final adjusted quaternion back to Euler angles for human-readable
+     * logging. This helps with:
+     * - Debugging orientation issues
+     * - Verifying that adjustments are being applied correctly
+     * - Monitoring the telescope's orientation in familiar angle units
+     */
     double adjustedRollRad, adjustedPitchRad, adjustedYawRad;
     QuaternionToEuler(last_q_i, last_q_j, last_q_k, last_q_w, adjustedRollRad, adjustedPitchRad, adjustedYawRad);
     DEBUGF(Logger::DBG_DEBUG, "IMU: Adjusted Euler Angles (deg): Roll=%.2f, Pitch=%.2f, Yaw=%.2f",
            RAD_TO_DEG(adjustedRollRad), RAD_TO_DEG(adjustedPitchRad), RAD_TO_DEG(adjustedYawRad));
 
-    // Update INDI Orientation properties with raw (unadjusted) data
+    /*
+     * STAGE 7: UPDATE INDI PROPERTIES
+     * ===============================
+     *
+     * Update the standard INDI orientation properties with the RAW (unadjusted) data.
+     * This design choice ensures that:
+     * - Users can see the actual sensor readings
+     * - Diagnostic tools can access unmodified sensor data
+     * - The adjustment pipeline remains transparent
+     *
+     * The adjusted data is used internally for coordinate calculations but not
+     * directly exposed through these standard properties.
+     */
     QuaternionToEuler(i, j, k, w, rawRollRad, rawPitchRad, rawYawRad);
     OrientationNP[ORIENTATION_ROLL].setValue(RAD_TO_DEG(rawRollRad));
     OrientationNP[ORIENTATION_PITCH].setValue(RAD_TO_DEG(rawPitchRad));
@@ -758,7 +1035,26 @@ bool IMU::SetOrientationData(double i, double j, double k, double w)
     OrientationNP.setState(IPS_OK);
     OrientationNP.apply();
 
-    // Recalculate astronomical coordinates using the new, correctly adjusted quaternion.
+    /*
+     * STAGE 8: TRIGGER COORDINATE RECALCULATION
+     * =========================================
+     *
+     * Call RecalculateAstroCoordinates() to transform the newly adjusted orientation
+     * into astronomical coordinates (Hour Angle/Declination or Azimuth/Altitude).
+     *
+     * This completes the full pipeline from raw IMU sensor data to usable
+     * astronomical pointing information, addressing the German Equatorial Mount
+     * axis coupling challenge through direct coordinate transformation rather
+     * than attempting to decouple individual axis positions.
+     *
+     * FUTURE ENHANCEMENT PATHWAY:
+     * --------------------------
+     * For full axis decoupling, this system could be extended with:
+     * 1. Integration with INDI Alignment Subsystem for pointing model corrections
+     * 2. Machine learning algorithms to learn mount-specific coupling patterns
+     * 3. Multi-point calibration systems for improved accuracy
+     * 4. Real-time tracking error feedback for dynamic corrections
+     */
     RecalculateAstroCoordinates();
 
     return true;
