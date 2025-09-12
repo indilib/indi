@@ -20,7 +20,13 @@
 #include <cstring>
 #include <sstream>
 #include <unistd.h>
-#include "hidapi.h"
+
+#ifdef _USE_SYSTEM_HIDAPILIB
+#include <hidapi/hidapi.h>
+#else
+#include <indi_hidapi.h>
+#endif
+
 #include "indifocuser.h"
 
 class ActiveFocuser : public INDI::Focuser
