@@ -18,7 +18,6 @@ list(APPEND ${PROJECT_NAME}_LIBS
     eventloop
     dsp
     fpack
-    hid
     AlignmentDriver
     ${USB1_LIBRARIES}
     ${NOVA_LIBRARIES}
@@ -30,6 +29,11 @@ list(APPEND ${PROJECT_NAME}_LIBS
     ${M_LIB}
     ${CURL}
 )
+
+# When bundled hid library is used
+if(NOT SYSTEM_HIDAPILIB)
+    list(APPEND ${PROJECT_NAME}_LIBS indi_hid)
+endif()
 
 # Add Iconv - FreeBSD/OpenBSD need to find the correct GNU iconv library.
 if(CYGWIN OR UNIX OR (CMAKE_SYSTEM_NAME MATCHES "FreeBSD|OpenBSD"))
