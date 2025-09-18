@@ -183,6 +183,43 @@ sudo apt-get -y install astyle clangd
 
 Enable clangd extension in settings. The default launch script debugs INDI simulator telescope driver. The first driver is also the one that can be debugged.
 
+# INDI - Alpaca Interoperability
+
+INDI offers _preliminary_ interoparbility with [ASCOM Alpaca](https://www.ascom-alpaca.org/) devices.
+
+## Alpaca devices as INDI drivers
+
+INDI provides drivers that enable connection to remote ASCOM Alpaca devices, presenting them as native INDI drivers to INDI clients. These drivers act as a bridge, translating Alpaca commands and responses to the INDI protocol, allowing existing Alpaca-compatible hardware to be controlled through the INDI ecosystem.
+
+For each of these INDI client drivers, you need to specify the remote Alpaca device's host, port, and device number to establish a connection:
+
+- **Alpaca Camera**: `indi_alpaca_ccd`
+- **Alpaca Dome**: `indi_alpaca_dome`
+- **Alpaca Safety Monitor**: `indi_weather_safety_alpaca`
+
+## INDI drivers as Alpaca devices
+
+The `indi_alpaca_server` is an INDI driver that acts as a bridge, enabling existing INDI drivers to be exposed and controlled as native ASCOM Alpaca devices over the network. This allows any ASCOM Alpaca-compatible client (which can run on any OS) to seamlessly interact with your INDI-controlled hardware.
+
+The server connects to your INDI drivers (either locally or remotely via an INDI server) and automatically parses their capabilities to generate the appropriate Alpaca device interfaces.
+
+**Network Discovery:**
+The `indi_alpaca_server` implements the ASCOM Alpaca Discovery protocol. It listens for IPv4 broadcasts (and potentially IPv6 multicasts) on a designated discovery port (default 32227, but configurable). It responds to discovery messages (`alpacadiscovery1`) with a JSON object containing its Alpaca port (`{"AlpacaPort":12345}`). This allows Alpaca clients to automatically locate and identify available INDI drivers exposed as Alpaca devices on the local network.
+
+**Configuration:**
+When running the `indi_alpaca_server`, you can configure the following parameters via the INDI control panel:
+
+- **Alpaca Server Host/Port**: Specifies the network interface and port where the `indi_alpaca_server` will listen for incoming Alpaca client connections (e.g., `0.0.0.0:11111`).
+- **INDI Server Host/Port**: Defines the host and port of the INDI server where the INDI drivers you wish to expose are running (e.g., `localhost:7624`).
+- **Discovery Port**: Sets the UDP port used for broadcasting and receiving Alpaca discovery messages (default 32227).
+- **Connection Settings**: Configures timeout, maximum retries, and retry delay for connecting to the INDI server.
+- **Startup Delay**: Sets a delay (in seconds) before `indi_alpaca_server` attempts to connect to the INDI server, useful for ensuring the INDI server is fully ready.
+
+Currently, the following INDI device types are supported for exposure as Alpaca devices:
+
+- Mount
+- Camera
+
 # Architecture
 
 Typical INDI Client / Server / Driver / Device connectivity:
