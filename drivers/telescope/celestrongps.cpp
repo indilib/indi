@@ -356,13 +356,15 @@ bool CelestronGPS::updateProperties()
             IDSetSwitch(&CelestronTrackModeSP, nullptr);
         }
 
-        if (fwInfo.celestronTrackMode != CTM_ALTAZ)
-            cap |= TELESCOPE_HAS_TRACK_MODE;
-        else
-        {
-            TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
-            LOG_WARN("Mount firmware does not support track mode.");
-        }
+        // JM 2025.09.19: Celestron Track Mode (EQ-N, EQ-S, ALTAZ) is not related
+        // to TELESCOPE_HAS_TRACK_MODE which is about track *rates* like Lunar, Solar, Sidereal..etc
+        // if (fwInfo.celestronTrackMode != CTM_ALTAZ)
+        //     cap |= TELESCOPE_HAS_TRACK_MODE;
+        // else
+        // {
+        //     TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
+        //     LOG_WARN("Mount firmware does not support track mode.");
+        // }
 
         SetTelescopeCapability(cap, 9);
 
