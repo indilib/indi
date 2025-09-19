@@ -979,6 +979,17 @@ bool LX200AM5::sendCommand(const char * cmd, char * res, int cmd_len, int res_le
         return false;
     }
 
+    if (res == nullptr)
+    {
+        tcdrain(PortFD);
+        return true;
+    }
+
+    if (res_len > 0)
+        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+    else
+        rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+
     return true;
 }
 
