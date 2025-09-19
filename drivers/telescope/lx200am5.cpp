@@ -155,7 +155,8 @@ bool LX200AM5::initProperties()
     // Altitude Limits
     AltitudeLimitSP[INDI_ENABLED].fill("ENABLE", "Enable", ISS_OFF);
     AltitudeLimitSP[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
-    AltitudeLimitSP.fill(getDeviceName(), "ALTITUDE_LIMIT_CONTROL", "Altitude Limit Control", ALTITUDE_LIMIT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    AltitudeLimitSP.fill(getDeviceName(), "ALTITUDE_LIMIT_CONTROL", "Altitude Limit Control", ALTITUDE_LIMIT_TAB, IP_RW,
+                         ISR_1OFMANY, 60, IPS_IDLE);
     AltitudeLimitSP.onUpdate([this]
     {
         if (AltitudeLimitSP[INDI_ENABLED].getState() == ISS_ON)
@@ -170,7 +171,8 @@ bool LX200AM5::initProperties()
     });
 
     AltitudeLimitUpperNP[0].fill("UPPER_LIMIT", "Upper Limit (deg)", "%.f", 60, 90, 1, 90);
-    AltitudeLimitUpperNP.fill(getDeviceName(), "ALTITUDE_UPPER_LIMIT", "Altitude Upper Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60, IPS_IDLE);
+    AltitudeLimitUpperNP.fill(getDeviceName(), "ALTITUDE_UPPER_LIMIT", "Altitude Upper Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60,
+                              IPS_IDLE);
     AltitudeLimitUpperNP.onUpdate([this]
     {
         AltitudeLimitUpperNP.setState(setAltitudeLimitUpper(AltitudeLimitUpperNP[0].getValue()) ? IPS_OK : IPS_ALERT);
@@ -178,7 +180,8 @@ bool LX200AM5::initProperties()
     });
 
     AltitudeLimitLowerNP[0].fill("LOWER_LIMIT", "Lower Limit (deg)", "%.f", 0, 30, 1, 0);
-    AltitudeLimitLowerNP.fill(getDeviceName(), "ALTITUDE_LOWER_LIMIT", "Altitude Lower Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60, IPS_IDLE);
+    AltitudeLimitLowerNP.fill(getDeviceName(), "ALTITUDE_LOWER_LIMIT", "Altitude Lower Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60,
+                              IPS_IDLE);
     AltitudeLimitLowerNP.onUpdate([this]
     {
         AltitudeLimitLowerNP.setState(setAltitudeLimitLower(AltitudeLimitLowerNP[0].getValue()) ? IPS_OK : IPS_ALERT);
@@ -187,7 +190,8 @@ bool LX200AM5::initProperties()
 
     // Multi-Star Alignment
     MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].fill("CLEAR", "Clear Data", ISS_OFF);
-    MultiStarAlignSP.fill(getDeviceName(), "MULTI_STAR_ALIGNMENT", "Multi-Star Alignment", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    MultiStarAlignSP.fill(getDeviceName(), "MULTI_STAR_ALIGNMENT", "Multi-Star Alignment", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1,
+                          60, IPS_IDLE);
     MultiStarAlignSP.onUpdate([this]
     {
         if (MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].getState() == ISS_ON)
@@ -500,8 +504,11 @@ bool LX200AM5::getTrackMode()
     {
         TrackModeSP.reset();
         auto onIndex = response[0] - 0x30;
-        TrackModeSP[onIndex].setState(ISS_ON);
-        return true;
+        if (onIndex >= 0 && onIndex < TrackModeSP.count())
+        {
+            TrackModeSP[onIndex].setState(ISS_ON);
+            return true;
+        }
     }
 
     TrackModeSP.setState(IPS_ALERT);
