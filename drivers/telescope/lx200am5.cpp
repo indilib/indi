@@ -504,7 +504,7 @@ bool LX200AM5::getTrackMode()
     {
         TrackModeSP.reset();
         auto onIndex = response[0] - 0x30;
-        if (onIndex >= 0 && onIndex < TrackModeSP.count())
+        if (onIndex >= 0 && onIndex < static_cast<int>(TrackModeSP.count()))
         {
             TrackModeSP[onIndex].setState(ISS_ON);
             return true;
@@ -536,15 +536,17 @@ bool LX200AM5::getBuzzer()
     {
         BuzzerSP.reset();
         auto onIndex = response[0] - 0x30;
-        BuzzerSP[onIndex].setState(ISS_ON);
-        BuzzerSP.setState(IPS_OK);
-        return true;
+        if (onIndex >= 0 && onIndex < static_cast<int>(BuzzerSP.count()))
+        {
+            BuzzerSP[onIndex].setState(ISS_ON);
+            BuzzerSP.setState(IPS_OK);
+            return true;
+        }
     }
-    else
-    {
-        BuzzerSP.setState(IPS_ALERT);
-        return true;
-    }
+
+    BuzzerSP.setState(IPS_ALERT);
+    return true;
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
