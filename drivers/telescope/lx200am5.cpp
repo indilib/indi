@@ -952,9 +952,7 @@ bool LX200AM5::ReadScopeStatus()
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 {
-    int nbytes_written = 0, rc = -1;
-    INDI_UNUSED(res);
-    INDI_UNUSED(res_len);
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -989,6 +987,27 @@ bool LX200AM5::sendCommand(const char * cmd, char * res, int cmd_len, int res_le
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
     else
         rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    if (res_len > 0)
+    {
+        char hex_res[DRIVER_LEN * 3] = {0};
+        hexDump(hex_res, res, res_len);
+        LOGF_DEBUG("RES <%s>", hex_res);
+    }
+    else
+    {
+        LOGF_DEBUG("RES <%s>", res);
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }
