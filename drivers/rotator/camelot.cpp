@@ -79,9 +79,22 @@ bool Camelot::updateProperties()
         // Position
         if (sendCommand("P#", res))
         {
-            double position = std::stod(res) / 10.0;
-            GotoRotatorNP[0].setValue(position);
-            GotoRotatorNP.setState(IPS_OK);
+            try
+            {
+                double position = std::stod(res) / 10.0;
+                GotoRotatorNP[0].setValue(position);
+                GotoRotatorNP.setState(IPS_OK);
+            }
+            catch (const std::invalid_argument& ia)
+            {
+                LOGF_ERROR("Invalid argument for std::stod in updateProperties: %s", ia.what());
+                GotoRotatorNP.setState(IPS_ALERT);
+            }
+            catch (const std::out_of_range& oor)
+            {
+                LOGF_ERROR("Out of range for std::stod in updateProperties: %s", oor.what());
+                GotoRotatorNP.setState(IPS_ALERT);
+            }
         }
 
         // Direction
@@ -283,7 +296,18 @@ void Camelot::TimerHit()
 
     if (sendCommand("P#", res))
     {
-        GotoRotatorNP[0].setValue(std::stod(res) / 10.0);
+        try
+        {
+            GotoRotatorNP[0].setValue(std::stod(res) / 10.0);
+        }
+        catch (const std::invalid_argument& ia)
+        {
+            LOGF_ERROR("Invalid argument for std::stod in TimerHit: %s", ia.what());
+        }
+        catch (const std::out_of_range& oor)
+        {
+            LOGF_ERROR("Out of range for std::stod in TimerHit: %s", oor.what());
+        }
     }
 
     if (std::abs(current_pos - GotoRotatorNP[0].getValue()) > 0.1 || current_state != GotoRotatorNP.getState())
