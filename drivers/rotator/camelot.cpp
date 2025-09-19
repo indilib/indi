@@ -126,10 +126,16 @@ const char * Camelot::getDefaultName()
 bool Camelot::Handshake()
 {
     char res[DRIVER_LEN] = {0};
-    if (sendCommand("#", res))
+    // Try up to 3 times
+    for (int i = 0; i < 3; i++)
     {
-        if (strstr(res, "OK.ROT!"))
-            return true;
+        if (sendCommand("#", res))
+        {
+            if (strstr(res, "OK.ROT!"))
+                return true;
+        }
+
+        usleep(100000);
     }
     return false;
 }
