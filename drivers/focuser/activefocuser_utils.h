@@ -23,7 +23,13 @@
 
 #include <map>
 #include <string>
-#include <hidapi.h>
+
+#ifdef _USE_SYSTEM_HIDAPILIB
+#include <hidapi/hidapi.h>
+#else
+#include <indi_hidapi.h>
+#endif
+
 #include <mutex>
 #include <future>
 #include <cstring>
