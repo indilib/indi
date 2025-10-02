@@ -75,6 +75,9 @@ IF (UNIX OR APPLE)
     ENDIF ()
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
         SET(COMP_FLAGS "${COMP_FLAGS} -Wno-nonnull -Wno-deprecated-declarations")
+        IF (FIX_WARNINGS)
+            SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-parameter")
+        ENDIF ()
     ENDIF ()
 
     # Minimal debug info with Clang
