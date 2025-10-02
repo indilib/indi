@@ -280,7 +280,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySwitch)
 
     ASSERT_STREQ(p[0].getName(),  "widget name");
     ASSERT_STREQ(p[0].getLabel(), "widget label");
-    ASSERT_EQ(p[0].getState(),  IPS_OK);
+    ASSERT_EQ(p[0].getState(),  ISS_ON);
 
     ASSERT_STREQ(p.getDeviceName(), "property device");
     ASSERT_STREQ(p.getName(),       "property name");
