@@ -6,7 +6,7 @@ includedir=/usr/include/
 Name: libindi
 Description: Instrument Neutral Distributed Interface
 URL: http://www.indilib.org/
-Version: 2.1.5
+Version: 2.1.6
 Libs: -L${libdir} -lindiclient
 Libs.private: -lz -lcfitsio -lnova
 Cflags: -I${includedir} -I${includedir}/libindi
