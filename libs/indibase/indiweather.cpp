@@ -124,7 +124,7 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (LocationNP.isNameMatch("GEOGRAPHIC_COORD"))
+        if (LocationNP.isNameMatch(name))
         {
             int latindex       = IUFindIndex("LAT", names, n);
             int longindex      = IUFindIndex("LONG", names, n);
