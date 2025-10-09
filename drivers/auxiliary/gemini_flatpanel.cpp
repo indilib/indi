@@ -4,6 +4,8 @@
 #include <termios.h>
 #include <functional>
 #include <vector>
+#include <cstdlib>
+
 
 static std::unique_ptr<GeminiFlatpanel> mydriver(new GeminiFlatpanel());
 
