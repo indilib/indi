@@ -408,10 +408,19 @@ bool Focuser::getBacklash(uint32_t &steps)
 /******************************************************************************************************
  * SestoSenso2 functions
 *******************************************************************************************************/
-SestoSenso2::SestoSenso2(const std::string &name, int port) : Focuser(name, port) {}
+SestoSenso2::SestoSenso2(const std::string &name, int port) : Focuser(name, port)
+{
+}
+
+bool SestoSenso2::getModel(std::string &model)
+{
+    return m_Communication->get(GENERIC_NODE, "MODNAME", model);
+}
+
+
 bool SestoSenso2::storeAsMaxPosition()
 {
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos"}});
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos-Manual"}});
 }
 
 /******************************************************************************************************
@@ -435,7 +444,64 @@ bool SestoSenso2::goOutToFindMaxPos()
 *******************************************************************************************************/
 bool SestoSenso2::initCalibration()
 {
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "Init-Manual"}});
+}
+
+// SestoSenso3 Specific Calibration
+bool SestoSenso2::initSemiAutoCalibration()
+{
     return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "Init"}});
+}
+
+bool SestoSenso2::goInToFindMinPos()
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoInToFindMinPos"}});
+}
+
+bool SestoSenso2::stopMotor()
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StopMotor"}});
+}
+
+bool SestoSenso2::moveIn(uint32_t steps)
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "MoveIn-" + std::to_string(steps)}});
+}
+
+bool SestoSenso2::moveOut(uint32_t steps)
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "MoveOut-" + std::to_string(steps)}});
+}
+
+bool SestoSenso2::goOutToFindMaxPosSemiAuto()
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoOutToFindMaxPos"}});
+}
+
+bool SestoSenso2::storeAsMaxPosSemiAuto()
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos"}});
+}
+
+bool SestoSenso2::startAutoCalibration()
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "start_auto_cal"}});
+}
+
+bool SestoSenso2::stopCalibration()
+{
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "stop_calib"}});
+}
+
+// SestoSenso3 Recovery Delay
+bool SestoSenso2::setRecoveryDelay(int32_t delay)
+{
+    return m_Communication->set(GENERIC_NODE, {{"RECOVER_DELAY", delay}});
+}
+
+bool SestoSenso2::getRecoveryDelay(int32_t &delay)
+{
+    return m_Communication->get(GENERIC_NODE, "RECOVER_DELAY", delay);
 }
 
 /******************************************************************************************************
@@ -565,6 +631,11 @@ bool Esatto::getBacklash(uint32_t &steps)
 bool Esatto::getVoltageUSB(double &value)
 {
     return m_Communication->getStringAsDouble(GENERIC_NODE, "VIN_USB", value);
+}
+
+bool Esatto::getModel(std::string &model)
+{
+    return m_Communication->get(GENERIC_NODE, "MODNAME", model);
 }
 
 /******************************************************************************************************
@@ -749,6 +820,12 @@ bool Arco::getFirmwareVersion(std::string &response)
     return true;
 }
 
+bool Arco::getModel(std::string &model)
+{
+    return m_Communication->get(GENERIC_NODE, "MODNAME", model);
+}
+
+
 /******************************************************************************************************
  *
 *******************************************************************************************************/
@@ -764,6 +841,14 @@ bool Arco::getMotorInfo(json &info)
 GIOTTO::GIOTTO(const std::string &name, int port)
 {
     m_Communication.reset(new Communication(name, port));
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool GIOTTO::getModel(std::string &model)
+{
+    return m_Communication->get(GENERIC_NODE, "MODNAME", model);
 }
 
 /******************************************************************************************************
@@ -819,7 +904,6 @@ ALTO::ALTO(const std::string &name, int port)
 {
     m_Communication.reset(new Communication(name, port));
 }
-
 
 /******************************************************************************************************
  *
