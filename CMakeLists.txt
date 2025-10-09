@@ -101,6 +101,7 @@ OPTION(INDI_BUILD_EXAMPLES "Build INDI examples" ON)
 OPTION(INDI_INSTALL_UDEV_RULES "Install INDI udev rules" ON)
 
 # System provided or bundled libs
+OPTION(INDI_SYSTEM_HIDAPILIB "Use system provided hidapilib" OFF)
 OPTION(INDI_SYSTEM_HTTPLIB "Use system provided httplib" OFF)
 OPTION(INDI_SYSTEM_JSONLIB "Use system provided json library" OFF)
 
@@ -176,6 +177,18 @@ install(FILES
 # ##################################################################################################
 # ####################################  bundled libs  ##############################################
 # ##################################################################################################
+if(INDI_SYSTEM_HIDAPILIB)
+    find_package(hidapi REQUIRED)
+    set(SYSTEM_HIDAPILIB 1)
+    set(HIDAPILIB hidapi::libusb)
+    add_definitions(-D_USE_SYSTEM_HIDAPILIB)
+    message(STATUS "Using system provided hidapilib version ${hidapi_VERSION_STR}")
+else()
+    set(SYSTEM_HIDAPILIB 0)
+    set(HIDAPILIB "")
+    message(STATUS "Using bundled hidapi")
+endif(INDI_SYSTEM_HIDAPILIB)
+
 if(INDI_SYSTEM_HTTPLIB)
     find_package(httplib REQUIRED)
     include_directories(${HTTPLIB_INCLUDE_DIR})
@@ -319,7 +332,9 @@ if(INDI_BUILD_DRIVERS)
         add_subdirectory(libs/eventloop)
         add_subdirectory(libs/dsp)
         add_subdirectory(libs/fpack)
-        add_subdirectory(libs/hid)
+        if(NOT SYSTEM_HIDAPILIB)
+            add_subdirectory(libs/hid)
+        endif(NOT SYSTEM_HIDAPILIB)
 
         # #################################################
         # ########## INDI Driver Library ##################
