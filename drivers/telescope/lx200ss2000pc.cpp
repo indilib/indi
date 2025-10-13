@@ -131,7 +131,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
                    ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
         JD = ln_get_julian_day(utc);
         LOGF_DEBUG("New JD is %f", JD);
-        if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5)) < 0)
+        if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5), true))
         {
             LOG_ERROR("Error setting local time.");
         }
