@@ -27,6 +27,7 @@
 #include "defaultdevice.h"
 #include "indifocuserinterface.h"
 #include "indiweatherinterface.h"
+#include "indipowerinterface.h" // Include the new power interface
 #include <stdint.h>
 
 namespace Connection
@@ -34,7 +35,8 @@ namespace Connection
 class Serial;
 }
 
-class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, public INDI::WeatherInterface
+class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, public INDI::WeatherInterface,
+    public INDI::PowerInterface
 {
     public:
         PegasusUPB();
@@ -75,6 +77,13 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             return IPS_OK;
         }
 
+        // Power Interface Overrides
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetPWMPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
 
     private:
         bool Handshake();
@@ -188,20 +197,20 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         INDI::PropertySwitch PowerControlSP {4};
         enum
         {
-          POWER_CONTROL_1,
-          POWER_CONTROL_2,
-          POWER_CONTROL_3,
-          POWER_CONTROL_4
+            POWER_CONTROL_1,
+            POWER_CONTROL_2,
+            POWER_CONTROL_3,
+            POWER_CONTROL_4
         };
 
         // Rename the power controls above
         INDI::PropertyText PowerControlsLabelsTP {4};
         enum
         {
-          POWER_LABEL_1,
-          POWER_LABEL_2,
-          POWER_LABEL_3,
-          POWER_LABEL_4
+            POWER_LABEL_1,
+            POWER_LABEL_2,
+            POWER_LABEL_3,
+            POWER_LABEL_4
         };
 
         // Current Draw

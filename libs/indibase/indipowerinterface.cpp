@@ -20,8 +20,11 @@
 
 #include "indipowerinterface.h"
 #include "defaultdevice.h"
+#include "basedevice.h"
 
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 namespace INDI
 {
@@ -43,9 +46,15 @@ PowerInterface::PowerInterface(DefaultDevice *defaultDevice) : m_defaultDevice(d
     // Initialize LED Control
     LEDControlSP[0].fill("ENABLED", "On", ISS_ON);
     LEDControlSP[1].fill("DISABLED", "Off", ISS_OFF);
+
+
+    // Initialize Power Cycle All
+    PowerCycleAllSP[0].fill("POWER_CYCLE_ON", "All On", ISS_OFF);
+    PowerCycleAllSP[1].fill("POWER_CYCLE_OFF", "All Off", ISS_OFF);
 }
 
-void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, size_t nPWMPorts, size_t nVariablePorts)
+void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, size_t nPWMPorts, size_t nVariablePorts,
+                                    size_t nAutoDewPorts)
 {
     // Main Control - Overall Power Sensors
     PowerSensorsNP.fill(m_defaultDevice->getDeviceName(), "POWER_SENSORS", "Sensors", groupName, IP_RO, 60, IPS_IDLE);
@@ -61,6 +70,27 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
     // LED Control
     if (HasLEDToggle())
         LEDControlSP.fill(m_defaultDevice->getDeviceName(), "LED_CONTROL", "LEDs", groupName, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Auto Dew Control
+    for (size_t i = 0; i < nAutoDewPorts; i++)
+    {
+        char portNum[8];
+        snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
+
+        AutoDewSP.emplace_back(2);
+        char propName[MAXINDINAME];
+        char propLabel[MAXINDILABEL];
+        snprintf(propName, MAXINDINAME, "AUTO_DEW_PORT_%d", static_cast<int>(i + 1));
+        snprintf(propLabel, MAXINDILABEL, "Auto Dew %d", static_cast<int>(i + 1));
+        AutoDewSP[i][0].fill("ENABLED", "Enabled", ISS_OFF);
+        AutoDewSP[i][1].fill("DISABLED", "Disabled", ISS_ON);
+        AutoDewSP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, groupName, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    }
+
+    // Power Cycle All
+    if (powerCapability & POWER_HAS_POWER_CYCLE)
+        PowerCycleAllSP.fill(m_defaultDevice->getDeviceName(), "POWER_CYCLE", "Cycle Power", groupName, IP_RW, ISR_ATMOST1, 60,
+                             IPS_IDLE);
 
     // Initialize Power Ports (12V DC)
     for (size_t i = 0; i < nPowerPorts; i++)
@@ -174,6 +204,13 @@ bool PowerInterface::updateProperties()
         m_defaultDevice->defineProperty(PowerOffOnDisconnectSP);
         if (HasLEDToggle())
             m_defaultDevice->defineProperty(LEDControlSP);
+        if (HasAutoDew())
+        {
+            for (auto &autoDew : AutoDewSP)
+                m_defaultDevice->defineProperty(autoDew);
+        }
+        if (powerCapability & POWER_HAS_POWER_CYCLE)
+            m_defaultDevice->defineProperty(PowerCycleAllSP);
 
         // Power Ports
         for (auto &port : PowerPortsSP)
@@ -216,6 +253,14 @@ bool PowerInterface::updateProperties()
         m_defaultDevice->deleteProperty(PowerOffOnDisconnectSP);
         if (HasLEDToggle())
             m_defaultDevice->deleteProperty(LEDControlSP);
+        if (HasAutoDew())
+        {
+            for (auto &autoDew : AutoDewSP)
+                m_defaultDevice->deleteProperty(autoDew);
+            AutoDewSP.clear();
+        }
+        if (powerCapability & POWER_HAS_POWER_CYCLE)
+            m_defaultDevice->deleteProperty(PowerCycleAllSP);
 
         // Power Ports
         for (auto &port : PowerPortsSP)
@@ -326,6 +371,32 @@ bool PowerInterface::processNumber(const char *dev, const char *name, double val
     return false;
 }
 
+bool PowerInterface::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    return false;
+}
+
+bool PowerInterface::CyclePower()
+{
+    // Default implementation: cycle all power ports
+    bool success = true;
+    for (size_t i = 0; i < PowerPortsSP.size(); ++i)
+    {
+        if (!SetPowerPort(i, false)) // Turn off
+            success = false;
+    }
+    // Small delay to ensure power off
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    for (size_t i = 0; i < PowerPortsSP.size(); ++i)
+    {
+        if (!SetPowerPort(i, true)) // Turn on
+            success = false;
+    }
+    return success;
+}
+
 bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, m_defaultDevice->getDeviceName()) == 0)
@@ -364,6 +435,47 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
                 LEDControlSP.apply();
                 return false;
             }
+        }
+
+        // Auto Dew Control
+        for (size_t i = 0; i < AutoDewSP.size(); i++)
+        {
+            if (AutoDewSP[i].isNameMatch(name))
+            {
+                auto prevOnIndex = AutoDewSP[i].findOnSwitchIndex();
+                AutoDewSP[i].update(states, names, n);
+                if (SetAutoDewEnabled(i, AutoDewSP[i][0].getState() == ISS_ON))
+                {
+                    AutoDewSP[i].setState(IPS_OK);
+                    AutoDewSP[i].apply();
+                    return true;
+                }
+                else
+                {
+                    AutoDewSP[i].reset();
+                    AutoDewSP[i][prevOnIndex].setState(ISS_ON);
+                    AutoDewSP[i].setState(IPS_ALERT);
+                    AutoDewSP[i].apply();
+                    return false;
+                }
+            }
+        }
+
+        // Power Cycle All
+        if ((powerCapability & POWER_HAS_POWER_CYCLE) && PowerCycleAllSP.isNameMatch(name))
+        {
+            PowerCycleAllSP.update(states, names, n);
+            if (CyclePower())
+            {
+                PowerCycleAllSP.setState(IPS_OK);
+            }
+            else
+            {
+                PowerCycleAllSP.setState(IPS_ALERT);
+            }
+            PowerCycleAllSP.reset(); // Reset to OFF after action
+            PowerCycleAllSP.apply();
+            return true;
         }
 
         // Power Ports
@@ -512,6 +624,13 @@ bool PowerInterface::saveConfigItems(FILE *fp)
     PowerOffOnDisconnectSP.save(fp);
     if (HasLEDToggle())
         LEDControlSP.save(fp);
+    if (HasAutoDew())
+    {
+        for (auto &autoDew : AutoDewSP)
+            autoDew.save(fp);
+    }
+    if (powerCapability & POWER_HAS_POWER_CYCLE)
+        PowerCycleAllSP.save(fp);
 
     for (auto &label : PowerPortLabelsTP)
         label.save(fp);

@@ -38,7 +38,8 @@
 // We declare an auto pointer to PegasusUPB.
 static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
 
-PegasusUPB::PegasusUPB() : FI(this), WI(this)
+PegasusUPB::PegasusUPB() : INDI::DefaultDevice(), INDI::FocuserInterface(this), INDI::WeatherInterface(this),
+    INDI::PowerInterface(this)
 {
     setVersion(1, 6);
 
@@ -52,7 +53,7 @@ bool PegasusUPB::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    setDriverInterface(AUX_INTERFACE | FOCUSER_INTERFACE | WEATHER_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | FOCUSER_INTERFACE | WEATHER_INTERFACE | POWER_INTERFACE);
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -64,30 +65,22 @@ bool PegasusUPB::initProperties()
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
 
-    addAuxControls();
+    // Set Power Capabilities
+    PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_PWM_OUT | POWER_HAS_VARIABLE_OUT |
+                      POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
+                      POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE);
 
-    ////////////////////////////////////////////////////////////////////////////
-    /// Main Control Panel
-    ////////////////////////////////////////////////////////////////////////////
-    // Cycle all power on/off
-    PowerCycleAllSP[POWER_CYCLE_ON].fill("POWER_CYCLE_ON", "All On", ISS_OFF);
-    PowerCycleAllSP[POWER_CYCLE_OFF].fill("POWER_CYCLE_OFF", "All Off", ISS_OFF);
-    PowerCycleAllSP.fill(getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
-                         IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    // Initialize Power Properties (4 DC ports, 3 PWM ports, 1 Variable port, 3 Auto Dew ports)
+    PI::initProperties(POWER_TAB, 4, 3, 1, 3);
+
+    addAuxControls();
 
     // Reboot
     RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
                   60, IPS_IDLE);
 
-    // Power Sensors
-    PowerSensorsNP[SENSOR_VOLTAGE].fill("SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
-    PowerSensorsNP[SENSOR_CURRENT].fill("SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerSensorsNP[SENSOR_POWER].fill("SENSOR_POWER", "Power (W)", "%4.2f", 0, 999, 100, 0);
-    PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
-                        60, IPS_IDLE);
-
-    // Overall Power Consumption
+    // Overall Power Consumption (remains as is, not part of INDI::Power)
     PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
@@ -95,178 +88,25 @@ bool PegasusUPB::initProperties()
                             MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
-    /// Power Group
+    /// Dew Group (Auto Dew Aggressiveness remains as is)
     ////////////////////////////////////////////////////////////////////////////
-
-    // Dew Labels. Need to declare them here to use in the Power usage section
-    DewControlsLabelsTP[DEW_LABEL_1].fill("DEW_LABEL_1", "Dew A", "Dew A");
-    DewControlsLabelsTP[DEW_LABEL_2].fill("DEW_LABEL_2", "Dew B", "Dew B");
-    DewControlsLabelsTP[DEW_LABEL_3].fill("DEW_LABEL_3", "Dew C", "Dew C");
-    DewControlsLabelsTP.fill(getDeviceName(), "DEW_CONTROL_LABEL", "Dew Labels",
-                             DEW_TAB, IP_WO, 60, IPS_IDLE);
-
-    char dewLabel[MAXINDILABEL];
-
-    // Turn on/off power and power boot up
-    memset(dewLabel, 0, MAXINDILABEL);
-    int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_1].getName(),
-                                dewLabel,
-                                MAXINDILABEL);
-    IUFillSwitch(&AutoDewV2S[DEW_PWM_A], "DEW_A", dewRC == -1 ? "Dew A" : dewLabel, ISS_OFF);
-    memset(dewLabel, 0, MAXINDILABEL);
-    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_2].getName(),
-                            dewLabel,
-                            MAXINDILABEL);
-    IUFillSwitch(&AutoDewV2S[DEW_PWM_B], "DEW_B", dewRC == -1 ? "Dew B" : dewLabel, ISS_OFF);
-    memset(dewLabel, 0, MAXINDILABEL);
-    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_3].getName(),
-                            dewLabel,
-                            MAXINDILABEL);
-    IUFillSwitch(&AutoDewV2S[DEW_PWM_C], "DEW_C", dewRC == -1 ? "Dew C" : dewLabel, ISS_OFF);
-    IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
-                       IPS_IDLE);
-
-    // Dew Labels with custom labels
-    DewControlsLabelsTP[DEW_LABEL_1].fill("DEW_LABEL_1", "Dew A", AutoDewV2S[0].label);
-    DewControlsLabelsTP[DEW_LABEL_2].fill("DEW_LABEL_2", "Dew B", AutoDewV2S[1].label);
-    DewControlsLabelsTP[DEW_LABEL_3].fill("DEW_LABEL_3", "Dew C", AutoDewV2S[2].label);
-    DewControlsLabelsTP.fill(getDeviceName(), "DEW_CONTROL_LABEL", "DEW Labels",
-                             DEW_TAB, IP_WO, 60, IPS_IDLE);
-    // Power Labels
-    PowerControlsLabelsTP[POWER_LABEL_1].fill("POWER_LABEL_1", "Port 1", "Port 1");
-    PowerControlsLabelsTP[POWER_LABEL_2].fill("POWER_LABEL_2", "Port 2", "Port 2");
-    PowerControlsLabelsTP[POWER_LABEL_3].fill("POWER_LABEL_3", "Port 3", "Port 3");
-    PowerControlsLabelsTP[POWER_LABEL_4].fill("POWER_LABEL_4", "Port 4", "Port 4");
-    PowerControlsLabelsTP.fill(getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
-                               POWER_TAB, IP_WO, 60, IPS_IDLE);
-
-    char portLabel[MAXINDILABEL];
-
-    // Turn on/off power and power boot up
-    memset(portLabel, 0, MAXINDILABEL);
-    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(),
-                                 PowerControlsLabelsTP[POWER_LABEL_1].getName(), portLabel,
-                                 MAXINDILABEL);
-    PowerControlSP[POWER_CONTROL_1].fill("POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
-
-    memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_2].getName(),
-                             portLabel,
-                             MAXINDILABEL);
-    PowerControlSP[POWER_CONTROL_2].fill("POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
-
-    memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_3].getName(),
-                             portLabel,
-                             MAXINDILABEL);
-    PowerControlSP[POWER_CONTROL_3].fill("POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
-
-    memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_4].getName(),
-                             portLabel,
-                             MAXINDILABEL);
-    PowerControlSP[POWER_CONTROL_4].fill("POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
-
-    PowerControlSP.fill(getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW,
-                        ISR_NOFMANY, 60, IPS_IDLE);
-
-    // Power Labels
-    PowerControlsLabelsTP[POWER_LABEL_1].fill("POWER_LABEL_1", "Port 1", PowerControlSP[POWER_CONTROL_1].getLabel());
-    PowerControlsLabelsTP[POWER_LABEL_2].fill("POWER_LABEL_2", "Port 2", PowerControlSP[POWER_CONTROL_2].getLabel());
-    PowerControlsLabelsTP[POWER_LABEL_3].fill( "POWER_LABEL_3", "Port 3", PowerControlSP[POWER_CONTROL_3].getLabel());
-    PowerControlsLabelsTP[POWER_LABEL_4].fill( "POWER_LABEL_4", "Port 4", PowerControlSP[POWER_CONTROL_4].getLabel());
-    PowerControlsLabelsTP.fill(getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
-                               POWER_TAB, IP_WO, 60, IPS_IDLE);
-
-    // Current Draw
-    PowerCurrentNP[POWER_CURRENT_1].fill("POWER_CURRENT_1", PowerControlSP[POWER_CONTROL_1].getLabel(), "%4.2f A", 0, 1000, 0,
-                                         0);
-    PowerCurrentNP[POWER_CURRENT_2].fill("POWER_CURRENT_2", PowerControlSP[POWER_CONTROL_2].getLabel(), "%4.2f A", 0, 1000, 0,
-                                         0);
-    PowerCurrentNP[POWER_CURRENT_3].fill("POWER_CURRENT_3", PowerControlSP[POWER_CONTROL_3].getLabel(), "%4.2f A", 0, 1000, 0,
-                                         0);
-    PowerCurrentNP[POWER_CURRENT_4].fill("POWER_CURRENT_4", PowerControlSP[POWER_CONTROL_4].getLabel(), "%4.2f A", 0, 1000, 0,
-                                         0);
-    PowerCurrentNP.fill(getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO,
-                        60, IPS_IDLE);
-
-    // Power on Boot
-    PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", PowerControlSP[POWER_CONTROL_1].getLabel(), ISS_ON);
-    PowerOnBootSP[POWER_PORT_2].fill("POWER_PORT_2", PowerControlSP[POWER_CONTROL_2].getLabel(), ISS_ON);
-    PowerOnBootSP[POWER_PORT_3].fill("POWER_PORT_3", PowerControlSP[POWER_CONTROL_3].getLabel(), ISS_ON);
-    PowerOnBootSP[POWER_PORT_4].fill("POWER_PORT_4", PowerControlSP[POWER_CONTROL_4].getLabel(), ISS_ON);
-    PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", POWER_TAB, IP_RW,
-                       ISR_NOFMANY, 60, IPS_IDLE);
-
-    // Over Current
-    OverCurrentLP[POWER_PORT_1].fill("POWER_PORT_1", PowerControlSP[POWER_CONTROL_1].getLabel(), IPS_OK);
-    OverCurrentLP[POWER_PORT_2].fill("POWER_PORT_2", PowerControlSP[POWER_CONTROL_2].getLabel(), IPS_OK);
-    OverCurrentLP[POWER_PORT_3].fill("POWER_PORT_3", PowerControlSP[POWER_CONTROL_3].getLabel(), IPS_OK);
-    OverCurrentLP[POWER_PORT_4].fill("POWER_PORT_4", PowerControlSP[POWER_CONTROL_4].getLabel(), IPS_OK);
-
-    char tempLabel[MAXINDILABEL + 5];
-    memset(tempLabel, 0, MAXINDILABEL + 5);
-    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[0].label);
-    OverCurrentLP[DEW_A].fill("DEW_A", tempLabel, IPS_OK);
-    memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[1].label);
-    OverCurrentLP[DEW_B].fill("DEW_B", tempLabel, IPS_OK);
-    memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[2].label);
-    OverCurrentLP[DEW_C].fill("DEW_C", tempLabel, IPS_OK);
-    OverCurrentLP.fill(getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
-                       IPS_IDLE);
-
-    // Power LED
-    PowerLEDSP[POWER_LED_ON].fill("POWER_LED_ON", "On", ISS_ON);
-    PowerLEDSP[POWER_LED_OFF].fill("POWER_LED_OFF", "Off", ISS_OFF);
-    PowerLEDSP.fill(getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60,
-                    IPS_IDLE);
-
-    AdjustableOutputNP[0].fill("ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
-    AdjustableOutputNP.fill(getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output",
-                            POWER_TAB, IP_RW, 60, IPS_IDLE);
-
-
-    ////////////////////////////////////////////////////////////////////////////
-    /// Dew Group
-    ////////////////////////////////////////////////////////////////////////////
-
-    // Automatic Dew v1
-    AutoDewSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
-    AutoDewSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    AutoDewSP.fill(getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
-                   IPS_IDLE);
 
     // Automatic Dew Aggressiveness v2
     AutoDewAggNP[AUTO_DEW_AGG].fill("AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
     AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
                       IPS_IDLE);
 
-    // Dew PWM
-    DewPWMNP[DEW_PWM_A].fill("DEW_A", AutoDewV2S[0].label, "%.2f %%", 0, 100, 10, 0);
-    DewPWMNP[DEW_PWM_B].fill("DEW_B", AutoDewV2S[1].label, "%.2f %%", 0, 100, 10, 0);
-    DewPWMNP[DEW_PWM_C].fill("DEW_C", AutoDewV2S[2].label, "%.2f %%", 0, 100, 10, 0);
-    DewPWMNP.fill(getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
-
-    // Dew current draw
-    DewCurrentDrawNP[DEW_PWM_A].fill("DEW_CURRENT_A", AutoDewV2S[0].label, "%4.2f A", 0, 1000, 10, 0);
-    DewCurrentDrawNP[DEW_PWM_B].fill("DEW_CURRENT_B", AutoDewV2S[1].label, "%4.2f A", 0, 1000, 10, 0);
-    DewCurrentDrawNP[DEW_PWM_C].fill("DEW_CURRENT_C", AutoDewV2S[2].label, "%4.2f A", 0, 1000, 10, 0);
-    DewCurrentDrawNP.fill(getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60,
-                          IPS_IDLE);
-
     ////////////////////////////////////////////////////////////////////////////
     /// USB Group
     ////////////////////////////////////////////////////////////////////////////
 
-    // USB Hub control v1
+    // USB Hub control v1 (remains as is)
     USBControlSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     USBControlSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     USBControlSP.fill(getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
                       60, IPS_IDLE);
 
-    // USB Labels
+    // USB Labels (remains as is)
     USBControlsLabelsTP[USB_LABEL_1].fill("USB_LABEL_1", "USB3 Port1", "USB3 Port1");
     USBControlsLabelsTP[USB_LABEL_2].fill("USB_LABEL_2", "USB3 Port2", "USB3 Port2");
     USBControlsLabelsTP[USB_LABEL_3].fill("USB_LABEL_3", "USB3 Port3", "USB3 Port3");
@@ -277,7 +117,7 @@ bool PegasusUPB::initProperties()
     USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
                              USB_TAB, IP_WO, 60, IPS_IDLE);
 
-    // USB Hub control v2
+    // USB Hub control v2 (remains as is)
 
     char USBLabel[MAXINDILABEL];
 
@@ -565,58 +405,12 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // Cycle all power on or off
-        if (PowerCycleAllSP.isNameMatch(name))
-        {
-            PowerCycleAllSP.update(states, names, n);
-
-            PowerCycleAllSP.setState(IPS_ALERT);
-            char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "PZ:%d", PowerCycleAllSP.findOnSwitchIndex());
-            if (sendCommand(cmd, res))
-            {
-                PowerCycleAllSP.setState(!strcmp(cmd, res) ? IPS_OK : IPS_ALERT);
-            }
-
-            PowerCycleAllSP.reset();
-            PowerCycleAllSP.apply();
-            return true;
-        }
-
         // Reboot
         if (RebootSP.isNameMatch(name))
         {
             RebootSP.setState(reboot() ? IPS_OK : IPS_ALERT);
             RebootSP.apply();
             LOG_INFO("Rebooting device...");
-            return true;
-        }
-
-        // Control Power per port
-        if (PowerControlSP.isNameMatch(name))
-        {
-            bool failed = false;
-            for (int i = 0; i < n; i++)
-            {
-                if (!strcmp(names[i], PowerControlSP[i].getName()) && states[i] != PowerControlSP[i].getState())
-                {
-                    if (setPowerEnabled(i + 1, states[i] == ISS_ON) == false)
-                    {
-                        failed = true;
-                        break;
-                    }
-                }
-            }
-
-            if (failed)
-                PowerControlSP.setState(IPS_ALERT);
-            else
-            {
-                PowerControlSP.setState(IPS_OK);
-                PowerControlSP.update(states, names, n);
-            }
-
-            PowerControlSP.apply();
             return true;
         }
 
@@ -630,27 +424,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             return true;
         }
 
-        // Auto Dew v1.
-        if ((AutoDewSP.isNameMatch(name)) && (version == UPB_V1))
-        {
-            int prevIndex = AutoDewSP.findOnSwitchIndex();
-            AutoDewSP.update(states, names, n);
-            if (setAutoDewEnabled(AutoDewSP[INDI_ENABLED].getState() == ISS_ON))
-            {
-                AutoDewSP.setState(IPS_OK);
-            }
-            else
-            {
-                AutoDewSP.reset();
-                AutoDewSP[prevIndex].setState(ISS_ON);
-                AutoDewSP.setState(IPS_ALERT);
-            }
-
-            AutoDewSP.apply();
-            return true;
-        }
-
-        // Auto Dew v2.
+        // Auto Dew v2 (legacy property, keep for now)
         if ((!strcmp(name, AutoDewV2SP.name)) && (version == UPB_V2))
         {
             ISState Dew1 = AutoDewV2S[DEW_PWM_A].s;
@@ -757,28 +531,12 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         //            return true;
         //        }
 
-        // Power LED
-        if (PowerLEDSP.isNameMatch(name) && (version == UPB_V1))
-        {
-            int prevIndex = PowerLEDSP.findOnSwitchIndex();
-            PowerLEDSP.update(states, names, n);
-            if (setPowerLEDEnabled(PowerLEDSP[0].getState() == ISS_ON))
-            {
-                PowerLEDSP.setState(IPS_OK);
-            }
-            else
-            {
-                PowerLEDSP.reset();
-                PowerLEDSP[prevIndex].setState(ISS_ON);
-                PowerLEDSP.setState(IPS_ALERT);
-            }
-
-            PowerLEDSP.apply();
-            return true;
-        }
-
         if (strstr(name, "FOCUS"))
             return FI::processSwitch(dev, name, states, names, n);
+
+        // Process power-related switches via PowerInterface
+        if (PI::processSwitch(dev, name, states, names, n))
+            return true;
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -791,43 +549,7 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // Adjustable output
-        if (AdjustableOutputNP.isNameMatch(name))
-        {
-            if (setAdjustableOutput(static_cast<uint8_t>(values[0])))
-            {
-                AdjustableOutputNP.update(values, names, n);
-                AdjustableOutputNP.setState(IPS_OK);
-            }
-            else
-                AdjustableOutputNP.setState(IPS_ALERT);
-
-            AdjustableOutputNP.apply();
-            return true;
-        }
-
-        // Dew PWM
-        if (DewPWMNP.isNameMatch(name))
-        {
-            bool rc1 = false, rc2 = false, rc3 = false;
-            for (int i = 0; i < n; i++)
-            {
-                if (!strcmp(names[i], DewPWMNP[DEW_PWM_A].getName()))
-                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
-                else if (!strcmp(names[i], DewPWMNP[DEW_PWM_B].getName()))
-                    rc2 = setDewPWM(6, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
-                else if (!strcmp(names[i], DewPWMNP[DEW_PWM_C].getName()))
-                    rc3 = setDewPWM(7, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
-            }
-
-            DewPWMNP.setState((rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT);
-            if (DewPWMNP.getState() == IPS_OK)
-                DewPWMNP.update(values, names, n);
-            DewPWMNP.apply();
-            return true;
-        }
-
-        // Auto Dew Aggressiveness
+        // Auto Dew Aggressiveness (device-specific property, not in INDI::Power)
         if (AutoDewAggNP.isNameMatch(name))
         {
             if (setAutoDewAgg(values[0]))
@@ -866,6 +588,10 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
 
         if (strstr(name, "WEATHER_"))
             return WI::processNumber(dev, name, values, names, n);
+
+        // Process power-related numbers via PowerInterface
+        if (PI::processNumber(dev, name, values, names, n))
+            return true;
     }
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -877,27 +603,7 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // Power Labels
-        if (PowerControlsLabelsTP.isNameMatch(name))
-        {
-            PowerControlsLabelsTP.update(texts, names, n);
-            PowerControlsLabelsTP.setState(IPS_OK);
-            LOG_INFO("Power port labels saved. Driver must be restarted for the labels to take effect.");
-            saveConfig(PowerControlsLabelsTP);
-            PowerControlsLabelsTP.apply();
-            return true;
-        }
-        // Dew Labels
-        if (DewControlsLabelsTP.isNameMatch(name))
-        {
-            DewControlsLabelsTP.update(texts, names, n);
-            DewControlsLabelsTP.setState(IPS_OK);
-            LOG_INFO("Dew labels saved. Driver must be restarted for the labels to take effect.");
-            saveConfig(DewControlsLabelsTP);
-            DewControlsLabelsTP.apply();
-            return true;
-        }
-        // USB Labels
+        // USB Labels (device-specific, not in INDI::Power)
         if (USBControlsLabelsTP.isNameMatch(name))
         {
             USBControlsLabelsTP.update(texts, names, n);
@@ -907,6 +613,10 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
             USBControlsLabelsTP.apply();
             return true;
         }
+
+        // Process power-related text via PowerInterface
+        if (PI::processText(dev, name, texts, names, n))
+            return true;
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -1812,4 +1522,72 @@ void PegasusUPB::cleanupResponse(char *response)
         return std::isspace(x);
     }), s.end());
     strncpy(response, s.c_str(), PEGASUS_LEN);
+}
+
+//////////////////////////////////////////////////////////////////////
+/// Power Interface Implementations
+//////////////////////////////////////////////////////////////////////
+bool PegasusUPB::SetPowerPort(size_t port, bool enabled)
+{
+    // Port numbers in interface are 0-based, but device expects 1-based
+    return setPowerEnabled(port + 1, enabled);
+}
+
+bool PegasusUPB::SetPWMPort(size_t port, bool enabled, double dutyCycle)
+{
+    // PWM ports are 5, 6, 7 for dew heaters A, B, C (device uses 1-based indexing)
+    // Convert duty cycle percentage (0-100) to 0-255 range
+    if (!enabled)
+    {
+        return setDewPWM(port + 5, 0);
+    }
+    return setDewPWM(port + 5, static_cast<uint8_t>(dutyCycle / 100.0 * 255.0));
+}
+
+bool PegasusUPB::SetVariablePort(size_t port, bool enabled, double voltage)
+{
+    INDI_UNUSED(port);  // UPB only has one adjustable output
+    if (!enabled)
+    {
+        return setAdjustableOutput(0);
+    }
+    return setAdjustableOutput(static_cast<uint8_t>(voltage));
+}
+
+bool PegasusUPB::SetLEDEnabled(bool enabled)
+{
+    return setPowerLEDEnabled(enabled);
+}
+
+bool PegasusUPB::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    if (version == UPB_V1)
+    {
+        // V1 only has global auto dew control
+        INDI_UNUSED(port);
+        return setAutoDewEnabled(enabled);
+    }
+    else
+    {
+        // V2 has per-port auto dew control, we need to toggle the appropriate port
+        // Update the state for the requested port
+        if (enabled)
+            AutoDewV2S[port].s = ISS_ON;
+        else
+            AutoDewV2S[port].s = ISS_OFF;
+
+        return toggleAutoDewV2();
+    }
+}
+
+bool PegasusUPB::CyclePower()
+{
+    // PZ:1 cycles power off then on to all ports
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PZ:1");
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(cmd, res));
+    }
+    return false;
 }

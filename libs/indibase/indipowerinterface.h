@@ -46,7 +46,9 @@ class PowerInterface
             POWER_HAS_VOLTAGE_SENSOR    = 1 << 3,  /*!< Has voltage monitoring */
             POWER_HAS_OVERALL_CURRENT   = 1 << 4,  /*!< Has overall current monitoring */
             POWER_HAS_PER_PORT_CURRENT  = 1 << 5,  /*!< Has per-port current monitoring */
-            POWER_HAS_LED_TOGGLE        = 1 << 6   /*!< Can toggle power LEDs */
+            POWER_HAS_LED_TOGGLE        = 1 << 6,  /*!< Can toggle power LEDs */
+            POWER_HAS_AUTO_DEW          = 1 << 7,  /*!< Has automatic dew control */
+            POWER_HAS_POWER_CYCLE       = 1 << 8   /*!< Can cycle power to all ports */
         } PowerCapability;
 
         /**
@@ -122,6 +124,14 @@ class PowerInterface
             return powerCapability & POWER_HAS_LED_TOGGLE;
         }
 
+        /**
+         * @return True if power device has automatic dew control
+         */
+        bool HasAutoDew()
+        {
+            return powerCapability & POWER_HAS_AUTO_DEW;
+        }
+
     protected:
         explicit PowerInterface(DefaultDevice *defaultDevice);
 
@@ -132,8 +142,10 @@ class PowerInterface
          * \param nPowerPorts Number of 12V power ports
          * \param nPWMPorts Number of PWM/Dew heater ports
          * \param nVariablePorts Number of variable voltage ports
+         * \param nAutoDewPorts Number of Auto Dew ports
          */
-        void initProperties(const char *groupName, size_t nPowerPorts = 0, size_t nPWMPorts = 0, size_t nVariablePorts = 0);
+        void initProperties(const char *groupName, size_t nPowerPorts = 0, size_t nPWMPorts = 0, size_t nVariablePorts = 0,
+                            size_t nAutoDewPorts = 0);
 
         /**
          * @brief updateProperties Define or Delete Power properties based on the connection status of the base device
@@ -184,6 +196,19 @@ class PowerInterface
         virtual bool SetLEDEnabled(bool enabled);
 
         /**
+         * @brief SetAutoDewEnabled Enable/disable automatic dew control
+         * @param enabled True to enable, false to disable
+         * @return True if successful, false otherwise
+         */
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled);
+
+        /**
+         * @brief CyclePower Cycle power to all ports
+         * @return True if successful, false otherwise
+         */
+        virtual bool CyclePower();
+
+        /**
          * @brief saveConfigItems Save power properties in config file
          * @param fp Pointer to config file
          * @return Always return true
@@ -226,6 +251,12 @@ class PowerInterface
 
         // LED Control
         INDI::PropertySwitch LEDControlSP {2};
+
+        // Auto Dew Control
+        std::vector<INDI::PropertySwitch> AutoDewSP;
+
+        // Power Cycle All
+        INDI::PropertySwitch PowerCycleAllSP {2};
 
         uint32_t powerCapability = 0;
         DefaultDevice *m_defaultDevice { nullptr };
