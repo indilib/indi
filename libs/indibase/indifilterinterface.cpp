@@ -89,8 +89,9 @@ bool FilterInterface::processNumber(const char *dev, const char *name, double va
         if (TargetFilter < FilterSlotNP[0].getMin() || TargetFilter > FilterSlotNP[0].getMax())
         {
             FilterSlotNP.setState(IPS_ALERT);
-            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g",
-                         FilterSlotNP[0].getMin(), FilterSlotNP[0].getMax());
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                         "Error: requested slot %d is invalid (Range from %.2f to %.2f",
+                         static_cast<int>(TargetFilter), FilterSlotNP[0].getMin(), FilterSlotNP[0].getMax());
             FilterSlotNP.apply();
             return false;
         }
