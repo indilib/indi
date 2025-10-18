@@ -65,13 +65,6 @@ bool PegasusUPB::initProperties()
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
 
-    // Set Power Capabilities
-    PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_PWM_OUT | POWER_HAS_VARIABLE_OUT |
-                      POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
-                      POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE);
-
-    // Initialize Power Properties (4 DC ports, 3 PWM ports, 1 Variable port, 3 Auto Dew ports)
-    PI::initProperties(POWER_TAB, 4, 3, 1, 3);
 
     addAuxControls();
 
@@ -96,85 +89,22 @@ bool PegasusUPB::initProperties()
     AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
                       IPS_IDLE);
 
-    ////////////////////////////////////////////////////////////////////////////
-    /// USB Group
-    ////////////////////////////////////////////////////////////////////////////
-
-    // USB Hub control v1 (remains as is)
-    USBControlSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
-    USBControlSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
-    USBControlSP.fill(getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
-                      60, IPS_IDLE);
-
-    // USB Labels (remains as is)
-    USBControlsLabelsTP[USB_LABEL_1].fill("USB_LABEL_1", "USB3 Port1", "USB3 Port1");
-    USBControlsLabelsTP[USB_LABEL_2].fill("USB_LABEL_2", "USB3 Port2", "USB3 Port2");
-    USBControlsLabelsTP[USB_LABEL_3].fill("USB_LABEL_3", "USB3 Port3", "USB3 Port3");
-    USBControlsLabelsTP[USB_LABEL_4].fill("USB_LABEL_4", "USB3 Port4", "USB3 Port4");
-    USBControlsLabelsTP[USB_LABEL_5].fill("USB_LABEL_5", "USB2 Port5", "USB2 Port5");
-    USBControlsLabelsTP[USB_LABEL_6].fill("USB_LABEL_6", "USB2 Port6", "USB2 Port6");
-
-    USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
-                             USB_TAB, IP_WO, 60, IPS_IDLE);
-
-    // USB Hub control v2 (remains as is)
-
-    char USBLabel[MAXINDILABEL];
-
-    // Turn on/off power and power boot up
-    memset(USBLabel, 0, MAXINDILABEL);
-    int USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[USB_LABEL_1].name, USBLabel,
-                                MAXINDILABEL);
-    USBControlV2SP[PORT_1].fill("PORT_1", USBRC == -1 ? "USB3 Port1" : USBLabel, ISS_ON);
-    memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[USB_LABEL_2].name, USBLabel,
-                            MAXINDILABEL);
-    USBControlV2SP[PORT_2].fill("PORT_2", USBRC == -1 ? "USB3 Port2" : USBLabel, ISS_ON);
-    memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[USB_LABEL_3].name, USBLabel,
-                            MAXINDILABEL);
-    USBControlV2SP[PORT_3].fill("PORT_3", USBRC == -1 ? "USB3 Port3" : USBLabel, ISS_ON);
-    memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[USB_LABEL_4].name, USBLabel,
-                            MAXINDILABEL);
-    USBControlV2SP[PORT_4].fill("PORT_4", USBRC == -1 ? "USB3 Port4" : USBLabel, ISS_ON);
-    memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[USB_LABEL_5].name, USBLabel,
-                            MAXINDILABEL);
-    USBControlV2SP[PORT_5].fill("PORT_5", USBRC == -1 ? "USB2 Port5" : USBLabel, ISS_ON);
-    memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[USB_LABEL_6].name, USBLabel,
-                            MAXINDILABEL);
-    USBControlV2SP[PORT_6].fill("PORT_6", USBRC == -1 ? "USB2 Port6" : USBLabel, ISS_ON);
-
-    USBControlV2SP.fill(getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
-                        ISR_NOFMANY, 60, IPS_IDLE);
-
-    // USB Labels update with custom values
-    USBControlsLabelsTP[USB_LABEL_1].fill("USB_LABEL_1", "USB3 Port1", USBControlV2SP[PORT_1].getLabel());
-    USBControlsLabelsTP[USB_LABEL_2].fill("USB_LABEL_2", "USB3 Port2", USBControlV2SP[PORT_2].getLabel());
-    USBControlsLabelsTP[USB_LABEL_3].fill("USB_LABEL_3", "USB3 Port3", USBControlV2SP[PORT_3].getLabel());
-    USBControlsLabelsTP[USB_LABEL_4].fill("USB_LABEL_4", "USB3 Port4", USBControlV2SP[PORT_4].getLabel());
-    USBControlsLabelsTP[USB_LABEL_5].fill("USB_LABEL_5", "USB2 Port5", USBControlV2SP[PORT_5].getLabel());
-    USBControlsLabelsTP[USB_LABEL_6].fill("USB_LABEL_6", "USB2 Port6", USBControlV2SP[PORT_6].getLabel());
-
-    USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
-                             USB_TAB, IP_WO, 60, IPS_IDLE);
-    // USB Hub Status
-    USBStatusLP[PORT_1].fill("PORT_1", USBControlV2SP[PORT_1].getLabel(), IPS_OK);
-    USBStatusLP[PORT_2].fill("PORT_2", USBControlV2SP[PORT_2].getLabel(), IPS_OK);
-    USBStatusLP[PORT_3].fill("PORT_3", USBControlV2SP[PORT_3].getLabel(), IPS_OK);
-    USBStatusLP[PORT_4].fill("PORT_4", USBControlV2SP[PORT_4].getLabel(), IPS_OK);
-    USBStatusLP[PORT_5].fill( "PORT_5", USBControlV2SP[PORT_5].getLabel(), IPS_OK);
-    USBStatusLP[PORT_6].fill("PORT_6", USBControlV2SP[PORT_6].getLabel(), IPS_OK);
-    USBStatusLP.fill(getDeviceName(), "USB_PORT_STATUS", "Status", USB_TAB, IPS_IDLE);
+    // Populate PI::USBPortLabelsTP with custom labels
+    if (PI::USBPortLabelsTP.size() >= 6)
+    {
+        PI::USBPortLabelsTP[0].setLabel("USB3 Port 1");
+        PI::USBPortLabelsTP[1].setLabel("USB3 Port 2");
+        PI::USBPortLabelsTP[2].setLabel("USB3 Port 3");
+        PI::USBPortLabelsTP[3].setLabel("USB3 Port 4");
+        PI::USBPortLabelsTP[4].setLabel("USB2 Port 5");
+        PI::USBPortLabelsTP[5].setLabel("USB2 Port 6");
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     /// Focuser Group
     ////////////////////////////////////////////////////////////////////////////
 
     // Settings
-    //    IUFillNumber(&FocusBacklashN[0], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
     FocuserSettingsNP[SETTING_MAX_SPEED].fill("SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     FocuserSettingsNP.fill(getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
                            IP_RW, 60, IPS_IDLE);
@@ -216,58 +146,26 @@ bool PegasusUPB::updateProperties()
         setupParams();
 
         // Main Control
-        defineProperty(PowerCycleAllSP);
-        defineProperty(PowerSensorsNP);
         defineProperty(PowerConsumptionNP);
         defineProperty(RebootSP);
 
         // Power
-        defineProperty(PowerControlSP);
-        defineProperty(PowerControlsLabelsTP);
-        defineProperty(PowerCurrentNP);
         defineProperty(PowerOnBootSP);
-        //FixMe: nlp not defined in INDI Properties
-        // OverCurrentLP.nlp = (version == UPB_V1) ? 4 : 7;
         defineProperty(OverCurrentLP);
-        if (version == UPB_V1)
-            defineProperty(PowerLEDSP);
-        if (version == UPB_V2)
-            defineProperty(AdjustableOutputNP);
 
         // Dew
-        if (version == UPB_V1)
-            defineProperty(AutoDewSP);
-        else
-            defineProperty(&AutoDewV2SP);
-
-        // FixMe: ntp not defined in INDI Properties
-        // DewControlsLabelsTP.ntp = (version == UPB_V1) ? 2 : 3;
-        defineProperty(DewControlsLabelsTP);
-
         if (version == UPB_V2)
             defineProperty(AutoDewAggNP);
-
-        // FixMe: nnp not defined in INDI Properties
-        // DewPWMNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineProperty(DewPWMNP);
-
-        // FixMe: nnp not defined in INDI Properties
-        // DewCurrentDrawNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineProperty(DewCurrentDrawNP);
-
-        // USB
-        defineProperty(USBControlSP);
-        if (version == UPB_V2)
-            defineProperty(USBControlV2SP);
-        if (version == UPB_V1)
-            defineProperty(USBStatusLP);
-        defineProperty(USBControlsLabelsTP);
 
         // Focuser
         FI::updateProperties();
         defineProperty(FocuserSettingsNP);
 
+        // Weather
         WI::updateProperties();
+
+        // Power
+        PI::updateProperties();
 
         // Firmware
         defineProperty(FirmwareTP);
@@ -277,48 +175,26 @@ bool PegasusUPB::updateProperties()
     else
     {
         // Main Control
-        deleteProperty(PowerCycleAllSP);
-        deleteProperty(PowerSensorsNP);
         deleteProperty(PowerConsumptionNP);
         deleteProperty(RebootSP);
 
         // Power
-        deleteProperty(PowerControlSP);
-        deleteProperty(PowerControlsLabelsTP);
-        deleteProperty(PowerCurrentNP);
         deleteProperty(PowerOnBootSP);
         deleteProperty(OverCurrentLP);
-        if (version == UPB_V1)
-            deleteProperty(PowerLEDSP);
-        if (version == UPB_V2)
-            deleteProperty(AdjustableOutputNP);
 
         // Dew
-        if (version == UPB_V1)
-            deleteProperty(AutoDewSP);
-        else
-        {
-            deleteProperty(AutoDewV2SP.name);
-            deleteProperty(DewControlsLabelsTP);
-            deleteProperty(AutoDewAggNP);
-        }
-
-        deleteProperty(DewPWMNP);
-        deleteProperty(DewCurrentDrawNP);
-
-        // USB
-        deleteProperty(USBControlSP);
         if (version == UPB_V2)
-            deleteProperty(USBControlV2SP);
-        if (version == UPB_V1)
-            deleteProperty(USBStatusLP);
-        deleteProperty(USBControlsLabelsTP);
+            deleteProperty(AutoDewAggNP);
 
         // Focuser
         FI::updateProperties();
         deleteProperty(FocuserSettingsNP);
 
+        // Weather
         WI::updateProperties();
+
+        // Power
+        PI::updateProperties();
 
         deleteProperty(FirmwareTP);
 
@@ -395,6 +271,25 @@ bool PegasusUPB::Handshake()
 
     version = strstr(response, "UPB2_OK") ? UPB_V2 : UPB_V1;
 
+    if (version == UPB_V1)
+    {
+        // V1: No LED Toggle, No Variable Output
+        PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VOLTAGE_SENSOR |
+                          POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_AUTO_DEW |
+                          POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE);
+        // 4 DC ports, 2 DEW ports, 0 Variable port, 1 Auto Dew port (global), 6 USB ports (but can only be all toggled on/off at once)
+        PI::initProperties(POWER_TAB, 4, 2, 0, 1, 1);
+    }
+    else // UPB_V2
+    {
+        // V2: All capabilities
+        PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VARIABLE_OUT |
+                          POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
+                          POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE);
+        // 4 DC ports, 3 DEW ports, 1 Variable port, 3 Auto Dew ports (per-port), 6 USB ports
+        PI::initProperties(POWER_TAB, 4, 3, 1, 3, 6);
+    }
+
     return true;
 }
 
@@ -424,112 +319,6 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             return true;
         }
 
-        // Auto Dew v2 (legacy property, keep for now)
-        if ((!strcmp(name, AutoDewV2SP.name)) && (version == UPB_V2))
-        {
-            ISState Dew1 = AutoDewV2S[DEW_PWM_A].s;
-            ISState Dew2 = AutoDewV2S[DEW_PWM_B].s;
-            ISState Dew3 = AutoDewV2S[DEW_PWM_C].s;
-            IUUpdateSwitch(&AutoDewV2SP, states, names, n);
-            if (toggleAutoDewV2())
-            {
-                Dew1 = AutoDewV2S[DEW_PWM_A].s;
-                Dew2 = AutoDewV2S[DEW_PWM_B].s;
-                Dew3 = AutoDewV2S[DEW_PWM_C].s;
-                if (Dew1 == ISS_OFF && Dew2 == ISS_OFF && Dew3 == ISS_OFF)
-                    AutoDewV2SP.s = IPS_IDLE;
-                else
-                    AutoDewV2SP.s = IPS_OK;
-            }
-            else
-            {
-                IUResetSwitch(&AutoDewV2SP);
-                AutoDewV2S[DEW_PWM_A].s = Dew1;
-                AutoDewV2S[DEW_PWM_B].s = Dew2;
-                AutoDewV2S[DEW_PWM_C].s = Dew3;
-                AutoDewV2SP.s = IPS_ALERT;
-            }
-
-            IDSetSwitch(&AutoDewV2SP, nullptr);
-            saveConfig(true, AutoDewV2SP.name);
-            return true;
-        }
-
-        // USB Hub Control v1
-        if (USBControlSP.isNameMatch(name))
-        {
-            int prevIndex = USBControlSP.findOnSwitchIndex();
-            USBControlSP.update(states, names, n);
-            if (setUSBHubEnabled(USBControlSP[INDI_ENABLED].getState() == ISS_ON))
-            {
-                USBControlSP.setState(IPS_OK);
-            }
-            else
-            {
-                USBControlSP.reset();
-                USBControlSP[prevIndex].setState(ISS_ON);
-                USBControlSP.setState(IPS_ALERT);
-            }
-
-            USBControlSP.apply();
-            return true;
-        }
-
-        // USB Hub Control v2
-        if (USBControlV2SP.isNameMatch(name))
-        {
-            bool rc[6] = {false};
-            std::fill_n(rc, 6, true);
-            ISState ports[6] = {ISS_ON};
-
-            for (size_t i = 0; i < USBControlV2SP.count(); i++)
-                ports[i] = USBControlV2SP[i].getState();
-
-            USBControlV2SP.update(states, names, n);
-
-            for (size_t i = 0; i < USBControlV2SP.count(); i++)
-            {
-                if (ports[i] != USBControlV2SP[i].getState())
-                    rc[i] = setUSBPortEnabled(i, USBControlV2SP[i].getState() == ISS_ON);
-            }
-
-            // All is OK
-            if (rc[0] && rc[1] && rc[2] && rc[3] && rc[4] && rc[5])
-            {
-                USBControlSP.setState(IPS_OK);
-            }
-            else
-            {
-                USBControlV2SP.reset();
-                for (size_t i = 0; i < USBControlV2SP.count(); i++)
-                    USBControlV2SP[i].setState(ports[i]);
-                USBControlV2SP.setState(IPS_ALERT);
-            }
-
-            USBControlV2SP.apply();
-
-            return true;
-        }
-
-        // Focuser backlash
-        //        if (!strcmp(name, FocusBacklashSP.name))
-        //        {
-        //            int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
-        //            IUUpdateSwitch(&FocusBacklashSP, states, names, n);
-        //            if (setFocuserBacklashEnabled(FocusBacklashS[0].s == ISS_ON))
-        //            {
-        //                FocusBacklashSP.s = IPS_OK;
-        //            }
-        //            else
-        //            {
-        //                IUResetSwitch(&FocusBacklashSP);
-        //                FocusBacklashS[prevIndex].s = ISS_ON;
-        //                FocusBacklashSP.s = IPS_ALERT;
-        //            }
-
-        //            FocusBacklashSP.apply();
-        //            return true;
-        //        }
 
         if (strstr(name, "FOCUS"))
             return FI::processSwitch(dev, name, states, names, n);
@@ -603,16 +392,7 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // USB Labels (device-specific, not in INDI::Power)
-        if (USBControlsLabelsTP.isNameMatch(name))
-        {
-            USBControlsLabelsTP.update(texts, names, n);
-            USBControlsLabelsTP.setState(IPS_OK);
-            LOG_INFO("USB labels saved. Driver must be restarted for the labels to take effect.");
-            saveConfig(USBControlsLabelsTP);
-            USBControlsLabelsTP.apply();
-            return true;
-        }
+        // USB Labels are now handled by INDI::PowerInterface
 
         // Process power-related text via PowerInterface
         if (PI::processText(dev, name, texts, names, n))
@@ -701,6 +481,12 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
     }
 
     return false;
+}
+
+bool PegasusUPB::SetUSBPort(size_t port, bool enabled)
+{
+    // Port numbers in interface are 0-based, but device expects 1-based
+    return setUSBPortEnabled(port, enabled);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -909,8 +695,11 @@ bool PegasusUPB::getPowerOnBoot()
         PowerOnBootSP[POWER_PORT_3].setState((status[2] == '1') ? ISS_ON : ISS_OFF);
         PowerOnBootSP[POWER_PORT_4].setState((status[3] == '1') ? ISS_ON : ISS_OFF);
 
-        AdjustableOutputNP[0].setValue(std::stod(result[2]));
-        AdjustableOutputNP.setState(IPS_OK);
+        if (PI::VariableChannelVoltsNP.size() > 0)
+        {
+            PI::VariableChannelVoltsNP[0].setValue(std::stod(result[2]));
+            PI::VariableChannelVoltsNP.setState(IPS_OK);
+        }
 
         return true;
     }
@@ -969,27 +758,36 @@ bool PegasusUPB::setUSBPortEnabled(uint8_t port, bool enabled)
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool PegasusUPB::toggleAutoDewV2()
+bool PegasusUPB::toggleAutoDewV2(size_t port, bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
 
     uint8_t value = 0;
 
-    if (IUFindOnSwitchIndex(&AutoDewV2SP) == -1)
+    // Get current states from PI::AutoDewSP, but override the 'port' being changed
+    bool dewA_on = (PI::AutoDewSP.size() > 0 && PI::AutoDewSP[0].getState() == ISS_ON);
+    bool dewB_on = (PI::AutoDewSP.size() > 1 && PI::AutoDewSP[1].getState() == ISS_ON);
+    bool dewC_on = (PI::AutoDewSP.size() > 2 && PI::AutoDewSP[2].getState() == ISS_ON);
+
+    if (port == 0) dewA_on = enabled;
+    else if (port == 1) dewB_on = enabled;
+    else if (port == 2) dewC_on = enabled;
+
+    if (!dewA_on && !dewB_on && !dewC_on)
         value = 0;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON && AutoDewV2S[DEW_PWM_B].s == ISS_ON && AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (dewA_on && dewB_on && dewC_on)
         value = 1;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON && AutoDewV2S[DEW_PWM_B].s == ISS_ON)
+    else if (dewA_on && dewB_on)
         value = 5;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON && AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (dewA_on && dewC_on)
         value = 6;
-    else if (AutoDewV2S[DEW_PWM_B].s == ISS_ON && AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (dewB_on && dewC_on)
         value = 7;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON)
+    else if (dewA_on)
         value = 2;
-    else if (AutoDewV2S[DEW_PWM_B].s == ISS_ON)
+    else if (dewB_on)
         value = 3;
-    else if (AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (dewC_on)
         value = 4;
 
     snprintf(cmd, PEGASUS_LEN, "PD:%d", value);
@@ -1011,21 +809,13 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     FI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
+    PI::saveConfigItems(fp);
 
-    PowerLEDSP.save(fp);
-    if (version == UPB_V1)
-    {
-        AutoDewSP.save(fp);
-    }
     if (version == UPB_V2)
     {
-        IUSaveConfigSwitch(fp, &AutoDewV2SP);
         AutoDewAggNP.save(fp);
     }
     FocuserSettingsNP.save(fp);
-    PowerControlsLabelsTP.save(fp);
-    DewControlsLabelsTP.save(fp);
-    USBControlsLabelsTP.save(fp);
     return true;
 }
 
@@ -1140,89 +930,82 @@ bool PegasusUPB::getSensorData()
 
         // Port Status
         const char * portStatus = result[7].c_str();
-        PowerControlSP[POWER_CONTROL_1].setState((portStatus[0] == '1') ? ISS_ON : ISS_OFF);
-        PowerControlSP[POWER_CONTROL_2].setState((portStatus[1] == '1') ? ISS_ON : ISS_OFF);
-        PowerControlSP[POWER_CONTROL_3].setState((portStatus[2] == '1') ? ISS_ON : ISS_OFF);
-        PowerControlSP[POWER_CONTROL_4].setState((portStatus[3] == '1') ? ISS_ON : ISS_OFF);
-        //if (lastSensorData[7] != result[7])
+        if (PI::PowerChannelsSP.size() >= 1)
+            PI::PowerChannelsSP[0].setState((portStatus[0] == '1') ? ISS_ON : ISS_OFF);
+        if (PI::PowerChannelsSP.size() >= 2)
+            PI::PowerChannelsSP[1].setState((portStatus[1] == '1') ? ISS_ON : ISS_OFF);
+        if (PI::PowerChannelsSP.size() >= 3)
+            PI::PowerChannelsSP[2].setState((portStatus[2] == '1') ? ISS_ON : ISS_OFF);
+        if (PI::PowerChannelsSP.size() >= 4)
+            PI::PowerChannelsSP[3].setState((portStatus[3] == '1') ? ISS_ON : ISS_OFF);
         if (sensorUpdated(result, 7, 7))
-            PowerControlSP.apply();
+            PI::PowerChannelsSP.apply();
 
         // Hub Status
         const char * usb_status = result[8].c_str();
         if (version == UPB_V1)
         {
-            USBControlSP[INDI_ENABLED].setState((usb_status[0] == '0') ? ISS_ON : ISS_OFF);
-            USBControlSP[INDI_DISABLED].setState((usb_status[0] == '0') ? ISS_OFF : ISS_ON);
-            USBStatusLP[PORT_1].setState((USBControlSP[INDI_ENABLED].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
-            USBStatusLP[PORT_2].setState((USBControlSP[INDI_ENABLED].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
-            USBStatusLP[PORT_3].setState((USBControlSP[INDI_ENABLED].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
-            USBStatusLP[PORT_4].setState((USBControlSP[INDI_ENABLED].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
-            USBStatusLP[PORT_5].setState((USBControlSP[INDI_ENABLED].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
-            //if (lastSensorData[8] != result[8])
-            if (sensorUpdated(result, 8, 8))
+            // For V1, map global USB hub status to PI::USBPortSP[0]
+            if (PI::USBPortSP.size() > 0)
             {
-                USBControlSP.setState((USBControlSP.findOnSwitchIndex() == 0) ? IPS_OK : IPS_IDLE);
-                USBControlSP.apply();
-                USBStatusLP.apply();
+                PI::USBPortSP[0].setState((usb_status[0] == '0') ? ISS_ON : ISS_OFF);
+                if (sensorUpdated(result, 8, 8))
+                {
+                    PI::USBPortSP.apply();
+                }
             }
         }
         else
         {
-            USBControlV2SP[PORT_1].setState((usb_status[0] == '1') ? ISS_ON : ISS_OFF);
-            USBControlV2SP[PORT_2].setState((usb_status[1] == '1') ? ISS_ON : ISS_OFF);
-            USBControlV2SP[PORT_3].setState((usb_status[2] == '1') ? ISS_ON : ISS_OFF);
-            USBControlV2SP[PORT_4].setState((usb_status[3] == '1') ? ISS_ON : ISS_OFF);
-            USBControlV2SP[PORT_5].setState((usb_status[4] == '1') ? ISS_ON : ISS_OFF);
-            USBControlV2SP[PORT_6].setState((usb_status[5] == '1') ? ISS_ON : ISS_OFF);
-            USBControlV2SP.setState(IPS_OK);
-            //if (lastSensorData[8] != result[8])
+            // V2 has per-port USB control, update PI::USBPortSP directly
             if (sensorUpdated(result, 8, 8))
             {
-                USBControlV2SP.apply();
+                for (size_t i = 0; i < PI::USBPortSP.size() && i < 6; ++i) // Assuming 6 USB ports
+                {
+                    PI::USBPortSP[i].setState((usb_status[i] == '1') ? ISS_ON : ISS_OFF);
+                }
+                PI::USBPortSP.apply();
             }
         }
 
         // From here, we get differences between v1 and v2 readings
         int index = 9;
-        // Dew PWM
-        DewPWMNP[DEW_PWM_A].setValue(std::stod(result[index]) / 255.0 * 100.0);
-        DewPWMNP[DEW_PWM_B].setValue(std::stod(result[index + 1]) / 255.0 * 100.0);
-        if (version == UPB_V2)
-            DewPWMNP[DEW_PWM_C].setValue(std::stod(result[index + 2]) / 255.0 * 100.0);
-        //        if (lastSensorData[index] != result[index] ||
-        //                lastSensorData[index + 1] != result[index + 1] ||
-        //                (version == UPB_V2 && lastSensorData[index +2] != result[index + 2]))
+        // Dew DEW
+        if (PI::DewChannelDutyCycleNP.size() >= 1)
+            PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[index]) / 255.0 * 100.0);
+        if (PI::DewChannelDutyCycleNP.size() >= 2)
+            PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[index + 1]) / 255.0 * 100.0);
+        if (version == UPB_V2 && PI::DewChannelDutyCycleNP.size() >= 3)
+            PI::DewChannelDutyCycleNP[2].setValue(std::stod(result[index + 2]) / 255.0 * 100.0);
         if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
-            DewPWMNP.apply();
+            PI::DewChannelDutyCycleNP.apply();
 
         index = (version == UPB_V1) ? 11 : 12;
 
         const double ampDivision = (version == UPB_V1) ? 400.0 : 480.0;
 
         // Current draw
-        PowerCurrentNP[POWER_CURRENT_1].setValue(std::stod(result[index]) / ampDivision);
-        PowerCurrentNP[POWER_CURRENT_2].setValue(std::stod(result[index + 1]) / ampDivision);
-        PowerCurrentNP[POWER_CURRENT_3].setValue(std::stod(result[index + 2]) / ampDivision);
-        PowerCurrentNP[POWER_CURRENT_4].setValue(std::stod(result[index + 3]) / ampDivision);
-        //        if (lastSensorData[index] != result[index] ||
-        //                lastSensorData[index + 1] != result[index + 1] ||
-        //                lastSensorData[index + 2] != result[index + 2] ||
-        //                lastSensorData[index + 3] != result[index + 3])
+        if (PI::PowerChannelCurrentNP.size() >= 1)
+            PI::PowerChannelCurrentNP[0].setValue(std::stod(result[index]) / ampDivision);
+        if (PI::PowerChannelCurrentNP.size() >= 2)
+            PI::PowerChannelCurrentNP[1].setValue(std::stod(result[index + 1]) / ampDivision);
+        if (PI::PowerChannelCurrentNP.size() >= 3)
+            PI::PowerChannelCurrentNP[2].setValue(std::stod(result[index + 2]) / ampDivision);
+        if (PI::PowerChannelCurrentNP.size() >= 4)
+            PI::PowerChannelCurrentNP[3].setValue(std::stod(result[index + 3]) / ampDivision);
         if (sensorUpdated(result, index, index + 3))
-            PowerCurrentNP.apply();
+            PI::PowerChannelCurrentNP.apply();
 
         index = (version == UPB_V1) ? 15 : 16;
 
-        DewCurrentDrawNP[DEW_PWM_A].setValue(std::stod(result[index]) / ampDivision);
-        DewCurrentDrawNP[DEW_PWM_B].setValue(std::stod(result[index + 1]) / ampDivision);
-        if (version == UPB_V2)
-            DewCurrentDrawNP[DEW_PWM_C].setValue(std::stod(result[index + 2]) / 700);
-        //        if (lastSensorData[index] != result[index] ||
-        //                lastSensorData[index + 1] != result[index + 1] ||
-        //                (version == UPB_V2 && lastSensorData[index + 2] != result[index + 2]))
+        if (PI::DewChannelCurrentNP.size() >= 1)
+            PI::DewChannelCurrentNP[0].setValue(std::stod(result[index]) / ampDivision);
+        if (PI::DewChannelCurrentNP.size() >= 2)
+            PI::DewChannelCurrentNP[1].setValue(std::stod(result[index + 1]) / ampDivision);
+        if (version == UPB_V2 && PI::DewChannelCurrentNP.size() >= 3)
+            PI::DewChannelCurrentNP[2].setValue(std::stod(result[index + 2]) / 700);
         if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
-            DewCurrentDrawNP.apply();
+            PI::DewChannelCurrentNP.apply();
 
         index = (version == UPB_V1) ? 17 : 19;
 
@@ -1253,54 +1036,67 @@ bool PegasusUPB::getSensorData()
             //if (lastSensorData[index] != result[index])
             if (sensorUpdated(result, index, index))
             {
-                AutoDewSP[INDI_ENABLED].setState((std::stoi(result[index]) == 1) ? ISS_ON : ISS_OFF);
-                AutoDewSP[INDI_DISABLED].setState((std::stoi(result[index]) == 1) ? ISS_OFF : ISS_ON);
-                AutoDewSP.apply();
+                PI::AutoDewSP[0].setState((std::stoi(result[index]) == 1) ? ISS_ON : ISS_OFF);
+                PI::AutoDewSP.apply();
             }
         }
         else
         {
-            //if (lastSensorData[index] != result[index])
+            // V2 has per-port auto dew control, update PI::AutoDewSP directly
             if (sensorUpdated(result, index, index))
             {
                 int value = std::stoi(result[index]);
-                IUResetSwitch(&AutoDewV2SP);
+                // Reset all auto dew switches first
+                for (size_t i = 0; i < PI::AutoDewSP.size(); ++i)
+                {
+                    PI::AutoDewSP[i].setState(ISS_OFF);
+                }
+
+                // Set states based on the value
                 switch (value)
                 {
-                    case 1:
-                        AutoDewV2S[DEW_PWM_A].s = AutoDewV2S[DEW_PWM_B].s = AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                    case 1: // All three on
+                        if (PI::AutoDewSP.size() >= 3)
+                            PI::AutoDewSP[0].setState(ISS_ON);
+                        if (PI::AutoDewSP.size() >= 3)
+                            PI::AutoDewSP[1].setState(ISS_ON);
+                        if (PI::AutoDewSP.size() >= 3)
+                            PI::AutoDewSP[2].setState(ISS_ON);
                         break;
-
-                    case 2:
-                        AutoDewV2S[DEW_PWM_A].s = ISS_ON;
+                    case 2: // A on
+                        if (PI::AutoDewSP.size() >= 1)
+                            PI::AutoDewSP[0].setState(ISS_ON);
                         break;
-
-                    case 3:
-                        AutoDewV2S[DEW_PWM_B].s = ISS_ON;
+                    case 3: // B on
+                        if (PI::AutoDewSP.size() >= 2)
+                            PI::AutoDewSP[1].setState(ISS_ON);
                         break;
-
-                    case 4:
-                        AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                    case 4: // C on
+                        if (PI::AutoDewSP.size() >= 3)
+                            PI::AutoDewSP[2].setState(ISS_ON);
                         break;
-
-                    case 5:
-                        AutoDewV2S[DEW_PWM_A].s = ISS_ON;
-                        AutoDewV2S[DEW_PWM_B].s = ISS_ON;
+                    case 5: // A & B on
+                        if (PI::AutoDewSP.size() >= 1)
+                            PI::AutoDewSP[0].setState(ISS_ON);
+                        if (PI::AutoDewSP.size() >= 2)
+                            PI::AutoDewSP[1].setState(ISS_ON);
                         break;
-
-                    case 6:
-                        AutoDewV2S[DEW_PWM_A].s = ISS_ON;
-                        AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                    case 6: // A & C on
+                        if (PI::AutoDewSP.size() >= 1)
+                            PI::AutoDewSP[0].setState(ISS_ON);
+                        if (PI::AutoDewSP.size() >= 3)
+                            PI::AutoDewSP[2].setState(ISS_ON);
                         break;
-
-                    case 7:
-                        AutoDewV2S[DEW_PWM_B].s = ISS_ON;
-                        AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                    case 7: // B & C on
+                        if (PI::AutoDewSP.size() >= 2)
+                            PI::AutoDewSP[1].setState(ISS_ON);
+                        if (PI::AutoDewSP.size() >= 3)
+                            PI::AutoDewSP[2].setState(ISS_ON);
                         break;
                     default:
                         break;
                 }
-                IDSetSwitch(&AutoDewV2SP, nullptr);
+                PI::AutoDewSP.apply();
             }
         }
 
@@ -1320,7 +1116,8 @@ bool PegasusUPB::getPowerData()
     if (sendCommand("PC", res))
     {
         std::vector<std::string> result = split(res, ":");
-        if (result.size() != 4)
+        // Minimum is 3 values. Uptime is optional.
+        if (result.size() < 3)
         {
             LOGF_WARN("Received wrong number (%i) of power sensor data (%s). Retrying...", result.size(), res);
             return false;
@@ -1335,21 +1132,24 @@ bool PegasusUPB::getPowerData()
         PowerConsumptionNP.setState(IPS_OK);
         PowerConsumptionNP.apply();
 
-        try
+        if (result.size() == 4)
         {
-            std::chrono::milliseconds uptime(std::stol(result[3]));
-            using dhours = std::chrono::duration<double, std::ratio<3600>>;
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
-            FirmwareTP[FIRMWARE_UPTIME].setText(ss.str().c_str());
+            try
+            {
+                std::chrono::milliseconds uptime(std::stol(result[3]));
+                using dhours = std::chrono::duration<double, std::ratio<3600>>;
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
+                FirmwareTP[FIRMWARE_UPTIME].setText(ss.str().c_str());
+            }
+            catch(...)
+            {
+                // Uptime not critical, so just put debug statement on failure.
+                FirmwareTP[FIRMWARE_UPTIME].setText("NA");
+                LOGF_DEBUG("Failed to process uptime: %s", result[3].c_str());
+            }
+            FirmwareTP.apply();
         }
-        catch(...)
-        {
-            // Uptime not critical, so just put debug statement on failure.
-            FirmwareTP[FIRMWARE_UPTIME].setText("NA");
-            LOGF_DEBUG("Failed to process uptime: %s", result[3].c_str());
-        }
-        FirmwareTP.apply();
 
 
         lastPowerData = result;
@@ -1533,15 +1333,12 @@ bool PegasusUPB::SetPowerPort(size_t port, bool enabled)
     return setPowerEnabled(port + 1, enabled);
 }
 
-bool PegasusUPB::SetPWMPort(size_t port, bool enabled, double dutyCycle)
+bool PegasusUPB::SetDewPort(size_t port, bool enabled, double dutyCycle)
 {
-    // PWM ports are 5, 6, 7 for dew heaters A, B, C (device uses 1-based indexing)
+    // DEW ports are 5, 6, 7 for dew heaters A, B, C (device uses 1-based indexing)
     // Convert duty cycle percentage (0-100) to 0-255 range
-    if (!enabled)
-    {
-        return setDewPWM(port + 5, 0);
-    }
-    return setDewPWM(port + 5, static_cast<uint8_t>(dutyCycle / 100.0 * 255.0));
+    auto pwmValue = static_cast<uint8_t>(dutyCycle / 100.0 * 255.0);
+    return setDewPWM(port + 5, enabled ? pwmValue : 0);
 }
 
 bool PegasusUPB::SetVariablePort(size_t port, bool enabled, double voltage)
@@ -1569,14 +1366,9 @@ bool PegasusUPB::SetAutoDewEnabled(size_t port, bool enabled)
     }
     else
     {
-        // V2 has per-port auto dew control, we need to toggle the appropriate port
-        // Update the state for the requested port
-        if (enabled)
-            AutoDewV2S[port].s = ISS_ON;
-        else
-            AutoDewV2S[port].s = ISS_OFF;
-
-        return toggleAutoDewV2();
+        // V2 has per-port auto dew control.
+        // Call the re-written toggleAutoDewV2 with the specific port and enabled state.
+        return toggleAutoDewV2(port, enabled);
     }
 }
 

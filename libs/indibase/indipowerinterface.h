@@ -41,14 +41,15 @@ class PowerInterface
         enum
         {
             POWER_HAS_DC_OUT            = 1 << 0,  /*!< Has 12V DC outputs */
-            POWER_HAS_PWM_OUT           = 1 << 1,  /*!< Has PWM outputs for dew heaters */
+            POWER_HAS_DEW_OUT           = 1 << 1,  /*!< Has DEW outputs for dew heaters */
             POWER_HAS_VARIABLE_OUT      = 1 << 2,  /*!< Has variable voltage outputs */
             POWER_HAS_VOLTAGE_SENSOR    = 1 << 3,  /*!< Has voltage monitoring */
             POWER_HAS_OVERALL_CURRENT   = 1 << 4,  /*!< Has overall current monitoring */
             POWER_HAS_PER_PORT_CURRENT  = 1 << 5,  /*!< Has per-port current monitoring */
             POWER_HAS_LED_TOGGLE        = 1 << 6,  /*!< Can toggle power LEDs */
             POWER_HAS_AUTO_DEW          = 1 << 7,  /*!< Has automatic dew control */
-            POWER_HAS_POWER_CYCLE       = 1 << 8   /*!< Can cycle power to all ports */
+            POWER_HAS_POWER_CYCLE       = 1 << 8,  /*!< Can cycle power to all ports */
+            POWER_HAS_USB_TOGGLE        = 1 << 9   /*!< Can toggle power to specific USB ports */
         } PowerCapability;
 
         /**
@@ -77,11 +78,11 @@ class PowerInterface
         }
 
         /**
-         * @return True if power device has PWM outputs for dew heaters
+         * @return True if power device has DEW outputs for dew heaters
          */
-        bool HasPWMOutput()
+        bool HasDewOutput()
         {
-            return powerCapability & POWER_HAS_PWM_OUT;
+            return powerCapability & POWER_HAS_DEW_OUT;
         }
 
         /**
@@ -132,6 +133,14 @@ class PowerInterface
             return powerCapability & POWER_HAS_AUTO_DEW;
         }
 
+        /**
+         * @return True if power device can toggle power to specific USB ports
+         */
+        bool HasUSBPort()
+        {
+            return powerCapability & POWER_HAS_USB_TOGGLE;
+        }
+
     protected:
         explicit PowerInterface(DefaultDevice *defaultDevice);
 
@@ -140,12 +149,12 @@ class PowerInterface
          * initProperties() of your primary device
          * \param groupName Group or tab name to be used to define Power properties.
          * \param nPowerPorts Number of 12V power ports
-         * \param nPWMPorts Number of PWM/Dew heater ports
+         * \param nDewPorts Number of DEW/Dew heater ports
          * \param nVariablePorts Number of variable voltage ports
          * \param nAutoDewPorts Number of Auto Dew ports
          */
-        void initProperties(const char *groupName, size_t nPowerPorts = 0, size_t nPWMPorts = 0, size_t nVariablePorts = 0,
-                            size_t nAutoDewPorts = 0);
+        void initProperties(const char *groupName, size_t nPowerPorts = 0, size_t nDewPorts = 0, size_t nVariablePorts = 0,
+                            size_t nAutoDewPorts = 0, size_t nUSBPorts = 0);
 
         /**
          * @brief updateProperties Define or Delete Power properties based on the connection status of the base device
@@ -171,13 +180,13 @@ class PowerInterface
         virtual bool SetPowerPort(size_t port, bool enabled);
 
         /**
-         * @brief SetPWMPort Set PWM/Dew port duty cycle
+         * @brief SetDewPort Set DEW/Dew port duty cycle
          * @param port Port number starting from 0
          * @param enabled True to turn on, false to turn off
          * @param dutyCycle Duty cycle value 0-100
          * @return True if successful, false otherwise
          */
-        virtual bool SetPWMPort(size_t port, bool enabled, double dutyCycle);
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle);
 
         /**
          * @brief SetVariablePort Set variable voltage port
@@ -209,6 +218,14 @@ class PowerInterface
         virtual bool CyclePower();
 
         /**
+         * @brief SetUSBPort Set USB port on/off
+         * @param port Port number starting from 0
+         * @param enabled True to turn on, false to turn off
+         * @return True if successful, false otherwise
+         */
+        virtual bool SetUSBPort(size_t port, bool enabled);
+
+        /**
          * @brief saveConfigItems Save power properties in config file
          * @param fp Pointer to config file
          * @return Always return true
@@ -227,21 +244,21 @@ class PowerInterface
         // Main Control - Overall Power Sensors
         INDI::PropertyNumber PowerSensorsNP {N_POWER_SENSORS};  // Voltage, Total Current, Total Power
 
-        // Power Ports (12V DC)
-        std::vector<INDI::PropertySwitch> PowerPortsSP;      // On/Off switches
-        std::vector<INDI::PropertyNumber> PowerPortCurrentNP; // Current sensors (if per-port current monitoring available)
-        std::vector<INDI::PropertyText> PowerPortLabelsTP;    // Custom labels
+        // Power Channels (12V DC)
+        INDI::PropertySwitch PowerChannelsSP {0};                 // On/Off switches
+        INDI::PropertyNumber PowerChannelCurrentNP {0}; // Current sensors (if per-channel current monitoring available)
+        INDI::PropertyText PowerChannelLabelsTP {0};    // Custom labels
 
-        // PWM/Dew Ports
-        std::vector<INDI::PropertySwitch> PWMPortsSP;        // On/Off switches
-        std::vector<INDI::PropertyNumber> PWMPortDutyCycleNP; // Duty cycle control
-        std::vector<INDI::PropertyNumber> PWMPortCurrentNP;   // Current sensors (if per-port current monitoring available)
-        std::vector<INDI::PropertyText> PWMPortLabelsTP;      // Custom labels
+        // DEW/Dew Channels
+        INDI::PropertySwitch DewChannelsSP {0};        // On/Off switches
+        INDI::PropertyNumber DewChannelDutyCycleNP {0}; // Duty cycle control
+        INDI::PropertyNumber DewChannelCurrentNP {0};   // Current sensors (if per-channel current monitoring available)
+        INDI::PropertyText DewChannelLabelsTP {0};      // Custom labels
 
-        // Variable Voltage Ports
-        std::vector<INDI::PropertySwitch> VariablePortsSP;    // On/Off switches
-        std::vector<INDI::PropertyNumber> VariablePortVoltsNP; // Voltage control
-        std::vector<INDI::PropertyText> VariablePortLabelsTP;  // Custom labels
+        // Variable Voltage Channels
+        INDI::PropertySwitch VariableChannelsSP {0};    // On/Off switches
+        INDI::PropertyNumber VariableChannelVoltsNP {0}; // Voltage control
+        INDI::PropertyText VariableChannelLabelsTP {0};  // Custom labels
 
         // Over Voltage Protection
         INDI::PropertyNumber OverVoltageProtectionNP {1};
@@ -253,16 +270,21 @@ class PowerInterface
         INDI::PropertySwitch LEDControlSP {2};
 
         // Auto Dew Control
-        std::vector<INDI::PropertySwitch> AutoDewSP;
+        INDI::PropertySwitch AutoDewSP {0};
+
+        // USB Ports
+        INDI::PropertySwitch USBPortSP {0};
+        INDI::PropertyText USBPortLabelsTP {0};
 
         // Power Cycle All
-        INDI::PropertySwitch PowerCycleAllSP {2};
+        INDI::PropertySwitch PowerCycleAllSP {1};
 
         uint32_t powerCapability = 0;
         DefaultDevice *m_defaultDevice { nullptr };
 
         const char *POWER_TAB {"Power"};
-        const char *PWM_TAB {"PWM"};
+        const char *DEW_TAB {"Dew"};
+        const char *USB_TAB {"USB"};
         const char *VARIABLE_TAB {"Variable"};
 };
 
