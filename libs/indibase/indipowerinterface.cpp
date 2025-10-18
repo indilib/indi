@@ -106,7 +106,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
         PowerChannelsSP[i].fill(propName, propLabel, ISS_OFF);
     }
-    PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Power Channels", POWER_TAB, IP_RW, ISR_NOFMANY,
+    PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Channels (12v)", POWER_TAB, IP_RW, ISR_NOFMANY,
                          60, IPS_IDLE);
 
     // Power Channel Current (only if per-channel current monitoring is available)
@@ -158,7 +158,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
         DewChannelsSP[i].fill(propName, propLabel, ISS_OFF);
     }
-    DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Dew Channels", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+    DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Channels", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                        IPS_IDLE);
 
     // DEW Channel Duty Cycle
@@ -236,7 +236,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         }
         if (nUSBPorts > 0)
         {
-            USBPortLabelsTP.fill(m_defaultDevice->getDeviceName(), "USB_PORT_LABELS", "USB Port Labels", USB_TAB, IP_RW, 60,
+            USBPortLabelsTP.fill(m_defaultDevice->getDeviceName(), "USB_PORT_LABELS", "Labels", USB_TAB, IP_RW, 60,
                                  IPS_IDLE);
             USBPortLabelsTP.load();
         }
@@ -255,7 +255,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         }
         if (nUSBPorts > 0)
         {
-            USBPortSP.fill(m_defaultDevice->getDeviceName(), "USB_PORTS", "USB Ports", USB_TAB, IP_RW, ISR_NOFMANY, 60,
+            USBPortSP.fill(m_defaultDevice->getDeviceName(), "USB_PORTS", "Ports", USB_TAB, IP_RW, ISR_NOFMANY, 60,
                            IPS_IDLE);
         }
     }
@@ -273,7 +273,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
         VariableChannelLabelsTP[i].fill(propName, propLabel, propLabel);
     }
-    VariableChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_LABELS", "Variable Channel Labels", VARIABLE_TAB,
+    VariableChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_LABELS", "Labels", VARIABLE_TAB,
                                  IP_RW, 60, IPS_IDLE);
     VariableChannelLabelsTP.load();
 
@@ -292,7 +292,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
             snprintf(propLabel, MAXINDILABEL, "%s", VariableChannelLabelsTP[i].getText());
             VariableChannelsSP[i].fill(propName, propLabel, ISS_OFF);
         }
-        VariableChannelsSP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_CHANNELS", "Variable Channels", VARIABLE_TAB, IP_RW,
+        VariableChannelsSP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_CHANNELS", "Channels", VARIABLE_TAB, IP_RW,
                                 ISR_NOFMANY, 60, IPS_IDLE);
 
         // Variable Channel Voltage
@@ -308,7 +308,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
             snprintf(propLabel, MAXINDILABEL, "%s (V)", VariableChannelLabelsTP[i].getText());
             VariableChannelVoltsNP[i].fill(propName, propLabel, "%.1f", 3, 12, 0.1, 5);
         }
-        VariableChannelVoltsNP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_VOLTAGES", "Variable Voltages", VARIABLE_TAB, IP_RW,
+        VariableChannelVoltsNP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_VOLTAGES", "Voltages", VARIABLE_TAB, IP_RW,
                                     60, IPS_IDLE);
     }
 }
