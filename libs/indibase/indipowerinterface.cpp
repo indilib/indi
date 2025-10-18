@@ -171,7 +171,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         char propName[MAXINDINAME];
         char propLabel[MAXINDILABEL];
         snprintf(propName, MAXINDINAME, "DEW_DUTY_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+        snprintf(propLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
         DewChannelDutyCycleNP[i].fill(propName, propLabel, "%.0f", 0, 100, 10, 0);
     }
     DewChannelDutyCycleNP.fill(m_defaultDevice->getDeviceName(), "DEW_DUTY_CYCLES", "Duty Cycles", DEW_TAB, IP_RW, 60,
