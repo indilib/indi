@@ -1,5 +1,5 @@
 /*
-    myDCP4ESP32 
+    myDCP4ESP32
     Copyright (C) 2023 Stephen Hillier
 
     Based on MyFocuserPro2 Focuser
@@ -43,23 +43,14 @@
 
 std::unique_ptr<MyDCP4ESP> mydcp4esp(new MyDCP4ESP());
 
-MyDCP4ESP::MyDCP4ESP()
+MyDCP4ESP::MyDCP4ESP() : INDI::PowerInterface(this)
 {
-
     setVersion(CDRIVER_VERSION_MAJOR, CDRIVER_VERSION_MINOR);
-
 }
 
 bool MyDCP4ESP::initProperties()
 {
     DefaultDevice::initProperties();
-
-    /* Channel duty cycles */
-    ChannelPowerNP[0].fill("CHANNEL1", "Channel 1", "%3.0f", 0., 100., 0., 0.);
-    ChannelPowerNP[1].fill("CHANNEL2", "Channel 2", "%3.0f", 0., 100., 0., 0.);
-    ChannelPowerNP[2].fill("CHANNEL3", "Channel 3", "%3.0f", 0., 100., 0., 0.);
-    ChannelPowerNP[3].fill("CHANNEL4", "Channel 4", "%3.0f", 0., 100., 0., 0.);
-    ChannelPowerNP.fill(getDeviceName(), "OUTPUT", "Power", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Temperature Probe Found status */
     TempProbeFoundSP[0].fill("PROBE1", "Probe 1", ISS_OFF);
@@ -102,12 +93,6 @@ bool MyDCP4ESP::initProperties()
     TrackingOffsetNP[0].fill("TRACKING", "Tracking", "%1.0f", -4, 3, 1, 0);
     TrackingOffsetNP.fill(getDeviceName(), "TRACKING", "T Offset", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    /*  Tracking mode */
-    TrackingModeSP[0].fill("AMBIENT", "Ambient", ISS_ON);
-    TrackingModeSP[1].fill("DEWPOINT", "Dewpoint", ISS_OFF);
-    TrackingModeSP[2].fill("MIDPOINT", "Midpoint", ISS_OFF);
-    TrackingModeSP.fill(getDeviceName(), "TRACKINGMODE", "Tracking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     /* Channel 3 operating Mode */
     Ch3ModeSP[0].fill("DISABLED", "Disabled", ISS_OFF);
     Ch3ModeSP[1].fill("CHANNEL1", "Channel 1", ISS_OFF);
@@ -116,10 +101,6 @@ bool MyDCP4ESP::initProperties()
     Ch3ModeSP[4].fill("CHANNEL3", "Channel 3", ISS_ON);
     Ch3ModeSP.fill(getDeviceName(), "CH3MODE", "Ch3 Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    /* Channel 3 Manual Power Setting */
-    Ch3ManualPowerNP[0].fill("CH3MANUAL", "Power", "%3.0f", 0, 100, 10, 0);
-    Ch3ManualPowerNP.fill(getDeviceName(), "CH3MANUAL", "Ch3 Manual", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    
     /* Channel 100% Boost On/Off */
     ChannelBoostSP[0].fill("CHANNEL1", "Channel 1", ISS_OFF);
     ChannelBoostSP[1].fill("CHANNEL2", "Channel 2", ISS_OFF);
@@ -128,9 +109,6 @@ bool MyDCP4ESP::initProperties()
     ChannelBoostSP[4].fill("RESETALL", "Reset All", ISS_OFF);
     ChannelBoostSP.fill(getDeviceName(), "CHANNELBOOST", "100% Boost", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
-    /* Reset settings */
-    RebootSP[0].fill("REBOOT", "Reboot", ISS_OFF);
-    RebootSP.fill(getDeviceName(), "REBOOT", "Controller", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Firmware version */
     FWversionNP[0].fill("FIRMWARE", "Firmware Version", "%3.0f", 0, 999, 0, 0);
@@ -140,7 +118,10 @@ bool MyDCP4ESP::initProperties()
     CheckCodeTP[0].fill("CNTR_CODE", "Handshake Code", nullptr);
     CheckCodeTP.fill(getDeviceName(), "CNTR_CODE", "Controller", CONNECTION_TAB, IP_RO, 0, IPS_IDLE);
 
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
+
+    SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE);
+    initProperties(POWER_TAB, 4, 4, 0, 1, 0);
 
     addDebugControl();
     addConfigurationControl();
@@ -180,10 +161,11 @@ bool MyDCP4ESP::initProperties()
 bool MyDCP4ESP::updateProperties()
 {
     DefaultDevice::updateProperties();
+    INDI::PowerInterface::updateProperties();
 
     if (isConnected())
     {
-        defineProperty(TrackingModeSP);
+        //defineProperty(TrackingModeSP); // Handled by PowerInterface
         if (myDCP4Firmware > 109) // Firmware 109 has a bug with setting Tracking offsets
             defineProperty(TrackingOffsetNP);
         defineProperty(AmbientTemperatureNP);
@@ -192,12 +174,11 @@ bool MyDCP4ESP::updateProperties()
         defineProperty(DewpointNP);
         defineProperty(TempProbeFoundSP);
         defineProperty(TemperatureNP);
-        defineProperty(ChannelPowerNP);
-        defineProperty(ChannelOffsetNP); 
+        defineProperty(ChannelOffsetNP);
         if (myDCP4Firmware > 109) // Firmware 109 has a bug with the 100% boost settings
             defineProperty(ChannelBoostSP);
         defineProperty(Ch3ModeSP);
-        defineProperty(RebootSP);
+        //defineProperty(RebootSP); // Handled by PowerInterface
         defineProperty(FWversionNP);
         defineProperty(CheckCodeTP);
         ch3ManualPower = false;
@@ -208,7 +189,7 @@ bool MyDCP4ESP::updateProperties()
     }
     else
     {
-        deleteProperty(TrackingModeSP);
+        //deleteProperty(TrackingModeSP); // Handled by PowerInterface
         if (myDCP4Firmware > 109) // Firmware 109 has a bug with setting Tracking offsets
             deleteProperty(TrackingOffsetNP);
         deleteProperty(AmbientTemperatureNP);
@@ -217,12 +198,11 @@ bool MyDCP4ESP::updateProperties()
         deleteProperty(DewpointNP);
         deleteProperty(TempProbeFoundSP);
         deleteProperty(TemperatureNP);
-        deleteProperty(ChannelPowerNP);
         deleteProperty(ChannelOffsetNP);
         if (myDCP4Firmware > 109) // Firmware 109 has a bug with the 100% boost settings
             deleteProperty(ChannelBoostSP);
         deleteProperty(Ch3ModeSP);
-        deleteProperty(RebootSP);
+        //deleteProperty(RebootSP); // Handled by PowerInterface
         deleteProperty(FWversionNP);
         deleteProperty(CheckCodeTP);
         if (ch3ManualPower == true)
@@ -280,7 +260,7 @@ bool MyDCP4ESP::sendCommand(const char *cmd, char *resp)
 
     // Small delay to allow controller to process command
     msleep(MDCP_SMALL_DELAY);
-    
+
     if (resp)
     {
         if ((rc = tty_nread_section(PortFD, resp, MDCP_RESPONSE_LENGTH, '#', MDCP_READ_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -311,10 +291,10 @@ bool MyDCP4ESP::getActiveChannels()
     char cmd[MDCP_CMD_LENGTH] = {};
     char resp[MDCP_RESPONSE_LENGTH] = {};
     int output[4] = {0, 0, 0, 0};
-    int ok, i; 
+    int ok, i;
     unsigned int channel_boost = 0;
     unsigned int currentCh3Mode = 0;
-    
+
     // Default all channels to active in case channel testing fails
     i = 0;
     while (i <= 3)
@@ -330,7 +310,7 @@ bool MyDCP4ESP::getActiveChannels()
     if (myDCP4Firmware > 109)
     {
         // TempProbeFoundSP.setState(IPS_BUSY);
-        
+
         // Get current channel output to trim the test to those at zero
         if (!sendCommand(MDCP_GET_ALL_CH_POWER_CMD, resp))
             return false;
@@ -339,18 +319,18 @@ bool MyDCP4ESP::getActiveChannels()
 
         if (ok == 4)
         {
-        
+
             i = 0;
 
-            while (i <=3 ) // Go through each channel
+            while (i <= 3 ) // Go through each channel
             {
 
                 if ((output[i] == 0) || (i == 2)) // Only do test if Channel power is zero or is Channel 3 (i=2)
                 {
                     if (i == 2) // Channel 3 (i=2) is special and needs to be in use temp probe mode to test
                     {
-                        memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-    
+                        memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
                         if (!sendCommand(MDCP_GET_CH3_MODE_CMD, resp))
                             return false;
 
@@ -363,11 +343,11 @@ bool MyDCP4ESP::getActiveChannels()
                             if (!setCh3Mode( CH3MODE_CH3TEMP ))
                                 return false;
                     }
-                        
-                    if (!setChannelBoost( i+1, 1))
+
+                    if (!setChannelBoost( i + 1, 1))
                         return false;
 
-                    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_GET_CH_OVERIDE_CMD, i+1);
+                    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_GET_CH_OVERIDE_CMD, i + 1);
 
                     memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 
@@ -382,9 +362,9 @@ bool MyDCP4ESP::getActiveChannels()
                         channelActive[i] = 0;
                     }
 
-                    if (!setChannelBoost( i+1, 0))
+                    if (!setChannelBoost( i + 1, 0))
                         return false;
-                    
+
                     if ((i == 2) && (currentCh3Mode != CH3MODE_CH3TEMP)) // Return Ch3 to previous mode
                         if (!setCh3Mode(currentCh3Mode))
                             return false;
@@ -399,7 +379,7 @@ bool MyDCP4ESP::getActiveChannels()
     }
     else
         return false;
-    
+
     TempProbeFoundSP.setState(IPS_OK);
     TempProbeFoundSP.apply();
     return true;
@@ -407,7 +387,7 @@ bool MyDCP4ESP::getActiveChannels()
 
 bool MyDCP4ESP::Handshake()
 {
-     if (getActiveConnection() == serialConnection)
+    if (getActiveConnection() == serialConnection)
     {
         PortFD = serialConnection->getPortFD();
     }
@@ -415,7 +395,7 @@ bool MyDCP4ESP::Handshake()
     {
         PortFD = tcpConnection->getPortFD();
     }
-    
+
     int tries = 2;
     do
     {
@@ -432,13 +412,13 @@ bool MyDCP4ESP::Handshake()
 
     LOG_INFO("Error retrieving data from myDCP4ESP32, please ensure controller "
              "is powered and the port is correct.");
-  
+
     return false;
 }
 
 bool MyDCP4ESP::Ack()
 {
-    
+
     char resp[MDCP_RESPONSE_LENGTH] = {};
     int firmware;
     char code[10] = {};
@@ -459,7 +439,7 @@ bool MyDCP4ESP::Ack()
     CheckCodeTP[0].setText(code);
     CheckCodeTP.setState(IPS_OK);
     CheckCodeTP.apply();
-        
+
     tcflush(PortFD, TCIOFLUSH);
     memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 
@@ -473,7 +453,7 @@ bool MyDCP4ESP::Ack()
         LOGF_ERROR("Get Firmware Version: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_VERSION_CMD);
         return false;
     }
-  
+
     myDCP4Firmware = firmware;
     FWversionNP[0].setValue(firmware);
     FWversionNP.setState(IPS_OK);
@@ -486,7 +466,8 @@ bool MyDCP4ESP::setChannelOffset(unsigned int channel, float value)
 {
     char cmd[MDCP_CMD_LENGTH] = {};
 
-    switch (channel) {
+    switch (channel)
+    {
         case 1:
             snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH1_OFFSET_CMD, value);
             break;
@@ -506,7 +487,7 @@ bool MyDCP4ESP::setChannelOffset(unsigned int channel, float value)
         default:
             return false;
     }
-    
+
     return sendCommand(cmd, nullptr);
 }
 
@@ -516,7 +497,7 @@ bool MyDCP4ESP::setAmbientOffset(float value)
     char cmd[MDCP_CMD_LENGTH] = {};
 
     snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_AMBIENT_OFFSET_CMD, value);
-    return sendCommand(cmd, nullptr); 
+    return sendCommand(cmd, nullptr);
 }
 
 // set or reset Channel override. Channel = 5 resets all channels
@@ -526,7 +507,7 @@ bool MyDCP4ESP::setChannelBoost( unsigned int channel, unsigned int value)
     if ((channel == 5) || (value == 0))
     {
         snprintf(cmd, MDCP_CMD_LENGTH, MDCP_RESET_CH_100_CMD, channel);
-        return sendCommand(cmd, nullptr); 
+        return sendCommand(cmd, nullptr);
     }
     else if (channel != 5)
     {
@@ -543,7 +524,7 @@ bool MyDCP4ESP::setTrackingMode(unsigned int value)
     char cmd[MDCP_CMD_LENGTH] = {};
 
     snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_TRACKING_MODE_CMD, value);
-    return sendCommand(cmd, nullptr); 
+    return sendCommand(cmd, nullptr);
 }
 
 // Set the mode for Channel 3 control (0=disabled, 1=Channel 1, 2=Channel 2, 3=Manual, 4=use temp probe3)
@@ -552,7 +533,7 @@ bool MyDCP4ESP::setCh3Mode(unsigned int value)
     char cmd[MDCP_CMD_LENGTH] = {};
 
     snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH3_MODE_CMD, value);
-    return sendCommand(cmd, nullptr); 
+    return sendCommand(cmd, nullptr);
 }
 
 // Set Channel 3 power output - Channel 3 must be in Manual mode.
@@ -561,7 +542,7 @@ bool MyDCP4ESP::setCh3Output(unsigned int value)
     char cmd[MDCP_CMD_LENGTH] = {};
 
     snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH3_MANUAL_POWER_CMD, value);
-    return sendCommand(cmd, nullptr); 
+    return sendCommand(cmd, nullptr);
 }
 
 // Set Tracking Offset
@@ -570,12 +551,12 @@ bool MyDCP4ESP::setTrackingOffset(int value)
     char cmd[MDCP_CMD_LENGTH] = {};
 
     snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_TRACKING_OFFSET_CMD, value);
-    return sendCommand(cmd, nullptr); 
+    return sendCommand(cmd, nullptr);
 }
 
 // Reboot the Dew Controller then wait to reconnect
 bool MyDCP4ESP::rebootController()
-{   
+{
     LOG_INFO("Rebooting Controller and Disconnecting.");
     sendCommand(MDCP_REBOOT_CMD, nullptr);
 
@@ -590,14 +571,14 @@ bool MyDCP4ESP::rebootController()
     do
     {
         sleep(10);
-        if (!Connect()) 
+        if (!Connect())
         {
             i++;
-            if (i <= 5)            
+            if (i <= 5)
                 LOGF_INFO("Could not reconnect waiting 10 seconds before attempt %d of 5.", i);
             else
             {
-                LOGF_ERROR("Could not reconnect after %d attempts", i-1);
+                LOGF_ERROR("Could not reconnect after %d attempts", i - 1);
                 setConnected(false, IPS_OK);
             }
         }
@@ -606,48 +587,20 @@ bool MyDCP4ESP::rebootController()
             i = 0;
             setConnected(true, IPS_OK);
         }
-    } while ((i != 0) && (i <= 5));
+    }
+    while ((i != 0) && (i <= 5));
 
     return updateProperties();
 }
 
 bool MyDCP4ESP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (ChannelBoostSP.isNameMatch(name))
-    {
-        if (states[4] == ISS_ON) // Reset all to ISS_OFF
-        {
-            setChannelBoost(5, 1);
-        }
-        else // Check current versus new state and only invoke for changes
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                if (ChannelBoostSP[i].getState() != states[i] )
-                    setChannelBoost(i+1, states[i]);
-            }
-            
-        } 
-        ChannelBoostSP.update(states, names, n);
-        ChannelBoostSP.setState(IPS_BUSY);
-        ChannelBoostSP.apply();
-        readSettings();
+    // Process power-related switches via PowerInterface
+    if (INDI::PowerInterface::processSwitch(dev, name, states, names, n))
         return true;
-    }
-
-    if (TrackingModeSP.isNameMatch(name))
-    {
-        TrackingModeSP.update(states, names, n);
-        TrackingModeSP.setState(IPS_BUSY);
-        TrackingModeSP.apply();
-        setTrackingMode(TrackingModeSP.findOnSwitchIndex() + 1);
-        readSettings();
-        return true;
-    }
 
     if (Ch3ModeSP.isNameMatch(name))
     {
@@ -659,31 +612,17 @@ bool MyDCP4ESP::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         return true;
     }
 
-    if (RebootSP.isNameMatch(name))
-    {
-        RebootSP.reset();
-
-        if (rebootController())
-        {
-            RebootSP.setState(IPS_OK);
-        }
-        else
-        {
-            RebootSP.setState(IPS_ALERT);
-        }
-
-        RebootSP.apply();
-        return true;
-    }
-
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool MyDCP4ESP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
+
+    // Process power-related numbers via PowerInterface
+    if (INDI::PowerInterface::processNumber(dev, name, values, names, n))
+        return true;
 
     if (ChannelOffsetNP.isNameMatch(name))
     {
@@ -697,7 +636,7 @@ bool MyDCP4ESP::ISNewNumber(const char *dev, const char *name, double values[], 
         readSettings();
         return true;
     }
-    
+
     if (AmbientOffsetNP.isNameMatch(name))
     {
         AmbientOffsetNP.update(values, names, n);
@@ -718,17 +657,35 @@ bool MyDCP4ESP::ISNewNumber(const char *dev, const char *name, double values[], 
         return true;
     }
 
-    if (Ch3ManualPowerNP.isNameMatch(name))
-    {
-        Ch3ManualPowerNP.update(values, names, n);
-        Ch3ManualPowerNP.setState(IPS_BUSY);
-        Ch3ManualPowerNP.apply();
-        setCh3Output(Ch3ManualPowerNP[0].getValue());
-        readSettings();
-        return true;
-    }
-
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
+}
+
+bool MyDCP4ESP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
+    // Process power-related text via PowerInterface
+    if (INDI::PowerInterface::processText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+}
+
+bool MyDCP4ESP::saveConfigItems(FILE *fp)
+{
+    DefaultDevice::saveConfigItems(fp);
+    INDI::PowerInterface::saveConfigItems(fp);
+
+    // Save device-specific properties
+    ChannelOffsetNP.save(fp);
+    AmbientOffsetNP.save(fp);
+    TrackingOffsetNP.save(fp);
+    Ch3ModeSP.save(fp);
+    Ch3ManualPowerNP.save(fp);
+    ChannelBoostSP.save(fp);
+
+    return true;
 }
 
 bool MyDCP4ESP::readSettings()
@@ -737,11 +694,11 @@ bool MyDCP4ESP::readSettings()
     int ok = -1;
     float temp1, temp2, temp3, temp4, temp_ambient, humidity, dewpoint;
     unsigned int output1, output2, output3, output4;
-    float ambient_offset, offset1, offset2, offset3, offset4; 
+    float ambient_offset, offset1, offset2, offset3, offset4;
     int tracking_offset;
     unsigned int tracking_mode, ch3_mode, channel_boost;
 
-    
+
     // Get Ambient offset first
     if (!sendCommand(MDCP_GET_AMBIENT_OFFSET_CMD, resp))
         return false;
@@ -758,7 +715,7 @@ bool MyDCP4ESP::readSettings()
         LOGF_ERROR("Get Ambient Offset: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_AMBIENT_OFFSET_CMD);
 
     // Get the Ambient Temperature
-    memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
+    memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 
     if (!sendCommand(MDCP_GET_AMBIENT_TEMPERATURE_CMD, resp))
         return false;
@@ -773,11 +730,12 @@ bool MyDCP4ESP::readSettings()
         AmbientTemperatureNP.apply();
     }
     else
-        LOGF_ERROR("Get Ambient Temperature: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_AMBIENT_TEMPERATURE_CMD);
+        LOGF_ERROR("Get Ambient Temperature: Response <%s> for Command <%s> not recognized.", resp,
+                   MDCP_GET_AMBIENT_TEMPERATURE_CMD);
 
     // Get Humidity
-    memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-    
+    memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
     if (!sendCommand(MDCP_GET_HUMIDITY_CMD, resp))
         return false;
 
@@ -793,8 +751,8 @@ bool MyDCP4ESP::readSettings()
         LOGF_ERROR("Get Humidity: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_HUMIDITY_CMD);
 
     // Get Dew Point
-    memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-    
+    memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
     if (!sendCommand(MDCP_GET_DEWPOINT_CMD, resp))
         return false;
 
@@ -810,8 +768,8 @@ bool MyDCP4ESP::readSettings()
         LOGF_ERROR("Get Dew point: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_DEWPOINT_CMD);
 
     // Get Power output for all channels
-    memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-        
+    memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
     if (!sendCommand(MDCP_GET_ALL_CH_POWER_CMD, resp))
         return false;
 
@@ -819,19 +777,20 @@ bool MyDCP4ESP::readSettings()
 
     if (ok == 4)
     {
-        ChannelPowerNP[0].setValue(output1);
-        ChannelPowerNP[1].setValue(output2);
-        ChannelPowerNP[2].setValue(output3);
-        ChannelPowerNP[3].setValue(output4);
-        ChannelPowerNP.setState(IPS_OK);
-        ChannelPowerNP.apply();
+        // Update PowerChannelsSP based on output values
+        PowerChannelsSP[0].setState(output1 > 0 ? ISS_ON : ISS_OFF);
+        PowerChannelsSP[1].setState(output2 > 0 ? ISS_ON : ISS_OFF);
+        PowerChannelsSP[2].setState(output3 > 0 ? ISS_ON : ISS_OFF);
+        PowerChannelsSP[3].setState(output4 > 0 ? ISS_ON : ISS_OFF);
+        PowerChannelsSP.setState(IPS_OK);
+        PowerChannelsSP.apply();
     }
     else
         LOGF_ERROR("Get Power Outputs: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_ALL_CH_POWER_CMD);
 
     // Get Channel 3 Mode
-    memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-    
+    memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
     if (!sendCommand(MDCP_GET_CH3_MODE_CMD, resp))
         return false;
 
@@ -855,17 +814,30 @@ bool MyDCP4ESP::readSettings()
         Ch3ModeSP[ch3_mode].setState(ISS_ON);
         Ch3ModeSP.setState(IPS_OK);
         Ch3ModeSP.apply();
-       
+
+        // Update DewChannelDutyCycleNP and DewChannelsSP based on Ch3ManualPowerNP
+        if (ch3_mode == CH3MODE_MANUAL)
+        {
+            // Assuming Channel 3 is the first dew port (port 0)
+            DewChannelDutyCycleNP[0].setValue(output3); // output3 is the power for channel 3
+            DewChannelDutyCycleNP.setState(IPS_OK);
+            DewChannelDutyCycleNP.apply();
+
+            DewChannelsSP[0].setState(output3 > 0 ? ISS_ON : ISS_OFF);
+            DewChannelsSP.setState(IPS_OK);
+            DewChannelsSP.apply();
+        }
     }
     else
         LOGF_ERROR("Get Channel 3 Mode: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_CH3_MODE_CMD);
 
-    if (ch3ManualPower == true)
-    {
-        Ch3ManualPowerNP[0].setValue(ChannelPowerNP[2].getValue());
-        Ch3ManualPowerNP.setState(IPS_OK);
-        Ch3ManualPowerNP.apply();
-    }
+    // The original Ch3ManualPowerNP update is now handled by DewChannelDutyCycleNP
+    // if (ch3ManualPower == true)
+    // {
+    //     Ch3ManualPowerNP[0].setValue(ChannelPowerNP[2].getValue());
+    //     Ch3ManualPowerNP.setState(IPS_OK);
+    //     Ch3ManualPowerNP.apply();
+    // }
 
     // Get Temperature offsets for all channels then use to set the channel temperatures
     memset(resp, '\0', MDCP_RESPONSE_LENGTH);
@@ -916,8 +888,8 @@ bool MyDCP4ESP::readSettings()
         LOGF_ERROR("Get Channel Temperatures: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_CHANNEL_TEMPS_CMD);
 
     // Get Tracking Mode
-    memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-    
+    memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
     if (!sendCommand(MDCP_GET_TRACKING_MODE_CMD, resp))
         return false;
 
@@ -925,19 +897,24 @@ bool MyDCP4ESP::readSettings()
 
     if ((ok == 1) && (tracking_mode > 0) && (tracking_mode <= 3))
     {
-        TrackingModeSP.reset();
-        TrackingModeSP[tracking_mode-1].setState(ISS_ON);
-        TrackingModeSP.setState(IPS_OK);
-        TrackingModeSP.apply();
+        // Update AutoDewSP based on tracking_mode
+        AutoDewSP[0].setState(ISS_ON); // Assuming one AutoDew port
+        AutoDewSP.setState(IPS_OK);
+        AutoDewSP.apply();
     }
     else
+    {
+        AutoDewSP[0].setState(ISS_OFF);
+        AutoDewSP.setState(IPS_OK);
+        AutoDewSP.apply();
         LOGF_ERROR("Get Tracking Mode: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_TRACKING_MODE_CMD);
+    }
 
     //Get Tracking Offset but Firmware 109 has a bug with setting offsets so only for >109
-    if (myDCP4Firmware > 109) 
+    if (myDCP4Firmware > 109)
     {
-        memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
-    
+        memset(resp, '\0', MDCP_RESPONSE_LENGTH);
+
         if (!sendCommand(MDCP_GET_TRACKING_OFFSET_CMD, resp))
             return false;
 
@@ -955,7 +932,7 @@ bool MyDCP4ESP::readSettings()
     }
 
     // Current Channel 100% boost state but only for firmware >109 due to firmware bug
-    if (myDCP4Firmware > 109) 
+    if (myDCP4Firmware > 109)
     {
         // Always clear the Channel boost reset checkbox
         ChannelBoostSP[4].setState(ISS_OFF);
@@ -975,15 +952,15 @@ bool MyDCP4ESP::readSettings()
 
             if ((ok == 1) && (channel_boost <= 1))
             {
-                ChannelBoostSP[i-1].setState( (ISState) channel_boost);
+                ChannelBoostSP[i - 1].setState( (ISState) channel_boost);
                 ChannelBoostSP.setState(IPS_OK);
                 ChannelBoostSP.apply();
             }
             else
                 LOGF_ERROR("Get Channel Overrides: Response <%s> for Command <%s> not recognized.", resp, cmd);
         }
-    }    
-    
+    }
+
     return true;
 }
 
@@ -997,4 +974,61 @@ void MyDCP4ESP::TimerHit()
     // Get temperatures etc.
     readSettings();
     timerIndex = SetTimer(getCurrentPollingPeriod());
+}
+
+// Power Interface Implementations
+bool MyDCP4ESP::SetPowerPort(size_t port, bool enabled)
+{
+    // MyDCP4ESP uses 1-based indexing for channels
+    return setChannelBoost(port + 1, enabled ? 1 : 0);
+}
+
+bool MyDCP4ESP::SetDewPort(size_t port, bool enabled, double dutyCycle)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(dutyCycle);
+    // MyDCP4ESP has dew control, but it's more complex than a simple duty cycle.
+    // It uses tracking modes and channel 3 manual power.
+    // This would require a more sophisticated mapping or a new command in the firmware.
+    // For now, return false as it's not directly supported by a simple SetDewPort.
+    return false;
+}
+
+bool MyDCP4ESP::SetVariablePort(size_t port, bool enabled, double voltage)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(voltage);
+    // MyDCP4ESP does not appear to have variable voltage outputs.
+    return false;
+}
+
+bool MyDCP4ESP::SetLEDEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    // MyDCP4ESP does not appear to have LED toggle control.
+    return false;
+}
+
+bool MyDCP4ESP::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    // MyDCP4ESP has automatic dew control via TrackingModeSP.
+    // This function would need to map to setting the TrackingModeSP.
+    // For now, return false as it's not a direct on/off for a specific port.
+    return false;
+}
+
+bool MyDCP4ESP::CyclePower()
+{
+    return rebootController();
+}
+
+bool MyDCP4ESP::SetUSBPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    // MyDCP4ESP does not appear to have USB port toggle control.
+    return false;
 }
