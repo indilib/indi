@@ -44,8 +44,6 @@ static std::unique_ptr<TerransPowerBoxGoV2> terranspowerboxgov2(new TerransPower
 #define TAB_INFO "Status"
 #define TAB_RENAME "Rename"
 
-int get_count=0;
-int init=0;
 double ch1_shuntv = 0;
 double ch2_shuntv = 0;
 double ch3_shuntv = 0;
@@ -61,11 +59,11 @@ double ch3_w = 0;
 double chusb_w = 0;
 double humidity = 0;
 double temperature = 0;
-double dewPoint=0;
+double dewPoint = 0;
 double mcu_temp = 0;
 
 
-TerransPowerBoxGoV2::TerransPowerBoxGoV2()
+TerransPowerBoxGoV2::TerransPowerBoxGoV2() : INDI::PowerInterface(this)
 {
     setVersion(1, 0);
 }
@@ -74,115 +72,51 @@ bool TerransPowerBoxGoV2::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | POWER_INTERFACE); // Add POWER_INTERFACE
 
     addAuxControls();
-    
-    ////////////////////////////////////////////////////////////////////////////
-    /// Name
-    ////////////////////////////////////////////////////////////////////////////
-    char DCANAME[MAXINDINAME] = "DC OUT A";
-    char DCBNAME[MAXINDINAME] = "DC OUT B";
-    char DCCNAME[MAXINDINAME] = "DC OUT C";
-    char DCDNAME[MAXINDINAME] = "DC OUT D";
-    char DCENAME[MAXINDINAME] = "DC OUT E";
-    char USBANAME[MAXINDINAME] = "USB3.0 A";
-    char USBBNAME[MAXINDINAME] = "USB3.0 B";
-    char USBENAME[MAXINDINAME] = "USB2.0 E";
-    char USBFNAME[MAXINDINAME] = "USB2.0 F";
-    
-    IUGetConfigText(getDeviceName(), "RENAME", "DC_A_NAME", DCANAME, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "RENAME", "DC_B_NAME", DCBNAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "DC_C_NAME", DCCNAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "DC_D_NAME", DCDNAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "DC_E_NAME", DCENAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "USB_A_NAME", USBANAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "USB_B_NAME", USBBNAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "USB_E_NAME", USBENAME, MAXINDINAME); 
-    IUGetConfigText(getDeviceName(), "RENAME", "USB_F_NAME", USBFNAME, MAXINDINAME); 
-      
-      
-    RenameTP[0].fill("DC_A_NAME", "DC A NAME", DCANAME);
-    RenameTP[1].fill("DC_B_NAME", "DC B NAME", DCBNAME);
-    RenameTP[2].fill("DC_C_NAME", "DC C NAME", DCCNAME);
-    RenameTP[3].fill("DC_D_NAME", "DC D NAME", DCDNAME);
-    RenameTP[4].fill("DC_E_NAME", "DC E NAME", DCENAME);
-    RenameTP[7].fill("USB_A_NAME", "USB A NAME", USBANAME);
-    RenameTP[8].fill("USB_B_NAME", "USB B NAME", USBBNAME);
-    RenameTP[11].fill("USB_E_NAME", "USB E NAME", USBENAME);
-    RenameTP[12].fill("USB_F_NAME", "USB F NAME", USBFNAME);
 
-    RenameTP.fill(getDeviceName(), "RENAME", "Rename",ADD_SETTING_TAB, IP_RW, 60, IPS_IDLE);
-                 
-    ConfigRenameDCA  = RenameTP[0].text;
-    ConfigRenameDCB  = RenameTP[1].text;
-    ConfigRenameDCC  = RenameTP[2].text;
-    ConfigRenameDCD  = RenameTP[3].text;
-    ConfigRenameDCE  = RenameTP[4].text;
-    ConfigRenameUSBA  = RenameTP[7].text;
-    ConfigRenameUSBB  = RenameTP[8].text;
-    ConfigRenameUSBE  = RenameTP[11].text;
-    ConfigRenameUSBF  = RenameTP[12].text;
-    
-    ////////////////////////////////////////////////////////////////////////////
-    /// Power Group
-    ////////////////////////////////////////////////////////////////////////////
-    DCASP[0].fill("DC OUT A ON", "ON", ISS_OFF);
-    DCBSP[0].fill("DC OUT B ON", "ON", ISS_OFF);
-    DCCSP[0].fill("DC OUT C ON", "ON", ISS_OFF);
-    DCDSP[0].fill("DC OUT D ON", "ON", ISS_OFF);
-    DCESP[0].fill("DC OUT E ON", "ON", ISS_OFF);
-      
-    DCASP[1].fill("DC OUT A OFF", "OFF", ISS_OFF);
-    DCBSP[1].fill("DC OUT B OFF", "OFF", ISS_OFF); 
-    DCCSP[1].fill("DC OUT C OFF", "OFF", ISS_OFF);
-    DCDSP[1].fill("DC OUT D OFF", "OFF", ISS_OFF);
-    DCESP[1].fill("DC OUT E OFF", "OFF", ISS_OFF);
-    
-    USBASP[0].fill("USB3.0 A ON", "ON", ISS_OFF);
-    USBBSP[0].fill("USB3.0 B ON", "ON", ISS_OFF);    
-    USBESP[0].fill("USB2.0 E ON", "ON", ISS_OFF);    
-    USBFSP[0].fill("USB2.0 F ON", "ON", ISS_OFF);
-    
-    USBASP[1].fill("USB3.0 A OFF", "OFF", ISS_OFF);
-    USBBSP[1].fill("USB3.0 B OFF", "OFF", ISS_OFF);    
-    USBESP[1].fill("USB2.0 E OFF", "OFF", ISS_OFF);    
-    USBFSP[1].fill("USB2.0 F OFF", "OFF", ISS_OFF);    
-    
-    StateSaveSP[0].fill("Save ON", "ON", ISS_OFF);
-    StateSaveSP[1].fill("Save OFF", "OFF", ISS_OFF);
-       
-    DCASP.fill(getDeviceName(), "DC_OUT_A", ConfigRenameDCA, MAIN_CONTROL_TAB,IP_RW, ISR_ATMOST1,60, IPS_IDLE);   
-    DCBSP.fill(getDeviceName(), "DC_OUT_B", ConfigRenameDCB, MAIN_CONTROL_TAB,IP_RW, ISR_ATMOST1,60, IPS_IDLE);  
-    DCCSP.fill(getDeviceName(), "DC_OUT_C", ConfigRenameDCC, MAIN_CONTROL_TAB,IP_RW, ISR_ATMOST1,60, IPS_IDLE);   
-    DCDSP.fill(getDeviceName(), "DC_OUT_D", ConfigRenameDCD, MAIN_CONTROL_TAB,IP_RW, ISR_ATMOST1,60, IPS_IDLE);  
-    DCESP.fill(getDeviceName(), "DC_OUT_E", ConfigRenameDCE, MAIN_CONTROL_TAB,IP_RW, ISR_ATMOST1,60, IPS_IDLE);                            
-                      
-    USBASP.fill(getDeviceName(),"USB3.0_A", ConfigRenameUSBA, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    USBBSP.fill(getDeviceName(),"USB3.0_B", ConfigRenameUSBB, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    USBESP.fill(getDeviceName(),"USB2.0_E", ConfigRenameUSBE, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    USBFSP.fill(getDeviceName(),"USB2.0_F", ConfigRenameUSBF, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);    
-    
-    StateSaveSP.fill(getDeviceName(), "State_Save", "State memory", ADD_SETTING_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);                                          
-         
+    // Populate PI::PowerChannelLabelsTP and PI::USBPortLabelsTP
+    if (PI::PowerChannelLabelsTP.size() >= 5)
+    {
+        PI::PowerChannelLabelsTP[0].setLabel("DC OUT A");
+        PI::PowerChannelLabelsTP[1].setLabel("DC OUT B");
+        PI::PowerChannelLabelsTP[2].setLabel("DC OUT C");
+        PI::PowerChannelLabelsTP[3].setLabel("DC OUT D");
+        PI::PowerChannelLabelsTP[4].setLabel("DC OUT E");
+    }
+    if (PI::USBPortLabelsTP.size() >= 4)
+    {
+        PI::USBPortLabelsTP[0].setLabel("USB3.0 A");
+        PI::USBPortLabelsTP[1].setLabel("USB3.0 B");
+        PI::USBPortLabelsTP[2].setLabel("USB2.0 E");
+        PI::USBPortLabelsTP[3].setLabel("USB2.0 F");
+    }
+
+    // Removed ConfigRenameDCA to ConfigRenameUSBF as they are no longer needed
+
+    // Removed manual Power Switch declarations (DCASP, DCBSP, etc.) as they are handled by PI::PowerChannelsSP and PI::USBPortSP
+    // Removed StateSaveSP as it's not part of INDI::PowerInterface directly, but can be re-added as a custom property if needed.
+
     ////////////////////////////////////////////////////////////////////////////
     /// Sensor Data
-    ////////////////////////////////////////////////////////////////////////////        
-    InputVotageNP[0].fill("Input_Votage", "InputVotage (V)", "%.2f", 0, 20, 0.01, 0);
-    InputCurrentNP[0].fill("Input_Current", "InputCurrent (V)", "%.2f", 0, 30, 0.01, 0);
-    PowerNP[0].fill("Total_Power", "Total Power (W)", "%.2f", 0, 100, 10, 0);  
-    MCUTempNP[0].fill("MCU_Temp", "MCU Temperature (C)", "%.2f", 0, 200, 0.01, 0);   
-    
-    InputVotageNP.fill(getDeviceName(), "Input_Votage", "InputVotage", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
-    InputCurrentNP.fill(getDeviceName(), "Input_Current", "InputCurrent", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);  
-    PowerNP.fill(getDeviceName(), "Power_Sensor", "Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);     
-    MCUTempNP.fill(getDeviceName(), "MCU_Temp", "MCU", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);      
-           
+    ////////////////////////////////////////////////////////////////////////////
+    // InputVotageNP, InputCurrentNP, PowerNP are now handled by PI::PowerSensorsNP
+    MCUTempNP[0].fill("MCU_Temp", "MCU Temperature (C)", "%.2f", 0, 200, 0.01, 0);
+    MCUTempNP.fill(getDeviceName(), "MCU_Temp", "MCU", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
+    StateSaveSP[0].fill("SAVE_STATE", "Save State", ISS_ON);
+    StateSaveSP[1].fill("DISABLE_SAVE", "Disable Save", ISS_OFF);
+    StateSaveSP.fill(getDeviceName(), "STATE_SAVE", "State Save", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     ////////////////////////////////////////////////////////////////////////////
     /// Serial Connection
     ////////////////////////////////////////////////////////////////////////////
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&](){return Handshake();});
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
     registerConnection(serialConnection);
 
@@ -195,50 +129,24 @@ bool TerransPowerBoxGoV2::updateProperties()
 
     if (isConnected())
     {
-        // Main Control
-        defineProperty(InputVotageNP);
-        defineProperty(InputCurrentNP);
-        defineProperty(PowerNP);
-        defineProperty(MCUTempNP);  
-            
-        defineProperty(DCASP);
-        defineProperty(DCBSP);
-        defineProperty(DCCSP);
-        defineProperty(DCDSP);
-        defineProperty(DCESP);
+        // PowerInterface properties
+        PI::updateProperties();
 
-        defineProperty(USBASP);
-        defineProperty(USBBSP);
-        defineProperty(USBESP);
-        defineProperty(USBFSP);
-        
-        defineProperty(StateSaveSP);  
-        defineProperty(RenameTP);
-        
+        // Main Control
+        defineProperty(MCUTempNP);
+        defineProperty(StateSaveSP);
+
         setupComplete = true;
     }
     else
     {
-        // Main Control               
-        deleteProperty(InputVotageNP);
-        deleteProperty(InputCurrentNP);
-        deleteProperty(PowerNP);
-        deleteProperty(MCUTempNP);        
-        
-        deleteProperty(DCASP);
-        deleteProperty(DCBSP);
-        deleteProperty(DCCSP);
-        deleteProperty(DCDSP);
-        deleteProperty(DCESP);
-        
-        deleteProperty(USBASP);
-        deleteProperty(USBBSP);
-        deleteProperty(USBESP);
-        deleteProperty(USBFSP);
-                  
+        // PowerInterface properties
+        PI::updateProperties();
+
+        // Main Control
+        deleteProperty(MCUTempNP);
         deleteProperty(StateSaveSP);
-        deleteProperty(RenameTP);
-        
+
         setupComplete = false;
     }
 
@@ -248,8 +156,8 @@ bool TerransPowerBoxGoV2::updateProperties()
 bool TerransPowerBoxGoV2::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
-    RenameTP.save(fp);
-    //IUSaveConfigText(fp, RenameTP);
+    PI::saveConfigItems(fp);
+    StateSaveSP.save(fp);
     return true;
 }
 
@@ -259,36 +167,148 @@ bool TerransPowerBoxGoV2::Handshake()
     if (isSimulation())
     {
         LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
+        // For simulation, assume full capabilities
+        PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_USB_TOGGLE | POWER_HAS_VOLTAGE_SENSOR |
+                          POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_LED_TOGGLE |
+                          POWER_HAS_POWER_CYCLE);
+        // 5 DC ports, 0 DEW ports, 0 Variable port, 0 Auto Dew ports, 4 USB ports
+        PI::initProperties(POWER_TAB, 5, 0, 0, 0, 4);
         return true;
     }
 
     for(int HS = 0 ; HS < 3 ; HS++)
     {
-      if (sendCommand(">VR#",res))
-      {        
-        if(!strcmp(res, "*TPGNNN"))
+        if (sendCommand(">VR#", res))
         {
-          if (sendCommand(">VN#",res))
-          {        
-            if(!strcmp(res, "*V001"))
+            if(!strcmp(res, "*TPGNNN"))
             {
-               LOG_INFO("Handshake successfully!");
-               return true;  
-            }else
-            {
-               LOG_INFO("The firmware version does not match the driver. Please use the latest firmware and driver!");
-               return false;              
+                if (sendCommand(">VN#", res))
+                {
+                    if(!strcmp(res, "*V001"))
+                    {
+                        LOG_INFO("Handshake successfully!");
+                        // Set capabilities based on device knowledge
+                        PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_USB_TOGGLE | POWER_HAS_VOLTAGE_SENSOR |
+                                          POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_LED_TOGGLE |
+                                          POWER_HAS_POWER_CYCLE);
+                        // 5 DC ports, 0 DEW ports, 0 Variable port, 0 Auto Dew ports, 4 USB ports
+                        PI::initProperties(POWER_TAB, 5, 0, 0, 0, 4);
+                        return true;
+                    }
+                    else
+                    {
+                        LOG_INFO("The firmware version does not match the driver. Please use the latest firmware and driver!");
+                        return false;
+                    }
+                }
             }
-          } 
-        }else
-        {
-           LOG_INFO("Handshake failed!"); 
-           LOG_INFO("Retry...");            
+            else
+            {
+                LOG_INFO("Handshake failed!");
+                LOG_INFO("Retry...");
+            }
         }
-      } 
     }
     LOG_INFO("Handshake failed!");
-    return false;   
+    return false;
+}
+
+bool TerransPowerBoxGoV2::SetPowerPort(size_t port, bool enabled)
+{
+    char cmd[CMD_LEN] = {0};
+    char res[CMD_LEN] = {0};
+    // Ports are 0-indexed in INDI::PowerInterface, but device expects 1-indexed.
+    // Also, the device uses specific commands for each port (SDA, SDB, etc.)
+    // Assuming port 0 -> SDA, 1 -> SDB, 2 -> SDC, 3 -> SDD, 4 -> SDE
+    const char *portCmds[] = {">SDA", ">SDB", ">SDC", ">SDD", ">SDE"};
+    if (port < sizeof(portCmds) / sizeof(portCmds[0]))
+    {
+        snprintf(cmd, CMD_LEN, "%s%d#", portCmds[port], enabled ? 1 : 0);
+        if (sendCommand(cmd, res))
+        {
+            // Check response based on command sent
+            char expectedRes[CMD_LEN] = {0};
+            snprintf(expectedRes, CMD_LEN, "*D%c%dNNN", static_cast<int>(('A' + port)), enabled ? 1 : 0);
+            return !strcmp(res, expectedRes);
+        }
+    }
+    return false;
+}
+
+bool TerransPowerBoxGoV2::SetDewPort(size_t port, bool enabled, double dutyCycle)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(dutyCycle);
+    // TerransPowerBoxGoV2 does not appear to have dew heater ports based on the original code.
+    // If it did, this would be implemented here.
+    LOG_WARN("SetDewPort not implemented for TerransPowerBoxGoV2.");
+    return false;
+}
+
+bool TerransPowerBoxGoV2::SetVariablePort(size_t port, bool enabled, double voltage)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(voltage);
+    // TerransPowerBoxGoV2 does not appear to have variable voltage ports.
+    // If it did, this would be implemented here.
+    LOG_WARN("SetVariablePort not implemented for TerransPowerBoxGoV2.");
+    return false;
+}
+
+bool TerransPowerBoxGoV2::SetLEDEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    // TerransPowerBoxGoV2 does not appear to have LED control.
+    // If it did, this would be implemented here.
+    LOG_WARN("SetLEDEnabled not implemented for TerransPowerBoxGoV2.");
+    return false;
+}
+
+bool TerransPowerBoxGoV2::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    // TerransPowerBoxGoV2 does not appear to have auto dew control.
+    // If it did, this would be implemented here.
+    LOG_WARN("SetAutoDewEnabled not implemented for TerransPowerBoxGoV2.");
+    return false;
+}
+
+bool TerransPowerBoxGoV2::CyclePower()
+{
+    // TerransPowerBoxGoV2 does not appear to have a direct power cycle command.
+    // If it did, this would be implemented here.
+    LOG_WARN("CyclePower not implemented for TerransPowerBoxGoV2.");
+    return false;
+}
+
+bool TerransPowerBoxGoV2::SetUSBPort(size_t port, bool enabled)
+{
+    char cmd[CMD_LEN] = {0};
+    char res[CMD_LEN] = {0};
+    // Ports are 0-indexed in INDI::PowerInterface, but device expects 1-indexed.
+    // Also, the device uses specific commands for each port (SUA, SUB, SUE, SUF)
+    // Assuming port 0 -> SUA, 1 -> SUB, 2 -> SUE, 3 -> SUF
+    const char *usbCmds[] = {">SUA", ">SUB", ">SUE", ">SUF"};
+    if (port < sizeof(usbCmds) / sizeof(usbCmds[0]))
+    {
+        // The original code uses SUA1A#, SUA0A#, SUB1A#, SUB0A#, SUE1A#, SUE0A#, SUF1A#, SUF0A#
+        // This implies a fixed 'A' suffix.
+        snprintf(cmd, CMD_LEN, "%s%d%c#", usbCmds[port], enabled ? 1 : 0, 'A');
+        if (sendCommand(cmd, res))
+        {
+            // Check response based on command sent
+            char expectedRes[CMD_LEN] = {0};
+            if (port == 0 || port == 1) // USB3.0 A, B
+                snprintf(expectedRes, CMD_LEN, "*U%c%d11N", static_cast<int>('A' + port), enabled ? 1 : 0);
+            else // USB2.0 E, F
+                snprintf(expectedRes, CMD_LEN, "*U%c%d1NN", static_cast<int>('E' + (port - 2)), enabled ? 1 : 0);
+            return !strcmp(res, expectedRes);
+        }
+    }
+    return false;
 }
 
 
@@ -302,27 +322,65 @@ bool TerransPowerBoxGoV2::ISNewSwitch(const char *dev, const char *name, ISState
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processButtonSwitch(dev, name, states, names, n))
+        // Process power-related switches via PowerInterface
+        if (PI::processSwitch(dev, name, states, names, n))
             return true;
+
+        // Handle custom switches not part of PowerInterface
+        if (StateSaveSP.isNameMatch(name))
+        {
+            StateSaveSP.update(states, names, n);
+            if (StateSaveSP[0].getState() == ISS_ON)
+            {
+                if (sendCommand(">SS1#", nullptr)) // Assuming SS1# saves state
+                {
+                    StateSaveSP.setState(IPS_OK);
+                    LOG_INFO("Save Switch State Enable");
+                }
+                else
+                {
+                    StateSaveSP.setState(IPS_ALERT);
+                    LOG_INFO("Save Switch State Set Fail");
+                }
+            }
+            else if (StateSaveSP[1].getState() == ISS_ON)
+            {
+                if (sendCommand(">SS0#", nullptr)) // Assuming SS0# disables state save
+                {
+                    StateSaveSP.setState(IPS_OK);
+                    LOG_INFO("Save Switch State Disable");
+                }
+                else
+                {
+                    StateSaveSP.setState(IPS_ALERT);
+                    LOG_INFO("Save Switch State Set Fail");
+                }
+            }
+            StateSaveSP.apply();
+            return true;
+        }
     }
+
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool TerransPowerBoxGoV2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    // Process power-related numbers via PowerInterface
+    if (PI::processNumber(dev, name, values, names, n))
+        return true;
+
+    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 bool TerransPowerBoxGoV2::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()))
-    {
-        // Power Labels
-        if (RenameTP.isNameMatch(name))
-        {
-            RenameTP.update(texts, names, n);
-            RenameTP.setState(IPS_OK);
-            RenameTP.apply();
-            if(init){LOG_INFO("Renaming successful, Please click save button in the option menu and restart Ekos to make the rename effective!");}
-            return true;        
-        }               
-    }
- return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+    // Process power-related text via PowerInterface
+    if (PI::processText(dev, name, texts, names, n))
+        return true;
+
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 bool TerransPowerBoxGoV2::sendCommand(const char * cmd, char * res)
@@ -372,877 +430,136 @@ void TerransPowerBoxGoV2::TimerHit()
         SetTimer(100);
         return;
     }
-  
-    Get_State();
-    SetTimer(100);
-}
 
-void TerransPowerBoxGoV2::Get_State()
-{    
+    // Update PowerInterface properties
     char res[CMD_LEN] = {0};
-    if(get_count == 0)
+
+    // Get Power Channel States
+    for (size_t i = 0; i < PI::PowerChannelsSP.size(); ++i)
     {
-       if (sendCommand(">GDA#",res))
-       {        
-         if(!strcmp(res, "*DA1NNN"))
-         {
-            DCASP.setState(IPS_OK);
-            DCASP[0].setState(ISS_ON);
-            DCASP[1].setState(ISS_OFF);
-         }else if(!strcmp(res, "*DA0NNN"))
-         {
-            DCASP.setState(IPS_ALERT);
-            DCASP[0].setState(ISS_OFF);
-            DCASP[1].setState(ISS_ON);
-         }else
-         {
-            DCASP.setState(IPS_BUSY);
-            DCASP[0].setState(ISS_OFF);
-            DCASP[1].setState(ISS_OFF);
-         }               
-       } 
-      DCASP.apply();
-      get_count++;
-    }else if(get_count == 1)
+        const char *portCmds[] = {">GDA#", ">GDB#", ">GDC#", ">GDD#", ">GDE#"};
+        if (i < sizeof(portCmds) / sizeof(portCmds[0]))
+        {
+            if (sendCommand(portCmds[i], res))
+            {
+                if (!strcmp(res, "*D1NNN")) // Assuming D1NNN for ON, D0NNN for OFF
+                {
+                    PI::PowerChannelsSP[i].setState(ISS_ON);
+                }
+                else if (!strcmp(res, "*D0NNN"))
+                {
+                    PI::PowerChannelsSP[i].setState(ISS_OFF);
+                }
+                else
+                {
+                    PI::PowerChannelsSP[i].setState(ISS_OFF); // Default to OFF on unknown response
+                }
+            }
+        }
+    }
+    PI::PowerChannelsSP.apply();
+
+    // Get USB Port States
+    for (size_t i = 0; i < PI::USBPortSP.size(); ++i)
     {
-       if (sendCommand(">GDB#",res))
-       {        
-         if(!strcmp(res, "*DB1NNN"))
-         {
-            DCBSP.setState(IPS_OK);
-            DCBSP[0].setState(ISS_ON);
-            DCBSP[1].setState(ISS_OFF);
-         }else if(!strcmp(res, "*DB0NNN"))
-         {
-            DCBSP.setState(IPS_ALERT);
-            DCBSP[0].setState(ISS_OFF);
-            DCBSP[1].setState(ISS_ON);
-         }else
-         {
-            DCBSP.setState(IPS_BUSY);
-            DCBSP[0].setState(ISS_OFF);
-            DCBSP[1].setState(ISS_OFF);
-         }               
-       } 
-      DCBSP.apply();
-      get_count++;
-    }else if(get_count == 2)
+        const char *usbCmds[] = {">GUA#", ">GUB#", ">GUE#", ">GUF#"};
+        if (i < sizeof(usbCmds) / sizeof(usbCmds[0]))
+        {
+            if (sendCommand(usbCmds[i], res))
+            {
+                // Assuming *UA111N for ON, *UA000N for OFF for USB3.0 A/B
+                // Assuming *UE11NN for ON, *UE00NN for OFF for USB2.0 E/F
+                if ((i == 0 || i == 1) && !strcmp(res, "*U111N"))
+                {
+                    PI::USBPortSP[i].setState(ISS_ON);
+                }
+                else if ((i == 0 || i == 1) && !strcmp(res, "*U000N"))
+                {
+                    PI::USBPortSP[i].setState(ISS_OFF);
+                }
+                else if ((i == 2 || i == 3) && !strcmp(res, "*U11NN"))
+                {
+                    PI::USBPortSP[i].setState(ISS_ON);
+                }
+                else if ((i == 2 || i == 3) && !strcmp(res, "*U00NN"))
+                {
+                    PI::USBPortSP[i].setState(ISS_OFF);
+                }
+                else
+                {
+                    PI::USBPortSP[i].setState(ISS_OFF); // Default to OFF on unknown response
+                }
+            }
+        }
+    }
+    PI::USBPortSP.apply();
+
+    // Get State Save Switch
+    if (sendCommand(">GS#", res))
     {
-       if (sendCommand(">GDC#",res))
-       {        
-         if(!strcmp(res, "*DC1NNN"))
-         {
-            DCCSP.setState(IPS_OK);
-            DCCSP[0].setState(ISS_ON);
-            DCCSP[1].setState(ISS_OFF);
-         }else if(!strcmp(res, "*DC0NNN"))
-         {
-            DCCSP.setState(IPS_ALERT);
-            DCCSP[0].setState(ISS_OFF);
-            DCCSP[1].setState(ISS_ON);
-         }else
-         {
-            DCCSP.setState(IPS_BUSY);
-            DCCSP[0].setState(ISS_OFF);
-            DCCSP[1].setState(ISS_OFF);
-         }               
-       } 
-      DCCSP.apply();
-      get_count++;
-    }else if(get_count == 3)
+        if (!strcmp(res, "*SS1NNN"))
+        {
+            StateSaveSP[0].setState(ISS_ON);
+            StateSaveSP[1].setState(ISS_OFF);
+        }
+        else if (!strcmp(res, "*SS0NNN"))
+        {
+            StateSaveSP[0].setState(ISS_OFF);
+            StateSaveSP[1].setState(ISS_ON);
+        }
+        else
+        {
+            StateSaveSP[0].setState(ISS_OFF);
+            StateSaveSP[1].setState(ISS_OFF);
+        }
+    }
+    StateSaveSP.apply();
+
+    // Get Input Voltage, Current, Power
+    if (sendCommand(">GPA#", res))
     {
-       if (sendCommand(">GDD#",res))
-       {        
-         if(!strcmp(res, "*DD1NNN"))
-         {
-            DCDSP.setState(IPS_OK);
-            DCDSP[0].setState(ISS_ON);
-            DCDSP[1].setState(ISS_OFF);
-         }else if(!strcmp(res, "*DD0NNN"))
-         {
-            DCDSP.setState(IPS_ALERT);
-            DCDSP[0].setState(ISS_OFF);
-            DCDSP[1].setState(ISS_ON);
-         }else
-         {
-            DCDSP.setState(IPS_BUSY);
-            DCDSP[0].setState(ISS_OFF);
-            DCDSP[1].setState(ISS_OFF);
-         }               
-       } 
-      DCDSP.apply();
-      get_count++;
-    }else if(get_count == 4)
-    {
-       if (sendCommand(">GDE#",res))
-       {        
-         if(!strcmp(res, "*DE1NNN"))
-         {
-            DCESP.setState(IPS_OK);
-            DCESP[0].setState(ISS_ON);
-            DCESP[1].setState(ISS_OFF);
-         }else if(!strcmp(res, "*DE0NNN"))
-         {
-            DCESP.setState(IPS_ALERT);
-            DCESP[0].setState(ISS_OFF);
-            DCESP[1].setState(ISS_ON);
-         }else
-         {
-            DCESP.setState(IPS_BUSY);
-            DCESP[0].setState(ISS_OFF);
-            DCESP[1].setState(ISS_OFF);
-         }               
-       } 
-      DCESP.apply();
-      get_count++;
-    }else if(get_count == 5)
-    {
-      if (sendCommand(">GUA#",res))
-      {        
-        if(!strcmp(res, "*UA111N"))
-        {
-          USBASP.setState(IPS_OK);
-          USBASP[0].setState(ISS_ON);
-          USBASP[1].setState(ISS_OFF);
-        }else if(!strcmp(res, "*UA000N"))
-        {
-          USBASP.setState(IPS_ALERT);
-          USBASP[0].setState(ISS_OFF);
-          USBASP[1].setState(ISS_ON);
-        }else
-        {
-          USBASP.setState(IPS_BUSY);
-          USBASP[0].setState(ISS_OFF);
-          USBASP[1].setState(ISS_OFF);
-        }               
-      } 
-      USBASP.apply();
-      get_count++;
-    }else if(get_count == 6)
-    {
-      if (sendCommand(">GUB#",res))
-      {        
-        if(!strcmp(res, "*UB111N"))
-        {
-          USBBSP.setState(IPS_OK);
-          USBBSP[0].setState(ISS_ON);
-          USBBSP[1].setState(ISS_OFF);
-        }else if(!strcmp(res, "*UB000N"))
-        {
-          USBBSP.setState(IPS_ALERT);
-          USBBSP[0].setState(ISS_OFF);
-          USBBSP[1].setState(ISS_ON);
-        }else
-        {
-          USBBSP.setState(IPS_BUSY);
-          USBBSP[0].setState(ISS_OFF);
-          USBBSP[1].setState(ISS_OFF);
-        }               
-      } 
-      USBBSP.apply();
-      get_count++;
-    }else if(get_count == 7)
-    {
-      if (sendCommand(">GUE#",res))
-      {        
-        if(!strcmp(res, "*UE11NN"))
-        {
-          USBESP.setState(IPS_OK);
-          USBESP[0].setState(ISS_ON);
-          USBESP[1].setState(ISS_OFF);
-        }else if(!strcmp(res, "*UE00NN"))
-        {
-          USBESP.setState(IPS_ALERT);
-          USBESP[0].setState(ISS_OFF);
-          USBESP[1].setState(ISS_ON);
-        }else
-        {
-          USBESP.setState(IPS_BUSY);
-          USBESP[0].setState(ISS_OFF);
-          USBESP[1].setState(ISS_OFF);
-        }               
-      } 
-      USBESP.apply();
-      get_count++;
-    }else if(get_count == 8)
-    {
-      if (sendCommand(">GUF#",res))
-      {        
-        if(!strcmp(res, "*UF11NN"))
-        {
-          USBFSP.setState(IPS_OK);
-          USBFSP[0].setState(ISS_ON);
-          USBFSP[1].setState(ISS_OFF);
-        }else if(!strcmp(res, "*UF00NN"))
-        {
-          USBFSP.setState(IPS_ALERT);
-          USBFSP[0].setState(ISS_OFF);
-          USBFSP[1].setState(ISS_ON);
-        }else
-        {
-          USBFSP.setState(IPS_BUSY);
-          USBFSP[0].setState(ISS_OFF);
-          USBFSP[1].setState(ISS_OFF);
-        }               
-      } 
-      USBFSP.apply();
-      get_count++;
-    }else if(get_count == 9)
-    {
-      if (sendCommand(">GS#",res))
-      {        
-        if(!strcmp(res, "*SS1NNN"))
-        {
-          StateSaveSP.setState(IPS_OK);
-          StateSaveSP[0].setState(ISS_ON);
-          StateSaveSP[1].setState(ISS_OFF);
-        }else if(!strcmp(res, "*SS0NNN"))
-        {
-          StateSaveSP.setState(IPS_ALERT);
-          StateSaveSP[0].setState(ISS_OFF);
-          StateSaveSP[1].setState(ISS_ON);
-        }else
-        {
-          StateSaveSP.setState(IPS_BUSY);
-          StateSaveSP[0].setState(ISS_OFF);
-          StateSaveSP[1].setState(ISS_OFF);
-        }               
-      } 
-      StateSaveSP.apply();
-      get_count++; 
-    }else if(get_count == 10)
-    {
-      if (sendCommand(">GPA#",res))
-      {        
-        ch1_bus = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
+        ch1_bus = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
         ch1_bus = ch1_bus * 4 / 1000;
-        ch1_w = ch1_current * ch1_bus;
-        
-        InputVotageNP[0].setValue(ch1_bus);
-        PowerNP[0].setValue(ch1_w);
-      } 
-      
-      InputVotageNP.apply();
-      PowerNP.apply();
-      
-      get_count++;
-    }else if(get_count == 11)
+        PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(ch1_bus);
+    }
+
+    if (sendCommand(">GPB#", res))
     {
-      if (sendCommand(">GPB#",res))
-      {        
-        ch1_shuntv = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
+        ch1_shuntv = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
         ch1_current = ch1_shuntv * 10 / 1000000 / 0.002;
-        ch1_w = ch1_current * ch1_bus;
-        
-        InputVotageNP.setState(IPS_OK);
-        InputCurrentNP.setState(IPS_OK);
-        PowerNP.setState(IPS_OK);
-        
-        InputCurrentNP[0].setValue(ch1_current);
-        InputVotageNP[0].setValue(ch1_bus);
-        PowerNP[0].setValue(ch1_w);
-      } 
-    
-      InputVotageNP.apply();
-      InputCurrentNP.apply();
-      PowerNP.apply();
-      
-      get_count++;
-    }else if(get_count == 12)
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(ch1_current);
+        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(ch1_current * ch1_bus); // Calculate power
+    }
+    PI::PowerSensorsNP.setState(IPS_OK);
+    PI::PowerSensorsNP.apply();
+
+    // Get MCU Temperature
+    if (sendCommand(">GC#", res))
     {
-      if (sendCommand(">GC#",res))
-      {        
-        mcu_temp = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
+        mcu_temp = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
         if (mcu_temp == 0)
         {
-           MCUTempNP[0].setValue(0);     
-        }else
+            MCUTempNP[0].setValue(0);
+        }
+        else
         {
-          if (res[2] == 'A')
-          {
-             mcu_temp = mcu_temp / 100;
-             MCUTempNP[0].setValue(mcu_temp); 
-          
-          }else if (res[2] == 'B')
-          {
-             mcu_temp = mcu_temp / 100;
-             mcu_temp = mcu_temp * (-1);
-             MCUTempNP[0].setValue(mcu_temp); 
-          }
+            if (res[2] == 'A')
+            {
+                mcu_temp = mcu_temp / 100;
+                MCUTempNP[0].setValue(mcu_temp);
+            }
+            else if (res[2] == 'B')
+            {
+                mcu_temp = mcu_temp / 100;
+                mcu_temp = mcu_temp * (-1);
+                MCUTempNP[0].setValue(mcu_temp);
+            }
         }
         MCUTempNP.setState(IPS_OK);
         MCUTempNP.apply();
-      } 
-      get_count = 0;
     }
-    init = 1;
+
+    SetTimer(100);
 }
 
-bool TerransPowerBoxGoV2::processButtonSwitch(const char *dev, const char *name, ISState *states, char *names[],int n)
-{
-    char res[CMD_LEN] = {0};
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {                    
-        if (DCASP.isNameMatch(name))
-        {
-            DCASP.update(states, names, n);
-            if (DCASP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDA1#",res))
-              {        
-                if(!strcmp(res, "*DA1NNN"))
-                {
-                  DCASP.setState(IPS_OK);
-                  DCASP[0].setState(ISS_ON);
-                  DCASP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC A ON");
-                }else if(!strcmp(res, "*DA0NNN"))
-                {
-                  DCASP.setState(IPS_ALERT);
-                  DCASP[0].setState(ISS_OFF);
-                  DCASP[1].setState(ISS_ON); 
-                  LOG_INFO("DC A OFF");
-                }else
-                {
-                  DCASP.setState(IPS_BUSY);
-                  DCASP[0].setState(ISS_OFF);
-                  DCASP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC A Set Fail");
-                }               
-              }  
-            }          
-            else if (DCASP[1].getState() == ISS_ON)
-            {      
-              if (sendCommand(">SDA0#",res))
-              {        
-                if(!strcmp(res, "*DA1NNN"))
-                {
-                  DCASP.setState(IPS_OK);
-                  DCASP[0].setState(ISS_ON);
-                  DCASP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC A ON");
-                }else if(!strcmp(res, "*DA0NNN"))
-                {
-                  DCASP.setState(IPS_ALERT);
-                  DCASP[0].setState(ISS_OFF);
-                  DCASP[1].setState(ISS_ON); 
-                  LOG_INFO("DC A OFF");
-                }else
-                {
-                  DCASP.setState(IPS_BUSY);
-                  DCASP[0].setState(ISS_OFF);
-                  DCASP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC A Set Fail");
-                }               
-              }  
-            }             
-            DCASP.apply();
-            return true;
-        }        
-        if (DCBSP.isNameMatch(name))
-        {
-            DCBSP.update(states, names, n);
-            if (DCBSP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDB1#",res))
-              {        
-                if(!strcmp(res, "*DB1NNN"))
-                {
-                  DCBSP.setState(IPS_OK);
-                  DCBSP[0].setState(ISS_ON);
-                  DCBSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC B ON");
-                }else if(!strcmp(res, "*DB0NNN"))
-                {
-                  DCBSP.setState(IPS_ALERT);
-                  DCBSP[0].setState(ISS_OFF);
-                  DCBSP[1].setState(ISS_ON); 
-                  LOG_INFO("DC B OFF");
-                }else
-                {
-                  DCBSP.setState(IPS_BUSY);
-                  DCBSP[0].setState(ISS_OFF);
-                  DCBSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC B Set Fail");
-                }               
-              } 
-            }          
-            else if (DCBSP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDB0#",res))
-              {        
-                if(!strcmp(res, "*DB1NNN"))
-                {
-                  DCBSP.setState(IPS_OK);
-                  DCBSP[0].setState(ISS_ON);
-                  DCBSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC B ON");
-                }else if(!strcmp(res, "*DB0NNN"))
-                {
-                  DCBSP.setState(IPS_ALERT);
-                  DCBSP[0].setState(ISS_OFF);
-                  DCBSP[1].setState(ISS_ON); 
-                  LOG_INFO("DC B OFF");
-                }else
-                {
-                  DCBSP.setState(IPS_BUSY);
-                  DCBSP[0].setState(ISS_OFF);
-                  DCBSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC B Set Fail");
-                }               
-              } 
-            }             
-            DCBSP.apply();
-            return true;
-        }        
-        if (DCCSP.isNameMatch(name))
-        {
-            DCCSP.update(states, names, n);
-            if (DCCSP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDC1#",res))
-              {        
-                if(!strcmp(res, "*DC1NNN"))
-                {
-                  DCCSP.setState(IPS_OK);
-                  DCCSP[0].setState(ISS_ON);
-                  DCCSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC C ON");
-                }else if(!strcmp(res, "*DC0NNN"))
-                {
-                  DCCSP.setState(IPS_ALERT);
-                  DCCSP[0].setState(ISS_OFF);
-                  DCCSP[1].setState(ISS_ON); 
-                  LOG_INFO("DC C OFF");
-                }else
-                {
-                  DCCSP.setState(IPS_BUSY);
-                  DCCSP[0].setState(ISS_OFF);
-                  DCCSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC C Set Fail");
-                }               
-              } 
-            }          
-            else if (DCCSP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDC0#",res))
-              {        
-                if(!strcmp(res, "*DC1NNN"))
-                {
-                  DCCSP.setState(IPS_OK);
-                  DCCSP[0].setState(ISS_ON);
-                  DCCSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC C ON");
-                }else if(!strcmp(res, "*DC0NNN"))
-                {
-                  DCCSP.setState(IPS_ALERT);
-                  DCCSP[0].setState(ISS_OFF);
-                  DCCSP[1].setState(ISS_ON); 
-                  LOG_INFO("DC C OFF");
-                }else
-                {
-                  DCCSP.setState(IPS_BUSY);
-                  DCCSP[0].setState(ISS_OFF);
-                  DCCSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC C Set Fail");
-                }               
-              } 
-            }             
-            DCCSP.apply();
-            return true;
-        }       
-        if (DCDSP.isNameMatch(name))
-        {
-            DCDSP.update(states, names, n);
-            if (DCDSP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDD1#",res))
-              {        
-                if(!strcmp(res, "*DD1NNN"))
-                {
-                  DCDSP.setState(IPS_OK);
-                  DCDSP[0].setState(ISS_ON);
-                  DCDSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC D ON");
-                }else if(!strcmp(res, "*DD0NNN"))
-                {
-                  DCDSP.setState(IPS_ALERT);
-                  DCDSP[0].setState(ISS_OFF);
-                  DCDSP[1].setState(ISS_ON); 
-                  LOG_INFO("DC D OFF");
-                }else
-                {
-                  DCDSP.setState(IPS_BUSY);
-                  DCDSP[0].setState(ISS_OFF);
-                  DCDSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC D Set Fail");
-                }               
-              } 
-            }          
-            else if (DCDSP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDD0#",res))
-              {        
-                if(!strcmp(res, "*DD1NNN"))
-                {
-                  DCDSP.setState(IPS_OK);
-                  DCDSP[0].setState(ISS_ON);
-                  DCDSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC D ON");
-                }else if(!strcmp(res, "*DD0NNN"))
-                {
-                  DCDSP.setState(IPS_ALERT);
-                  DCDSP[0].setState(ISS_OFF);
-                  DCDSP[1].setState(ISS_ON); 
-                  LOG_INFO("DC D OFF");
-                }else
-                {
-                  DCDSP.setState(IPS_BUSY);
-                  DCDSP[0].setState(ISS_OFF);
-                  DCDSP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC D Set Fail");
-                }               
-              } 
-            }             
-            DCDSP.apply();
-            return true;
-        }       
-        if (DCESP.isNameMatch(name))
-        {
-            DCESP.update(states, names, n);
-            if (DCESP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDE1#",res))
-              {        
-                if(!strcmp(res, "*DE1NNN"))
-                {
-                  DCESP.setState(IPS_OK);
-                  DCESP[0].setState(ISS_ON);
-                  DCESP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC E ON");
-                }else if(!strcmp(res, "*DE0NNN"))
-                {
-                  DCESP.setState(IPS_ALERT);
-                  DCESP[0].setState(ISS_OFF);
-                  DCESP[1].setState(ISS_ON); 
-                  LOG_INFO("DC E OFF");
-                }else
-                {
-                  DCESP.setState(IPS_BUSY);
-                  DCESP[0].setState(ISS_OFF);
-                  DCESP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC E Set Fail");
-                }               
-              } 
-            }          
-            else if (DCESP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SDE0#",res))
-              {        
-                if(!strcmp(res, "*DE1NNN"))
-                {
-                  DCESP.setState(IPS_OK);
-                  DCESP[0].setState(ISS_ON);
-                  DCESP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC E ON");
-                }else if(!strcmp(res, "*DE0NNN"))
-                {
-                  DCESP.setState(IPS_ALERT);
-                  DCESP[0].setState(ISS_OFF);
-                  DCESP[1].setState(ISS_ON); 
-                  LOG_INFO("DC E OFF");
-                }else
-                {
-                  DCESP.setState(IPS_BUSY);
-                  DCESP[0].setState(ISS_OFF);
-                  DCESP[1].setState(ISS_OFF); 
-                  LOG_INFO("DC E Set Fail");
-                }               
-              } 
-            }             
-            DCESP.apply();
-            return true;
-        }                            
-        if (USBASP.isNameMatch(name))
-        {
-            USBASP.update(states, names, n);
-            if (USBASP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUA1A#",res))
-              {        
-                if(!strcmp(res, "*UA111N"))
-                {
-                  USBASP.setState(IPS_OK);
-                  USBASP[0].setState(ISS_ON);
-                  USBASP[1].setState(ISS_OFF);
-                  LOG_INFO("USB A ON");
-                }else if(!strcmp(res, "*UA000N"))
-                {
-                  USBASP.setState(IPS_ALERT);
-                  USBASP[0].setState(ISS_OFF);
-                  USBASP[1].setState(ISS_ON);
-                  LOG_INFO("USB A OFF");
-                }else
-                {
-                  USBASP.setState(IPS_BUSY);
-                  USBASP[0].setState(ISS_OFF);
-                  USBASP[1].setState(ISS_OFF);
-                  LOG_INFO("USB A Set Fail");
-                }               
-              } 
-            }          
-            else if (USBASP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUA0A#",res))
-              {        
-                if(!strcmp(res, "*UA111N"))
-                {
-                  USBASP.setState(IPS_OK);
-                  USBASP[0].setState(ISS_ON);
-                  USBASP[1].setState(ISS_OFF);
-                  LOG_INFO("USB A ON");
-                }else if(!strcmp(res, "*UA000N"))
-                {
-                  USBASP.setState(IPS_ALERT);
-                  USBASP[0].setState(ISS_OFF);
-                  USBASP[1].setState(ISS_ON);
-                  LOG_INFO("USB A OFF");
-                }else
-                {
-                  USBASP.setState(IPS_BUSY);
-                  USBASP[0].setState(ISS_OFF);
-                  USBASP[1].setState(ISS_OFF);
-                  LOG_INFO("USB A Set Fail");
-                }               
-              } 
-            }             
-            USBASP.apply();
-            return true;
-        }
-        if (USBBSP.isNameMatch(name))
-        {
-            USBBSP.update(states, names, n);
-            if (USBBSP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUB1A#",res))
-              {        
-                if(!strcmp(res, "*UB111N"))
-                {
-                  USBBSP.setState(IPS_OK);
-                  USBBSP[0].setState(ISS_ON);
-                  USBBSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB B ON");
-                }else if(!strcmp(res, "*UB000N"))
-                {
-                  USBBSP.setState(IPS_ALERT);
-                  USBBSP[0].setState(ISS_OFF);
-                  USBBSP[1].setState(ISS_ON);
-                  LOG_INFO("USB B OFF");
-                }else
-                {
-                  USBBSP.setState(IPS_BUSY);
-                  USBBSP[0].setState(ISS_OFF);
-                  USBBSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB B Set Fail");
-                }               
-              } 
-            }          
-            else if (USBBSP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUB0A#",res))
-              {        
-                if(!strcmp(res, "*UB111N"))
-                {
-                  USBBSP.setState(IPS_OK);
-                  USBBSP[0].setState(ISS_ON);
-                  USBBSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB B ON");
-                }else if(!strcmp(res, "*UB000N"))
-                {
-                  USBBSP.setState(IPS_ALERT);
-                  USBBSP[0].setState(ISS_OFF);
-                  USBBSP[1].setState(ISS_ON);
-                  LOG_INFO("USB B OFF");
-                }else
-                {
-                  USBBSP.setState(IPS_BUSY);
-                  USBBSP[0].setState(ISS_OFF);
-                  USBBSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB B Set Fail");
-                }               
-              } 
-            }             
-            USBBSP.apply();
-            return true;
-        }
-        if (USBESP.isNameMatch(name))
-        {
-            USBESP.update(states, names, n);
-            if (USBESP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUE1A#",res))
-              {        
-                if(!strcmp(res, "*UE11NN"))
-                {
-                  USBESP.setState(IPS_OK);
-                  USBESP[0].setState(ISS_ON);
-                  USBESP[1].setState(ISS_OFF);
-                  LOG_INFO("USB E ON");
-                }else if(!strcmp(res, "*UE00NN"))
-                {
-                  USBESP.setState(IPS_ALERT);
-                  USBESP[0].setState(ISS_OFF);
-                  USBESP[1].setState(ISS_ON);
-                  LOG_INFO("USB E OFF");
-                }else
-                {
-                  USBESP.setState(IPS_BUSY);
-                  USBESP[0].setState(ISS_OFF);
-                  USBESP[1].setState(ISS_OFF);
-                  LOG_INFO("USB E Set Fail");
-                }               
-              } 
-            }          
-            else if (USBESP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUE0A#",res))
-              {        
-                if(!strcmp(res, "*UE11NN"))
-                {
-                  USBESP.setState(IPS_OK);
-                  USBESP[0].setState(ISS_ON);
-                  USBESP[1].setState(ISS_OFF);
-                  LOG_INFO("USB E ON");
-                }else if(!strcmp(res, "*UE00NN"))
-                {
-                  USBESP.setState(IPS_ALERT);
-                  USBESP[0].setState(ISS_OFF);
-                  USBESP[1].setState(ISS_ON);
-                  LOG_INFO("USB E OFF");
-                }else
-                {
-                  USBESP.setState(IPS_BUSY);
-                  USBESP[0].setState(ISS_OFF);
-                  USBESP[1].setState(ISS_OFF);
-                  LOG_INFO("USB E Set Fail");
-                }               
-              } 
-            }             
-            USBESP.apply();
-            return true;
-        }
-        if (USBFSP.isNameMatch(name))
-        {
-            USBFSP.update(states, names, n);
-            if (USBFSP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUF1A#",res))
-              {        
-                if(!strcmp(res, "*UF11NN"))
-                {
-                  USBFSP.setState(IPS_OK);
-                  USBFSP[0].setState(ISS_ON);
-                  USBFSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB F ON");
-                }else if(!strcmp(res, "*UF00NN"))
-                {
-                  USBFSP.setState(IPS_ALERT);
-                  USBFSP[0].setState(ISS_OFF);
-                  USBFSP[1].setState(ISS_ON);
-                  LOG_INFO("USB F OFF");
-                }else
-                {
-                  USBFSP.setState(IPS_BUSY);
-                  USBFSP[0].setState(ISS_OFF);
-                  USBFSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB F Set Fail");
-                }               
-              } 
-            }          
-            else if (USBFSP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SUF0A#",res))
-              {        
-                if(!strcmp(res, "*UF11NN"))
-                {
-                  USBFSP.setState(IPS_OK);
-                  USBFSP[0].setState(ISS_ON);
-                  USBFSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB F ON");
-                }else if(!strcmp(res, "*UF00NN"))
-                {
-                  USBFSP.setState(IPS_ALERT);
-                  USBFSP[0].setState(ISS_OFF);
-                  USBFSP[1].setState(ISS_ON);
-                  LOG_INFO("USB F OFF");
-                }else
-                {
-                  USBFSP.setState(IPS_BUSY);
-                  USBFSP[0].setState(ISS_OFF);
-                  USBFSP[1].setState(ISS_OFF);
-                  LOG_INFO("USB F Set Fail");
-                }               
-              } 
-            }             
-            USBFSP.apply();
-            return true;
-        }      
-        if (StateSaveSP.isNameMatch(name))
-        {
-            StateSaveSP.update(states, names, n);
-            if (StateSaveSP[0].getState() == ISS_ON)
-            {
-              if (sendCommand(">SS1#",res))
-              {        
-                if(!strcmp(res, "*SS1NNN"))
-                {
-                  StateSaveSP.setState(IPS_OK);
-                  StateSaveSP[0].setState(ISS_ON);
-                  StateSaveSP[1].setState(ISS_OFF);
-                  LOG_INFO("Save Switch State Enable");
-                }else if(!strcmp(res, "*SS0NNN"))
-                {
-                  StateSaveSP.setState(IPS_ALERT);
-                  StateSaveSP[0].setState(ISS_OFF);
-                  StateSaveSP[1].setState(ISS_ON);
-                  LOG_INFO("Save Switch State Disable");
-                }else
-                {
-                  StateSaveSP.setState(IPS_BUSY);
-                  StateSaveSP[0].setState(ISS_OFF);
-                  StateSaveSP[1].setState(ISS_OFF);
-                  LOG_INFO("Save Switch State Set Fail");
-                }               
-              } 
-            }          
-            else if (StateSaveSP[1].getState() == ISS_ON)
-            {
-              if (sendCommand(">SS0#",res))
-              {        
-                if(!strcmp(res, "*SS1NNN"))
-                {
-                  StateSaveSP.setState(IPS_OK);
-                  StateSaveSP[0].setState(ISS_ON);
-                  StateSaveSP[1].setState(ISS_OFF);
-                  LOG_INFO("Save Switch State Enable");
-                }else if(!strcmp(res, "*SS0NNN"))
-                {
-                  StateSaveSP.setState(IPS_ALERT);
-                  StateSaveSP[0].setState(ISS_OFF);
-                  StateSaveSP[1].setState(ISS_ON);
-                  LOG_INFO("Save Switch State Disable");
-                }else
-                {
-                  StateSaveSP.setState(IPS_BUSY);
-                  StateSaveSP[0].setState(ISS_OFF);
-                  StateSaveSP[1].setState(ISS_OFF);
-                  LOG_INFO("Save Switch State Set Fail");
-                }               
-              } 
-            }             
-            StateSaveSP.apply();
-            return true;
-        }         
-      }
-      return false;
-}
+// Removed the original Get_State() function as its functionality is now integrated into TimerHit()
