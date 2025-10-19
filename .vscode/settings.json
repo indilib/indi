@@ -85,6 +85,7 @@
     "stdfloat": "cpp",
     "text_encoding": "cpp",
     "typeindex": "cpp",
+    "indiapi.h": "c",
     "hash_set": "cpp",
     "strstream": "cpp",
     "coroutine": "cpp",
