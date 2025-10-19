@@ -101,6 +101,12 @@ bool MyDCP4ESP::initProperties()
     Ch3ModeSP[4].fill("CHANNEL3", "Channel 3", ISS_ON);
     Ch3ModeSP.fill(getDeviceName(), "CH3MODE", "Ch3 Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    /* Tracking Mode (Ambient, Dewpoint, Midpoint) */
+    TrackingModeSP[0].fill("AMBIENT", "Ambient", ISS_OFF);
+    TrackingModeSP[1].fill("DEWPOINT", "Dewpoint", ISS_OFF);
+    TrackingModeSP[2].fill("MIDPOINT", "Midpoint", ISS_OFF);
+    TrackingModeSP.fill(getDeviceName(), "TRACKING_MODE", "Tracking Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     /* Channel 100% Boost On/Off */
     ChannelBoostSP[0].fill("CHANNEL1", "Channel 1", ISS_OFF);
     ChannelBoostSP[1].fill("CHANNEL2", "Channel 2", ISS_OFF);
@@ -121,7 +127,7 @@ bool MyDCP4ESP::initProperties()
     setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
 
     SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE);
-    initProperties(POWER_TAB, 4, 4, 0, 1, 0);
+    INDI::PowerInterface::initProperties(POWER_TAB, 4, 4, 0, 1, 0);
 
     addDebugControl();
     addConfigurationControl();
@@ -178,7 +184,7 @@ bool MyDCP4ESP::updateProperties()
         if (myDCP4Firmware > 109) // Firmware 109 has a bug with the 100% boost settings
             defineProperty(ChannelBoostSP);
         defineProperty(Ch3ModeSP);
-        //defineProperty(RebootSP); // Handled by PowerInterface
+        defineProperty(TrackingModeSP);
         defineProperty(FWversionNP);
         defineProperty(CheckCodeTP);
         ch3ManualPower = false;
@@ -202,7 +208,7 @@ bool MyDCP4ESP::updateProperties()
         if (myDCP4Firmware > 109) // Firmware 109 has a bug with the 100% boost settings
             deleteProperty(ChannelBoostSP);
         deleteProperty(Ch3ModeSP);
-        //deleteProperty(RebootSP); // Handled by PowerInterface
+        deleteProperty(TrackingModeSP);
         deleteProperty(FWversionNP);
         deleteProperty(CheckCodeTP);
         if (ch3ManualPower == true)
@@ -612,6 +618,16 @@ bool MyDCP4ESP::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         return true;
     }
 
+    if (TrackingModeSP.isNameMatch(name))
+    {
+        TrackingModeSP.update(states, names, n);
+        TrackingModeSP.setState(IPS_BUSY);
+        TrackingModeSP.apply();
+        setTrackingMode(TrackingModeSP.findOnSwitchIndex() + 1);
+        readSettings();
+        return true;
+    }
+
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -682,6 +698,7 @@ bool MyDCP4ESP::saveConfigItems(FILE *fp)
     AmbientOffsetNP.save(fp);
     TrackingOffsetNP.save(fp);
     Ch3ModeSP.save(fp);
+    TrackingModeSP.save(fp);
     Ch3ManualPowerNP.save(fp);
     ChannelBoostSP.save(fp);
 
@@ -897,13 +914,32 @@ bool MyDCP4ESP::readSettings()
 
     if ((ok == 1) && (tracking_mode > 0) && (tracking_mode <= 3))
     {
-        // Update AutoDewSP based on tracking_mode
-        AutoDewSP[0].setState(ISS_ON); // Assuming one AutoDew port
+        // Update TrackingModeSP based on tracking_mode (1-indexed to 0-indexed)
+        TrackingModeSP.reset();
+        TrackingModeSP[tracking_mode - 1].setState(ISS_ON);
+        TrackingModeSP.setState(IPS_OK);
+        TrackingModeSP.apply();
+
+        // Update AutoDewSP based on tracking_mode and Ch3ModeSP
+        // AutoDew is enabled if a valid tracking mode is set AND Channel 3 is not disabled
+        if (ch3_mode != CH3MODE_DISABLED)
+        {
+            AutoDewSP[0].setState(ISS_ON);
+        }
+        else
+        {
+            AutoDewSP[0].setState(ISS_OFF);
+        }
         AutoDewSP.setState(IPS_OK);
         AutoDewSP.apply();
     }
     else
     {
+        // If tracking mode is not recognized or invalid, set TrackingModeSP to OFF and AutoDewSP to OFF
+        TrackingModeSP.reset(); // All switches OFF
+        TrackingModeSP.setState(IPS_OK);
+        TrackingModeSP.apply();
+
         AutoDewSP[0].setState(ISS_OFF);
         AutoDewSP.setState(IPS_OK);
         AutoDewSP.apply();
@@ -1013,11 +1049,29 @@ bool MyDCP4ESP::SetLEDEnabled(bool enabled)
 
 bool MyDCP4ESP::SetAutoDewEnabled(size_t port, bool enabled)
 {
-    INDI_UNUSED(port);
-    // MyDCP4ESP has automatic dew control via TrackingModeSP.
-    // This function would need to map to setting the TrackingModeSP.
-    // For now, return false as it's not a direct on/off for a specific port.
-    return false;
+    INDI_UNUSED(port); // MyDCP4ESP does not support per-port auto dew control
+    if (enabled)
+    {
+        // Enable auto dew by setting the tracking mode based on the selected TrackingModeSP
+        // TrackingModeSP is 0-indexed, setTrackingMode expects 1-indexed (1=Ambient, 2=Dewpoint, 3=Midpoint)
+        unsigned int trackingModeValue = TrackingModeSP.findOnSwitchIndex() + 1;
+        if (trackingModeValue >= 1 && trackingModeValue <= 3) // Ensure a valid tracking mode is selected
+        {
+            LOGF_INFO("Enabling auto dew with Tracking Mode: %d", trackingModeValue);
+            return setTrackingMode(trackingModeValue);
+        }
+        else
+        {
+            LOG_ERROR("Invalid Tracking Mode selected for auto dew. Please select Ambient, Dewpoint, or Midpoint.");
+            return false;
+        }
+    }
+    else
+    {
+        // Disable auto dew by setting Channel 3 mode to DISABLED
+        LOG_INFO("Disabling auto dew by setting Channel 3 mode to DISABLED.");
+        return setCh3Mode(CH3MODE_DISABLED); // CH3MODE_DISABLED is 0
+    }
 }
 
 bool MyDCP4ESP::CyclePower()

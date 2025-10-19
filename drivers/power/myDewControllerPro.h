@@ -21,6 +21,8 @@
 #pragma once
 
 #include <defaultdevice.h>
+#include <indipowerinterface.h>
+#include <indiweatherinterface.h>
 
 /***************************** myDewControllerPro Commands **************************/
 
@@ -118,7 +120,7 @@ namespace Connection
 class Serial;
 };
 
-class myDewControllerPro : public INDI::DefaultDevice
+class myDewControllerPro : public INDI::DefaultDevice, public INDI::PowerInterface, public INDI::WeatherInterface
 {
     public:
         myDewControllerPro();
@@ -130,6 +132,11 @@ class myDewControllerPro : public INDI::DefaultDevice
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual void TimerHit() override;
+
+        // INDI::PowerInterface virtual methods
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         bool sendCommand(const char *cmd, char *response);
@@ -152,20 +159,23 @@ class myDewControllerPro : public INDI::DefaultDevice
 
 
         INDI::PropertyNumber OutputsNP{3};
-        enum {
+        enum
+        {
             DEW_STRAP_ONE_POWER,
             DEW_STRAP_TWO_POWER,
             DEW_STRAP_THREE_POWER
         };
 
         INDI::PropertySwitch CH1CH2BoostSP{2};
-        enum {
+        enum
+        {
             CH1_BOOST_100,
             CH2_BOOST_100,
         };
 
         INDI::PropertySwitch CH3_ModeSP{ 5 };
-        enum {
+        enum
+        {
             DISABLED_STRAP,
             DEWSTRAP_ONE,
             DEWSTRAP_TWO,
@@ -174,13 +184,15 @@ class myDewControllerPro : public INDI::DefaultDevice
         };
 
         INDI::PropertySwitch FanModeSP{ 2 };
-        enum {
+        enum
+        {
             BOARD_TEMP,
             MANUAL_FAN
         };
 
         INDI::PropertyNumber TemperaturesNP{ 5 };
-        enum {
+        enum
+        {
             PROBE_1,
             PROBE_2,
             PROBE_3,
@@ -189,7 +201,8 @@ class myDewControllerPro : public INDI::DefaultDevice
         };
 
         INDI::PropertyNumber TemperatureOffsetsNP{ 4 };
-        enum {
+        enum
+        {
             TEMP_PROBE_ONE_OFFSET,
             TEMP_PROBE_TWO_OFFSET,
             TEMP_PROBE_THREE_OFFSET,
@@ -197,43 +210,50 @@ class myDewControllerPro : public INDI::DefaultDevice
         };
 
         INDI::PropertySwitch TrackingModeSP{ 3 };
-        enum {
+        enum
+        {
             AMBIENT,
             DEWPOINT,
             MIDPOINT
         };
 
         INDI::PropertyNumber FanTempTriggerNP{ 2 };
-        enum {
+        enum
+        {
             FANTEMPON,
             FANTEMPOFF
         };
 
         INDI::PropertySwitch LCDDisplayTempUnitsSP{ 2 };
-        enum {
+        enum
+        {
             CELCIUS,
             FAHRENHEIT
         };
 
         INDI::PropertySwitch EnableLCDDisplaySP{ 2 };
-        enum {
+        enum
+        {
             DISABLE_LCD,
             ENABLE_LCD
         };
 
         INDI::PropertySwitch EEPROMSP{ 2 };
-        enum {
+        enum
+        {
             RESET_EEPROM,
             SAVE_TO_EEPROM
         };
 
         INDI::PropertyNumber CH3_Manual_PowerNP{ 1 };
-        INDI::PropertyNumber FanSpeedNP{ 1 };  
+        INDI::PropertyNumber FanSpeedNP{ 1 };
         INDI::PropertySwitch ZeroTempOffsetsSP{ 1 };
         INDI::PropertyNumber TrackingModeOffsetNP{ 1 };
         INDI::PropertyNumber HumidityNP{ 1 };
         INDI::PropertyNumber DewpointNP{ 1 };
         INDI::PropertyNumber FWVersionNP{ 1 };
         INDI::PropertyNumber LCDPageRefreshNP{ 1 };
+
+        static constexpr const char *ENVIRONMENT_TAB {"Environment"};
 
 };
