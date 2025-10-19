@@ -27,6 +27,7 @@
 #include "defaultdevice.h"
 #include "indiweatherinterface.h"
 #include "indifocuserinterface.h"
+#include "indipowerinterface.h"
 
 #include <vector>
 #include <stdint.h>
@@ -36,7 +37,7 @@ namespace Connection
 class Serial;
 }
 
-class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, public INDI::WeatherInterface
+class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, public INDI::WeatherInterface, public INDI::PowerInterface
 {
     public:
         PegasusPPBA();
@@ -46,6 +47,7 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
         const char *getDefaultName() override;
@@ -63,6 +65,15 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
 
         virtual bool SetFocuserBacklash(int32_t steps) override;
         virtual bool SetFocuserBacklashEnabled(bool enabled) override;
+
+        // Power Overrides
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
+        virtual bool SetUSBPort(size_t port, bool enabled) override;
 
         // Weather Overrides
         virtual IPState updateWeather() override
@@ -125,6 +136,8 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         // Power
         bool setPowerEnabled(uint8_t port, bool enabled);
         bool setPowerOnBoot();
+        bool setAdjustableOutput(uint8_t voltage);
+        bool setLedIndicator(bool enabled);
 
         // Dew
         bool setAutoDewEnabled(bool enabled);
@@ -156,40 +169,8 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
-        // Power Sensors
-        INDI::PropertyNumber PowerSensorsNP {9};
-        enum
-        {
-            SENSOR_VOLTAGE,
-            SENSOR_CURRENT,
-            SENSOR_AVG_AMPS,
-            SENSOR_AMP_HOURS,
-            SENSOR_WATT_HOURS,
-            SENSOR_TOTAL_CURRENT,
-            SENSOR_12V_CURRENT,
-            SENSOR_DEWA_CURRENT,
-            SENSOR_DEWB_CURRENT
-        };
-
-        ////////////////////////////////////////////////////////////////////////////////////
-        /// Power Group
-        ////////////////////////////////////////////////////////////////////////////////////
-
-        INDI::PropertySwitch QuadOutSP {2};
-
-        //        ISwitch AdjOutS[2];
-        //        ISwitchVectorProperty AdjOutSP;
-
-        INDI::PropertySwitch AdjOutVoltSP {6};
-        enum
-        {
-            ADJOUT_OFF,
-            ADJOUT_3V,
-            ADJOUT_5V,
-            ADJOUT_8V,
-            ADJOUT_9V,
-            ADJOUT_12V,
-        };
+        // Short circuit warn
+        INDI::PropertyLight PowerWarnLP {1};
 
         // Select which power is ON on bootup
         INDI::PropertySwitch PowerOnBootSP {4};
@@ -201,17 +182,9 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
           POWER_PORT_4
         };
 
-        // Short circuit warn
-        INDI::PropertyLight PowerWarnLP {1};
-
-        INDI::PropertySwitch LedIndicatorSP{2};
-
         ////////////////////////////////////////////////////////////////////////////////////
-        /// Dew Group
+        /// Dew Group (Custom properties not part of INDI::PowerInterface)
         ////////////////////////////////////////////////////////////////////////////////////
-
-        // Auto Dew
-        INDI::PropertySwitch AutoDewSP {2};
 
         INDI::PropertyNumber AutoDewSettingsNP {1};
         enum
@@ -219,13 +192,9 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
             AUTO_DEW_AGGRESSION
         };
 
-        // Dew PWM
-        INDI::PropertyNumber DewPWMNP {2};
-        enum
-        {
-            DEW_PWM_A,
-            DEW_PWM_B,
-        };
+        ////////////////////////////////////////////////////////////////////////////////////
+        /// Focuser
+        ////////////////////////////////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser
@@ -269,7 +238,6 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
 
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
         static constexpr const uint8_t PEGASUS_LEN {128};
-        static constexpr const char *DEW_TAB {"Dew"};
         static constexpr const char *ENVIRONMENT_TAB {"Environment"};
         static constexpr const char *FIRMWARE_TAB {"Firmware"};
 };
