@@ -84,7 +84,14 @@
     "span": "cpp",
     "stdfloat": "cpp",
     "text_encoding": "cpp",
-    "typeindex": "cpp"
+    "typeindex": "cpp",
+    "hash_set": "cpp",
+    "strstream": "cpp",
+    "coroutine": "cpp",
+    "csetjmp": "cpp",
+    "unordered_set": "cpp",
+    "queue": "cpp",
+    "stack": "cpp"
   },
   // Pass any arguments to configure CMake here (e.g. -DINDI_BUILD_WEBSOCKET=On)
   "cmake.configureArgs": [],

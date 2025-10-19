@@ -15,7 +15,7 @@ static std::unique_ptr<PegasusSPB> spb(new PegasusSPB());
 //double reverse = map(result, 1, 100, 9, 255);
 //LOGF_DEBUG("%d", reverse);
 
-PegasusSPB::PegasusSPB() : WI(this)
+PegasusSPB::PegasusSPB() : INDI::DefaultDevice(), WI(this), PI(this)
 {
     setVersion(1, 0);
     lastSensorData.reserve(PA_N);
@@ -38,12 +38,11 @@ double PegasusSPB::map(double value, double from1, double to1, double from2, dou
 bool PegasusSPB::initProperties()
 {
     INDI::DefaultDevice::initProperties();
-    setDriverInterface(AUX_INTERFACE | WEATHER_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | WEATHER_INTERFACE | POWER_INTERFACE);
 
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
 
     addAuxControls();
-
 
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]()
@@ -52,88 +51,40 @@ bool PegasusSPB::initProperties()
     });
     registerConnection(serialConnection);
 
-    ////////////////////////////////////////////////////////////////////////////
-    /// Adjustable HUB Group
-    ////////////////////////////////////////////////////////////////////////////
+    PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VOLTAGE_SENSOR |
+                      POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_AUTO_DEW);
+    PI::initProperties(POWER_TAB, 1, 2, 0, 1,
+                       0); // 1 DC port (Quad Hub), 2 DEW ports (switchable), 0 Variable, 1 Auto Dew (global), 0 USB
 
-    //Power-Dew Switch A
-    PowerDewSwitchASP[DEW].fill("DEW", "DEW", ISS_OFF);
-    PowerDewSwitchASP[POWER].fill("POWER", "POWER(12v)", ISS_OFF);
-    PowerDewSwitchASP.fill(getDeviceName(), "POWER-DEWA", "Port A Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // Power Sensors
+    PowerSensorsNP[SENSOR_VOLTAGE].fill("VOLTAGE", "Voltage", "%.2f", 0, 20, 0, 0);
+    PowerSensorsNP[SENSOR_CURRENT].fill("CURRENT", "Current", "%.2f", 0, 10, 0, 0);
+    PowerSensorsNP[SENSOR_AVG_AMPS].fill("AVG_AMPS", "Avg Amps", "%.2f", 0, 10, 0, 0);
+    PowerSensorsNP[SENSOR_AMP_HOURS].fill("AMP_HOURS", "Amp Hours", "%.2f", 0, 1000, 0, 0);
+    PowerSensorsNP[SENSOR_WATT_HOURS].fill("WATT_HOURS", "Watt Hours", "%.2f", 0, 10000, 0, 0);
+    PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Power Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    //Power-Dew Switch B
-    PowerDewSwitchBSP[DEW].fill("DEW", "DEW", ISS_OFF);
-    PowerDewSwitchBSP[POWER].fill("POWER", "POWER(12v)", ISS_OFF);
-    PowerDewSwitchBSP.fill(getDeviceName(), "POWER-DEWB", "Port B Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // Power-Dew SwitchA
+    PowerDewSwitchASP[0].fill("DEW", "Dew", ISS_OFF);
+    PowerDewSwitchASP[1].fill("POWER", "Power", ISS_ON);
+    PowerDewSwitchASP.fill(getDeviceName(), "DEW_POWER_SWITCH_A", "Port A Mode", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-
-    ////////////////////////////////////////////////////////////////////////////
-    /// Dew Group
-    ////////////////////////////////////////////////////////////////////////////
-
-    //DewAdjA
-    DewAdjANP[0].fill("DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
-    DewAdjANP.fill(getDeviceName(), "DEW-ADJA", "DEW A", DEW_TAB, IP_RW, 60, IPS_IDLE);
-
-    //DewAdjB
-    DewAdjBNP[0].fill("DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
-    DewAdjBNP.fill(getDeviceName(), "DEW-ADJB", "DEW B", DEW_TAB, IP_RW, 60, IPS_IDLE);
-
-    //DewAuto
-    DewAutoSP[INDI_ENABLED].fill("DEWAUTO_ON", "Enabled", ISS_OFF);
-    DewAutoSP[INDI_DISABLED].fill("DEWAUTO_OFF", "Disabled", ISS_OFF);
-    DewAutoSP.fill(getDeviceName(), "DEWAUTO", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // Power-Dew SwitchB
+    PowerDewSwitchBSP[0].fill("DEW", "Dew", ISS_OFF);
+    PowerDewSwitchBSP[1].fill("POWER", "Power", ISS_ON);
+    PowerDewSwitchBSP.fill(getDeviceName(), "DEW_POWER_SWITCH_B", "Port B Mode", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     //DewAggress
     DewAggressNP[0].fill("DEW_AGGRESS", "Agg Level", "%.2f", 0, 100, 1, 0);
     DewAggressNP.fill(getDeviceName(), "DEW-AGGESS", "Auto Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
-
-    ////////////////////////////////////////////////////////////////////////////
-    /// Power Group
-    ////////////////////////////////////////////////////////////////////////////
-
-    // Quad 12v Power
-    QuadPowerSP[INDI_ENABLED].fill("QUAD_ON", "Enabled", ISS_OFF);
-    QuadPowerSP[INDI_DISABLED].fill("QUAD_OFF", "Disabled", ISS_OFF);
-    QuadPowerSP.fill(getDeviceName(), "QUAD_HUB", "Power Quad Hub", POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    //PowerAdjA
-    PowerAdjASP[INDI_ENABLED].fill("POWERA_ON", "Enabled", ISS_OFF);
-    PowerAdjASP[INDI_DISABLED].fill("POWERA_OFF", "Disabled", ISS_ON);
-    PowerAdjASP.fill(getDeviceName(), "POWER-ADJA", "Power A", POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-
-    //PowerAdjB
-    PowerAdjBSP[INDI_ENABLED].fill("POWERB_ON", "Enabled", ISS_OFF);
-    PowerAdjBSP[INDI_DISABLED].fill("POWERB_OFF", "Disabled", ISS_ON);
-    PowerAdjBSP.fill(getDeviceName(), "POWER-ADJB", "Power B", POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-
-    // Power Sensors
-    PowerSensorsNP[SENSOR_VOLTAGE].fill("SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_CURRENT].fill("SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_AVG_AMPS].fill("SENSOR_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_AMP_HOURS].fill("SENSOR_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_WATT_HOURS].fill("SENSOR_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_TOTAL_CURRENT].fill("SENSOR_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_12V_CURRENT].fill("SENSOR_12V_CURRENT", "12V current (A)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_DEWA_CURRENT].fill("SENSOR_DEWA_CURRENT", "DewA current (A)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP[SENSOR_DEWB_CURRENT].fill("SENSOR_DEWB_CURRENT", "DewB current (A)", "%4.2f", 0, 99, 100, 0);
-    PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
-
-    ////////////////////////////////////////////////////////////////////////////
-    /// Environment Group
-    ////////////////////////////////////////////////////////////////////////////
+    // Environment Group
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15);
     setCriticalParameter("WEATHER_TEMPERATURE");
 
-
-    ////////////////////////////////////////////////////////////////////////////////////
-    /// Sensor Offset
-    ////////////////////////////////////////////////////////////////////////////////////
+    // Sensor Offset
     HumidityOffsetNP[0].fill("HUM_OFFSET", "Level", "%.0f", -50, 50, 1, 0);
     HumidityOffsetNP.fill(getDeviceName(), "HUM-OFFSET", "Humidity Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -150,15 +101,11 @@ bool PegasusSPB::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(DewAutoSP);
         defineProperty(DewAggressNP);
         int aggressiveness = getDewAggressiveness();
         DewAggressNP[0].setValue(static_cast<double>(aggressiveness));
         DewAggressNP.setState(IPS_OK);
         DewAggressNP.apply();
-
-
-
 
         defineProperty(PowerDewSwitchASP);
         int portNumber = 1;
@@ -168,7 +115,6 @@ bool PegasusSPB::updateProperties()
         PowerDewSwitchASP[POWER].setState(mode == PegasusSPB::PORT_MODE::POWER ? ISS_ON : ISS_OFF);
         PowerDewSwitchASP.setState(IPS_OK);
         PowerDewSwitchASP.apply();
-        updatePropertiesPowerDewMode(portNumber, mode);
 
         defineProperty(PowerDewSwitchBSP);
         portNumber = 2;
@@ -178,20 +124,14 @@ bool PegasusSPB::updateProperties()
         PowerDewSwitchBSP[POWER].setState(mode == PegasusSPB::PORT_MODE::POWER ? ISS_ON : ISS_OFF);
         PowerDewSwitchBSP.setState(IPS_OK);
         PowerDewSwitchBSP.apply();
-        updatePropertiesPowerDewMode(portNumber, mode);
 
-        // Main Control
-        defineProperty(QuadPowerSP);
         defineProperty(PowerSensorsNP);
 
-
-        //Sensor Offsets
         defineProperty(HumidityOffsetNP);
         int humidityOffset = getHumidityOffset();
         HumidityOffsetNP[0].setValue(static_cast<double>(humidityOffset));
         HumidityOffsetNP.setState(IPS_OK);
         HumidityOffsetNP.apply();
-
 
         defineProperty(TemperatureOffsetNP);
         int temperatureOffset = getTemperatureOffset();
@@ -199,26 +139,20 @@ bool PegasusSPB::updateProperties()
         TemperatureOffsetNP.setState(IPS_OK);
         TemperatureOffsetNP.apply();
 
-
         WI::updateProperties();
+        PI::updateProperties();
         setupComplete = true;
     }
     else
     {
-        // Main Control
-        deleteProperty(DewAutoSP);
         deleteProperty(DewAggressNP);
-        deleteProperty(QuadPowerSP);
-        deleteProperty(PowerSensorsNP);
         deleteProperty(PowerDewSwitchASP);
         deleteProperty(PowerDewSwitchBSP);
-        deleteProperty(PowerAdjASP);
-        deleteProperty(PowerAdjBSP);
-        deleteProperty(DewAdjANP);
-        deleteProperty(DewAdjBNP);
+        deleteProperty(PowerSensorsNP);
         deleteProperty(HumidityOffsetNP);
         deleteProperty(TemperatureOffsetNP);
         WI::updateProperties();
+        PI::updateProperties();
         setupComplete = false;
     }
 
@@ -299,97 +233,32 @@ bool PegasusSPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
 {
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
-        // Quad 12V Power
-        if (QuadPowerSP.isNameMatch(name))
-        {
-            QuadPowerSP.update(states, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                auto newState = QuadPowerSP[INDI_ENABLED].getState() == ISS_ON;
-                result = setQuadPowerState(newState) ? IPS_OK : IPS_ALERT;
-            }
-            QuadPowerSP.setState(result);
-            QuadPowerSP.apply();
+        // Process power-related switches via PowerInterface
+        if (PI::processSwitch(dev, name, states, names, n))
             return true;
-        }
-        //Power-Dew SwitchA
-        else if(PowerDewSwitchASP.isNameMatch(name))
+
+        // Power-Dew SwitchA
+        if(PowerDewSwitchASP.isNameMatch(name))
         {
             PowerDewSwitchASP.update(states, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                auto newState = PowerDewSwitchASP[DEW].getState() == ISS_ON ? 0 : 1;
-                result = setPowerDewPortMode(1, newState) ? IPS_OK : IPS_ALERT;
-                updatePropertiesPowerDewMode(1, newState);
-            }
-            PowerDewSwitchASP.setState(result);
+            auto newState = PowerDewSwitchASP[DEW].getState() == ISS_ON ? 0 : 1;
+            auto result = setPowerDewPortMode(1, newState) ? IPS_OK : IPS_ALERT;
+            PowerDewSwitchASP.setState(result ? IPS_OK : IPS_ALERT);
             PowerDewSwitchASP.apply();
+            saveConfig(PowerDewSwitchASP);
+
             return true;
         }
         //Power-Dew SwitchB
-        else if(PowerDewSwitchBSP.isNameMatch(name))
+        if(PowerDewSwitchBSP.isNameMatch(name))
         {
             PowerDewSwitchBSP.update(states, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                auto newState = PowerDewSwitchBSP[DEW].getState() == ISS_ON ? 0 : 1;
-                result = setPowerDewPortMode(2, newState) ? IPS_OK : IPS_ALERT;
-                updatePropertiesPowerDewMode(2, newState);
-            }
-            PowerDewSwitchBSP.setState(result);
+            auto newState = PowerDewSwitchBSP[DEW].getState() == ISS_ON ? 0 : 1;
+            auto result = setPowerDewPortMode(2, newState) ? IPS_OK : IPS_ALERT;
+            PowerDewSwitchBSP.setState(result ? IPS_OK : IPS_ALERT);
             PowerDewSwitchBSP.apply();
+            saveConfig(PowerDewSwitchBSP);
             return true;
-        }
-        else if(PowerAdjASP.isNameMatch(name))
-        {
-            PowerAdjASP.update(states, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                bool state = PowerAdjASP[INDI_ENABLED].getState() == ISS_ON;
-                if(!setPowerPortState(1, state ))
-                {
-                    result = IPS_ALERT;
-                }
-            }
-
-            PowerAdjASP.setState(result);
-            PowerAdjASP.apply();
-
-        }
-        else if(PowerAdjBSP.isNameMatch(name))
-        {
-            PowerAdjBSP.update(states, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                bool state = PowerAdjBSP[INDI_ENABLED].getState() == ISS_ON;
-                if(!setPowerPortState(2, state))
-                {
-                    result = IPS_ALERT;
-                }
-            }
-            PowerAdjBSP.setState(result);
-            PowerAdjBSP.apply();
-        }
-        else if(DewAutoSP.isNameMatch(name))
-        {
-            DewAutoSP.update(states, names, n);
-            IPState result = IPS_OK;
-            if(isConnected())
-            {
-                bool state = DewAutoSP[INDI_ENABLED].getState() == ISS_ON;
-                if(!setDewAutoState(state))
-                {
-                    result = IPS_ALERT;
-                }
-            }
-            DewAutoSP.setState(result);
-            DewAutoSP.apply();
-
         }
     }
 
@@ -400,35 +269,12 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
 {
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
-        if(DewAdjANP.isNameMatch(name))
-        {
-            DewAdjANP.update(values, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                if(!setDewPortPower(1, values[0]))
-                {
-                    result = IPS_ALERT;
-                }
-            }
-            DewAdjANP.setState(result);
-            DewAdjANP.apply();
-        }
-        else if(DewAdjBNP.isNameMatch(name))
-        {
-            DewAdjBNP.update(values, names, n);
-            IPState result = IPS_OK;
-            if (isConnected())
-            {
-                if(!setDewPortPower(2, values[0]))
-                {
-                    result = IPS_ALERT;
-                }
-            }
-            DewAdjBNP.setState(result);
-            DewAdjBNP.apply();
-        }
-        else if(DewAggressNP.isNameMatch(name))
+        // Process power-related numbers via PowerInterface
+        if (PI::processNumber(dev, name, values, names, n))
+            return true;
+
+        // DewAggress (custom property)
+        if(DewAggressNP.isNameMatch(name))
         {
             DewAggressNP.update(values, names, n);
             IPState result = IPS_OK;
@@ -441,8 +287,10 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
             }
             DewAggressNP.setState(result);
             DewAggressNP.apply();
+            return true;
         }
-        else if(HumidityOffsetNP.isNameMatch(name))
+        // HumidityOffset (custom property)
+        if(HumidityOffsetNP.isNameMatch(name))
         {
             HumidityOffsetNP.update(values, names, n);
             IPState result = IPS_OK;
@@ -455,8 +303,10 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
             }
             HumidityOffsetNP.setState(result);
             HumidityOffsetNP.apply();
+            return true;
         }
-        else if(TemperatureOffsetNP.isNameMatch(name))
+        // TemperatureOffset (custom property)
+        if(TemperatureOffsetNP.isNameMatch(name))
         {
             TemperatureOffsetNP.update(values, names, n);
             IPState result = IPS_OK;
@@ -469,30 +319,21 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
             }
             TemperatureOffsetNP.setState(result);
             TemperatureOffsetNP.apply();
+            return true;
         }
     }
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool PegasusSPB::setPowerPortState(int portNumber, bool enabled)
+bool PegasusSPB::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    int power = 0;
-
-    if(enabled)
-        power = 100;
-
-    return setDewPortPower(portNumber, power);
-}
-
-bool PegasusSPB::getPowerPortState(int portNumber)
-{
-    int power = getDewPortPower(portNumber);
-
-    if(power == 100)
-        return true;
-
-
-    return false;
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
+    {
+        // Process power-related text via PowerInterface
+        if (PI::processText(dev, name, texts, names, n))
+            return true;
+    }
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 int PegasusSPB::getDewPortPower(int portNumber)
@@ -706,55 +547,19 @@ int PegasusSPB::getTemperatureOffset()
     return -1;
 }
 
-void PegasusSPB::updatePropertiesPowerDewMode(int portNumber, int mode)
-{
-    if(portNumber == 1)
-    {
-        switch(mode)
-        {
-            case PegasusSPB::PORT_MODE::DEW:
-                deleteProperty(PowerAdjASP);
-                defineProperty(DewAdjANP);
-                break;
-            case PegasusSPB::PORT_MODE::POWER:
-                deleteProperty(DewAdjANP);
-                bool enabled = getPowerPortState(1);
-                PowerAdjASP.reset();
-                PowerAdjASP[INDI_ENABLED].setState(enabled ? ISS_ON : ISS_OFF);
-                PowerAdjASP[INDI_DISABLED].setState(enabled ? ISS_OFF : ISS_ON);
-                PowerAdjASP.setState(IPS_OK);
-                PowerAdjASP.apply();
-                defineProperty(PowerAdjASP);
-                break;
-        }
-    }
-    else if(portNumber == 2)
-    {
-        switch(mode)
-        {
-            case PegasusSPB::PORT_MODE::DEW:
-                deleteProperty(PowerAdjBSP);
-                defineProperty(DewAdjBNP);
-                break;
-            case PegasusSPB::PORT_MODE::POWER:
-                deleteProperty(DewAdjBNP);
-                bool enabled = getPowerPortState(2);
-                PowerAdjBSP.reset();
-                PowerAdjBSP[INDI_ENABLED].setState(enabled ? ISS_ON : ISS_OFF);
-                PowerAdjBSP[INDI_DISABLED].setState(enabled ? ISS_OFF : ISS_ON);
-                PowerAdjBSP.setState(IPS_OK);
-                PowerAdjBSP.apply();
-                defineProperty(PowerAdjBSP);
-                break;
-        }
-    }
-}
+// Removed updatePropertiesPowerDewMode function definition
 
-bool PegasusSPB::setQuadPowerState(bool enabled)
+bool PegasusSPB::setFixedPowerPortState(int portNumber, bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "P1:%d", enabled ? 1 : 0);
-    return sendCommand(cmd, res);
+    // Assuming fixed power ports are P1, P2, P3, P4.
+    // INDI::PowerInterface ports 0-3 map to physical ports 1-4.
+    snprintf(cmd, PEGASUS_LEN, "P%d:%d", portNumber + 1, enabled ? 1 : 0);
+    if (sendCommand(cmd, res))
+    {
+        return (!strstr(cmd, res));
+    }
+    return false;
 }
 
 bool PegasusSPB::getSensorData()
@@ -773,14 +578,59 @@ bool PegasusSPB::getSensorData()
             return true;
 
         // Power Sensors
-        PowerSensorsNP[SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
-        PowerSensorsNP[SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
-        PowerSensorsNP.setState(IPS_OK);
-        if (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
-            PowerSensorsNP.apply();
+        IPState oldPowerSensorsState = PI::PowerSensorsNP.getState();
+        double oldVoltage = PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue();
+        double oldCurrent = PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue();
+        double oldPower = PI::PowerSensorsNP[PI::SENSOR_POWER].getValue();
 
+        PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
+        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue() *
+                PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue());
+        PI::PowerSensorsNP.setState(IPS_OK);
 
-        // Environment Sensors
+        if (oldVoltage != PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue() ||
+                oldCurrent != PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue() ||
+                oldPower != PI::PowerSensorsNP[PI::SENSOR_POWER].getValue() ||
+                oldPowerSensorsState != PI::PowerSensorsNP.getState())
+        {
+            PI::PowerSensorsNP.apply();
+        }
+
+        // Power Channels (fixed DC outputs)
+        // Assuming PI::PowerChannelsSP[0-3] map to the 4 fixed DC outputs.
+        // The original driver only has QuadPowerSP for group control.
+        // We need to update the state of PI::PowerChannelsSP based on the QuadPowerSP state.
+        bool quadPowerEnabled = (std::stoi(result[PA_PORT_STATUS]) == 1);
+        PI::PowerChannelsSP[0].setState(quadPowerEnabled ? ISS_ON : ISS_OFF);
+        PI::PowerChannelsSP.setState(IPS_OK);
+        if (lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
+            PI::PowerChannelsSP.apply();
+
+        // Dew Channels (switchable ports)
+        // Port 0 maps to original Port A (physical port 1).
+        // Port 1 maps to original Port B (physical port 2).
+        // Update DewChannelDutyCycleNP
+        PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
+        PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
+        PI::DewChannelDutyCycleNP.setState(IPS_OK);
+        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
+            PI::DewChannelDutyCycleNP.apply();
+
+        // Update DewChannelsSP (on/off state) based on duty cycle
+        PI::DewChannelsSP[0].setState(PI::DewChannelDutyCycleNP[0].getValue() > 0 ? ISS_ON : ISS_OFF);
+        PI::DewChannelsSP[1].setState(PI::DewChannelDutyCycleNP[1].getValue() > 0 ? ISS_ON : ISS_OFF);
+        PI::DewChannelsSP.setState(IPS_OK);
+        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
+            PI::DewChannelsSP.apply();
+
+        // Auto Dew
+        PI::AutoDewSP[0].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
+        PI::AutoDewSP.setState(IPS_OK);
+        if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
+            PI::AutoDewSP.apply();
+
+        // Environment Sensors (remain as is, handled by WeatherInterface)
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
         setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
         setParameterValue("WEATHER_DEWPOINT", std::stod(result[PA_DEW_POINT]));
@@ -793,40 +643,6 @@ bool PegasusSPB::getSensorData()
             ParametersNP.setState(IPS_OK);
             ParametersNP.apply();
         }
-
-        // Power Quad Status
-        QuadPowerSP[INDI_ENABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF);
-        QuadPowerSP[INDI_DISABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_OFF : ISS_ON);
-        QuadPowerSP.setState((std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE);
-        if (lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
-            QuadPowerSP.apply();
-
-        //        // Power Warn
-        //        PowerWarnL[0].s = (std::stoi(result[PA_PWR_WARN]) == 1) ? IPS_ALERT : IPS_OK;
-        //        PowerWarnLP.s = (std::stoi(result[PA_PWR_WARN]) == 1) ? IPS_ALERT : IPS_OK;
-        //        if (lastSensorData[PA_PWR_WARN] != result[PA_PWR_WARN])
-        //            IDSetLight(&PowerWarnLP, nullptr);
-
-        // Dew PWM
-        double dewA = std::stod(result[PA_DEW_1]) / 255.0 * 100.0;
-        double dewB = std::stod(result[PA_DEW_2]) / 255.0 * 100.0;
-        DewAdjANP[0].setValue(dewA);
-        DewAdjANP.setState(IPS_OK);
-        DewAdjBNP[0].setValue(dewB);
-        DewAdjBNP.setState(IPS_OK);
-        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
-        {
-            DewAdjANP.apply();
-            DewAdjBNP.apply();
-        }
-
-
-        // Auto Dew
-        DewAutoSP[INDI_ENABLED].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
-        DewAutoSP[INDI_DISABLED].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON);
-        DewAutoSP.setState((std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE);
-        if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
-            DewAutoSP.apply();
 
         lastSensorData = result;
         return true;
@@ -850,7 +666,9 @@ bool PegasusSPB::getConsumptionData()
         if (result == lastConsumptionData)
             return true;
 
-        // Power Sensors
+        // These are custom consumption metrics, not directly mapped to INDI::PowerInterface's standard sensors.
+        // Keep them as is, or consider if they should be mapped to custom INDI properties if needed.
+        // For now, we will keep them as is, as they are not part of the core INDI::PowerInterface.
         PowerSensorsNP[SENSOR_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
         PowerSensorsNP[SENSOR_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
         PowerSensorsNP[SENSOR_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
@@ -882,24 +700,31 @@ bool PegasusSPB::getMetricsData()
         if (result == lastMetricsData)
             return true;
 
-        // Power Sensors
-        PowerSensorsNP[SENSOR_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
-        PowerSensorsNP[SENSOR_12V_CURRENT].setValue(std::stod(result[PC_12V_CURRENT]));
-        PowerSensorsNP[SENSOR_DEWA_CURRENT].setValue(std::stod(result[PC_DEWA_CURRENT]));
-        PowerSensorsNP[SENSOR_DEWB_CURRENT].setValue(std::stod(result[PC_DEWB_CURRENT]));
-        PowerSensorsNP.setState(IPS_OK);
-        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] ||
-                lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
-                lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
-                lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
-            PowerSensorsNP.apply();
+        // Update PI::PowerSensorsNP with total current
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
+        PI::PowerSensorsNP.setState(IPS_OK);
+        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
+            PI::PowerSensorsNP.apply();
 
-        //        std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));
-        //        using dhours = std::chrono::duration<double, std::ratio<3600>>;
-        //        std::stringstream ss;
-        //        ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
-        //        IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
-        //        IDSetText(&FirmwareTP, nullptr);
+        // Update PI::PowerChannelCurrentNP for the quad hub
+        if (PI::PowerChannelCurrentNP.size() > 0)
+        {
+            PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
+            PI::PowerChannelCurrentNP.setState(IPS_OK);
+            if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+                PI::PowerChannelCurrentNP.apply();
+        }
+
+        // Update PI::DewChannelCurrentNP for Dew ports
+        if (PI::DewChannelCurrentNP.size() > 0)
+        {
+            PI::DewChannelCurrentNP[0].setValue(std::stod(result[PC_DEWA_CURRENT]));
+            PI::DewChannelCurrentNP[1].setValue(std::stod(result[PC_DEWB_CURRENT]));
+            PI::DewChannelCurrentNP.setState(IPS_OK);
+            if (lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
+                    lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
+                PI::DewChannelCurrentNP.apply();
+        }
 
         lastMetricsData = result;
 
@@ -957,4 +782,81 @@ std::vector<std::string> PegasusSPB::split(const std::string &input, const std::
     first{input.begin(), input.end(), re, -1},
           last;
     return {first, last};
+}
+
+bool PegasusSPB::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+    PI::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
+    PI::saveConfigItems(fp);
+
+    DewAggressNP.save(fp);
+    HumidityOffsetNP.save(fp);
+    TemperatureOffsetNP.save(fp);
+    PowerDewSwitchASP.save(fp);
+    PowerDewSwitchBSP.save(fp);
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////
+/// Power Interface Implementations
+//////////////////////////////////////////////////////////////////////
+bool PegasusSPB::SetPowerPort(size_t port, bool enabled)
+{
+    return setFixedPowerPortState(port, enabled);
+}
+
+bool PegasusSPB::SetDewPort(size_t port, bool enabled, double dutyCycle)
+{
+    // INDI::PowerInterface ports 0-1 map to the 2 switchable Dew ports.
+    // Port 0 maps to original Port A (physical port 1).
+    // Port 1 maps to original Port B (physical port 2).
+    int originalPortNumber = port + 1; // Map 0-based INDI port to 1-based original port
+
+    if (getPowerDewPortMode(originalPortNumber) == PegasusSPB::PORT_MODE::DEW)
+    {
+        return setDewPortPower(originalPortNumber, enabled ? dutyCycle : 0);
+    }
+    else // If the port is in POWER mode, control it as a fixed power port
+    {
+        // INDI::PowerInterface dew port 0 (original port 1) maps to fixed power port 3 (P3)
+        // INDI::PowerInterface dew port 1 (original port 2) maps to fixed power port 4 (P4)
+        // setFixedPowerPortState expects 0-indexed ports for P1-P4, so P3 is port 2, P4 is port 3.
+        // originalPortNumber is 1-indexed (1 or 2).
+        // So, originalPortNumber + 1 will map 1->2 (P3) and 2->3 (P4).
+        return setFixedPowerPortState(originalPortNumber + 1, enabled);
+    }
+}
+
+bool PegasusSPB::SetVariablePort(size_t port, bool enabled, double voltage)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(voltage);
+    // Pegasus SPB does not have variable voltage outputs.
+    return false;
+}
+
+bool PegasusSPB::SetLEDEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    // Pegasus SPB does not have LED control.
+    return false;
+}
+
+bool PegasusSPB::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    // Pegasus SPB has global auto dew control.
+    return setDewAutoState(enabled);
+}
+
+bool PegasusSPB::SetUSBPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    // Pegasus SPB does not have USB port control.
+    return false;
 }
