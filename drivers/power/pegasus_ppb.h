@@ -26,6 +26,7 @@
 
 #include "defaultdevice.h"
 #include "indiweatherinterface.h"
+#include "indipowerinterface.h"
 
 #include <vector>
 #include <stdint.h>
@@ -35,7 +36,7 @@ namespace Connection
 class Serial;
 }
 
-class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
+class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface, public INDI::PowerInterface
 {
     public:
         PegasusPPB();
@@ -45,6 +46,7 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
         const char *getDefaultName() override;
@@ -58,6 +60,15 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
         {
             return IPS_OK;
         }
+
+        // Power Interface Overrides
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
+        virtual bool SetUSBPort(size_t port, bool enabled) override;
 
 
     private:
@@ -113,26 +124,6 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
-        // Power Sensors
-        INDI::PropertyNumber PowerSensorsNP {2};
-        enum
-        {
-            SENSOR_VOLTAGE,
-            SENSOR_CURRENT,
-        };
-
-        ////////////////////////////////////////////////////////////////////////////////////
-        /// Power Group
-        ////////////////////////////////////////////////////////////////////////////////////
-
-        // Cycle all power on/off
-        INDI::PropertySwitch PowerCycleAllSP {2};
-        enum
-        {
-            POWER_CYCLE_OFF,
-            POWER_CYCLE_ON,
-        };
-
         INDI::PropertySwitch DSLRPowerSP {2};
 
         // Select which power is ON on bootup
@@ -143,21 +134,6 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
           POWER_PORT_2,
           POWER_PORT_3,
           POWER_PORT_4
-        };
-
-        ////////////////////////////////////////////////////////////////////////////////////
-        /// Dew Group
-        ////////////////////////////////////////////////////////////////////////////////////
-
-        // Auto Dew
-        INDI::PropertySwitch AutoDewSP {2};
-
-        // Dew PWM
-        INDI::PropertyNumber DewPWMNP {2};
-        enum
-        {
-            DEW_PWM_A,
-            DEW_PWM_B,
         };
 
         std::vector<std::string> lastSensorData;

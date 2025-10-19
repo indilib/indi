@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2018-2026 Jasem Mutlaq. All rights reserved.  
 
   Pegasus Ultimate Power Box Driver.
 
