@@ -41,7 +41,7 @@ using json = nlohmann::json;
 
 std::unique_ptr<CheapoDC> cheapodc(new CheapoDC());
 
-CheapoDC::CheapoDC()
+CheapoDC::CheapoDC() : INDI::PowerInterface(this)
 {
     setVersion(CHEAPODC_VERSION_MAJOR, CHEAPODC_VERSION_MINOR);
 }
@@ -50,9 +50,14 @@ bool CheapoDC::initProperties()
 {
     DefaultDevice::initProperties();
 
+    setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
+
+    SetCapability(INDI::PowerInterface::POWER_HAS_DEW_OUT | INDI::PowerInterface::POWER_HAS_AUTO_DEW);
+    INDI::PowerInterface::initProperties(DEW_TAB, 0, 1 + CDC_TOTAL_ADDITIONAL_OUTPUTS, 0, 1, 0);
+
     /* Output Power */
-    OutputPowerNP[0].fill("OUTPUT", "Power (%)", "%3.0f", 0, 100, 1, 0.);
-    OutputPowerNP.fill(getDeviceName(), "OUTPUT", "Output", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    // OutputPowerNP[0].fill("OUTPUT", "Power (%)", "%3.0f", 0, 100, 1, 0.);
+    // OutputPowerNP.fill(getDeviceName(), "OUTPUT", "Output", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Minimum Output Power */
     MinimumOutputNP[0].fill("MINIMUMOUTPUT", "Power (%)", "%3.0f", 0, 99, 1, prevMinOutput);
@@ -86,10 +91,10 @@ bool CheapoDC::initProperties()
     TrackingRangeNP.fill(getDeviceName(), "TRACKINGRANGE", "Tracking Range", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /*  Dew Controller mode */
-    ControllerModeSP[AUTOMATIC].fill("AUTOMATIC", "Automatic", ISS_OFF);
-    ControllerModeSP[MANUAL].fill("MANUAL", "Manual", ISS_ON);
-    ControllerModeSP[OFF].fill("OFF", "Off", ISS_OFF);
-    ControllerModeSP.fill(getDeviceName(), "CONTROLLER_MODE", "Controller Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    // ControllerModeSP[AUTOMATIC].fill("AUTOMATIC", "Automatic", ISS_OFF);
+    // ControllerModeSP[MANUAL].fill("MANUAL", "Manual", ISS_ON);
+    // ControllerModeSP[OFF].fill("OFF", "Off", ISS_OFF);
+    // ControllerModeSP.fill(getDeviceName(), "CONTROLLER_MODE", "Controller Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /*  Temperature mode */
     TemperatureModeSP[WEATHER_QUERY].fill("WEATHER_QUERY", "Weather Query", ISS_ON);
@@ -150,7 +155,7 @@ bool CheapoDC::initProperties()
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
     RefreshSP.fill(getDeviceName(),  "CHEAPODC_REFRESH", "CheapoDC", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    setDriverInterface(AUX_INTERFACE);
+    // setDriverInterface(AUX_INTERFACE); // Moved above
 
     addDebugControl();
     addConfigurationControl();
@@ -176,6 +181,7 @@ bool CheapoDC::initProperties()
 bool CheapoDC::updateProperties()
 {
     DefaultDevice::updateProperties();
+    INDI::PowerInterface::updateProperties();
 
     if (isConnected())
     {
@@ -201,8 +207,6 @@ bool CheapoDC::updateProperties()
             IDSnoopDevice(activeWeatherDevice, CDC_SNOOP_WEATHER_PROPERTY);
 
         // Main Control Tab
-        defineProperty(ControllerModeSP);
-        defineProperty(OutputPowerNP);
         defineProperty(TemperatureModeSP);
         defineProperty(XtrnTemperatureNP);
         defineProperty(SetPointModeSP);
@@ -255,10 +259,8 @@ bool CheapoDC::updateProperties()
     }
     else
     {
-        deleteProperty(OutputPowerNP);
         deleteProperty(MinimumOutputNP);
         deleteProperty(MaximumOutputNP);
-        deleteProperty(ControllerModeSP);
         deleteProperty(TemperatureModeSP);
         deleteProperty(SetPointModeSP);
         deleteProperty(XtrnTemperatureNP);
@@ -298,8 +300,6 @@ bool CheapoDC::updateProperties()
 void CheapoDC::redrawMainControl()
 {
     // Main Control Tab delete properties
-    deleteProperty(ControllerModeSP);
-    deleteProperty(OutputPowerNP);
     deleteProperty(TemperatureModeSP);
     deleteProperty(XtrnTemperatureNP);
     deleteProperty(SetPointModeSP);
@@ -314,8 +314,6 @@ void CheapoDC::redrawMainControl()
     deleteProperty(RefreshSP);
 
     // Main Control Tab re-define properties to pick up changes and maintain order
-    defineProperty(ControllerModeSP);
-    defineProperty(OutputPowerNP);
     defineProperty(TemperatureModeSP);
     defineProperty(XtrnTemperatureNP);
     defineProperty(SetPointModeSP);
@@ -750,20 +748,82 @@ bool CheapoDC::setWeatherSource(int value)
     }
 }
 
+bool CheapoDC::SetPowerPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    LOG_DEBUG("SetPowerPort not supported by CheapoDC.");
+    return false;
+}
+
+bool CheapoDC::SetDewPort(size_t port, bool enabled, double dutyCycle)
+{
+    if (port == 0) // Main dew output
+    {
+        return setOutput(static_cast<int>(dutyCycle));
+    }
+    else if (port >= 1 && port <= CDC_TOTAL_ADDITIONAL_OUTPUTS) // Additional outputs
+    {
+        // Additional outputs are 1-based in the interface, map to CDC_MIN_ADDITIONAL_OUTPUT + (port - 1)
+        return setAdditionalOutput(static_cast<int>(CDC_MIN_ADDITIONAL_OUTPUT + (port - 1)), static_cast<int>(dutyCycle));
+    }
+    LOGF_WARN("SetDewPort: Invalid port number %zu.", port);
+    return false;
+}
+
+bool CheapoDC::SetVariablePort(size_t port, bool enabled, double voltage)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(voltage);
+    LOG_DEBUG("SetVariablePort not supported by CheapoDC.");
+    return false;
+}
+
+bool CheapoDC::SetLEDEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    LOG_DEBUG("SetLEDEnabled not supported by CheapoDC.");
+    return false;
+}
+
+bool CheapoDC::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port); // CheapoDC has a single auto dew control
+    return setControllerMode(enabled ? AUTOMATIC : MANUAL);
+}
+
+bool CheapoDC::CyclePower()
+{
+    LOG_DEBUG("CyclePower not supported by CheapoDC.");
+    return false;
+}
+
+bool CheapoDC::SetUSBPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    LOG_DEBUG("SetUSBPort not supported by CheapoDC.");
+    return false;
+}
+
 bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     bool result = false;
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (ControllerModeSP.isNameMatch(name))
-    {
-        ControllerModeSP.update(states, names, n);
-        ControllerModeSP.setState(IPS_BUSY);
-        ControllerModeSP.apply();
-        result = setControllerMode(ControllerModeSP.findOnSwitchIndex());
-        return result && readSettings();
-    }
+    if (INDI::PowerInterface::processSwitch(dev, name, states, names, n))
+        return true;
+
+    // if (ControllerModeSP.isNameMatch(name)) // Handled by PowerInterface
+    // {
+    //     ControllerModeSP.update(states, names, n);
+    //     ControllerModeSP.setState(IPS_BUSY);
+    //     ControllerModeSP.apply();
+    //     result = setControllerMode(ControllerModeSP.findOnSwitchIndex());
+    //     return result && readSettings();
+    // }
 
     if (TemperatureModeSP.isNameMatch(name))
     {
@@ -1030,6 +1090,9 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
+    if (INDI::PowerInterface::processNumber(dev, name, values, names, n))
+        return true;
+
     if (TrackPointOffsetNP.isNameMatch(name))
     {
         TrackPointOffsetNP.update(values, names, n);
@@ -1048,36 +1111,36 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         return result && readSettings();
     }
 
-    if (OutputPowerNP.isNameMatch(name))
-    {
-        if (ControllerModeSP.findOnSwitchIndex() == MANUAL)
-        {
-            int minOutput = MinimumOutputNP[0].getValue();
-            int maxOutput = MaximumOutputNP[0].getValue();
+    // if (OutputPowerNP.isNameMatch(name)) // Handled by PowerInterface
+    // {
+    //     if (ControllerModeSP.findOnSwitchIndex() == MANUAL)
+    //     {
+    //         int minOutput = MinimumOutputNP[0].getValue();
+    //         int maxOutput = MaximumOutputNP[0].getValue();
 
-            OutputPowerNP.update(values, names, n);
+    //         OutputPowerNP.update(values, names, n);
 
-            if ((minOutput <= OutputPowerNP[0].getValue()) && (maxOutput >= OutputPowerNP[0].getValue()))
-            {
-                OutputPowerNP.setState(IPS_BUSY);
-                OutputPowerNP.apply();
+    //         if ((minOutput <= OutputPowerNP[0].getValue()) && (maxOutput >= OutputPowerNP[0].getValue()))
+    //         {
+    //             OutputPowerNP.setState(IPS_BUSY);
+    //             OutputPowerNP.apply();
 
-                result = setOutput(OutputPowerNP[0].getValue());
-            }
-            else
-            {
-                LOGF_WARN("Output must be >= Minimum Output (%d) and <= MaximumOutput (%d).", minOutput, maxOutput);
-                result = false;
-            }
-            return result && readSettings();
-        }
-        else
-        {
-            LOG_WARN("Controller Mode must be set to Manual to set Output Power.");
-            readSettings();
-            return false;
-        }
-    }
+    //             result = setOutput(OutputPowerNP[0].getValue());
+    //         }
+    //         else
+    //         {
+    //             LOGF_WARN("Output must be >= Minimum Output (%d) and <= MaximumOutput (%d).", minOutput, maxOutput);
+    //             result = false;
+    //         }
+    //         return result && readSettings();
+    //     }
+    //     else
+    //     {
+    //         LOG_WARN("Controller Mode must be set to Manual to set Output Power.");
+    //         readSettings();
+    //         return false;
+    //     }
+    // }
 
     if (MinimumOutputNP.isNameMatch(name))
     {
@@ -1207,6 +1270,9 @@ bool CheapoDC::ISNewText(const char *dev, const char *name, char *texts[], char 
 
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
+
+    if (INDI::PowerInterface::processText(dev, name, texts, names, n))
+        return true;
 
     if (usingOpenWeather && (WeatherQueryAPIKeyTP.isNameMatch(name)))
     {
@@ -1452,9 +1518,9 @@ bool CheapoDC::readSettings()
 
     if (ok == 1)
     {
-        OutputPowerNP[0].setValue(output);
-        OutputPowerNP.setState(IPS_OK);
-        OutputPowerNP.apply();
+        DewChannelsSP[0].setValue(output);
+        DewChannelsSP.setState(IPS_OK);
+        DewChannelsSP.apply();
     }
     else
         LOGF_ERROR("Get Power Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_DCO);
@@ -1718,26 +1784,16 @@ bool CheapoDC::readSettings()
 
     if ((ok == 1) && (controllerMode <= OFF))
     {
-        ControllerModeSP.reset();
-        ControllerModeSP[controllerMode].setState(ISS_ON);
-        ControllerModeSP.setState(IPS_OK);
-        ControllerModeSP.apply();
+        AutoDewSP.reset();
+        AutoDewSP[controllerMode == AUTOMATIC ? 0 : 1].setState(ISS_ON); // Map AUTOMATIC to 0, MANUAL/OFF to 1
+        AutoDewSP.setState(IPS_OK);
+        AutoDewSP.apply();
 
         if (controllerMode != previousControllerMode)
         {
-
-            if (controllerMode == MANUAL)
-            {
-                OutputPowerNP.setPermission(IP_RW);
-                OutputPowerNP.apply();
-                doMainControlRedraw = true;
-            }
-            if (previousControllerMode == MANUAL)
-            {
-                OutputPowerNP.setPermission(IP_RO);
-                OutputPowerNP.apply();
-                doMainControlRedraw = true;
-            }
+            // The permission logic for OutputPowerNP is now handled by the PowerInterface
+            // based on the AutoDewSP state.
+            doMainControlRedraw = true;
             previousControllerMode = controllerMode;
         }
     }
@@ -1836,10 +1892,22 @@ bool CheapoDC::readSettings()
 
 bool CheapoDC::saveConfigItems(FILE *fp)
 {
-
+    INDI::DefaultDevice::saveConfigItems(fp);
+    INDI::PowerInterface::saveConfigItems(fp);
     ActiveDeviceTP.save(fp);
-
-    return INDI::DefaultDevice::saveConfigItems(fp);
+    MinimumOutputNP.save(fp);
+    MaximumOutputNP.save(fp);
+    TrackPointOffsetNP.save(fp);
+    TrackingRangeNP.save(fp);
+    UpdateOutputEveryNP.save(fp);
+    QueryWeatherEveryNP.save(fp);
+    WeatherSourceSP.save(fp);
+    WeatherQueryAPIKeyTP.save(fp);
+    LocationNP.save(fp);
+    SetPointModeSP.save(fp);
+    TemperatureModeSP.save(fp);
+    SetPointTemperatureNP.save(fp);
+    return true;
 }
 
 void CheapoDC::TimerHit()

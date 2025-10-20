@@ -24,6 +24,7 @@
 
 #include <defaultdevice.h>
 #include "indipropertytext.h"
+#include <indipowerinterface.h>
 
 #include <time.h>  // for nsleep()
 #include <errno.h> // for nsleep()
@@ -111,7 +112,7 @@
 
 /******************************************************************************/
 
-class CheapoDC : public INDI::DefaultDevice
+class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
 {
     public:
         CheapoDC();
@@ -126,6 +127,15 @@ class CheapoDC : public INDI::DefaultDevice
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool ISSnoopDevice(XMLEle *root) override;
         virtual void TimerHit() override;
+
+    protected:
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
+        virtual bool SetUSBPort(size_t port, bool enabled) override;
 
         /**
          * @struct CDCConnection
