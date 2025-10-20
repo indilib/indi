@@ -549,9 +549,9 @@ bool USBDewpoint::readSettings()
         DewpointNP.setState(IPS_OK);
         DewpointNP.apply();
 
-        DewChannelsSP[0].setValue(output1);
-        DewChannelsSP[1].setValue(output2);
-        DewChannelsSP[2].setValue(output3);
+        DewChannelsSP[0].setState(output1 > 0 ? ISS_ON : ISS_OFF);
+        DewChannelsSP[1].setState(output2 > 0 ? ISS_ON : ISS_OFF);
+        DewChannelsSP[2].setState(output3 > 0 ? ISS_ON : ISS_OFF);
         DewChannelsSP.setState(IPS_OK);
         DewChannelsSP.apply();
 

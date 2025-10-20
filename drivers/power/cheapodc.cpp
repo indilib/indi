@@ -758,6 +758,7 @@ bool CheapoDC::SetPowerPort(size_t port, bool enabled)
 
 bool CheapoDC::SetDewPort(size_t port, bool enabled, double dutyCycle)
 {
+    INDI_UNUSED(enabled);
     if (port == 0) // Main dew output
     {
         return setOutput(static_cast<int>(dutyCycle));
@@ -1518,7 +1519,7 @@ bool CheapoDC::readSettings()
 
     if (ok == 1)
     {
-        DewChannelsSP[0].setValue(output);
+        DewChannelsSP[0].setState(output > 0 ? ISS_ON : ISS_OFF);
         DewChannelsSP.setState(IPS_OK);
         DewChannelsSP.apply();
     }
