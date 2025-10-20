@@ -420,7 +420,7 @@ bool PowerInterface::processNumber(const char *dev, const char *name, double val
         // Over Voltage Protection
         if (OverVoltageProtectionNP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(OverVoltageProtectionNP, values, names, n, [this]()
+            return m_defaultDevice->updateProperty(OverVoltageProtectionNP, values, names, n, []()
             {
                 return true;
             }, true);
@@ -501,7 +501,7 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // Power Off on Disconnect
         if (PowerOffOnDisconnectSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(PowerOffOnDisconnectSP, states, names, n, [this]()
+            return m_defaultDevice->updateProperty(PowerOffOnDisconnectSP, states, names, n, []()
             {
                 return true;
             }, true);
@@ -647,7 +647,7 @@ bool PowerInterface::processText(const char *dev, const char *name, char *texts[
         // Power Channel Labels
         if (PowerChannelLabelsTP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(PowerChannelLabelsTP, texts, names, n, [this]()
+            return m_defaultDevice->updateProperty(PowerChannelLabelsTP, texts, names, n, []()
             {
                 return true;
             }, true);
@@ -656,7 +656,7 @@ bool PowerInterface::processText(const char *dev, const char *name, char *texts[
         // DEW Channel Labels
         if (DewChannelLabelsTP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(DewChannelLabelsTP, texts, names, n, [this]()
+            return m_defaultDevice->updateProperty(DewChannelLabelsTP, texts, names, n, []()
             {
                 return true;
             }, true);
@@ -665,7 +665,7 @@ bool PowerInterface::processText(const char *dev, const char *name, char *texts[
         // Variable Channel Labels
         if (VariableChannelLabelsTP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(VariableChannelLabelsTP, texts, names, n, [this]()
+            return m_defaultDevice->updateProperty(VariableChannelLabelsTP, texts, names, n, []()
             {
                 return true;
             }, true);
@@ -674,7 +674,7 @@ bool PowerInterface::processText(const char *dev, const char *name, char *texts[
         // USB Port Labels
         if (HasUSBPort() && USBPortLabelsTP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(USBPortLabelsTP, texts, names, n, [this]()
+            return m_defaultDevice->updateProperty(USBPortLabelsTP, texts, names, n, []()
             {
                 return true;
             }, true);
