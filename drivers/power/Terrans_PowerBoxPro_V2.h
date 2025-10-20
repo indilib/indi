@@ -25,6 +25,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "indipowerinterface.h"
 #include "indiweatherinterface.h"
 
 #include <vector>
@@ -37,7 +38,7 @@ namespace Connection
   class Serial;
 }
 
-class TerransPowerBoxProV2 : public INDI::DefaultDevice, public INDI::WeatherInterface
+class TerransPowerBoxProV2 : public INDI::DefaultDevice, public INDI::PowerInterface, public INDI::WeatherInterface
 {
 public:
     TerransPowerBoxProV2();
@@ -48,7 +49,8 @@ public:
         virtual void TimerHit() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+
         // Weather Overrides
         virtual IPState updateWeather() override
         {
@@ -58,6 +60,15 @@ public:
     protected:
         virtual const char *getDefaultName() override;
         virtual bool saveConfigItems(FILE *fp) override;
+
+        // Implement virtual methods from INDI::PowerInterface
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
+        virtual bool SetUSBPort(size_t port, bool enabled) override;
         
     private:           
         bool Handshake();
@@ -71,84 +82,10 @@ public:
 
         Connection::Serial *serialConnection { nullptr };
         
-        const char *ConfigRenameDCA { nullptr };
-        const char *ConfigRenameDCB { nullptr };
-        const char *ConfigRenameDCC { nullptr };
-        const char *ConfigRenameDCD { nullptr };
-        const char *ConfigRenameDCE { nullptr };
-        const char *ConfigRenameDCF { nullptr };
-        const char *ConfigRenameDC19V { nullptr };
-        const char *ConfigRenameUSBA { nullptr };
-        const char *ConfigRenameUSBB { nullptr };
-        const char *ConfigRenameUSBC { nullptr };
-        const char *ConfigRenameUSBD { nullptr };
-        const char *ConfigRenameUSBE { nullptr };
-        const char *ConfigRenameUSBF { nullptr };
-        const char *ConfigRenameADJ { nullptr };      
-         
-        //Power Switch
-        ISwitch DCAS[2];
-        ISwitch DCBS[2];
-        ISwitch DCCS[2];
-        ISwitch DCDS[2];
-        ISwitch DCES[2];
-        ISwitch DCFS[2];
-        ISwitch DC19VS[2];
-        
-        ISwitch USBAS[2];
-        ISwitch USBBS[2];
-        ISwitch USBCS[2];
-        ISwitch USBDS[2];
-        ISwitch USBES[2];
-        ISwitch USBFS[2];
-        
-        ISwitch DCADJS[4];
-        ISwitch StateSaveS[2];     
-        
-        ISwitch AutoHeater12VS[6];  
-        ISwitch AutoHeater5VS[6];  
-        
-        ISwitchVectorProperty DCASP;
-        ISwitchVectorProperty DCBSP;
-        ISwitchVectorProperty DCCSP;
-        ISwitchVectorProperty DCDSP;
-        ISwitchVectorProperty DCESP;
-        ISwitchVectorProperty DCFSP;
-        ISwitchVectorProperty DC19VSP;
-        
-        ISwitchVectorProperty USBASP;
-        ISwitchVectorProperty USBBSP;
-        ISwitchVectorProperty USBCSP;
-        ISwitchVectorProperty USBDSP;
-        ISwitchVectorProperty USBESP;
-        ISwitchVectorProperty USBFSP;
-        
-        ISwitchVectorProperty DCADJSP;
-        ISwitchVectorProperty StateSaveSP;
-        
-        ISwitchVectorProperty AutoHeater12VSP;
-        ISwitchVectorProperty AutoHeater5VSP;
-        
-        //Sensor Date
-        INumber InputVotageN[1];
-        INumberVectorProperty InputVotageNP;
-        
-        INumber InputCurrentN[1];
-        INumberVectorProperty InputCurrentNP;
-        
-        INumber PowerN[4];
-        INumberVectorProperty PowerNP;        
-  
+        // Retain MCUTempNP as it's not power-related
         INumber MCUTempN[1];
         INumberVectorProperty MCUTempNP;
         
-        //save name
-        IText RenameT[14];
-        ITextVectorProperty RenameTP;
-        
-        static constexpr const char *ENVIRONMENT_TAB {"Environment"};
         static constexpr const char *ADD_SETTING_TAB {"Additional Settings"};
         
 };
-
-

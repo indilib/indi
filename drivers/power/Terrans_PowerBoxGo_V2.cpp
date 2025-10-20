@@ -45,18 +45,8 @@ static std::unique_ptr<TerransPowerBoxGoV2> terranspowerboxgov2(new TerransPower
 #define TAB_RENAME "Rename"
 
 double ch1_shuntv = 0;
-double ch2_shuntv = 0;
-double ch3_shuntv = 0;
 double ch1_current = 0;
-double ch2_current = 0;
-double ch3_current = 0;
 double ch1_bus = 0;
-double ch2_bus = 0;
-double ch3_bus = 0;
-double ch1_w = 0;
-double ch2_w = 0;
-double ch3_w = 0;
-double chusb_w = 0;
 double humidity = 0;
 double temperature = 0;
 double dewPoint = 0;
@@ -169,8 +159,7 @@ bool TerransPowerBoxGoV2::Handshake()
         LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
         // For simulation, assume full capabilities
         PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_USB_TOGGLE | POWER_HAS_VOLTAGE_SENSOR |
-                          POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_LED_TOGGLE |
-                          POWER_HAS_POWER_CYCLE);
+                          POWER_HAS_OVERALL_CURRENT);
         // 5 DC ports, 0 DEW ports, 0 Variable port, 0 Auto Dew ports, 4 USB ports
         PI::initProperties(POWER_TAB, 5, 0, 0, 0, 4);
         return true;
@@ -189,8 +178,7 @@ bool TerransPowerBoxGoV2::Handshake()
                         LOG_INFO("Handshake successfully!");
                         // Set capabilities based on device knowledge
                         PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_USB_TOGGLE | POWER_HAS_VOLTAGE_SENSOR |
-                                          POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_LED_TOGGLE |
-                                          POWER_HAS_POWER_CYCLE);
+                                          POWER_HAS_OVERALL_CURRENT);
                         // 5 DC ports, 0 DEW ports, 0 Variable port, 0 Auto Dew ports, 4 USB ports
                         PI::initProperties(POWER_TAB, 5, 0, 0, 0, 4);
                         return true;
