@@ -40,12 +40,12 @@ PowerInterface::PowerInterface(DefaultDevice *defaultDevice) : m_defaultDevice(d
     OverVoltageProtectionNP[0].fill("OVERVOLTAGE", "Max Voltage", "%.1f", 0, 999, 0, 13.8);
 
     // Initialize Power Off on Disconnect
-    PowerOffOnDisconnectSP[0].fill("ENABLED", "Enabled", ISS_OFF);
-    PowerOffOnDisconnectSP[1].fill("DISABLED", "Disabled", ISS_ON);
+    PowerOffOnDisconnectSP[0].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    PowerOffOnDisconnectSP[1].fill("INDI_DISABLED", "Disabled", ISS_ON);
 
     // Initialize LED Control
-    LEDControlSP[0].fill("ENABLED", "On", ISS_ON);
-    LEDControlSP[1].fill("DISABLED", "Off", ISS_OFF);
+    LEDControlSP[0].fill("INDI_ENABLED", "On", ISS_ON);
+    LEDControlSP[1].fill("INDI_DISABLED", "Off", ISS_OFF);
 
 
     // Initialize Power Cycle All
@@ -59,7 +59,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
     PowerSensorsNP.fill(m_defaultDevice->getDeviceName(), "POWER_SENSORS", "Sensors", groupName, IP_RO, 60, IPS_IDLE);
 
     // Over Voltage Protection
-    OverVoltageProtectionNP.fill(m_defaultDevice->getDeviceName(), "OVERVOLTAGE_PROTECTION", "Over Voltage", groupName,
+    OverVoltageProtectionNP.fill(m_defaultDevice->getDeviceName(), "OVER_VOLTAGE_PROTECTION", "Over Voltage", groupName,
                                  IP_RW, 60, IPS_IDLE);
 
     // Power Off on Disconnect
@@ -85,11 +85,11 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
         char propName[MAXINDINAME];
         char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "POWER_CHANNEL_LABEL_%d", static_cast<int>(i + 1));
+        snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
         snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
         PowerChannelLabelsTP[i].fill(propName, propLabel, propLabel);
     }
-    PowerChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNEL_LABELS", "Labels", POWER_TAB,
+    PowerChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "POWER_LABELS", "Labels", POWER_TAB,
                               IP_RW, 60, IPS_IDLE);
     PowerChannelLabelsTP.load();
 
@@ -120,11 +120,11 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
             char propName[MAXINDINAME];
             char propLabel[MAXINDILABEL];
-            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_CURRENT_%d", static_cast<int>(i + 1));
+            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
             snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
             PowerChannelCurrentNP[i].fill(propName, propLabel, "%.2f", 0, 999, 0, 0);
         }
-        PowerChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNEL_CURRENTS", "Currents", POWER_TAB, IP_RO, 60,
+        PowerChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "POWER_CURRENTS", "Currents", POWER_TAB, IP_RO, 60,
                                    IPS_IDLE);
     }
 
@@ -137,11 +137,11 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
         char propName[MAXINDINAME];
         char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "DEW_LABEL_CHANNEL_%d", static_cast<int>(i + 1));
+        snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
         snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
         DewChannelLabelsTP[i].fill(propName, propLabel, propLabel);
     }
-    DewChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNEL_LABELS", "Labels", DEW_TAB, IP_RW, 60,
+    DewChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "DEW_LABELS", "Labels", DEW_TAB, IP_RW, 60,
                             IPS_IDLE);
     DewChannelLabelsTP.load();
 
@@ -170,7 +170,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
         char propName[MAXINDINAME];
         char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "DEW_DUTY_CHANNEL_%d", static_cast<int>(i + 1));
+        snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
         snprintf(propLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
         DewChannelDutyCycleNP[i].fill(propName, propLabel, "%.0f", 0, 100, 10, 0);
     }
@@ -188,11 +188,11 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
             char propName[MAXINDINAME];
             char propLabel[MAXINDILABEL];
-            snprintf(propName, MAXINDINAME, "DEW_CURRENT_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
             snprintf(propLabel, MAXINDILABEL, "%s (A)", DewChannelLabelsTP[i].getText());
             DewChannelCurrentNP[i].fill(propName, propLabel, "%.2f", 0, 999, 0, 0);
         }
-        DewChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNEL_CURRENTS", "Currents", DEW_TAB, IP_RO,
+        DewChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "DEW_CURRENTS", "Currents", DEW_TAB, IP_RO,
                                  60, IPS_IDLE);
     }
 
@@ -230,13 +230,13 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
             char propName[MAXINDINAME];
             char propLabel[MAXINDILABEL];
-            snprintf(propName, MAXINDINAME, "USB_PORT_LABEL_%d", static_cast<int>(i + 1));
+            snprintf(propName, MAXINDINAME, "USB_PORT_%d", static_cast<int>(i + 1));
             snprintf(propLabel, MAXINDILABEL, "Port %d", static_cast<int>(i + 1));
             USBPortLabelsTP[i].fill(propName, propLabel, propLabel);
         }
         if (nUSBPorts > 0)
         {
-            USBPortLabelsTP.fill(m_defaultDevice->getDeviceName(), "USB_PORT_LABELS", "Labels", USB_TAB, IP_RW, 60,
+            USBPortLabelsTP.fill(m_defaultDevice->getDeviceName(), "USB_LABELS", "Labels", USB_TAB, IP_RW, 60,
                                  IPS_IDLE);
             USBPortLabelsTP.load();
         }
@@ -269,7 +269,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
         char propName[MAXINDINAME];
         char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "VAR_LABEL_CHANNEL_%d", static_cast<int>(i + 1));
+        snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
         snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
         VariableChannelLabelsTP[i].fill(propName, propLabel, propLabel);
     }
@@ -304,7 +304,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
 
             char propName[MAXINDINAME];
             char propLabel[MAXINDILABEL];
-            snprintf(propName, MAXINDINAME, "VAR_VOLTS_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
             snprintf(propLabel, MAXINDILABEL, "%s (V)", VariableChannelLabelsTP[i].getText());
             VariableChannelVoltsNP[i].fill(propName, propLabel, "%.1f", 3, 12, 0.1, 5);
         }
