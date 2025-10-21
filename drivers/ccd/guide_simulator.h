@@ -85,7 +85,6 @@ class GuideSim : public INDI::CCD
         virtual bool saveConfigItems(FILE *fp) override;
         virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeywords) override;
         virtual void activeDevicesUpdated() override;
-        virtual int SetTemperature(double temperature) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
 
@@ -192,9 +191,11 @@ class GuideSim : public INDI::CCD
             SIM_DEC_RAND,
             SIM_PE_PERIOD,
             SIM_PE_MAX,
+            SIM_TEMPERATURE,
             SIM_NUM_PROPERTIES
         };
         INDI::PropertyNumber SimulatorSettingsNP {SIM_NUM_PROPERTIES};
+
 
         INDI::PropertySwitch SimulateRgbSP {2};
         enum
@@ -209,14 +210,7 @@ class GuideSim : public INDI::CCD
             RA_PE,
             DEC_PE
         };
-
-        INDI::PropertySwitch CoolerSP {2};
-        enum
-        {
-            COOLER_ON,
-            COOLER_OFF
-        };
-
+        
         INDI::PropertyNumber GainNP {1};
 
         INDI::PropertySwitch ToggleTimeoutSP {2};

@@ -78,13 +78,7 @@ bool GuideSim::SetupParms()
     int nbuf;
     SetCCDParams(SimulatorSettingsNP[SIM_XRES].getValue(), SimulatorSettingsNP[SIM_YRES].getValue(), 16,
                  SimulatorSettingsNP[SIM_XSIZE].getValue(),
-                 SimulatorSettingsNP[SIM_YSIZE].getValue());
-
-    if (HasCooler())
-    {
-        TemperatureNP[0].setValue(20);
-        TemperatureNP.apply();
-    }
+                 SimulatorSettingsNP[SIM_YSIZE].getValue());    
 
     //  Random number added to each pixel up to this value.
     m_MaxNoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
@@ -124,7 +118,8 @@ bool GuideSim::SetupParms()
     m_DecRand = SimulatorSettingsNP[SIM_DEC_RAND].getValue();
     m_PEPeriod = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
     m_PEMax = SimulatorSettingsNP[SIM_PE_MAX].getValue();
-
+    m_TemperatureRequest = SimulatorSettingsNP[SIM_TEMPERATURE].getValue();
+    TemperatureNP[0].setValue(m_TemperatureRequest);
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -197,6 +192,7 @@ bool GuideSim::initProperties()
                                            0.3);
     SimulatorSettingsNP[SIM_PE_PERIOD].fill("SIM_PE_PERIOD", "Periodic error period (secs)", "%4.1f", 0, 1000, 0, 120);
     SimulatorSettingsNP[SIM_PE_MAX].fill("SIM_PE_MAX", "Periodic error maxval (a-s)", "%4.1f", 0, 100, 0, 3);
+    SimulatorSettingsNP[SIM_TEMPERATURE].fill("SIM_TEMPERATURE", "Temperature (°C)", "%4.1f", -100, 100, 0, 25);
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
@@ -206,12 +202,7 @@ bool GuideSim::initProperties()
     SimulateRgbSP[SIMULATE_NO].fill("SIMULATE_NO", "No", ISS_ON);
     SimulateRgbSP.fill(getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
                        SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    CoolerSP[COOLER_ON].fill("COOLER_ON", "ON", ISS_OFF);
-    CoolerSP[COOLER_OFF].fill("COOLER_OFF", "OFF", ISS_ON);
-    CoolerSP.fill(getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
-                  ISR_1OFMANY, 0, IPS_IDLE);
-
+    
     // CCD Gain
     GainNP[0].fill("GAIN", "Gain", "%.f", 0, 100, 10, 50);
     GainNP.fill(getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -232,6 +223,9 @@ bool GuideSim::initProperties()
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
 
+    TemperatureNP.setPermission(IP_RO);
+    TemperatureNP[0].setValue(25);
+
     uint32_t cap = 0;
 
     cap |= CCD_CAN_ABORT;
@@ -240,8 +234,6 @@ bool GuideSim::initProperties()
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
-
-
 
     SetCCDCapability(cap);
 
@@ -287,9 +279,7 @@ bool GuideSim::updateProperties()
 
     if (isConnected())
     {
-        if (HasCooler())
-            defineProperty(CoolerSP);
-
+        defineProperty(TemperatureNP);
         defineProperty(GainNP);
 
         SetupParms();
@@ -302,29 +292,11 @@ bool GuideSim::updateProperties()
     }
     else
     {
-        if (HasCooler())
-            deleteProperty(CoolerSP);
-
+        deleteProperty(TemperatureNP);
         deleteProperty(GainNP);
     }
 
     return true;
-}
-
-int GuideSim::SetTemperature(double temperature)
-{
-    m_TemperatureRequest = temperature;
-    if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
-    {
-        TemperatureNP[0].setValue(temperature);
-        return 1;
-    }
-
-    CoolerSP[COOLER_ON].setState(ISS_ON);
-    CoolerSP[COOLER_OFF].setState(ISS_OFF);
-    CoolerSP.setState(IPS_BUSY);
-    CoolerSP.apply();
-    return 0;
 }
 
 bool GuideSim::StartExposure(float duration)
@@ -415,27 +387,6 @@ void GuideSim::TimerHit()
             }
         }
     }
-
-    if (TemperatureNP.getState() == IPS_BUSY)
-    {
-        if (m_TemperatureRequest < TemperatureNP[0].getValue())
-            TemperatureNP[0].setValue(std::max(m_TemperatureRequest, TemperatureNP[0].getValue() - 0.5));
-        else
-            TemperatureNP[0].setValue(std::min(m_TemperatureRequest, TemperatureNP[0].getValue() + 0.5));
-
-
-        TemperatureNP.apply();
-
-        // Above 20, cooler is off
-        if (TemperatureNP[0].getValue() >= 20)
-        {
-            CoolerSP[COOLER_ON].setState(ISS_OFF);
-            CoolerSP[COOLER_OFF].setState(ISS_ON);
-            CoolerSP.setState(IPS_IDLE);
-            CoolerSP.apply();
-        }
-    }
-
 
     SetTimer(nextTimer);
 }
@@ -1059,7 +1010,7 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             GainNP.setState(IPS_OK);
             GainNP.apply();
             return true;
-        }
+        }        
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
@@ -1092,6 +1043,9 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             m_DecRand      = SimulatorSettingsNP[SIM_DEC_RAND].getValue();
             m_PEPeriod     = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
             m_PEMax        = SimulatorSettingsNP[SIM_PE_MAX].getValue();
+            m_TemperatureRequest = SimulatorSettingsNP[SIM_TEMPERATURE].getValue();
+            TemperatureNP[0].setValue(m_TemperatureRequest);
+            TemperatureNP.apply();
 
             return true;
         }
@@ -1142,25 +1096,7 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
             SimulateRgbSP.apply();
 
             return true;
-        }
-
-        if (CoolerSP.isNameMatch(name))
-        {
-            CoolerSP.update(states, names, n);
-
-            if (CoolerSP[COOLER_ON].getState() == ISS_ON)
-                CoolerSP.setState(IPS_BUSY);
-            else
-            {
-                CoolerSP.setState(IPS_IDLE);
-                m_TemperatureRequest = 20;
-                TemperatureNP.setState(IPS_BUSY);
-            }
-
-            CoolerSP.apply();
-
-            return true;
-        }
+        }        
 
         if (ToggleTimeoutSP.isNameMatch(name))
         {
