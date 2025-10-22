@@ -87,3 +87,12 @@ SET(mydcp4esp32_SRC
 add_executable(indi_mydcp4esp32 ${mydcp4esp32_SRC})
 target_link_libraries(indi_mydcp4esp32 indidriver)
 install(TARGETS indi_mydcp4esp32 RUNTIME DESTINATION bin)
+
+# ########## Celestron Dew/Power Controller Driver ###############
+SET(celestron_dewpower_SRC
+    indi-celestron-dewpower/celestron_dewpower.cpp
+    indi-celestron-dewpower/celestron_dewpower_auxproto.cpp)
+
+add_executable(indi_celestron_dewpower ${celestron_dewpower_SRC})
+target_link_libraries(indi_celestron_dewpower indidriver)
+install(TARGETS indi_celestron_dewpower RUNTIME DESTINATION bin)

@@ -1047,5 +1047,13 @@
             <driver name="CheapoDC">indi_cheapodc</driver>
             <version>1.0</version>
         </device>
+        <device label="Celestron Smart DewHeater and Power Controller 4X" manufacturer="Celestron">
+            <driver name="Celestron Dew Power">indi_celestron_dewpower</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Celestron Smart DewHeater Controller 2X" manufacturer="Celestron">
+            <driver name="Celestron Dew Power">indi_celestron_dewpower</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
 </driversList>
