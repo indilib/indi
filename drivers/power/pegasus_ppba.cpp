@@ -65,6 +65,9 @@ bool PegasusPPBA::initProperties()
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
                   60, IPS_IDLE);
 
+    PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VARIABLE_OUT |
+                      POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
+                      POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW);
     // Power Interface properties
     // 1 DC output, 2 DEW outputs, 1 Variable output, 2 Auto Dew ports, 0 USB ports
     PI::initProperties(POWER_TAB, 1, 2, 1, 2, 0);
@@ -245,16 +248,7 @@ bool PegasusPPBA::Handshake()
 
     setupComplete = false;
 
-    if (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"))
-    {
-        PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VARIABLE_OUT |
-                          POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
-                          POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW);
-        // PI::initProperties is already called in initProperties()
-        return true;
-    }
-
-    return false;
+    return (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"));
 }
 
 bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -550,7 +544,8 @@ bool PegasusPPBA::getSensorData()
         PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
         PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
         // PPBA does not report total power directly, so we calculate it
-        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue() * PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue());
+        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue() *
+                PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue());
         PI::PowerSensorsNP.setState(IPS_OK);
         if (lastSensorData.size() < PA_N ||
                 lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
@@ -711,7 +706,8 @@ bool PegasusPPBA::getMetricsData()
         if (PI::DewChannelCurrentNP.size() > 1)
             PI::DewChannelCurrentNP[1].setValue(std::stod(result[PC_DEWB_CURRENT]));
         if (lastMetricsData.size() < PC_N ||
-                lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] || // Total current is not directly mapped to PI properties, but we keep it for change detection
+                lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT]
+                || // Total current is not directly mapped to PI properties, but we keep it for change detection
                 lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
                 lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
                 lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])

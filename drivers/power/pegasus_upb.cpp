@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2018-2026 Jasem Mutlaq. All rights reserved.  
+  Copyright(c) 2018-2026 Jasem Mutlaq. All rights reserved.
 
   Pegasus Ultimate Power Box Driver.
 
@@ -276,7 +276,7 @@ bool PegasusUPB::Handshake()
         // V1: No LED Toggle, No Variable Output
         PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VOLTAGE_SENSOR |
                           POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_AUTO_DEW |
-                          POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE);
+                          POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE | POWER_HAS_LED_TOGGLE);
         // 4 DC ports, 2 DEW ports, 0 Variable port, 1 Auto Dew port (global), 6 USB ports (but can only be all toggled on/off at once)
         PI::initProperties(POWER_TAB, 4, 2, 0, 1, 1);
     }

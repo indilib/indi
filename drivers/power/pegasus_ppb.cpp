@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2019-2026 Jasem Mutlaq. All rights reserved.  
+  Copyright(c) 2019-2026 Jasem Mutlaq. All rights reserved.
 
   Pegasus Pocket Power Box Driver.
 
@@ -58,12 +58,12 @@ bool PegasusPPB::initProperties()
     DSLRPowerSP[INDI_ENABLED].fill("INDI_ENABLED", "On", ISS_OFF);
     DSLRPowerSP[INDI_DISABLED].fill("INDI_DISABLED", "Off", ISS_ON);
     DSLRPowerSP.fill(getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+                     ISR_1OFMANY, 60, IPS_IDLE);
 
     // Reboot
     RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
-                       60, IPS_IDLE);
+                  60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Power Group
@@ -74,7 +74,7 @@ bool PegasusPPB::initProperties()
     PowerOnBootSP[POWER_PORT_2].fill("POWER_PORT_2", "Port 2", ISS_ON);
     PowerOnBootSP[POWER_PORT_3].fill("POWER_PORT_3", "Port 3", ISS_ON);
     PowerOnBootSP[POWER_PORT_4].fill("POWER_PORT_4", "Port 4", ISS_ON);
-    PowerOnBootSP.fill(getDeviceName(),"POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
+    PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
                        IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -182,7 +182,7 @@ bool PegasusPPB::Handshake()
     setupComplete = false;
 
     PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VOLTAGE_SENSOR |
-                      POWER_HAS_OVERALL_CURRENT | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE);
+                      POWER_HAS_OVERALL_CURRENT | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE | POWER_HAS_LED_TOGGLE);
     // 4 DC ports, 2 DEW ports, 0 Variable port, 1 Auto Dew port (global), 0 USB ports
     PI::initProperties(POWER_TAB, 4, 2, 0, 1, 0);
 

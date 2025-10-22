@@ -76,42 +76,44 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         PowerCycleAllSP.fill(m_defaultDevice->getDeviceName(), "POWER_CYCLE", "Cycle Power", groupName, IP_RW, ISR_ATMOST1, 60,
                              IPS_IDLE);
 
-    // Power Channel Label
-    PowerChannelLabelsTP.resize(nPowerPorts);
-    for (size_t i = 0; i < nPowerPorts; i++)
+
+    if (nPowerPorts > 0)
     {
-        char channelNum[8];
-        snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+        // Power Channel Label
+        PowerChannelLabelsTP.resize(nPowerPorts);
+        for (size_t i = 0; i < nPowerPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
 
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
-        PowerChannelLabelsTP[i].fill(propName, propLabel, propLabel);
-    }
-    PowerChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "POWER_LABELS", "Labels", POWER_TAB,
-                              IP_RW, 60, IPS_IDLE);
-    PowerChannelLabelsTP.load();
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
+            PowerChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        }
+        PowerChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "POWER_LABELS", "Labels", POWER_TAB,
+                                  IP_RW, 60, IPS_IDLE);
+        PowerChannelLabelsTP.load();
 
-    // Initialize Power Channels (12V DC)
-    PowerChannelsSP.resize(nPowerPorts);
-    for (size_t i = 0; i < nPowerPorts; i++)
-    {
-        char channelNum[8];
-        snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+        // Initialize Power Channels (12V DC)
+        PowerChannelsSP.resize(nPowerPorts);
+        for (size_t i = 0; i < nPowerPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
 
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
-        PowerChannelsSP[i].fill(propName, propLabel, ISS_OFF);
-    }
-    PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Channels (12v)", POWER_TAB, IP_RW, ISR_NOFMANY,
-                         60, IPS_IDLE);
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
+            PowerChannelsSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Channels (12v)", POWER_TAB, IP_RW, ISR_NOFMANY,
+                             60, IPS_IDLE);
 
-    // Power Channel Current (only if per-channel current monitoring is available)
-    if (HasPerPortCurrent())
-    {
+        // Power Channel Current (only if per-channel current monitoring is available)
+
         PowerChannelCurrentNP.resize(nPowerPorts);
         for (size_t i = 0; i < nPowerPorts; i++)
         {
@@ -127,59 +129,75 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         PowerChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "POWER_CURRENTS", "Currents", POWER_TAB, IP_RO, 60,
                                    IPS_IDLE);
     }
-
-    // DEW Channel Label
-    DewChannelLabelsTP.resize(nDewPorts);
-    for (size_t i = 0; i < nDewPorts; i++)
+    else
     {
-        char channelNum[8];
-        snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
-
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
-        DewChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        PowerChannelsSP.resize(0);
+        PowerChannelLabelsTP.resize(0);
+        PowerChannelCurrentNP.resize(0);
     }
-    DewChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "DEW_LABELS", "Labels", DEW_TAB, IP_RW, 60,
-                            IPS_IDLE);
-    DewChannelLabelsTP.load();
 
-    // Initialize DEW/Dew Channels
-    DewChannelsSP.resize(nDewPorts);
-    for (size_t i = 0; i < nDewPorts; i++)
+    if (nDewPorts > 0)
     {
-        char channelNum[8];
-        snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+        // DEW Channel Label
+        DewChannelLabelsTP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
 
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
-        DewChannelsSP[i].fill(propName, propLabel, ISS_OFF);
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
+            DewChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        }
+        DewChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "DEW_LABELS", "Labels", DEW_TAB, IP_RW, 60,
+                                IPS_IDLE);
+        DewChannelLabelsTP.load();
+
+        // Initialize DEW/Dew Channels
+        DewChannelsSP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+            DewChannelsSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Channels", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+                           IPS_IDLE);
+
+        // DEW Channel Duty Cycle
+        DewChannelDutyCycleNP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
+            DewChannelDutyCycleNP[i].fill(propName, propLabel, "%.0f", 0, 100, 10, 0);
+        }
+        DewChannelDutyCycleNP.fill(m_defaultDevice->getDeviceName(), "DEW_DUTY_CYCLES", "Duty Cycles", DEW_TAB, IP_RW, 60,
+                                   IPS_IDLE);
     }
-    DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Channels", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
-                       IPS_IDLE);
-
-    // DEW Channel Duty Cycle
-    DewChannelDutyCycleNP.resize(nDewPorts);
-    for (size_t i = 0; i < nDewPorts; i++)
+    else
     {
-        char channelNum[8];
-        snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
-
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
-        DewChannelDutyCycleNP[i].fill(propName, propLabel, "%.0f", 0, 100, 10, 0);
+        DewChannelDutyCycleNP.resize(0);
+        DewChannelsSP.resize(0);
+        DewChannelLabelsTP.resize(0);
     }
-    DewChannelDutyCycleNP.fill(m_defaultDevice->getDeviceName(), "DEW_DUTY_CYCLES", "Duty Cycles", DEW_TAB, IP_RW, 60,
-                               IPS_IDLE);
 
-    // DEW Channel Current (only if per-channel current monitoring is available)
-    if (HasPerPortCurrent())
+    // Auto Dew Control
+    if (nAutoDewPorts > 0)
     {
+        // DEW Channel Current (only if per-channel current monitoring is available)
         DewChannelCurrentNP.resize(nDewPorts);
         for (size_t i = 0; i < nDewPorts; i++)
         {
@@ -194,11 +212,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         }
         DewChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "DEW_CURRENTS", "Currents", DEW_TAB, IP_RO,
                                  60, IPS_IDLE);
-    }
 
-    // Auto Dew Control
-    if (HasAutoDew())
-    {
         AutoDewSP.resize(nAutoDewPorts);
         for (size_t i = 0; i < nAutoDewPorts; i++)
         {
@@ -217,9 +231,15 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
                            IPS_IDLE);
         }
     }
+    else
+    {
+        AutoDewSP.resize(0);
+        DewChannelCurrentNP.resize(0);
+    }
+
 
     // Initialize USB Ports
-    if (HasUSBPort())
+    if (nUSBPorts > 0)
     {
         // USB Port Labels
         USBPortLabelsTP.resize(nUSBPorts);
@@ -259,27 +279,32 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
                            IPS_IDLE);
         }
     }
-
-    // Variable Channel Label
-    VariableChannelLabelsTP.resize(nVariablePorts);
-    for (size_t i = 0; i < nVariablePorts; i++)
+    else
     {
-        char channelNum[8];
-        snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
-
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
-        VariableChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        USBPortSP.resize(0);
+        USBPortLabelsTP.resize(0);
     }
-    VariableChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_LABELS", "Labels", VARIABLE_TAB,
-                                 IP_RW, 60, IPS_IDLE);
-    VariableChannelLabelsTP.load();
 
     // Initialize Variable Voltage Channels
-    if (HasVariableOutput())
+    if (nVariablePorts > 0)
     {
+        // Variable Channel Label
+        VariableChannelLabelsTP.resize(nVariablePorts);
+        for (size_t i = 0; i < nVariablePorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
+            VariableChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        }
+        VariableChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_LABELS", "Labels", VARIABLE_TAB,
+                                     IP_RW, 60, IPS_IDLE);
+        VariableChannelLabelsTP.load();
+
         VariableChannelsSP.resize(nVariablePorts);
         for (size_t i = 0; i < nVariablePorts; i++)
         {
@@ -311,6 +336,12 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
         VariableChannelVoltsNP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_VOLTAGES", "Voltages", VARIABLE_TAB, IP_RW,
                                     60, IPS_IDLE);
     }
+    else
+    {
+        VariableChannelsSP.resize(0);
+        VariableChannelVoltsNP.resize(0);
+        VariableChannelLabelsTP.resize(0);
+    }
 }
 
 bool PowerInterface::updateProperties()
@@ -332,21 +363,27 @@ bool PowerInterface::updateProperties()
             m_defaultDevice->defineProperty(PowerCycleAllSP);
 
         // Power Channels
-        m_defaultDevice->defineProperty(PowerChannelsSP);
-        if (HasPerPortCurrent())
+        if (HasDCOutput())
         {
-            m_defaultDevice->defineProperty(PowerChannelCurrentNP);
+            m_defaultDevice->defineProperty(PowerChannelsSP);
+            if (HasPerPortCurrent())
+            {
+                m_defaultDevice->defineProperty(PowerChannelCurrentNP);
+            }
+            m_defaultDevice->defineProperty(PowerChannelLabelsTP);
         }
-        m_defaultDevice->defineProperty(PowerChannelLabelsTP);
 
         // DEW Channels
-        m_defaultDevice->defineProperty(DewChannelsSP);
-        m_defaultDevice->defineProperty(DewChannelDutyCycleNP);
-        if (HasPerPortCurrent())
+        if (HasDewOutput())
         {
-            m_defaultDevice->defineProperty(DewChannelCurrentNP);
+            m_defaultDevice->defineProperty(DewChannelsSP);
+            m_defaultDevice->defineProperty(DewChannelDutyCycleNP);
+            if (HasPerPortCurrent())
+            {
+                m_defaultDevice->defineProperty(DewChannelCurrentNP);
+            }
+            m_defaultDevice->defineProperty(DewChannelLabelsTP);
         }
-        m_defaultDevice->defineProperty(DewChannelLabelsTP);
 
         // Variable Channels
         if (HasVariableOutput())
@@ -380,24 +417,33 @@ bool PowerInterface::updateProperties()
             m_defaultDevice->deleteProperty(PowerCycleAllSP);
 
         // Power Channels
-        m_defaultDevice->deleteProperty(PowerChannelsSP);
-        if (HasPerPortCurrent())
+        if (HasDCOutput())
         {
-            m_defaultDevice->deleteProperty(PowerChannelCurrentNP);
+            m_defaultDevice->deleteProperty(PowerChannelsSP);
+            if (HasPerPortCurrent())
+            {
+                m_defaultDevice->deleteProperty(PowerChannelCurrentNP);
+            }
+            m_defaultDevice->deleteProperty(PowerChannelLabelsTP);
         }
-        m_defaultDevice->deleteProperty(PowerChannelLabelsTP);
 
         // DEW Channels
-        m_defaultDevice->deleteProperty(DewChannelsSP);
-        m_defaultDevice->deleteProperty(DewChannelDutyCycleNP);
-        if (HasPerPortCurrent())
-            m_defaultDevice->deleteProperty(DewChannelCurrentNP);
-        m_defaultDevice->deleteProperty(DewChannelLabelsTP);
+        if (HasDewOutput())
+        {
+            m_defaultDevice->deleteProperty(DewChannelsSP);
+            m_defaultDevice->deleteProperty(DewChannelDutyCycleNP);
+            if (HasPerPortCurrent())
+                m_defaultDevice->deleteProperty(DewChannelCurrentNP);
+            m_defaultDevice->deleteProperty(DewChannelLabelsTP);
+        }
 
         // Variable Channels
-        m_defaultDevice->deleteProperty(VariableChannelsSP);
-        m_defaultDevice->deleteProperty(VariableChannelVoltsNP);
-        m_defaultDevice->deleteProperty(VariableChannelLabelsTP);
+        if (HasVariableOutput())
+        {
+            m_defaultDevice->deleteProperty(VariableChannelsSP);
+            m_defaultDevice->deleteProperty(VariableChannelVoltsNP);
+            m_defaultDevice->deleteProperty(VariableChannelLabelsTP);
+        }
 
         // USB Ports
         if (HasUSBPort())
@@ -405,9 +451,6 @@ bool PowerInterface::updateProperties()
             m_defaultDevice->deleteProperty(USBPortSP);
             m_defaultDevice->deleteProperty(USBPortLabelsTP);
         }
-
-        // Clear vectors
-        m_defaultDevice->deleteProperty(PowerChannelsSP);
     }
 
     return true;
