@@ -3,13 +3,10 @@
 #include "connectionplugins/connectionserial.h"
 
 #include <memory>
-#include <regex>
 #include <termios.h>
 #include <cstring>
 #include <sys/ioctl.h>
 #include <chrono>
-#include <math.h>
-#include <iomanip>
 
 static std::unique_ptr<CelestronDewPower> celestronDewPower(new CelestronDewPower());
 

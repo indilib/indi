@@ -32,12 +32,11 @@
 
 #include "celestron_dewpower_auxproto.h"
 
-#include <vector> // Added for std::vector
-#include <string> // Added for std::string
-#include <thread> // Added for std::this_thread
-#include <chrono> // Added for std::chrono
-#include <termios.h> // Added for termios
-#include <sys/ioctl.h> // Added for ioctl
+#include <vector>
+#include <thread>
+#include <chrono>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 class CelestronDewPower : public INDI::DefaultDevice, public INDI::PowerInterface, public INDI::WeatherInterface
 {
@@ -116,8 +115,6 @@ private:
     // Communication state variables from CelestronAUX
     bool m_IsRTSCTS {false};
     int m_ModemControl {0};
-    int response_data_size {0};
-    bool m_isHandController {false}; // Assume false for Dew/Power controller unless detected otherwise
 
     // Store last received data to avoid unnecessary updates
     AUXBuffer lastInputPowerData;
@@ -137,9 +134,6 @@ private:
     uint32_t DBG_SERIAL;
 
     // Constants
-    const char *MAIN_CONTROL_TAB {"Main Control"};
-
-    static constexpr uint32_t BUFFER_SIZE {10240};
     // seconds
     static constexpr uint8_t READ_TIMEOUT {1};
     // ms
