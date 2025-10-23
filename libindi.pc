@@ -9,5 +9,5 @@ URL: http://www.indilib.org/
 Version: 2.1.6
 Libs: -L${libdir} -lindiclient
 Libs.private: -lz -lcfitsio -lnova
-Cflags: -I${includedir} -I${includedir}/libindi
+Cflags: -I${includedir}/libindi
 
