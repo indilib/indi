@@ -134,9 +134,7 @@ For a full list of contributors, please check <a href="https://github.com/indili
 #define INDIV 1.7
 
 /* INDI Library version */
-#define INDI_VERSION_MAJOR   2
-#define INDI_VERSION_MINOR   1
-#define INDI_VERSION_RELEASE 5
+#include "indiversion.h"
 
 /*******************************************************************************
  * Manifest constants
