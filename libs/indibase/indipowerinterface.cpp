@@ -109,7 +109,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
             snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
             PowerChannelsSP[i].fill(propName, propLabel, ISS_OFF);
         }
-        PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Channels (12v)", POWER_TAB, IP_RW, ISR_NOFMANY,
+        PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Toggle DC", POWER_TAB, IP_RW, ISR_NOFMANY,
                              60, IPS_IDLE);
 
         // Power Channel Current (only if per-channel current monitoring is available)
@@ -168,7 +168,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
             snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
             DewChannelsSP[i].fill(propName, propLabel, ISS_OFF);
         }
-        DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Channels", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+        DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Toggle Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                            IPS_IDLE);
 
         // DEW Channel Duty Cycle
