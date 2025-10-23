@@ -11,6 +11,7 @@ include_directories(stream)
 
 # Dependency
 find_package(FFTW3 REQUIRED)
+find_package(UDEV)
 
 list(APPEND ${PROJECT_NAME}_LIBS
     indicore
@@ -30,6 +31,10 @@ list(APPEND ${PROJECT_NAME}_LIBS
     ${M_LIB}
     ${CURL}
 )
+
+if(UDEV_FOUND)
+    list(APPEND ${PROJECT_NAME}_LIBS ${UDEV_LIBRARIES})
+endif()
 
 # When bundled hid library is used
 if(NOT SYSTEM_HIDAPILIB)
@@ -134,6 +139,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indidriverio.c
     indidrivermain.c
     defaultdevice.cpp
+    hotplugmanager.cpp
     timer/inditimer.cpp
     timer/indielapsedtimer.cpp
     thread/indisinglethreadpool.cpp
@@ -183,6 +189,8 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indidriver.h
     pid/pid.h
     defaultdevice.h
+    hotplugcapabledevice.h
+    hotplugmanager.h
     indiccd.h
     indiccdchip.h
     indisensorinterface.h
@@ -287,6 +295,8 @@ if(INDI_BUILD_STATIC)
         VERSION ${CMAKE_INDI_VERSION_STRING}
         SOVERSION ${INDI_SOVERSION}
         OUTPUT_NAME ${PROJECT_NAME} # this same name like shared library - backwards compatibility
+        # Propagate HAVE_UDEV to consumers of the static library
+        $<$<BOOL:${UDEV_FOUND}>:INTERFACE_COMPILE_DEFINITIONS -DHAVE_UDEV>
     )
 
     install(TARGETS ${TARGET_STATIC}
@@ -305,6 +315,8 @@ if(INDI_BUILD_SHARED)
         VERSION ${CMAKE_INDI_VERSION_STRING}
         SOVERSION ${INDI_SOVERSION}
         OUTPUT_NAME ${PROJECT_NAME}
+        # Propagate HAVE_UDEV to consumers of the shared library
+        $<$<BOOL:${UDEV_FOUND}>:INTERFACE_COMPILE_DEFINITIONS -DHAVE_UDEV>
     )
 
     install(TARGETS ${TARGET_SHARED}
