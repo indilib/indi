@@ -150,10 +150,11 @@ bool PegasusPPBA::updateProperties()
         defineProperty(PowerWarnLP); // This is a custom property, not part of INDI::PowerInterface
         defineProperty(PowerOnBootSP); // Re-add PowerOnBootSP
 
+        defineProperty(AutoDewSettingsNP);
+        getAutoDewAggression();
+
         // Power Interface properties
         PI::updateProperties();
-
-        getAutoDewAggression(); // This is a custom property, not part of INDI::PowerInterface
 
         // Focuser
         if (m_HasExternalMotor)
@@ -175,8 +176,10 @@ bool PegasusPPBA::updateProperties()
     {
         // Main Control
         deleteProperty(RebootSP);
-        deleteProperty(PowerWarnLP); // This is a custom property, not part of INDI::PowerInterface
-        deleteProperty(PowerOnBootSP); // Re-add PowerOnBootSP
+        deleteProperty(PowerWarnLP);
+        deleteProperty(PowerOnBootSP);
+
+        deleteProperty(AutoDewSettingsNP);
 
         // Power Interface properties
         PI::updateProperties();
