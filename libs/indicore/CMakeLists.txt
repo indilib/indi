@@ -15,11 +15,9 @@ check_symbol_exists(mremap sys/mman.h HAVE_MREMAP)
 check_symbol_exists(timespec_get time.h HAVE_TIMESPEC_GET)
 check_symbol_exists(clock_gettime time.h HAVE_CLOCK_GETTIME)
 
-configure_file(indiapi.h.in indiapi.h @ONLY)
-
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
-    ${CMAKE_CURRENT_BINARY_DIR}/indiapi.h
+    indiapi.h
     indidevapi.h
     indiutility.h
     lilxml.h
@@ -91,7 +89,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC
     .
     ${CMAKE_CURRENT_BINARY_DIR}/../.. # config.h
-    ${CMAKE_CURRENT_BINARY_DIR}       # indiapi.h
 )
 
 install(FILES

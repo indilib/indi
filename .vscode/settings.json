@@ -84,11 +84,13 @@
     "span": "cpp",
     "stdfloat": "cpp",
     "text_encoding": "cpp",
-    "typeindex": "cpp"
+    "typeindex": "cpp",
+    "indiapi.h": "c"
   },
   // Pass any arguments to configure CMake here (e.g. -DINDI_BUILD_WEBSOCKET=On)
   "cmake.configureArgs": [],
   "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.generator": "Ninja",
   "cmake.configureSettings": {
     "CMAKE_INSTALL_PREFIX": "/usr",
     "CMAKE_CURRENT_BINARY_DIR": "${workspaceFolder}/build"
