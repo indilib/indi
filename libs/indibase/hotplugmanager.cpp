@@ -38,9 +38,10 @@ extern "C" {
 namespace INDI
 {
 
-const int MAX_INITIAL_POLL = 5; // Maximum number of initial polls when udev is available
+[[maybe_unused]] const int MAX_INITIAL_POLL = 5; // Maximum number of initial polls when udev is available
 const int MAX_NON_UDEV_POLL_DURATION_SECONDS = 60; // Maximum duration for non-udev polling in seconds
-const int NON_UDEV_POLL_INTERVAL_MS = 1000; // Default interval for non-udev polling if not specified by driver
+[[maybe_unused]] const int NON_UDEV_POLL_INTERVAL_MS =
+    1000; // Default interval for non-udev polling if not specified by driver
 
 
 HotPlugManager::HotPlugManager() : pollingCount(0), oneShotMode(false),
