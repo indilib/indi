@@ -949,11 +949,13 @@ bool PegasusPPBA::SetDewPort(size_t port, bool enabled, double dutyCycle)
 bool PegasusPPBA::SetVariablePort(size_t port, bool enabled, double voltage)
 {
     INDI_UNUSED(port); // PPBA only has one adjustable output
-    if (!enabled)
-    {
-        return setAdjustableOutput(0);
-    }
-    return setAdjustableOutput(static_cast<uint8_t>(voltage));
+
+    // Set voltage first
+    setAdjustableOutput(static_cast<uint8_t>(voltage));
+
+    // Then enable/disable
+    return setAdjustableOutput(enabled ? 1 : 0);
+
 }
 
 bool PegasusPPBA::SetLEDEnabled(bool enabled)
