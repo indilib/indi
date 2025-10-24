@@ -92,6 +92,13 @@ class HotPlugManager
          */
         void setNonUdevPollingDuration(int seconds);
 
+        /**
+         * @brief Set the maximum initial polling duration for systems with udev.
+         * @param seconds Maximum duration in seconds. Must be between 1 and MAX_NON_UDEV_POLL_DURATION_SECONDS. -1 = use default (5 seconds).
+         * @note This only affects the initial polling period on systems with udev. After initial polling, event-driven monitoring is used.
+         */
+        void setInitialPollingDuration(int seconds);
+
     private:
         /**
          * @brief Periodically checks for hot-plug events across all registered handlers.
@@ -124,6 +131,7 @@ class HotPlugManager
         std::atomic_bool oneShotMode;
         std::chrono::steady_clock::time_point nonUdevPollingStartTime;
         std::atomic_int nonUdevPollingDurationSeconds;  // Configurable max duration for non-udev polling (-1 = default 60s, 0 = unlimited)
+        std::atomic_int initialPollingDurationSeconds;  // Configurable max duration for initial polling with udev (-1 = default 5s)
         std::atomic_bool udevEventReceived;
         INDI::Timer mainThreadDebounceTimer;
 };
