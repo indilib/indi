@@ -36,12 +36,11 @@ class HotPlugCapableDevice
         virtual ~HotPlugCapableDevice() = default;
 
         /**
-         * @brief Get the executable name of the running program.
-         * @return The executable name as a const char*.
+         * @brief Static name used for LOGGING purposes.
          */
         static const char* getDeviceName()
         {
-            return program_invocation_short_name;
+            return "HotPlugCapableDevice";
         }
 
         /**
