@@ -426,13 +426,9 @@ bool PegasusPPBA::setAutoDewEnabled(bool enabled)
 bool PegasusPPBA::setAutoDewAggression(uint8_t value)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "DA:%d", value); // According to protocol, DA:nnn sets Auto Dew Aggressiveness
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
+    snprintf(cmd, PEGASUS_LEN, "DA:%d", value);
+    // Response is always PD:99
+    return sendCommand(cmd, res);
 }
 
 bool PegasusPPBA::setPowerEnabled(uint8_t port, bool enabled)
