@@ -980,6 +980,39 @@ bool PegasusUPB::getSensorData()
         if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
             PI::DewChannelDutyCycleNP.apply();
 
+        // Update Dew Channel switches based on actual power status
+        // If Auto Dew is enabled, it may turn channels on/off, so we need to reflect that
+        bool dewChannelChanged = false;
+        if (PI::DewChannelsSP.size() >= 1)
+        {
+            auto newState = (std::stoi(result[index]) > 0) ? ISS_ON : ISS_OFF;
+            if (PI::DewChannelsSP[0].getState() != newState)
+            {
+                PI::DewChannelsSP[0].setState(newState);
+                dewChannelChanged = true;
+            }
+        }
+        if (PI::DewChannelsSP.size() >= 2)
+        {
+            auto newState = (std::stoi(result[index + 1]) > 0) ? ISS_ON : ISS_OFF;
+            if (PI::DewChannelsSP[1].getState() != newState)
+            {
+                PI::DewChannelsSP[1].setState(newState);
+                dewChannelChanged = true;
+            }
+        }
+        if (version == UPB_V2 && PI::DewChannelsSP.size() >= 3)
+        {
+            auto newState = (std::stoi(result[index + 2]) > 0) ? ISS_ON : ISS_OFF;
+            if (PI::DewChannelsSP[2].getState() != newState)
+            {
+                PI::DewChannelsSP[2].setState(newState);
+                dewChannelChanged = true;
+            }
+        }
+        if (dewChannelChanged)
+            PI::DewChannelsSP.apply();
+
         index = (version == UPB_V1) ? 11 : 12;
 
         const double ampDivision = (version == UPB_V1) ? 400.0 : 480.0;

@@ -69,8 +69,8 @@ bool PegasusPPBA::initProperties()
                       POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
                       POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW);
     // Power Interface properties
-    // 1 DC output, 2 DEW outputs, 1 Variable output, 2 Auto Dew ports, 0 USB ports
-    PI::initProperties(POWER_TAB, 1, 2, 1, 2, 0);
+    // 1 DC output, 2 DEW outputs, 1 Variable output, 1 Auto Dew ports (Global), 0 USB ports
+    PI::initProperties(POWER_TAB, 1, 2, 1, 1, 0);
 
     // Power on Boot
     PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", "Quad Out", ISS_ON);
@@ -305,6 +305,24 @@ bool PegasusPPBA::ISNewNumber(const char * dev, const char * name, double values
         // Process power-related numbers via PowerInterface
         if (PI::processNumber(dev, name, values, names, n))
             return true;
+
+        // Auto Dew Aggressiveness
+        if (AutoDewSettingsNP.isNameMatch(name))
+        {
+            // Convert percentage (0-100) to device range (0-255)
+            uint8_t aggression = static_cast<uint8_t>(values[0] / 100.0 * 255.0);
+            if (setAutoDewAggression(aggression))
+            {
+                AutoDewSettingsNP.update(values, names, n);
+                AutoDewSettingsNP.setState(IPS_OK);
+            }
+            else
+            {
+                AutoDewSettingsNP.setState(IPS_ALERT);
+            }
+            AutoDewSettingsNP.apply();
+            return true;
+        }
 
         // Focuser Settings
         if (FocuserSettingsNP.isNameMatch(name))
@@ -613,6 +631,30 @@ bool PegasusPPBA::getSensorData()
         if (lastSensorData.size() < PA_N ||
                 lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
             PI::DewChannelDutyCycleNP.apply();
+
+        // Update Dew Channel switches based on actual power status
+        // If Auto Dew is enabled, it may turn channels on/off, so we need to reflect that
+        bool dewChannelChanged = false;
+        if (PI::DewChannelsSP.size() > 0)
+        {
+            auto newState = (std::stoi(result[PA_DEW_1]) > 0) ? ISS_ON : ISS_OFF;
+            if (PI::DewChannelsSP[0].getState() != newState)
+            {
+                PI::DewChannelsSP[0].setState(newState);
+                dewChannelChanged = true;
+            }
+        }
+        if (PI::DewChannelsSP.size() > 1)
+        {
+            auto newState = (std::stoi(result[PA_DEW_2]) > 0) ? ISS_ON : ISS_OFF;
+            if (PI::DewChannelsSP[1].getState() != newState)
+            {
+                PI::DewChannelsSP[1].setState(newState);
+                dewChannelChanged = true;
+            }
+        }
+        if (dewChannelChanged)
+            PI::DewChannelsSP.apply();
 
         // Auto Dew
         if (PI::AutoDewSP.size() > 0)
