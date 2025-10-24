@@ -44,7 +44,8 @@ const int NON_UDEV_POLL_INTERVAL_MS = 1000; // Default interval for non-udev pol
 
 
 HotPlugManager::HotPlugManager() : pollingCount(0), oneShotMode(false),
-    nonUdevPollingDurationSeconds(-1), udevEventReceived(false) // Initialize with -1 (use default 60s)
+    nonUdevPollingDurationSeconds(-1), initialPollingDurationSeconds(-1),
+    udevEventReceived(false) // Initialize with -1 (use defaults)
 {
 #ifdef HAVE_UDEV
     udevContext = nullptr;
@@ -131,20 +132,28 @@ void HotPlugManager::start(uint32_t intervalMs, bool oneShot)
     if (udevMonitor && udevContext && udevCallbackId >= 0)
     {
         // Event-driven mode: udev events handled by event loop callback
-        // Initial polling for 5 times (1000ms interval) to detect already connected devices
+        // Initial polling to detect already connected devices
+
+        // Determine the maximum number of initial polls based on configuration
+        int maxInitialPolls = initialPollingDurationSeconds.load();
+        if (maxInitialPolls == -1)
+        {
+            maxInitialPolls = MAX_INITIAL_POLL; // Use default
+        }
+
         hotPlugTimer.setSingleShot(false);
         hotPlugTimer.setInterval(1000); // 1 second interval
-        hotPlugTimer.callOnTimeout([this]()
+        hotPlugTimer.callOnTimeout([this, maxInitialPolls]()
         {
-            if (pollingCount.load() < MAX_INITIAL_POLL)
+            if (pollingCount.load() < maxInitialPolls)
             {
                 checkHotPlugEvents(); // Perform a hotplug check
                 pollingCount++;
-                LOGF_DEBUG("HotPlugManager: Initial polling count: %d/%d", pollingCount.load(), MAX_INITIAL_POLL);
+                LOGF_DEBUG("HotPlugManager: Initial polling count: %d/%d", pollingCount.load(), maxInitialPolls);
 
-                if (pollingCount.load() >= MAX_INITIAL_POLL)
+                if (pollingCount.load() >= maxInitialPolls)
                 {
-                    LOGF_DEBUG("HotPlugManager: Initial polling finished (%d times).", MAX_INITIAL_POLL);
+                    LOGF_DEBUG("HotPlugManager: Initial polling finished (%d times).", maxInitialPolls);
                     hotPlugTimer.stop();
 
                     if (this->oneShotMode.load())
@@ -161,8 +170,17 @@ void HotPlugManager::start(uint32_t intervalMs, bool oneShot)
             }
         });
         hotPlugTimer.start();
-        LOGF_DEBUG("HotPlugManager started with initial polling (1000ms interval, %d times)%s.", MAX_INITIAL_POLL,
-                   this->oneShotMode.load() ? ", then disabled" : ", then event-driven via callback");
+
+        if (maxInitialPolls == MAX_INITIAL_POLL)
+        {
+            LOGF_DEBUG("HotPlugManager started with initial polling (1000ms interval, %d times - default)%s.", maxInitialPolls,
+                       this->oneShotMode.load() ? ", then disabled" : ", then event-driven via callback");
+        }
+        else
+        {
+            LOGF_DEBUG("HotPlugManager started with initial polling (1000ms interval, %d times)%s.", maxInitialPolls,
+                       this->oneShotMode.load() ? ", then disabled" : ", then event-driven via callback");
+        }
     }
     else
 #endif
@@ -253,6 +271,26 @@ void HotPlugManager::setNonUdevPollingDuration(int seconds)
     else
     {
         LOGF_DEBUG("HotPlugManager: Non-udev polling duration set to %d seconds.", seconds);
+    }
+}
+
+void HotPlugManager::setInitialPollingDuration(int seconds)
+{
+    // Clamp the value between 1 and MAX_NON_UDEV_POLL_DURATION_SECONDS, or use -1 for default
+    if (seconds != -1 && seconds > 0)
+    {
+        seconds = std::min(seconds, MAX_NON_UDEV_POLL_DURATION_SECONDS);
+    }
+
+    initialPollingDurationSeconds.store(seconds);
+
+    if (seconds == -1)
+    {
+        LOGF_DEBUG("HotPlugManager: Initial polling duration set to default (%d seconds).", MAX_INITIAL_POLL);
+    }
+    else
+    {
+        LOGF_DEBUG("HotPlugManager: Initial polling duration set to %d seconds.", seconds);
     }
 }
 
