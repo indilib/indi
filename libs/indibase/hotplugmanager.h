@@ -28,6 +28,7 @@
 #include <map>
 #include <thread>   // For std::thread
 #include <atomic>   // For std::atomic_bool
+#include <chrono>   // For std::chrono::steady_clock::time_point
 
 #ifdef HAVE_UDEV
 #include <libudev.h> // For udev hotplugging
@@ -107,6 +108,9 @@ class HotPlugManager
         std::atomic_bool udevMonitorRunning;
         std::atomic_int pollingCount;
         std::atomic_bool oneShotMode;
+        std::chrono::steady_clock::time_point nonUdevPollingStartTime;
+        std::atomic_bool udevEventReceived;
+        INDI::Timer mainThreadDebounceTimer;
 };
 
 } // namespace INDI

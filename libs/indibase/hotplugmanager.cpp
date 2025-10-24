@@ -23,6 +23,7 @@
 #include <algorithm>    // For std::remove_if
 #include <set>          // For std::set to easily find differences
 #include <errno.h>      // For program_invocation_short_name
+#include <chrono>       // For std::chrono::steady_clock
 
 #ifdef HAVE_UDEV
 #include <libudev.h> // For udev
@@ -32,7 +33,13 @@
 namespace INDI
 {
 
-HotPlugManager::HotPlugManager() : udevMonitorRunning(false), pollingCount(0), oneShotMode(false)
+const int MAX_INITIAL_POLL = 5; // Maximum number of initial polls when udev is available
+const int MAX_NON_UDEV_POLL_DURATION_SECONDS = 60; // Maximum duration for non-udev polling in seconds
+const int NON_UDEV_POLL_INTERVAL_MS = 1000; // Default interval for non-udev polling if not specified by driver
+
+
+HotPlugManager::HotPlugManager() : udevMonitorRunning(false), pollingCount(0), oneShotMode(false),
+    udevEventReceived(false) // Initialize udevEventReceived
 {
 #ifdef HAVE_UDEV
     udevContext = nullptr;
@@ -40,6 +47,12 @@ HotPlugManager::HotPlugManager() : udevMonitorRunning(false), pollingCount(0), o
 #endif
     hotPlugTimer.setSingleShot(false); // Timer runs periodically
     hotPlugTimer.callOnTimeout(std::bind(&HotPlugManager::checkHotPlugEvents, this));
+
+    // Initialize mainThreadDebounceTimer for debouncing udev events in the main thread
+    mainThreadDebounceTimer.setSingleShot(true);
+    mainThreadDebounceTimer.setInterval(100);
+    mainThreadDebounceTimer.callOnTimeout(std::bind(&HotPlugManager::checkHotPlugEvents, this));
+
     LOG_DEBUG("HotPlugManager initialized.");
 #ifdef HAVE_UDEV
     initUdev(); // Attempt to initialize udev
@@ -116,41 +129,90 @@ void HotPlugManager::start(uint32_t intervalMs, bool oneShot)
         hotPlugTimer.setInterval(1000); // 1 second interval
         hotPlugTimer.callOnTimeout([this, intervalMs]()
         {
-            checkHotPlugEvents(); // Perform a hotplug check
-            pollingCount++;
-
-            if (pollingCount.load() >= 5)
+            // Phase 1: Initial Polling (if udev is available and not yet completed)
+            if (udevMonitor && udevContext && pollingCount.load() < MAX_INITIAL_POLL)
             {
-                hotPlugTimer.stop(); // Stop the polling timer
+                checkHotPlugEvents(); // Perform a hotplug check
+                pollingCount++;
+                LOGF_DEBUG("HotPlugManager: Initial polling count: %d/%d", pollingCount.load(), MAX_INITIAL_POLL);
 
-                if (this->oneShotMode.load())
+                if (pollingCount.load() >= MAX_INITIAL_POLL)
                 {
-                    LOG_DEBUG("HotPlugManager: Initial polling finished (5 times). Hotplugging disabled (one-shot mode).");
-                }
-                else
-                {
-                    LOG_DEBUG("HotPlugManager: Initial polling finished (5 times). Starting udev event monitoring.");
-                    udevMonitorRunning.store(true);
-                    udevMonitorThread = std::thread(&HotPlugManager::udevEventMonitor, this);
+                    // Initial polling finished. Now switch hotPlugTimer to debounce monitoring mode.
+                    LOGF_DEBUG("HotPlugManager: Initial polling finished (%d times). Switching hotPlugTimer to debounce monitoring mode.",
+                               MAX_INITIAL_POLL);
+                    hotPlugTimer.setInterval(100); // Set a frequent interval for checking debounce flag
+
+                    if (this->oneShotMode.load())
+                    {
+                        LOG_DEBUG("HotPlugManager: Hotplugging disabled (one-shot mode) after initial polling.");
+                        hotPlugTimer.stop(); // Stop hotPlugTimer completely in one-shot mode
+                    }
+                    else
+                    {
+                        // Start udev monitor thread and keep hotPlugTimer running for debounce management
+                        udevMonitorRunning.store(true);
+                        udevMonitorThread = std::thread(&HotPlugManager::udevEventMonitor, this);
+                    }
                 }
             }
-            else
+            // Phase 2: UDEV Event Debounce Monitoring (after initial polling, if udev is available and not one-shot)
+            else if (udevMonitor && udevContext && udevMonitorRunning.load() && !this->oneShotMode.load())
             {
-                LOGF_DEBUG("HotPlugManager: Initial polling count: %d/5", pollingCount.load());
+                if (udevEventReceived.exchange(false)) // Atomically check and reset the flag
+                {
+                    LOG_DEBUG("HotPlugManager: Udev event signaled. Debouncing...");
+                    mainThreadDebounceTimer.start(); // Start/restart the debounce timer
+                }
+            }
+            // Phase 3: Fallback to continuous polling (if udev is not available)
+            else if (!udevMonitor || !udevContext)
+            {
+                checkHotPlugEvents(); // Perform a hotplug check
+
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - nonUdevPollingStartTime).count();
+
+                if (elapsed >= MAX_NON_UDEV_POLL_DURATION_SECONDS)
+                {
+                    hotPlugTimer.stop();
+                    LOGF_DEBUG("HotPlugManager: Non-udev polling stopped after %d seconds (max %d seconds reached).",
+                               elapsed, MAX_NON_UDEV_POLL_DURATION_SECONDS);
+                }
             }
         });
         hotPlugTimer.start();
-        LOGF_DEBUG("HotPlugManager started with initial polling (1000ms interval, 5 times)%s.",
+        LOGF_DEBUG("HotPlugManager started with initial polling (1000ms interval, %d times)%s.", MAX_INITIAL_POLL,
                    this->oneShotMode.load() ? ", then disabled" : ", then udev events");
     }
     else
 #endif
     {
         // Fallback to continuous polling if udev is not available or HAVE_UDEV is not defined
+        // We need to ensure that the polling does not exceed MAX_NON_UDEV_POLL_DURATION_SECONDS
+        // if the driver sets a very long interval.
         hotPlugTimer.setSingleShot(false);
-        hotPlugTimer.setInterval(intervalMs);
+        hotPlugTimer.setInterval(intervalMs); // Use the interval provided by the driver
+        nonUdevPollingStartTime = std::chrono::steady_clock::now(); // Record start time
+
+        hotPlugTimer.callOnTimeout([this, intervalMs]()
+        {
+            checkHotPlugEvents(); // Perform a hotplug check
+
+            // Check if the maximum non-udev polling duration has been reached
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - nonUdevPollingStartTime).count();
+
+            if (elapsed >= MAX_NON_UDEV_POLL_DURATION_SECONDS)
+            {
+                hotPlugTimer.stop();
+                LOGF_DEBUG("HotPlugManager: Non-udev polling stopped after %d seconds (max %d seconds reached).",
+                           elapsed, MAX_NON_UDEV_POLL_DURATION_SECONDS);
+            }
+        });
         hotPlugTimer.start();
-        LOGF_DEBUG("HotPlugManager started with continuous polling interval: %u ms (udev not available)", intervalMs);
+        LOGF_DEBUG("HotPlugManager started with continuous polling interval: %u ms (udev not available). Max duration: %d seconds.",
+                   intervalMs, MAX_NON_UDEV_POLL_DURATION_SECONDS);
     }
 }
 
@@ -197,17 +259,17 @@ void HotPlugManager::checkHotPlugEvents()
     {
         LOG_DEBUG("HotPlugManager: Checking handler for a device type.");
 
-        // 1. Discover currently connected devices
-        std::vector<std::string> discoveredIdentifiers = handler->discoverConnectedDeviceIdentifiers();
-        std::set<std::string> currentConnected(discoveredIdentifiers.begin(), discoveredIdentifiers.end());
-
-        // 2. Get devices currently managed by the handler
-        const std::map<std::string, std::shared_ptr<DefaultDevice>>& managedDevices = handler->getManagedDevices();
+        // 1. Get devices currently managed by the handler
+        std::map<std::string, std::shared_ptr<DefaultDevice>> managedDevices = handler->getManagedDevices(); // This is a copy now
         std::set<std::string> currentlyManaged;
         for (const auto& pair : managedDevices)
         {
             currentlyManaged.insert(pair.first);
         }
+
+        // 2. Discover currently connected devices
+        std::vector<std::string> discoveredIdentifiers = handler->discoverConnectedDeviceIdentifiers();
+        std::set<std::string> currentConnected(discoveredIdentifiers.begin(), discoveredIdentifiers.end());
 
         // 3. Reconcile differences
 
@@ -347,8 +409,8 @@ void HotPlugManager::udevEventMonitor()
                 LOGF_DEBUG("HotPlugManager: udev event: %s %s %s", action ? action : "N/A",
                            subsystem ? subsystem : "N/A", devnode ? devnode : "N/A");
 
-                // Trigger hotplug check for all handlers
-                checkHotPlugEvents();
+                // Signal that a udev event has been received
+                udevEventReceived.store(true);
                 udev_device_unref(dev);
             }
             else

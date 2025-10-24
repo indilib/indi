@@ -248,7 +248,10 @@ if(TRUE)
     add_library(${PROJECT_NAME}_OBJECT OBJECT)
     set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-    target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE "-DHAVE_LIBNOVA")
+    target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE
+        "-DHAVE_LIBNOVA"
+        $<$<BOOL:${UDEV_FOUND}>:-DHAVE_UDEV>
+    )
 
     target_sources(${PROJECT_NAME}_OBJECT
         PUBLIC
