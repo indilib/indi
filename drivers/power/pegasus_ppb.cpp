@@ -324,9 +324,9 @@ bool PegasusPPB::setPowerOnBoot()
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "PE:%d%d%d%d", PowerOnBootSP[POWER_PORT_1].getState() == ISS_ON ? 1 : 0,
-             PowerOnBootSP[POWER_PORT_2].s == ISS_ON ? 1 : 0,
-             PowerOnBootSP[POWER_PORT_3].s == ISS_ON ? 1 : 0,
-             PowerOnBootSP[POWER_PORT_4].s == ISS_ON ? 1 : 0);
+             PowerOnBootSP[POWER_PORT_2].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[POWER_PORT_3].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[POWER_PORT_4].getState() == ISS_ON ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, "PE:1"));
