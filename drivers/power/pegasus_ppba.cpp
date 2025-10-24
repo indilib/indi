@@ -426,9 +426,13 @@ bool PegasusPPBA::setAutoDewEnabled(bool enabled)
 bool PegasusPPBA::setAutoDewAggression(uint8_t value)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "DA:%d", value);
-    // Response is always PD:99
-    return sendCommand(cmd, res);
+    snprintf(cmd, PEGASUS_LEN, "PD:%d", value);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd));
+    }
+
+    return false;
 }
 
 bool PegasusPPBA::setPowerEnabled(uint8_t port, bool enabled)
@@ -700,25 +704,15 @@ bool PegasusPPBA::getConsumptionData()
 bool PegasusPPBA::getAutoDewAggression()
 {
     char res[PEGASUS_LEN] = {0};
-    if (sendCommand("PD:99", res)) // According to protocol, PD:99 reports Auto Dew Aggressiveness
+    if (sendCommand("DA", res))
     {
+
         uint32_t value = 0;
-        // The response is PD:nnn, so we need to parse nnn
-        if (sscanf(res, "PD:%d", &value) == 1)
-        {
-            AutoDewSettingsNP[AUTO_DEW_AGGRESSION].setValue(100 * value / 255);
-            AutoDewSettingsNP.setState(IPS_OK);
-        }
-        else
-        {
-            LOGF_WARN("Failed to parse Auto Dew Aggression response: %s", res);
-            AutoDewSettingsNP.setState(IPS_ALERT);
-        }
+        sscanf(res, "%*[^:]:%d", &value);
+        AutoDewSettingsNP[AUTO_DEW_AGGRESSION].setValue(100 * value / 255);
     }
     else
-    {
         AutoDewSettingsNP.setState(IPS_ALERT);
-    }
 
     AutoDewSettingsNP.apply();
     return AutoDewSettingsNP.getState() != IPS_ALERT;
