@@ -26,7 +26,6 @@
 #include <vector>
 #include <mutex>
 #include <map>
-#include <thread>   // For std::thread
 #include <atomic>   // For std::atomic_bool
 #include <chrono>   // For std::chrono::steady_clock::time_point
 
@@ -86,6 +85,13 @@ class HotPlugManager
          */
         void stop();
 
+        /**
+         * @brief Set the maximum polling duration for non-udev systems (macOS, Windows).
+         * @param seconds Maximum duration in seconds. 0 = unlimited polling, -1 = use default (60 seconds).
+         * @note This only affects systems without udev. Linux with udev uses event-driven monitoring with no time limit.
+         */
+        void setNonUdevPollingDuration(int seconds);
+
     private:
         /**
          * @brief Periodically checks for hot-plug events across all registered handlers.
@@ -93,7 +99,17 @@ class HotPlugManager
         void checkHotPlugEvents();
         bool initUdev();
         void deinitUdev();
-        void udevEventMonitor();
+
+        /**
+         * @brief Handles udev events when the file descriptor becomes readable.
+         * @param fd The udev monitor file descriptor
+         */
+        void handleUdevEvent(int fd);
+
+        /**
+         * @brief Static callback wrapper for the event loop (C linkage compatible).
+         */
+        static void udevCallbackWrapper(int fd, void* userdata);
 
         std::vector<std::shared_ptr<HotPlugCapableDevice>> registeredHandlers;
         INDI::Timer hotPlugTimer;
@@ -102,12 +118,12 @@ class HotPlugManager
 #ifdef HAVE_UDEV
         udev* udevContext;
         udev_monitor* udevMonitor;
-        std::thread udevMonitorThread;
+        int udevCallbackId;  // Callback ID for event loop
 #endif
-        std::atomic_bool udevMonitorRunning;
         std::atomic_int pollingCount;
         std::atomic_bool oneShotMode;
         std::chrono::steady_clock::time_point nonUdevPollingStartTime;
+        std::atomic_int nonUdevPollingDurationSeconds;  // Configurable max duration for non-udev polling (-1 = default 60s, 0 = unlimited)
         std::atomic_bool udevEventReceived;
         INDI::Timer mainThreadDebounceTimer;
 };
