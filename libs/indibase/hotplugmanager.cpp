@@ -27,8 +27,13 @@
 
 #ifdef HAVE_UDEV
 #include <libudev.h> // For udev
-#include <poll.h>    // For poll()
 #endif
+
+// Event loop functions (C API)
+extern "C" {
+    int IEAddCallback(int readfiledes, void (*fp)(int, void *), void *p);
+    void IERmCallback(int callbackid);
+}
 
 namespace INDI
 {
@@ -38,12 +43,13 @@ const int MAX_NON_UDEV_POLL_DURATION_SECONDS = 60; // Maximum duration for non-u
 const int NON_UDEV_POLL_INTERVAL_MS = 1000; // Default interval for non-udev polling if not specified by driver
 
 
-HotPlugManager::HotPlugManager() : udevMonitorRunning(false), pollingCount(0), oneShotMode(false),
-    udevEventReceived(false) // Initialize udevEventReceived
+HotPlugManager::HotPlugManager() : pollingCount(0), oneShotMode(false),
+    nonUdevPollingDurationSeconds(-1), udevEventReceived(false) // Initialize with -1 (use default 60s)
 {
 #ifdef HAVE_UDEV
     udevContext = nullptr;
     udevMonitor = nullptr;
+    udevCallbackId = -1;
 #endif
     hotPlugTimer.setSingleShot(false); // Timer runs periodically
     hotPlugTimer.callOnTimeout(std::bind(&HotPlugManager::checkHotPlugEvents, this));
@@ -112,7 +118,7 @@ void HotPlugManager::unregisterHandler(std::shared_ptr<HotPlugCapableDevice> han
 
 void HotPlugManager::start(uint32_t intervalMs, bool oneShot)
 {
-    if (hotPlugTimer.isActive() || udevMonitorRunning.load())
+    if (hotPlugTimer.isActive())
     {
         LOG_DEBUG("HotPlugManager already running.");
         return;
@@ -122,15 +128,15 @@ void HotPlugManager::start(uint32_t intervalMs, bool oneShot)
     pollingCount.store(0); // Reset polling count on start
 
 #ifdef HAVE_UDEV
-    if (udevMonitor && udevContext)
+    if (udevMonitor && udevContext && udevCallbackId >= 0)
     {
-        // Initial polling for 5 times (1000ms interval)
-        hotPlugTimer.setSingleShot(false); // Keep polling until count reached
+        // Event-driven mode: udev events handled by event loop callback
+        // Initial polling for 5 times (1000ms interval) to detect already connected devices
+        hotPlugTimer.setSingleShot(false);
         hotPlugTimer.setInterval(1000); // 1 second interval
-        hotPlugTimer.callOnTimeout([this, intervalMs]()
+        hotPlugTimer.callOnTimeout([this]()
         {
-            // Phase 1: Initial Polling (if udev is available and not yet completed)
-            if (udevMonitor && udevContext && pollingCount.load() < MAX_INITIAL_POLL)
+            if (pollingCount.load() < MAX_INITIAL_POLL)
             {
                 checkHotPlugEvents(); // Perform a hotplug check
                 pollingCount++;
@@ -138,81 +144,78 @@ void HotPlugManager::start(uint32_t intervalMs, bool oneShot)
 
                 if (pollingCount.load() >= MAX_INITIAL_POLL)
                 {
-                    // Initial polling finished. Now switch hotPlugTimer to debounce monitoring mode.
-                    LOGF_DEBUG("HotPlugManager: Initial polling finished (%d times). Switching hotPlugTimer to debounce monitoring mode.",
-                               MAX_INITIAL_POLL);
-                    hotPlugTimer.setInterval(100); // Set a frequent interval for checking debounce flag
+                    LOGF_DEBUG("HotPlugManager: Initial polling finished (%d times).", MAX_INITIAL_POLL);
+                    hotPlugTimer.stop();
 
                     if (this->oneShotMode.load())
                     {
                         LOG_DEBUG("HotPlugManager: Hotplugging disabled (one-shot mode) after initial polling.");
-                        hotPlugTimer.stop(); // Stop hotPlugTimer completely in one-shot mode
                     }
                     else
                     {
-                        // Start udev monitor thread and keep hotPlugTimer running for debounce management
-                        udevMonitorRunning.store(true);
-                        udevMonitorThread = std::thread(&HotPlugManager::udevEventMonitor, this);
+                        LOG_DEBUG("HotPlugManager: Now monitoring udev events via event loop callback.");
+                        // The event loop callback will trigger handleUdevEvent() when devices change
+                        // No more timer needed - completely event-driven!
                     }
-                }
-            }
-            // Phase 2: UDEV Event Debounce Monitoring (after initial polling, if udev is available and not one-shot)
-            else if (udevMonitor && udevContext && udevMonitorRunning.load() && !this->oneShotMode.load())
-            {
-                if (udevEventReceived.exchange(false)) // Atomically check and reset the flag
-                {
-                    LOG_DEBUG("HotPlugManager: Udev event signaled. Debouncing...");
-                    mainThreadDebounceTimer.start(); // Start/restart the debounce timer
-                }
-            }
-            // Phase 3: Fallback to continuous polling (if udev is not available)
-            else if (!udevMonitor || !udevContext)
-            {
-                checkHotPlugEvents(); // Perform a hotplug check
-
-                auto now = std::chrono::steady_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - nonUdevPollingStartTime).count();
-
-                if (elapsed >= MAX_NON_UDEV_POLL_DURATION_SECONDS)
-                {
-                    hotPlugTimer.stop();
-                    LOGF_DEBUG("HotPlugManager: Non-udev polling stopped after %d seconds (max %d seconds reached).",
-                               elapsed, MAX_NON_UDEV_POLL_DURATION_SECONDS);
                 }
             }
         });
         hotPlugTimer.start();
         LOGF_DEBUG("HotPlugManager started with initial polling (1000ms interval, %d times)%s.", MAX_INITIAL_POLL,
-                   this->oneShotMode.load() ? ", then disabled" : ", then udev events");
+                   this->oneShotMode.load() ? ", then disabled" : ", then event-driven via callback");
     }
     else
 #endif
     {
         // Fallback to continuous polling if udev is not available or HAVE_UDEV is not defined
-        // We need to ensure that the polling does not exceed MAX_NON_UDEV_POLL_DURATION_SECONDS
-        // if the driver sets a very long interval.
         hotPlugTimer.setSingleShot(false);
         hotPlugTimer.setInterval(intervalMs); // Use the interval provided by the driver
         nonUdevPollingStartTime = std::chrono::steady_clock::now(); // Record start time
 
-        hotPlugTimer.callOnTimeout([this, intervalMs]()
+        hotPlugTimer.callOnTimeout([this]()
         {
             checkHotPlugEvents(); // Perform a hotplug check
 
-            // Check if the maximum non-udev polling duration has been reached
-            auto now = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - nonUdevPollingStartTime).count();
-
-            if (elapsed >= MAX_NON_UDEV_POLL_DURATION_SECONDS)
+            // Determine the maximum duration based on configuration
+            int maxDuration = nonUdevPollingDurationSeconds.load();
+            if (maxDuration == -1)
             {
-                hotPlugTimer.stop();
-                LOGF_DEBUG("HotPlugManager: Non-udev polling stopped after %d seconds (max %d seconds reached).",
-                           elapsed, MAX_NON_UDEV_POLL_DURATION_SECONDS);
+                maxDuration = MAX_NON_UDEV_POLL_DURATION_SECONDS; // Use default
+            }
+
+            // Check if the maximum non-udev polling duration has been reached (0 = unlimited)
+            if (maxDuration > 0)
+            {
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - nonUdevPollingStartTime).count();
+
+                if (elapsed >= maxDuration)
+                {
+                    hotPlugTimer.stop();
+                    LOGF_DEBUG("HotPlugManager: Non-udev polling stopped after %d seconds (max %d seconds reached).",
+                               elapsed, maxDuration);
+                }
             }
         });
         hotPlugTimer.start();
-        LOGF_DEBUG("HotPlugManager started with continuous polling interval: %u ms (udev not available). Max duration: %d seconds.",
-                   intervalMs, MAX_NON_UDEV_POLL_DURATION_SECONDS);
+
+        // Log the configured duration
+        int maxDuration = nonUdevPollingDurationSeconds.load();
+        if (maxDuration == -1)
+        {
+            LOGF_DEBUG("HotPlugManager started with continuous polling interval: %u ms (udev not available). Max duration: %d seconds (default).",
+                       intervalMs, MAX_NON_UDEV_POLL_DURATION_SECONDS);
+        }
+        else if (maxDuration == 0)
+        {
+            LOGF_DEBUG("HotPlugManager started with continuous polling interval: %u ms (udev not available). Max duration: unlimited.",
+                       intervalMs);
+        }
+        else
+        {
+            LOGF_DEBUG("HotPlugManager started with continuous polling interval: %u ms (udev not available). Max duration: %d seconds.",
+                       intervalMs, maxDuration);
+        }
     }
 }
 
@@ -224,30 +227,33 @@ void HotPlugManager::stop()
         LOG_DEBUG("HotPlugManager stopped polling timer.");
     }
 
-#ifdef HAVE_UDEV
-    if (udevMonitorRunning.load())
+    // Stop the debounce timer if active
+    if (mainThreadDebounceTimer.isActive())
     {
-        udevMonitorRunning.store(false);
-        if (udevMonitorThread.joinable())
-        {
-            // To unblock select() in udevEventMonitor, we need to close the FD
-            // This will cause select() to return with an error, and the thread can exit.
-            // However, closing the FD here might affect other udev operations if any.
-            // A more robust way would be to use a pipe to signal the thread to exit.
-            // For now, we'll rely on the atomic flag and a short timeout in select.
-            // Or, if the FD is closed, select will return -1 and errno will be EBADF.
-            // For simplicity, we'll just set the flag and join.
-            // The udevEventMonitor will need to handle the shutdown gracefully.
-            LOG_DEBUG("HotPlugManager: Joining udev monitor thread.");
-            udevMonitorThread.join();
-            LOG_DEBUG("HotPlugManager: udev monitor thread joined.");
-        }
+        mainThreadDebounceTimer.stop();
+        LOG_DEBUG("HotPlugManager stopped debounce timer.");
     }
-#else
+
+    // Note: The event loop callback remains registered and will be cleaned up
+    // when deinitUdev() is called in the destructor
+}
+
+void HotPlugManager::setNonUdevPollingDuration(int seconds)
+{
+    nonUdevPollingDurationSeconds.store(seconds);
+
+    if (seconds == -1)
     {
-        LOG_DEBUG("HotPlugManager not running.");
+        LOGF_DEBUG("HotPlugManager: Non-udev polling duration set to default (%d seconds).", MAX_NON_UDEV_POLL_DURATION_SECONDS);
     }
-#endif
+    else if (seconds == 0)
+    {
+        LOG_DEBUG("HotPlugManager: Non-udev polling duration set to unlimited.");
+    }
+    else
+    {
+        LOGF_DEBUG("HotPlugManager: Non-udev polling duration set to %d seconds.", seconds);
+    }
 }
 
 void HotPlugManager::checkHotPlugEvents()
@@ -342,12 +348,43 @@ bool HotPlugManager::initUdev()
         return false;
     }
 
-    LOG_DEBUG("HotPlugManager: udev monitor initialized successfully.");
+    // Register the udev file descriptor with the event loop
+    int fd = udev_monitor_get_fd(udevMonitor);
+    if (fd < 0)
+    {
+        LOG_ERROR("HotPlugManager: Failed to get udev monitor file descriptor.");
+        udev_monitor_unref(udevMonitor);
+        udevMonitor = nullptr;
+        udev_unref(udevContext);
+        udevContext = nullptr;
+        return false;
+    }
+
+    udevCallbackId = IEAddCallback(fd, udevCallbackWrapper, this);
+    if (udevCallbackId < 0)
+    {
+        LOG_ERROR("HotPlugManager: Failed to register udev callback with event loop.");
+        udev_monitor_unref(udevMonitor);
+        udevMonitor = nullptr;
+        udev_unref(udevContext);
+        udevContext = nullptr;
+        return false;
+    }
+
+    LOGF_DEBUG("HotPlugManager: udev monitor initialized successfully (callback ID: %d).", udevCallbackId);
     return true;
 }
 
 void HotPlugManager::deinitUdev()
 {
+    // Unregister the event loop callback
+    if (udevCallbackId >= 0)
+    {
+        IERmCallback(udevCallbackId);
+        udevCallbackId = -1;
+        LOG_DEBUG("HotPlugManager: udev callback unregistered from event loop.");
+    }
+
     if (udevMonitor)
     {
         udev_monitor_unref(udevMonitor);
@@ -364,62 +401,44 @@ void HotPlugManager::deinitUdev()
 #endif
 
 #ifdef HAVE_UDEV
-void HotPlugManager::udevEventMonitor()
+// Static callback wrapper for the event loop
+void HotPlugManager::udevCallbackWrapper(int fd, void* userdata)
 {
-    int fd = udev_monitor_get_fd(udevMonitor);
-    if (fd < 0)
+    INDI_UNUSED(fd);
+    HotPlugManager* manager = static_cast<HotPlugManager*>(userdata);
+    if (manager)
     {
-        LOG_ERROR("HotPlugManager: Failed to get udev monitor file descriptor.");
-        udevMonitorRunning.store(false);
-        return;
+        manager->handleUdevEvent(fd);
     }
+}
 
-    struct pollfd fds[1];
-    fds[0].fd = fd;
-    fds[0].events = POLLIN;
+// Handle udev events when the file descriptor becomes readable
+void HotPlugManager::handleUdevEvent(int fd)
+{
+    INDI_UNUSED(fd);
 
-    while (udevMonitorRunning.load())
+    udev_device* dev = udev_monitor_receive_device(udevMonitor);
+    if (dev)
     {
-        // Use poll with a timeout to allow the thread to check udevMonitorRunning flag
-        int ret = poll(fds, 1, 1000); // 1 second timeout
+        const char* action = udev_device_get_action(dev);
+        const char* subsystem = udev_device_get_subsystem(dev);
+        const char* devnode = udev_device_get_devnode(dev);
 
-        if (ret < 0)
-        {
-            if (errno != EINTR) // Ignore interrupted system calls
-            {
-                LOGF_DEBUG("HotPlugManager: poll failed: %s", strerror(errno));
-            }
-            continue;
-        }
+        LOGF_DEBUG("HotPlugManager: udev event: %s %s %s", action ? action : "N/A",
+                   subsystem ? subsystem : "N/A", devnode ? devnode : "N/A");
 
-        if (ret == 0) // Timeout
-        {
-            continue;
-        }
+        // Signal that a udev event has been received
+        udevEventReceived.store(true);
 
-        if (fds[0].revents & POLLIN)
-        {
-            udev_device* dev = udev_monitor_receive_device(udevMonitor);
-            if (dev)
-            {
-                const char* action = udev_device_get_action(dev);
-                const char* subsystem = udev_device_get_subsystem(dev);
-                const char* devnode = udev_device_get_devnode(dev);
+        // Start/restart the debounce timer
+        mainThreadDebounceTimer.start();
 
-                LOGF_DEBUG("HotPlugManager: udev event: %s %s %s", action ? action : "N/A",
-                           subsystem ? subsystem : "N/A", devnode ? devnode : "N/A");
-
-                // Signal that a udev event has been received
-                udevEventReceived.store(true);
-                udev_device_unref(dev);
-            }
-            else
-            {
-                LOG_ERROR("HotPlugManager: udev_monitor_receive_device returned null.");
-            }
-        }
+        udev_device_unref(dev);
     }
-    LOG_DEBUG("HotPlugManager: udev event monitor stopped.");
+    else
+    {
+        LOG_ERROR("HotPlugManager: udev_monitor_receive_device returned null.");
+    }
 }
 #endif
 
