@@ -75,7 +75,7 @@ bool SkywatcherAPIMount::Handshake()
     {
         tty_set_generic_udp_format(1);
         // reset connection in case of packet loss
-        tty_set_auto_reset_udp_session(1); 
+        tty_set_auto_reset_udp_session(1);
     }
 
     SetSerialPort(PortFD);
@@ -1657,13 +1657,13 @@ bool SkywatcherAPIMount::trackUsingPID()
         // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
         // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
         double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
-        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        m_SkyTrackingTarget.rightascension += dRA / (3600.0 * 15.0);
         m_TrackingRateTimer.restart();
     }
     else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
         double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
-        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        m_SkyTrackingTarget.rightascension += dRA / (3600.0 * 15.0);
         m_TrackingRateTimer.restart();
     }
 
