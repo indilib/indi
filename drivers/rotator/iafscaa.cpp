@@ -233,7 +233,7 @@ bool iAFSRotator::getFirmware()
     tcflush(PortFD, TCIOFLUSH);
     resp[nbytes_read] = '\0';
     sscanf(resp, "%12s", joefirmwareinfo);
-    rc = sscanf(resp, "%6s%6s", &iafsfirm, &caafirm);
+    rc = sscanf(resp, "%6s%6s", iafsfirm, caafirm);
     FirmwareTP[0].setText(caafirm);
     FirmwareTP.apply();
     return true;
@@ -851,4 +851,5 @@ bool iAFSRotator::ISNewNumber (const char * dev, const char * name, double value
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
+
 
