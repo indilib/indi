@@ -25,6 +25,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "indipowerinterface.h" // Include the PowerInterface header
 
 #include <vector>
 #include <stdint.h>
@@ -33,13 +34,13 @@
 
 namespace Connection
 {
-  class Serial;
+class Serial;
 }
 
-class TerransPowerBoxGoV2 : public INDI::DefaultDevice
+class TerransPowerBoxGoV2 : public INDI::DefaultDevice, public INDI::PowerInterface
 {
-public:
-    TerransPowerBoxGoV2();
+    public:
+        TerransPowerBoxGoV2();
     public:
         virtual ~TerransPowerBoxGoV2() = default;
         virtual bool initProperties() override;
@@ -47,61 +48,39 @@ public:
         virtual void TimerHit() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-             
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[],
+                                 int n) override; // Add ISNewNumber
+
     protected:
         virtual const char *getDefaultName() override;
         virtual bool saveConfigItems(FILE *fp) override;
-        
-    private:           
+
+        // Implement virtual methods from INDI::PowerInterface
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
+        virtual bool SetUSBPort(size_t port, bool enabled) override;
+
+    private:
         bool Handshake();
         bool sendCommand(const char * cmd, char * res);
         int PortFD{-1};
-       
+
         bool setupComplete { false };
-        bool processButtonSwitch(const char *dev, const char *name, ISState *states, char *names[],int n);
-        
+        bool processButtonSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+
         void Get_State();
 
         Connection::Serial *serialConnection { nullptr };
-        
-        const char *ConfigRenameDCA { nullptr };
-        const char *ConfigRenameDCB { nullptr };
-        const char *ConfigRenameDCC { nullptr };
-        const char *ConfigRenameDCD { nullptr };
-        const char *ConfigRenameDCE { nullptr };
-        const char *ConfigRenameUSBA { nullptr };
-        const char *ConfigRenameUSBB { nullptr };
-        const char *ConfigRenameUSBE { nullptr };
-        const char *ConfigRenameUSBF { nullptr };
-         
-        //Power Switch
-        INDI::PropertySwitch DCASP {2};
-        INDI::PropertySwitch DCBSP {2};
-        INDI::PropertySwitch DCCSP {2};
-        INDI::PropertySwitch DCDSP {2};
-        INDI::PropertySwitch DCESP {2};
-        
-        INDI::PropertySwitch USBASP {2};
-        INDI::PropertySwitch USBBSP {2};
-        INDI::PropertySwitch USBESP {2};
-        INDI::PropertySwitch USBFSP {2};
-        
-        INDI::PropertySwitch StateSaveSP {2};     
-               
-        //Sensor Date
-        INDI::PropertyNumber InputVotageNP {1};
-        
-        INDI::PropertyNumber InputCurrentNP {1};
-        
-        INDI::PropertyNumber PowerNP {4};     
-  
+
+        // Removed manual property declarations, now handled by INDI::PowerInterface
+        // Retained MCUTempNP as it's not power-related
         INDI::PropertyNumber MCUTempNP {1};
-        
-        //save name
-        INDI::PropertyText RenameTP {14};
-        
+        INDI::PropertySwitch StateSaveSP {2};
+
         static constexpr const char *ADD_SETTING_TAB {"Additional Settings"};
-        
+
 };
-
-

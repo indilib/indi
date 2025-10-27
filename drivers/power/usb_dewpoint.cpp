@@ -33,7 +33,7 @@
 
 std::unique_ptr<USBDewpoint> usbDewpoint(new USBDewpoint());
 
-USBDewpoint::USBDewpoint()
+USBDewpoint::USBDewpoint() : INDI::PowerInterface(this)
 {
     setVersion(1, 2);
 }
@@ -42,11 +42,14 @@ bool USBDewpoint::initProperties()
 {
     DefaultDevice::initProperties();
 
+    SetCapability(INDI::PowerInterface::POWER_HAS_DEW_OUT | INDI::PowerInterface::POWER_HAS_AUTO_DEW);
+    INDI::PowerInterface::initProperties(POWER_TAB, 0, 3, 0, 1, 0);
+
     /* Channel duty cycles */
-    OutputsNP[0].fill("CHANNEL1", "Channel 1", "%3.0f", 0., 100., 10., 0.);
-    OutputsNP[1].fill("CHANNEL2", "Channel 2", "%3.0f", 0., 100., 10., 0.);
-    OutputsNP[2].fill("CHANNEL3", "Channel 3", "%3.0f", 0., 100., 10., 0.);
-    OutputsNP.fill(getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    // OutputsNP[0].fill("CHANNEL1", "Channel 1", "%3.0f", 0., 100., 10., 0.);
+    // OutputsNP[1].fill("CHANNEL2", "Channel 2", "%3.0f", 0., 100., 10., 0.);
+    // OutputsNP[2].fill("CHANNEL3", "Channel 3", "%3.0f", 0., 100., 10., 0.);
+    // OutputsNP.fill(getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Temperatures */
     TemperaturesNP[0].fill("CHANNEL1", "Channel 1", "%3.2f", -50., 70., 0., 0.);
@@ -78,9 +81,9 @@ bool USBDewpoint::initProperties()
     AggressivityNP.fill(getDeviceName(), "AGGRESSIVITY", "Aggressivity", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /*  Automatic mode enable */
-    AutoModeSP[0].fill("MANUAL", "Manual", ISS_OFF);
-    AutoModeSP[1].fill("AUTO", "Automatic", ISS_ON);
-    AutoModeSP.fill(getDeviceName(), "MODE", "Operating mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    // AutoModeSP[0].fill("MANUAL", "Manual", ISS_OFF);
+    // AutoModeSP[1].fill("AUTO", "Automatic", ISS_ON);
+    // AutoModeSP.fill(getDeviceName(), "MODE", "Operating mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Link channel 2 & 3 */
     LinkOut23SP[0].fill("INDEPENDENT", "Independent", ISS_ON);
@@ -95,7 +98,7 @@ bool USBDewpoint::initProperties()
     FWversionNP[0].fill("FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
     FWversionNP.fill(getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
 
     addDebugControl();
     addConfigurationControl();
@@ -117,17 +120,18 @@ bool USBDewpoint::initProperties()
 bool USBDewpoint::updateProperties()
 {
     DefaultDevice::updateProperties();
+    INDI::PowerInterface::updateProperties();
 
     if (isConnected())
     {
-        defineProperty(OutputsNP);
+        // defineProperty(OutputsNP); // Handled by PowerInterface
         defineProperty(TemperaturesNP);
         defineProperty(HumidityNP);
         defineProperty(DewpointNP);
         defineProperty(CalibrationsNP);
         defineProperty(ThresholdsNP);
         defineProperty(AggressivityNP);
-        defineProperty(AutoModeSP);
+        // defineProperty(AutoModeSP); // Handled by PowerInterface
         defineProperty(LinkOut23SP);
         defineProperty(ResetSP);
         defineProperty(FWversionNP);
@@ -139,14 +143,14 @@ bool USBDewpoint::updateProperties()
     }
     else
     {
-        deleteProperty(OutputsNP);
+        // deleteProperty(OutputsNP); // Handled by PowerInterface
         deleteProperty(TemperaturesNP);
         deleteProperty(HumidityNP);
         deleteProperty(DewpointNP);
         deleteProperty(CalibrationsNP);
         deleteProperty(ThresholdsNP);
         deleteProperty(AggressivityNP);
-        deleteProperty(AutoModeSP);
+        // deleteProperty(AutoModeSP); // Handled by PowerInterface
         deleteProperty(LinkOut23SP);
         deleteProperty(ResetSP);
         deleteProperty(FWversionNP);
@@ -325,6 +329,18 @@ bool USBDewpoint::setAutoMode(bool enable)
     return sendCommand(cmd, resp);
 }
 
+bool USBDewpoint::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    return setAutoMode(enabled);
+}
+
+bool USBDewpoint::SetDewPort(size_t port, bool enabled, double dutyCycle)
+{
+    INDI_UNUSED(enabled);
+    return setOutput(port + 1, static_cast<unsigned int>(dutyCycle));
+}
+
 bool USBDewpoint::setLinkMode(bool enable)
 {
     char cmd[UDP_CMD_LEN + 1];
@@ -334,21 +350,63 @@ bool USBDewpoint::setLinkMode(bool enable)
     return sendCommand(cmd, resp);
 }
 
+bool USBDewpoint::SetPowerPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    LOG_DEBUG("SetPowerPort not supported by USB_Dewpoint.");
+    return false;
+}
+
+bool USBDewpoint::SetVariablePort(size_t port, bool enabled, double voltage)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    INDI_UNUSED(voltage);
+    LOG_DEBUG("SetVariablePort not supported by USB_Dewpoint.");
+    return false;
+}
+
+bool USBDewpoint::SetLEDEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    LOG_DEBUG("SetLEDEnabled not supported by USB_Dewpoint.");
+    return false;
+}
+
+bool USBDewpoint::CyclePower()
+{
+    LOG_DEBUG("CyclePower not supported by USB_Dewpoint.");
+    return false;
+}
+
+bool USBDewpoint::SetUSBPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    LOG_DEBUG("SetUSBPort not supported by USB_Dewpoint.");
+    return false;
+}
+
 bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (AutoModeSP.isNameMatch(name))
-    {
-        AutoModeSP.update(states, names, n);
-        int target_mode = AutoModeSP.findOnSwitchIndex();
-        AutoModeSP.setState(IPS_BUSY);
-        AutoModeSP.apply();
-        setAutoMode(target_mode == 1);
-        readSettings();
+    if (INDI::PowerInterface::processSwitch(dev, name, states, names, n))
         return true;
-    }
+
+    // AutoModeSP is now handled by PowerInterface
+    // if (AutoModeSP.isNameMatch(name))
+    // {
+    //     AutoModeSP.update(states, names, n);
+    //     int target_mode = AutoModeSP.findOnSwitchIndex();
+    //     AutoModeSP.setState(IPS_BUSY);
+    //     AutoModeSP.apply();
+    //     setAutoMode(target_mode == 1);
+    //     readSettings();
+    //     return true;
+    // }
     if (LinkOut23SP.isNameMatch(name))
     {
         LinkOut23SP.update(states, names, n);
@@ -380,28 +438,43 @@ bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool USBDewpoint::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (INDI::PowerInterface::processText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+}
+
 bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (OutputsNP.isNameMatch(name))
-    {
-        // Warn if we are in auto mode
-        if (AutoModeSP.findOnSwitchIndex() == 1)
-        {
-            LOG_WARN("Setting output power is ignored in auto mode!");
-            return true;
-        }
-        OutputsNP.update(values, names, n);
-        OutputsNP.setState(IPS_BUSY);
-        OutputsNP.apply();
-        setOutput(1, OutputsNP[0].getValue());
-        setOutput(2, OutputsNP[1].getValue());
-        setOutput(3, OutputsNP[2].getValue());
-        readSettings();
+    if (INDI::PowerInterface::processNumber(dev, name, values, names, n))
         return true;
-    }
+
+    // OutputsNP is now handled by PowerInterface
+    // if (OutputsNP.isNameMatch(name))
+    // {
+    //     // Warn if we are in auto mode
+    //     if (AutoModeSP.findOnSwitchIndex() == 1)
+    //     {
+    //         LOG_WARN("Setting output power is ignored in auto mode!");
+    //         return true;
+    //     }
+    //     OutputsNP.update(values, names, n);
+    //     OutputsNP.setState(IPS_BUSY);
+    //     OutputsNP.apply();
+    //     setOutput(1, OutputsNP[0].getValue());
+    //     setOutput(2, OutputsNP[1].getValue());
+    //     setOutput(3, OutputsNP[2].getValue());
+    //     readSettings();
+    //     return true;
+    // }
     if (CalibrationsNP.isNameMatch(name))
     {
         CalibrationsNP.update(values, names, n);
@@ -476,11 +549,11 @@ bool USBDewpoint::readSettings()
         DewpointNP.setState(IPS_OK);
         DewpointNP.apply();
 
-        OutputsNP[0].setValue(output1);
-        OutputsNP[1].setValue(output2);
-        OutputsNP[2].setValue(output3);
-        OutputsNP.setState(IPS_OK);
-        OutputsNP.apply();
+        DewChannelsSP[0].setState(output1 > 0 ? ISS_ON : ISS_OFF);
+        DewChannelsSP[1].setState(output2 > 0 ? ISS_ON : ISS_OFF);
+        DewChannelsSP[2].setState(output3 > 0 ? ISS_ON : ISS_OFF);
+        DewChannelsSP.setState(IPS_OK);
+        DewChannelsSP.apply();
 
         CalibrationsNP[0].setValue(calibration1);
         CalibrationsNP[1].setValue(calibration2);
@@ -493,10 +566,10 @@ bool USBDewpoint::readSettings()
         ThresholdsNP.setState(IPS_OK);
         ThresholdsNP.apply();
 
-        AutoModeSP.reset();
-        AutoModeSP[automode].setState(ISS_ON);
-        AutoModeSP.setState(IPS_OK);
-        AutoModeSP.apply();
+        AutoDewSP.reset();
+        AutoDewSP[automode].setState(ISS_ON);
+        AutoDewSP.setState(IPS_OK);
+        AutoDewSP.apply();
 
         LinkOut23SP.reset();
         LinkOut23SP[linkout23].setState(ISS_ON);
@@ -520,4 +593,15 @@ void USBDewpoint::TimerHit()
     // Get temperatures etc.
     readSettings();
     SetTimer(getCurrentPollingPeriod());
+}
+
+bool USBDewpoint::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+    INDI::PowerInterface::saveConfigItems(fp);
+    LinkOut23SP.save(fp);
+    AggressivityNP.save(fp);
+    CalibrationsNP.save(fp);
+    ThresholdsNP.save(fp);
+    return true;
 }

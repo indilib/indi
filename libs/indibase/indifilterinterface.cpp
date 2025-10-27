@@ -90,7 +90,7 @@ bool FilterInterface::processNumber(const char *dev, const char *name, double va
         {
             FilterSlotNP.setState(IPS_ALERT);
             DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
-                         "Error: requested slot %d is invalid (Range from %.2f to %.2f",
+                         "Error: requested slot %d is invalid (Range from %.f to %.f",
                          static_cast<int>(TargetFilter), FilterSlotNP[0].getMin(), FilterSlotNP[0].getMax());
             FilterSlotNP.apply();
             return false;

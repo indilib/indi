@@ -21,6 +21,7 @@
 #pragma once
 
 #include <defaultdevice.h>
+#include <indipowerinterface.h>
 
 /***************************** USB_Dewpoint Commands **************************/
 
@@ -77,7 +78,7 @@ namespace Connection
 class Serial;
 };
 
-class USBDewpoint : public INDI::DefaultDevice
+class USBDewpoint : public INDI::DefaultDevice, public INDI::PowerInterface
 {
     public:
         USBDewpoint();
@@ -88,7 +89,18 @@ class USBDewpoint : public INDI::DefaultDevice
         virtual bool updateProperties() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual void TimerHit() override;
+
+    protected:
+        virtual bool SetPowerPort(size_t port, bool enabled) override;
+        virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
+        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
+        virtual bool SetLEDEnabled(bool enabled) override;
+        virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
+        virtual bool SetUSBPort(size_t port, bool enabled) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         bool sendCommand(const char *cmd, char *response);
