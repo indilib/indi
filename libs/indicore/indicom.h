@@ -232,6 +232,22 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
  */
 int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read);
 
+/** \brief read buffer from terminal with a delimiter
+ *  \param fd file descriptor
+ *  \param buf pointer to store data. Must be initialized and big enough to hold data.
+ *  \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
+ *  \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
+ *  \param timeout number of seconds to wait for terminal before a timeout error is issued.
+ *
+ *  (Total Timeout is timeout_seconds + timeout_microseconds)
+ *  \param timeout_microseconds number of microseconds to wait for terminal before a timeout error is issued.
+ *
+ *  \param nbytes_read the number of bytes read.
+ *  \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+ */
+int tty_nread_section_expanded(int fd, char *buf, int nsize, char stop_char, long timeout_seconds, long timeout_microseconds,
+                               int *nbytes_read);
+
 /** \brief Writes a buffer to fd.
  *  \param fd file descriptor
  *  \param buffer a null-terminated buffer to write to fd.
@@ -285,6 +301,28 @@ void tty_clr_trailing_read_lf(int enabled);
 int tty_timeout(int fd, int timeout);
 
 int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds);
+
+
+/** \brief create new UDP session to prevent packet conflict
+ *
+ * Create a new UDP connection socket (and thus new session) and replace existing descriptor with it (using dup2)
+ *
+ * Note: it is effective if and only if \a tty_set_generic_udp_format is enabled
+ * 
+ * \param fd file descriptor of UDP socket
+ * \param only_if_timeout_happened of 0 create always, if 1 do it if there was IO timout on the socket in past, resets this flag
+ */
+void tty_reset_udp_session(int fd,int only_if_timeout_happened);
+
+/** \brief automatically reset UDP session on write
+  *
+  * Allows reset UDP session automatically if error/timeout or on every IO to prevent packet misshandling
+  * in protocols that do not mark request/response relation by design
+  *
+  * \param flag 0 - disable, 1 - reset only if read timeout happened, 2 - every write regardless of timeout
+  */
+void tty_set_auto_reset_udp_session(int flag);
+
 
 /* @} */
 

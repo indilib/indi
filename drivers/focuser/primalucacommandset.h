@@ -154,6 +154,7 @@ class Focuser
         // Firmware
         bool getSerialNumber(std::string &response);
         bool getFirmwareVersion(std::string &response);
+        bool getModel(std::string &model); // Moved from Communication
 
         // Backlash
         bool setBacklash(uint32_t steps);
@@ -177,6 +178,11 @@ class SestoSenso2 : public Focuser
     public:
         SestoSenso2(const std::string &name, int port);
 
+        const char *getDeviceName()
+        {
+            return m_Communication->getDeviceName();
+        }
+
         // Presets
         bool applyMotorPreset(const std::string &name);
         bool setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
@@ -188,10 +194,29 @@ class SestoSenso2 : public Focuser
         bool setMotorHold(bool hold);
 
         // Calibration
-        bool initCalibration();
-        bool storeAsMaxPosition();
-        bool storeAsMinPosition();
-        bool goOutToFindMaxPos();
+        bool initCalibration(); // Manual calibration init
+        bool storeAsMaxPosition(); // Manual calibration store max
+        bool storeAsMinPosition(); // Manual calibration store min
+        bool goOutToFindMaxPos(); // Manual calibration go out to find max
+
+        // SestoSenso3 Specific Calibration
+        bool initSemiAutoCalibration();
+        bool goInToFindMinPos();
+        bool stopMotor();
+        bool moveIn(uint32_t steps);
+        bool moveOut(uint32_t steps);
+        bool goOutToFindMaxPosSemiAuto();
+        bool storeAsMaxPosSemiAuto();
+        bool startAutoCalibration();
+        bool stopCalibration();
+
+        // SestoSenso3 Recovery Delay
+        bool setRecoveryDelay(int32_t delay);
+        bool getRecoveryDelay(int32_t &delay);
+        bool getModel(std::string &model); // Added to SestoSenso2
+        
+        // SestoSenso3 Model Detection
+        bool getSubModel(std::string &submodel);
 };
 
 /*****************************************************************************************
@@ -209,6 +234,7 @@ class Esatto : public Focuser
 
         // Sensors
         bool getVoltageUSB(double &value);
+        bool getModel(std::string &model); // Added to Esatto
 };
 
 /*****************************************************************************************
@@ -248,6 +274,7 @@ class Arco
         // Firmware
         bool getSerialNumber(std::string &response);
         bool getFirmwareVersion(std::string &response);
+        bool getModel(std::string &model); // Added to Arco
 
     private:
         std::unique_ptr<Communication> m_Communication;
@@ -271,6 +298,7 @@ class GIOTTO
         bool getMaxBrightness(uint16_t &value);
         bool setBrightness(uint16_t value);
         bool getBrightness(uint16_t &value);
+        bool getModel(std::string &model); // Added to GIOTTO
 
 private:
     std::unique_ptr<Communication> m_Communication;
@@ -288,8 +316,6 @@ public:
 
     // Status
     bool getStatus(json &status);
-    // Model
-    bool getModel(std::string &model);
 
     // Parking
     bool Park();
@@ -304,8 +330,9 @@ public:
     bool initCalibration();
     bool close(bool fast = false);
     bool open(bool fast = false);
-    bool storeClosedPosition();
-    bool storeOpenPosition();
+        bool storeClosedPosition();
+        bool storeOpenPosition();
+        bool getModel(std::string &model); // Added to ALTO
 
 private:
     std::unique_ptr<Communication> m_Communication;

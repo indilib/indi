@@ -365,7 +365,7 @@ bool WandererCover::getStartupData()
 IPState WandererCover::ParkCap()
 {
     LOG_DEBUG("=== Starting ParkCap() - Attempting to close dust cap ===");
-    
+
     LOGF_DEBUG("Checking number of steps: %d", NumberOfStepsBeetweenOpenAndCloseState);
     if (NumberOfStepsBeetweenOpenAndCloseState == 0)
     {
@@ -548,8 +548,8 @@ bool WandererCover::SetLightBoxBrightness(uint16_t value)
         return true;
     }
     char response[WANDERER_RESPONSE_SIZE];
-    char command[3] = {0};
-    snprintf(command, 3, "%03d\n", value);
+    char command[5] = {0};
+    snprintf(command, 5, "%03d\n", value);
     if (!sendCommand(command, response, false))
         return false;
 
@@ -613,7 +613,9 @@ void WandererCover::setLightBoxBrightnesStatusToValue(uint16_t value)
     if (value == 0)
     {
         setLightBoxStatusAsSwitchedOff();
-    } else {
+    }
+    else
+    {
         IUSaveText(&StatusT[1], "On");
         IDSetText(&StatusTP, nullptr);
         LightSP[0].setState(ISS_ON);

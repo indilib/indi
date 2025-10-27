@@ -86,6 +86,9 @@ bool LX200Basic::initProperties()
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
+    MountTypeSP.reset();
+    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+
     addAuxControls();
 
     currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());

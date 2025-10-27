@@ -716,7 +716,6 @@ class CCD : public DefaultDevice, GuiderInterface
             APERTURE
         };
 
-
         // WCS
         INDI::PropertySwitch WorldCoordSP{2};
         enum

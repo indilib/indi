@@ -1331,4 +1331,106 @@ bool DefaultDevice::isInitializationComplete() const
     return d->isInit;
 }
 
+bool DefaultDevice::ISNewProperty(INDI::Property &property, const std::string &elementName, const std::any &value)
+{
+    if (!property.isValid() || elementName.empty())
+    {
+        LOGF_WARN("ISNewProperty: Invalid property or empty element name for device '%s'.", getDeviceName());
+        return false;
+    }
+
+    char mutableElementName[MAXINDINAME]; // Use MAXINDINAME from indicom.h
+    strncpy(mutableElementName, elementName.c_str(), sizeof(mutableElementName) - 1);
+    mutableElementName[sizeof(mutableElementName) - 1] = '\0'; // Ensure null termination
+    char *names[] = { mutableElementName };
+
+    switch (property.getType())
+    {
+        case INDI_SWITCH:
+        {
+            try
+            {
+                ISState newState = std::any_cast<ISState>(value);
+                ISState states[] = { newState };
+                return ISNewSwitch(getDeviceName(), property.getName(), states, names, 1);
+            }
+            catch (const std::bad_any_cast &e)
+            {
+                LOGF_ERROR("ISNewProperty: Type mismatch for Switch property '%s'. Expected ISState. Got: %s",
+                           property.getName(), e.what());
+                return false;
+            }
+        }
+        case INDI_NUMBER:
+        {
+            try
+            {
+                double newValue = 0;
+                if (value.type() == typeid(int))
+                {
+                    newValue = static_cast<double>(std::any_cast<int>(value));
+                }
+                else if (value.type() == typeid(long))
+                {
+                    newValue = static_cast<double>(std::any_cast<long>(value));
+                }
+                else if (value.type() == typeid(double))
+                {
+                    newValue = std::any_cast<double>(value);
+                }
+                else
+                {
+                    throw std::bad_any_cast();
+                }
+
+                double values[] = { newValue };
+                return ISNewNumber(getDeviceName(), property.getName(), values, names, 1);
+            }
+            catch (const std::bad_any_cast &e)
+            {
+                LOGF_ERROR("ISNewProperty: Type mismatch for Number property '%s'. Expected double, int, or long. Got: %s",
+                           property.getName(), e.what());
+                return false;
+            }
+        }
+        case INDI_TEXT:
+        {
+            try
+            {
+                char mutableTextValue[1024]; // Use 1024 for text buffer
+                memset(mutableTextValue, 0, sizeof(mutableTextValue));
+
+                if (value.type() == typeid(const char *))
+                {
+                    const char *text = std::any_cast<const char *>(value);
+                    if (text) strncpy(mutableTextValue, text, sizeof(mutableTextValue) - 1);
+                }
+                else if (value.type() == typeid(std::string))
+                {
+                    const std::string &text = std::any_cast<std::string>(value);
+                    strncpy(mutableTextValue, text.c_str(), sizeof(mutableTextValue) - 1);
+                }
+                else
+                {
+                    throw std::bad_any_cast();
+                }
+                mutableTextValue[sizeof(mutableTextValue) - 1] = '\0'; // Ensure null termination
+
+                char *texts[] = { mutableTextValue };
+                return ISNewText(getDeviceName(), property.getName(), texts, names, 1);
+            }
+            catch (const std::bad_any_cast &e)
+            {
+                LOGF_ERROR("ISNewProperty: Type mismatch for Text property '%s'. Expected const char* or std::string. Got: %s",
+                           property.getName(), e.what());
+                return false;
+            }
+        }
+        default:
+            LOGF_WARN("ISNewProperty: Unsupported property type for property '%s'.", property.getName());
+            return false;
+    }
+    return false;
+}
+
 }

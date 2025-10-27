@@ -234,30 +234,31 @@ bool Serial::Connect()
                 IDSetText(&PortTP, nullptr);
 
 #ifdef __linux__
-                bool saveConfig = false;
                 // Disable auto-search on Linux if not disabled already
                 if (AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
                 {
-                    saveConfig = true;
                     AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
                     AutoSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
                     IDSetSwitch(&AutoSearchSP, nullptr);
-                }
-                // Only save config if different from default port
-                if (m_ConfigPort != std::string(PortT[0].text))
-                {
-                    saveConfig = true;
+                    m_Device->saveConfig(true, AutoSearchSP.name);
                 }
 
-                if (saveConfig)
-                    m_Device->saveConfig(true);
+                // Save device port if different from configuration value and read-write.
+                if (m_Permission != IP_RO && m_ConfigPort != std::string(PortT[0].text))
+                    m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #else
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
-                if (std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortT[0].text) != m_SystemPorts.end())
-                    m_Device->saveConfig(true, PortTP.name);
+                if (m_Permission != IP_RO && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortT[0].text) != m_SystemPorts.end())
+                    m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #endif
+
+
+                // If baud rate is different from config file, save it.
+                if (m_Permission != IP_RO && IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+                    m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
+
                 return true;
             }
 
@@ -278,11 +279,13 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        if (m_Permission != IP_RO && (std::string(PortT[0].text) != m_ConfigPort || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate))
-        {
+        // If permission is read-write and either the config port or baud rate are different from
+        // configuration values, then save them.
+        if (m_Permission != IP_RO && std::string(PortT[0].text) != m_ConfigPort)
             m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
+
+        if (m_Permission != IP_RO && IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
             m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
-        }
     }
     else
         LOG_DEBUG("Handshake failed.");

@@ -54,6 +54,14 @@ add_executable(indi_falcon_rotator ${falcon_SRC})
 target_link_libraries(indi_falcon_rotator indidriver)
 install(TARGETS indi_falcon_rotator RUNTIME DESTINATION bin)
 
+# ############### Camelot Rotator ################
+SET(camelot_SRC
+    camelot.cpp)
+
+add_executable(indi_camelot_rotator ${camelot_SRC})
+target_link_libraries(indi_camelot_rotator indidriver)
+install(TARGETS indi_camelot_rotator RUNTIME DESTINATION bin)
+
 # ############### Falcon V2 Rotator ################
 SET(falconv2_SRC
     pegasus_falconv2.cpp)

@@ -106,6 +106,9 @@ bool SynscanLegacyDriver::initProperties()
     //    IUFillSwitch(&UseWiFiS[WIFI_DISABLED], "Disabled", "Disabled", ISS_ON);
     //    IUFillSwitchVector(&UseWiFiSP, UseWiFiS, 2, getDeviceName(), "WIFI_SELECT", "Use WiFi?", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    MountTypeSP.reset();
+    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+
     addAuxControls();
 
     return true;

@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 PROJECT(libindi C CXX)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
 
 # As moc files are generated in the binary dir, tell CMake
 # to always look for includes there:
@@ -45,7 +48,7 @@ endif()
 # ####################################  INDI version  ################################################
 set(CMAKE_INDI_VERSION_MAJOR 2)
 set(CMAKE_INDI_VERSION_MINOR 1)
-set(CMAKE_INDI_VERSION_RELEASE 3)
+set(CMAKE_INDI_VERSION_RELEASE 6)
 
 set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
@@ -85,8 +88,9 @@ set(PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 # ####################################  Build Options  ##############################################
 # Select which components to build and what options to apply
 OPTION(INDI_BUILD_SERVER "Build INDI Server" ON)
-OPTION(INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
 OPTION(INDI_BUILD_CLIENT "Build INDI POSIX Client" ON)
+OPTION(INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
+OPTION(INDI_BUILD_COMMON "Build base classes for INDI 3rd Party Drivers" ON)
 OPTION(INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION(INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION(INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
@@ -98,6 +102,7 @@ OPTION(INDI_BUILD_EXAMPLES "Build INDI examples" ON)
 OPTION(INDI_INSTALL_UDEV_RULES "Install INDI udev rules" ON)
 
 # System provided or bundled libs
+OPTION(INDI_SYSTEM_HIDAPILIB "Use system provided hidapilib" OFF)
 OPTION(INDI_SYSTEM_HTTPLIB "Use system provided httplib" OFF)
 OPTION(INDI_SYSTEM_JSONLIB "Use system provided json library" OFF)
 
@@ -173,6 +178,18 @@ install(FILES
 # ##################################################################################################
 # ####################################  bundled libs  ##############################################
 # ##################################################################################################
+if(INDI_SYSTEM_HIDAPILIB)
+    find_package(hidapi REQUIRED)
+    set(SYSTEM_HIDAPILIB 1)
+    set(HIDAPILIB hidapi::libusb)
+    add_definitions(-D_USE_SYSTEM_HIDAPILIB)
+    message(STATUS "Using system provided hidapilib version ${hidapi_VERSION_STR}")
+else()
+    set(SYSTEM_HIDAPILIB 0)
+    set(HIDAPILIB "")
+    message(STATUS "Using bundled hidapi")
+endif(INDI_SYSTEM_HIDAPILIB)
+
 if(INDI_SYSTEM_HTTPLIB)
     find_package(httplib REQUIRED)
     include_directories(${HTTPLIB_INCLUDE_DIR})
@@ -271,7 +288,10 @@ endif(INDI_BUILD_QT5_CLIENT)
 # N.B. Webcam drivers only supported under Linux (Video4Linux2). Joystick support only under Linux
 #
 # ##################################################################################################
-if(INDI_BUILD_DRIVERS)
+
+
+if(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
+    # part required for both drivers supplied by INDI and for 3rd party drivers
     if(WIN32 OR ANDROID)
         message(WARNING "INDI drivers are only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
     else(WIN32 OR ANDROID)
@@ -310,13 +330,14 @@ if(INDI_BUILD_DRIVERS)
         include_directories(libs/indidevice/property)
         include_directories(${CMAKE_CURRENT_BINARY_DIR}/libs/indicore)
 
-
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
         add_subdirectory(libs/eventloop)
         add_subdirectory(libs/dsp)
         add_subdirectory(libs/fpack)
-        add_subdirectory(libs/hid)
+        if(NOT SYSTEM_HIDAPILIB)
+            add_subdirectory(libs/hid)
+        endif(NOT SYSTEM_HIDAPILIB)
 
         # #################################################
         # ########## INDI Driver Library ##################
@@ -328,11 +349,14 @@ if(INDI_BUILD_DRIVERS)
         # #################################################
         add_subdirectory(libs/alignment)
 
-        # #################################################
-        # ########## INDI Drivers #########################
-        # #################################################
-        add_subdirectory(drivers)
-        install(FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})
+        # drivers directly supplied by INDI
+        if(INDI_BUILD_DRIVERS)
+            # #################################################
+            # ########## INDI Drivers #########################
+            # #################################################
+            add_subdirectory(drivers)
+            install(FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})
+        endif()
 
         # ####################################
         # ########### INDI TOOLS #############
@@ -389,7 +413,7 @@ if(INDI_BUILD_DRIVERS)
             message(STATUS "GTEST not found, not building tests")
         endif(GTEST_FOUND AND BUILD_TESTING)
     endif(WIN32 OR ANDROID)
-endif(INDI_BUILD_DRIVERS)
+endif(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
 
 # ##################################################################################################
 # ######################################  config.h  ################################################

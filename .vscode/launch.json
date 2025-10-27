@@ -14,9 +14,9 @@
       "program": "${workspaceFolder}/build/indiserver/indiserver",
       "args": [
         "-v",
-        "${workspaceFolder}/build/drivers/telescope/indi_simulator_telescope",
-        "indi_simulator_ccd",
-        "indi_simulator_focus"
+        "${workspaceFolder}/build/drivers/power/indi_pegasus_upb",
+        "indi_simulator_telescope",
+        "indi_simulator_ccd"
       ],
       "postDebugTask": "Kill indiserver",
       "stopAtEntry": false,

@@ -1370,117 +1370,140 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     // Near the celestial pole, HA calculated from RA can be unreliable for determining pier side.
     // Use Azimuth to infer a more reliable effective HA for the OpticalCenter calculation.
     double effectiveHourAngle = hourAngle; // Use original HA by default
-    const double poleThresholdDec = 85.0; // Degrees
+    const double poleThresholdDec = 89.0; // Degrees
     bool nearPole = std::abs(mountEquatorialCoords.declination) > poleThresholdDec;
-    if (nearPole)
+
+    // Define a threshold for azimuth deviation when near the pole
+    const double POLE_AZIMUTH_DEVIATION_THRESHOLD = 30.0; // Degrees
+
+    // Lambda function to perform the core calculations
+    auto performCalculations = [&](double currentEffectiveHourAngle)
     {
-        // If Azimuth is near 0 (e.g., < 90 or > 270), force HA towards 0 (on meridian)
-        if (mountHoriztonalCoords.azimuth < 90.0 || mountHoriztonalCoords.azimuth > 270.0)
-            effectiveHourAngle = 0.0;
-        // If Azimuth is near 180 (e.g., between 90 and 270), force HA towards 12 (anti-meridian)
-        else
-            effectiveHourAngle = 12.0;
+        // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
+        int OTASide = 0;
+        int otaSideSelection = OTASideSP.findOnSwitchIndex(); // Get selected mode
+
+        if (OTASideSP.getState() == IPS_OK)
+        {
+            if(otaSideSelection == DM_OTA_SIDE_HA || (UseHourAngle && otaSideSelection == DM_OTA_SIDE_MOUNT))
+            {
+                // Note if the telescope points West (HA > 0), OTA is at east of the pier, and vice-versa.
+                double haForSide = nearPole ? currentEffectiveHourAngle : hourAngle; // Use effective HA near pole
+
+                // Determine side based on HA. HA=0 means pointing East (OTA West), HA=12 means pointing West (OTA East)
+                if (haForSide > 0.1 && haForSide < 11.9) // Pointing West
+                    OTASide = -1; // OTA East
+                else // Pointing East (HA near 0 or 12)
+                    OTASide = 1; // OTA West
+            }
+            else if(otaSideSelection == DM_OTA_SIDE_EAST)
+                OTASide = -1;
+            else if(otaSideSelection == DM_OTA_SIDE_WEST)
+                OTASide = 1;
+            else if(otaSideSelection == DM_OTA_SIDE_MOUNT)
+                OTASide = mountOTASide;
+            // DM_OTA_SIDE_IGNORE results in OTASide = 0
+        }
+
+        double otaOffset = OTASide * DomeMeasurementsNP[DM_OTA_OFFSET].getValue();
+        OpticalCenter(MountCenter, otaOffset, observer.latitude, currentEffectiveHourAngle, OptCenter);
+
+        // Get optical axis point. This and the previous form the optical axis line
+        OpticalVector(mountHoriztonalCoords.azimuth, mountHoriztonalCoords.altitude, OptVector);
+
+        // Condensed Geometry Log
+        char effHaStr[64];
+        fs_sexa(effHaStr, currentEffectiveHourAngle, 2, 3600);
+        LOGF_DEBUG("Geom - Mount(E:%.2f,N:%.2f,Up:%.2f) OTA(SideSel:%d, SideUsed:%d, Off:%.2f, EffHA:%s) -> OptCenter(X:%.3f,Y:%.3f,Z:%.3f) OptVec(X:%.3f,Y:%.3f,Z:%.3f)",
+                   MountCenter.x, MountCenter.y, MountCenter.z,
+                   otaSideSelection, OTASide, DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), effHaStr,
+                   OptCenter.x, OptCenter.y, OptCenter.z,
+                   OptVector.x, OptVector.y, OptVector.z);
+
+        if (Intersection(OptCenter, OptVector, DomeMeasurementsNP[DM_DOME_RADIUS].getValue(), mu1, mu2))
+        {
+            // If telescope is pointing over the horizon, the solution is mu1, else is mu2
+            if (mu1 < 0)
+            {
+                LOGF_DEBUG("Intersection mu1 < 0, using mu2 (%.3f)", mu2); // Less critical
+                mu1 = mu2;
+            }
+
+            DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x );
+            DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y );
+            DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z );
+            LOGF_DEBUG("Intersection - Point(X:%.3f, Y:%.3f, Z:%.3f) Dist: %.3f", DomeIntersect.x, DomeIntersect.y, DomeIntersect.z,
+                       mu1);
+
+            // Calculate Azimuth using atan2(x, y) for robustness.
+            Az = atan2(DomeIntersect.x, DomeIntersect.y) * 180.0 / M_PI;
+
+            // Normalize Az to [0, 360) range
+            if (Az < 0)
+            {
+                Az += 360.0;
+            }
+            if (Az >= 360.0)
+            {
+                Az = 0.0;
+            }
+
+            if ((std::abs(DomeIntersect.x) > 0.00001) || (std::abs(DomeIntersect.y) > 0.00001))
+                Alt = 180 * atan(DomeIntersect.z / sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /  M_PI;
+            else
+                Alt = 90; // Dome Zenith
+
+            double RadiusAtAlt = DomeMeasurementsNP[DM_DOME_RADIUS].getValue() * cos(M_PI * Alt / 180);
+
+            if (DomeMeasurementsNP[DM_SHUTTER_WIDTH].getValue() < (2 * RadiusAtAlt))
+            {
+                double HalfApertureChordAngle = 180 * asin(DomeMeasurementsNP[DM_SHUTTER_WIDTH].getValue() / (2 * RadiusAtAlt)) / M_PI;
+                minAz = range360(Az - HalfApertureChordAngle);
+                maxAz = range360(Az + HalfApertureChordAngle);
+            }
+            else
+            {
+                minAz = 0;
+                maxAz = 360;
+            }
+            return true;
+        }
+        return false;
+    };
+
+    // Initial calculation attempt
+    bool success = performCalculations(effectiveHourAngle);
+
+    // If near pole and initial calculation deviates significantly, try the other effectiveHourAngle
+    if (nearPole && success)
+    {
+        double initialAz = Az;
+        double diff = std::abs(initialAz - mountHoriztonalCoords.azimuth);
+        if (diff > 180.0) // Handle wrap-around for angular difference
+            diff = 360.0 - diff;
+
+        if (diff > POLE_AZIMUTH_DEVIATION_THRESHOLD)
+        {
+            LOGF_DEBUG("Near pole, initial Az (%.2f) deviates from mount Az (%.2f) by %.2f degrees. Attempting alternative effectiveHourAngle.",
+                       initialAz, mountHoriztonalCoords.azimuth, diff);
+
+            // Flip effectiveHourAngle
+            effectiveHourAngle = (effectiveHourAngle == 0.0) ? 12.0 : 0.0;
+            success = performCalculations(effectiveHourAngle);
+
+            if (success)
+            {
+                LOGF_DEBUG("Re-calculated Az (%.2f) with alternative effectiveHourAngle (%.2f).", Az, effectiveHourAngle);
+            }
+            else
+            {
+                LOG_WARN("Re-calculation with alternative effectiveHourAngle failed.");
+            }
+        }
     }
 
-    // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
-    int OTASide = 0;
-    int otaSideSelection = OTASideSP.findOnSwitchIndex(); // Get selected mode
-
-    if (OTASideSP.getState() == IPS_OK)
+    if (success)
     {
-        if(otaSideSelection == DM_OTA_SIDE_HA || (UseHourAngle && otaSideSelection == DM_OTA_SIDE_MOUNT))
-        {
-            // Note if the telescope points West (HA > 0), OTA is at east of the pier, and vice-versa.
-            double haForSide = nearPole ? effectiveHourAngle : hourAngle; // Use effective HA near pole
-
-            // Determine side based on HA. HA=0 means pointing East (OTA West), HA=12 means pointing West (OTA East)
-            if (haForSide > 0.1 && haForSide < 11.9) // Pointing West
-                OTASide = -1; // OTA East
-            else // Pointing East (HA near 0 or 12)
-                OTASide = 1; // OTA West
-        }
-        else if(otaSideSelection == DM_OTA_SIDE_EAST)
-            OTASide = -1;
-        else if(otaSideSelection == DM_OTA_SIDE_WEST)
-            OTASide = 1;
-        else if(otaSideSelection == DM_OTA_SIDE_MOUNT)
-            OTASide = mountOTASide;
-        // DM_OTA_SIDE_IGNORE results in OTASide = 0
-    }
-
-    // Use effectiveHourAngle for the calculation if near the pole
-    double otaOffset = OTASide * DomeMeasurementsNP[DM_OTA_OFFSET].getValue();
-    OpticalCenter(MountCenter, otaOffset, observer.latitude, effectiveHourAngle, OptCenter);
-
-    // Get optical axis point. This and the previous form the optical axis line
-    OpticalVector(mountHoriztonalCoords.azimuth, mountHoriztonalCoords.altitude, OptVector);
-
-    // Condensed Geometry Log
-    char effHaStr[64];
-    fs_sexa(effHaStr, effectiveHourAngle, 2, 3600);
-    LOGF_DEBUG("Geom - Mount(E:%.2f,N:%.2f,Up:%.2f) OTA(SideSel:%d, SideUsed:%d, Off:%.2f, EffHA:%s) -> OptCenter(X:%.3f,Y:%.3f,Z:%.3f) OptVec(X:%.3f,Y:%.3f,Z:%.3f)",
-               MountCenter.x, MountCenter.y, MountCenter.z,
-               otaSideSelection, OTASide, DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), effHaStr,
-               OptCenter.x, OptCenter.y, OptCenter.z,
-               OptVector.x, OptVector.y, OptVector.z);
-
-
-    if (Intersection(OptCenter, OptVector, DomeMeasurementsNP[DM_DOME_RADIUS].getValue(), mu1, mu2))
-    {
-        // If telescope is pointing over the horizon, the solution is mu1, else is mu2
-        if (mu1 < 0)
-        {
-            // LOGF_DEBUG("Intersection mu1 < 0, using mu2 (%.3f)", mu2); // Less critical
-            mu1 = mu2;
-        }
-
-        double HalfApertureChordAngle;
-        double RadiusAtAlt;
-
-        DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x );
-        DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y );
-        DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z );
-        LOGF_DEBUG("Intersection - Point(X:%.3f, Y:%.3f, Z:%.3f) Dist: %.3f", DomeIntersect.x, DomeIntersect.y, DomeIntersect.z,
-                   mu1);
-
-        // Calculate Azimuth using atan2(x, y) for robustness.
-        // atan2 returns angle in radians from +Y axis (North), range [-pi, +pi].
-        // We want Azimuth in degrees from North [0, 360).
-        Az = atan2(DomeIntersect.x, DomeIntersect.y) * 180.0 / M_PI;
-
-        // Normalize Az to [0, 360) range
-        if (Az < 0)
-        {
-            Az += 360.0;
-        }
-        if (Az >= 360.0)
-        {
-            Az = 0.0;    // Handle potential edge case exactly at 360
-        }
-
-
-        if ((std::abs(DomeIntersect.x) > 0.00001) || (std::abs(DomeIntersect.y) > 0.00001))
-            Alt = 180 * atan(DomeIntersect.z / sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /  M_PI;
-        else
-            Alt = 90; // Dome Zenith
-
-
-        // Calculate the Azimuth range in the given Altitude of the dome
-        RadiusAtAlt = DomeMeasurementsNP[DM_DOME_RADIUS].getValue() * cos(M_PI * Alt / 180); // Radius at the given altitude
-
-        if (DomeMeasurementsNP[DM_SHUTTER_WIDTH].getValue() < (2 * RadiusAtAlt))
-        {
-            HalfApertureChordAngle = 180 * asin(DomeMeasurementsNP[DM_SHUTTER_WIDTH].getValue() / (2 * RadiusAtAlt)) /
-                                     M_PI; // Angle of a chord of half aperture length
-            minAz = range360(Az - HalfApertureChordAngle); // Ensure range 0..360
-            maxAz = range360(Az + HalfApertureChordAngle); // Ensure range 0..360
-        }
-        else
-        {
-            minAz = 0;
-            maxAz = 360;
-        }
-
         // Final Condensed Log
         char currentAzStr[64], targetAzStr[64], targetAltStr[64], minAzStr[64], maxAzStr[64];
         fs_sexa(currentAzStr, DomeAbsPosNP[0].getValue(), 2, 3600);
@@ -1490,7 +1513,6 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         fs_sexa(maxAzStr, maxAz, 2, 3600);
         LOGF_DEBUG("Result - Current Az:%s , Target Az: %s, Alt: %s --> Range Min: %s, Max: %s", currentAzStr, targetAzStr,
                    targetAltStr, minAzStr, maxAzStr);
-
         return true;
     }
     else

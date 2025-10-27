@@ -20,8 +20,11 @@
 
 #include "indipowerinterface.h"
 #include "defaultdevice.h"
+#include "basedevice.h"
 
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 namespace INDI
 {
@@ -37,21 +40,26 @@ PowerInterface::PowerInterface(DefaultDevice *defaultDevice) : m_defaultDevice(d
     OverVoltageProtectionNP[0].fill("OVERVOLTAGE", "Max Voltage", "%.1f", 0, 999, 0, 13.8);
 
     // Initialize Power Off on Disconnect
-    PowerOffOnDisconnectSP[0].fill("ENABLED", "Enabled", ISS_OFF);
-    PowerOffOnDisconnectSP[1].fill("DISABLED", "Disabled", ISS_ON);
+    PowerOffOnDisconnectSP[0].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    PowerOffOnDisconnectSP[1].fill("INDI_DISABLED", "Disabled", ISS_ON);
 
     // Initialize LED Control
-    LEDControlSP[0].fill("ENABLED", "On", ISS_ON);
-    LEDControlSP[1].fill("DISABLED", "Off", ISS_OFF);
+    LEDControlSP[0].fill("INDI_ENABLED", "On", ISS_ON);
+    LEDControlSP[1].fill("INDI_DISABLED", "Off", ISS_OFF);
+
+
+    // Initialize Power Cycle All
+    PowerCycleAllSP[0].fill("POWER_CYCLE_Toggle", "Toggle", ISS_OFF);
 }
 
-void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, size_t nPWMPorts, size_t nVariablePorts)
+void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, size_t nDewPorts, size_t nVariablePorts,
+                                    size_t nAutoDewPorts, size_t nUSBPorts)
 {
     // Main Control - Overall Power Sensors
     PowerSensorsNP.fill(m_defaultDevice->getDeviceName(), "POWER_SENSORS", "Sensors", groupName, IP_RO, 60, IPS_IDLE);
 
     // Over Voltage Protection
-    OverVoltageProtectionNP.fill(m_defaultDevice->getDeviceName(), "OVERVOLTAGE_PROTECTION", "Over Voltage", groupName,
+    OverVoltageProtectionNP.fill(m_defaultDevice->getDeviceName(), "OVER_VOLTAGE_PROTECTION", "Over Voltage", groupName,
                                  IP_RW, 60, IPS_IDLE);
 
     // Power Off on Disconnect
@@ -62,104 +70,277 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
     if (HasLEDToggle())
         LEDControlSP.fill(m_defaultDevice->getDeviceName(), "LED_CONTROL", "LEDs", groupName, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    // Initialize Power Ports (12V DC)
-    for (size_t i = 0; i < nPowerPorts; i++)
+
+    // Power Cycle All
+    if (powerCapability & POWER_HAS_POWER_CYCLE)
+        PowerCycleAllSP.fill(m_defaultDevice->getDeviceName(), "POWER_CYCLE", "Cycle Power", groupName, IP_RW, ISR_ATMOST1, 60,
+                             IPS_IDLE);
+
+
+    if (nPowerPorts > 0)
     {
-        char portNum[8];
-        snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
-
-        // Power Port Switch
-        PowerPortsSP.emplace_back(2);
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "POWER_PORT_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "Port %d", static_cast<int>(i + 1));
-        PowerPortsSP[i][0].fill("ON", "On", ISS_OFF);
-        PowerPortsSP[i][1].fill("OFF", "Off", ISS_ON);
-        PowerPortsSP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-        // Power Port Current (only if per-port current monitoring is available)
-        if (HasPerPortCurrent())
+        // Power Channel Label
+        PowerChannelLabelsTP.resize(nPowerPorts);
+        for (size_t i = 0; i < nPowerPorts; i++)
         {
-            PowerPortCurrentNP.emplace_back(1);
-            PowerPortCurrentNP[i][0].fill("CURRENT", "Current (A)", "%.2f", 0, 999, 0, 0);
-            snprintf(propName, MAXINDINAME, "POWER_CURRENT_%d", static_cast<int>(i + 1));
-            PowerPortCurrentNP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, POWER_TAB, IP_RO, 60, IPS_IDLE);
-        }
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
 
-        // Power Port Label
-        PowerPortLabelsTP.emplace_back(1);
-        PowerPortLabelsTP[i][0].fill("LABEL", "Label", ("Port " + std::string(portNum)).c_str());
-        snprintf(propName, MAXINDINAME, "POWER_LABEL_%d", static_cast<int>(i + 1));
-        PowerPortLabelsTP[i].fill(m_defaultDevice->getDeviceName(), propName, "Label", POWER_TAB, IP_RW, 60, IPS_IDLE);
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
+            PowerChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        }
+        PowerChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "POWER_LABELS", "Labels", POWER_TAB,
+                                  IP_RW, 60, IPS_IDLE);
+        PowerChannelLabelsTP.load();
+
+        // Initialize Power Channels (12V DC)
+        PowerChannelsSP.resize(nPowerPorts);
+        for (size_t i = 0; i < nPowerPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
+            PowerChannelsSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        PowerChannelsSP.fill(m_defaultDevice->getDeviceName(), "POWER_CHANNELS", "Toggle DC", POWER_TAB, IP_RW, ISR_NOFMANY,
+                             60, IPS_IDLE);
+
+        // Power Channel Current (only if per-channel current monitoring is available)
+
+        PowerChannelCurrentNP.resize(nPowerPorts);
+        for (size_t i = 0; i < nPowerPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
+            PowerChannelCurrentNP[i].fill(propName, propLabel, "%.2f", 0, 999, 0, 0);
+        }
+        PowerChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "POWER_CURRENTS", "Currents", POWER_TAB, IP_RO, 60,
+                                   IPS_IDLE);
+    }
+    else
+    {
+        PowerChannelsSP.resize(0);
+        PowerChannelLabelsTP.resize(0);
+        PowerChannelCurrentNP.resize(0);
     }
 
-    // Initialize PWM/Dew Ports
-    for (size_t i = 0; i < nPWMPorts; i++)
+    if (nDewPorts > 0)
     {
-        char portNum[8];
-        snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
-
-        // PWM Port Switch
-        PWMPortsSP.emplace_back(2);
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "PWM_PORT_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "Port %d", static_cast<int>(i + 1));
-        PWMPortsSP[i][0].fill("ON", "On", ISS_OFF);
-        PWMPortsSP[i][1].fill("OFF", "Off", ISS_ON);
-        PWMPortsSP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, PWM_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-        // PWM Port Duty Cycle
-        PWMPortDutyCycleNP.emplace_back(1);
-        PWMPortDutyCycleNP[i][0].fill("DUTY_CYCLE", "Duty Cycle %", "%.0f", 0, 100, 10, 0);
-        snprintf(propName, MAXINDINAME, "PWM_DUTY_%d", static_cast<int>(i + 1));
-        PWMPortDutyCycleNP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, PWM_TAB, IP_RW, 60, IPS_IDLE);
-
-        // PWM Port Current (only if per-port current monitoring is available)
-        if (HasPerPortCurrent())
+        // DEW Channel Label
+        DewChannelLabelsTP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
         {
-            PWMPortCurrentNP.emplace_back(1);
-            PWMPortCurrentNP[i][0].fill("CURRENT", "Current (A)", "%.2f", 0, 999, 0, 0);
-            snprintf(propName, MAXINDINAME, "PWM_CURRENT_%d", static_cast<int>(i + 1));
-            PWMPortCurrentNP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, PWM_TAB, IP_RO, 60, IPS_IDLE);
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
+            DewChannelLabelsTP[i].fill(propName, propLabel, propLabel);
         }
-
-        // PWM Port Label
-        PWMPortLabelsTP.emplace_back(1);
-        PWMPortLabelsTP[i][0].fill("LABEL", "Label", ("Dew " + std::string(portNum)).c_str());
-        snprintf(propName, MAXINDINAME, "PWM_LABEL_%d", static_cast<int>(i + 1));
-        PWMPortLabelsTP[i].fill(m_defaultDevice->getDeviceName(), propName, "Label", PWM_TAB, IP_RW, 60, IPS_IDLE);
-    }
-
-    // Initialize Variable Voltage Ports
-    for (size_t i = 0; i < nVariablePorts; i++)
-    {
-        char portNum[8];
-        snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
-
-        // Variable Port Switch
-        VariablePortsSP.emplace_back(2);
-        char propName[MAXINDINAME];
-        char propLabel[MAXINDILABEL];
-        snprintf(propName, MAXINDINAME, "VAR_PORT_%d", static_cast<int>(i + 1));
-        snprintf(propLabel, MAXINDILABEL, "Port %d", static_cast<int>(i + 1));
-        VariablePortsSP[i][0].fill("ON", "On", ISS_OFF);
-        VariablePortsSP[i][1].fill("OFF", "Off", ISS_ON);
-        VariablePortsSP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, VARIABLE_TAB, IP_RW, ISR_1OFMANY, 60,
+        DewChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "DEW_LABELS", "Labels", DEW_TAB, IP_RW, 60,
                                 IPS_IDLE);
+        DewChannelLabelsTP.load();
 
-        // Variable Port Voltage
-        VariablePortVoltsNP.emplace_back(1);
-        VariablePortVoltsNP[i][0].fill("VOLTAGE", "Voltage (V)", "%.1f", 3, 12, 0.1, 5);
-        snprintf(propName, MAXINDINAME, "VAR_VOLTS_%d", static_cast<int>(i + 1));
-        VariablePortVoltsNP[i].fill(m_defaultDevice->getDeviceName(), propName, propLabel, VARIABLE_TAB, IP_RW, 60, IPS_IDLE);
+        // Initialize DEW/Dew Channels
+        DewChannelsSP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
 
-        // Variable Port Label
-        VariablePortLabelsTP.emplace_back(1);
-        VariablePortLabelsTP[i][0].fill("LABEL", "Label", ("Variable " + std::string(portNum)).c_str());
-        snprintf(propName, MAXINDINAME, "VAR_LABEL_%d", static_cast<int>(i + 1));
-        VariablePortLabelsTP[i].fill(m_defaultDevice->getDeviceName(), propName, "Label", VARIABLE_TAB, IP_RW, 60, IPS_IDLE);
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+            DewChannelsSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        DewChannelsSP.fill(m_defaultDevice->getDeviceName(), "DEW_CHANNELS", "Toggle Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+                           IPS_IDLE);
+
+        // DEW Channel Duty Cycle
+        DewChannelDutyCycleNP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
+            DewChannelDutyCycleNP[i].fill(propName, propLabel, "%.0f", 0, 100, 10, 0);
+        }
+        DewChannelDutyCycleNP.fill(m_defaultDevice->getDeviceName(), "DEW_DUTY_CYCLES", "Duty Cycles", DEW_TAB, IP_RW, 60,
+                                   IPS_IDLE);
+    }
+    else
+    {
+        DewChannelDutyCycleNP.resize(0);
+        DewChannelsSP.resize(0);
+        DewChannelLabelsTP.resize(0);
+    }
+
+    // Auto Dew Control
+    if (nAutoDewPorts > 0)
+    {
+        // DEW Channel Current (only if per-channel current monitoring is available)
+        DewChannelCurrentNP.resize(nDewPorts);
+        for (size_t i = 0; i < nDewPorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s (A)", DewChannelLabelsTP[i].getText());
+            DewChannelCurrentNP[i].fill(propName, propLabel, "%.2f", 0, 999, 0, 0);
+        }
+        DewChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "DEW_CURRENTS", "Currents", DEW_TAB, IP_RO,
+                                 60, IPS_IDLE);
+
+        AutoDewSP.resize(nAutoDewPorts);
+        for (size_t i = 0; i < nAutoDewPorts; i++)
+        {
+            char portNum[8];
+            snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "DEW_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+            AutoDewSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        if (nAutoDewPorts > 0)
+        {
+            AutoDewSP.fill(m_defaultDevice->getDeviceName(), "AUTO_DEW_CONTROL", "Auto Dew Control", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+                           IPS_IDLE);
+        }
+    }
+    else
+    {
+        AutoDewSP.resize(0);
+        DewChannelCurrentNP.resize(0);
+    }
+
+
+    // Initialize USB Ports
+    if (nUSBPorts > 0)
+    {
+        // USB Port Labels
+        USBPortLabelsTP.resize(nUSBPorts);
+        for (size_t i = 0; i < nUSBPorts; i++)
+        {
+            char portNum[8];
+            snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "USB_PORT_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Port %d", static_cast<int>(i + 1));
+            USBPortLabelsTP[i].fill(propName, propLabel, propLabel);
+        }
+        if (nUSBPorts > 0)
+        {
+            USBPortLabelsTP.fill(m_defaultDevice->getDeviceName(), "USB_LABELS", "Labels", USB_TAB, IP_RW, 60,
+                                 IPS_IDLE);
+            USBPortLabelsTP.load();
+        }
+
+        USBPortSP.resize(nUSBPorts);
+        for (size_t i = 0; i < nUSBPorts; i++)
+        {
+            char portNum[8];
+            snprintf(portNum, sizeof(portNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "USB_PORT_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", USBPortLabelsTP[i].getText());
+            USBPortSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        if (nUSBPorts > 0)
+        {
+            USBPortSP.fill(m_defaultDevice->getDeviceName(), "USB_PORTS", "Ports", USB_TAB, IP_RW, ISR_NOFMANY, 60,
+                           IPS_IDLE);
+        }
+    }
+    else
+    {
+        USBPortSP.resize(0);
+        USBPortLabelsTP.resize(0);
+    }
+
+    // Initialize Variable Voltage Channels
+    if (nVariablePorts > 0)
+    {
+        // Variable Channel Label
+        VariableChannelLabelsTP.resize(nVariablePorts);
+        for (size_t i = 0; i < nVariablePorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "Channel %d", static_cast<int>(i + 1));
+            VariableChannelLabelsTP[i].fill(propName, propLabel, propLabel);
+        }
+        VariableChannelLabelsTP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_LABELS", "Labels", VARIABLE_TAB,
+                                     IP_RW, 60, IPS_IDLE);
+        VariableChannelLabelsTP.load();
+
+        VariableChannelsSP.resize(nVariablePorts);
+        for (size_t i = 0; i < nVariablePorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s", VariableChannelLabelsTP[i].getText());
+            VariableChannelsSP[i].fill(propName, propLabel, ISS_OFF);
+        }
+        VariableChannelsSP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_CHANNELS", "Channels", VARIABLE_TAB, IP_RW,
+                                ISR_NOFMANY, 60, IPS_IDLE);
+
+        // Variable Channel Voltage
+        VariableChannelVoltsNP.resize(nVariablePorts);
+        for (size_t i = 0; i < nVariablePorts; i++)
+        {
+            char channelNum[8];
+            snprintf(channelNum, sizeof(channelNum), "%d", static_cast<int>(i + 1));
+
+            char propName[MAXINDINAME];
+            char propLabel[MAXINDILABEL];
+            snprintf(propName, MAXINDINAME, "VAR_CHANNEL_%d", static_cast<int>(i + 1));
+            snprintf(propLabel, MAXINDILABEL, "%s (V)", VariableChannelLabelsTP[i].getText());
+            VariableChannelVoltsNP[i].fill(propName, propLabel, "%.1f", 3, 12, 0.1, 5);
+        }
+        VariableChannelVoltsNP.fill(m_defaultDevice->getDeviceName(), "VARIABLE_VOLTAGES", "Voltages", VARIABLE_TAB, IP_RW,
+                                    60, IPS_IDLE);
+    }
+    else
+    {
+        VariableChannelsSP.resize(0);
+        VariableChannelVoltsNP.resize(0);
+        VariableChannelLabelsTP.resize(0);
     }
 }
 
@@ -174,38 +355,50 @@ bool PowerInterface::updateProperties()
         m_defaultDevice->defineProperty(PowerOffOnDisconnectSP);
         if (HasLEDToggle())
             m_defaultDevice->defineProperty(LEDControlSP);
-
-        // Power Ports
-        for (auto &port : PowerPortsSP)
-            m_defaultDevice->defineProperty(port);
-        if (HasPerPortCurrent())
+        if (HasAutoDew())
         {
-            for (auto &current : PowerPortCurrentNP)
-                m_defaultDevice->defineProperty(current);
+            m_defaultDevice->defineProperty(AutoDewSP);
         }
-        for (auto &label : PowerPortLabelsTP)
-            m_defaultDevice->defineProperty(label);
+        if (powerCapability & POWER_HAS_POWER_CYCLE)
+            m_defaultDevice->defineProperty(PowerCycleAllSP);
 
-        // PWM Ports
-        for (auto &port : PWMPortsSP)
-            m_defaultDevice->defineProperty(port);
-        for (auto &dutyCycle : PWMPortDutyCycleNP)
-            m_defaultDevice->defineProperty(dutyCycle);
-        if (HasPerPortCurrent())
+        // Power Channels
+        if (HasDCOutput())
         {
-            for (auto &current : PWMPortCurrentNP)
-                m_defaultDevice->defineProperty(current);
+            m_defaultDevice->defineProperty(PowerChannelsSP);
+            if (HasPerPortCurrent())
+            {
+                m_defaultDevice->defineProperty(PowerChannelCurrentNP);
+            }
+            m_defaultDevice->defineProperty(PowerChannelLabelsTP);
         }
-        for (auto &label : PWMPortLabelsTP)
-            m_defaultDevice->defineProperty(label);
 
-        // Variable Ports
-        for (auto &port : VariablePortsSP)
-            m_defaultDevice->defineProperty(port);
-        for (auto &voltage : VariablePortVoltsNP)
-            m_defaultDevice->defineProperty(voltage);
-        for (auto &label : VariablePortLabelsTP)
-            m_defaultDevice->defineProperty(label);
+        // DEW Channels
+        if (HasDewOutput())
+        {
+            m_defaultDevice->defineProperty(DewChannelsSP);
+            m_defaultDevice->defineProperty(DewChannelDutyCycleNP);
+            if (HasPerPortCurrent())
+            {
+                m_defaultDevice->defineProperty(DewChannelCurrentNP);
+            }
+            m_defaultDevice->defineProperty(DewChannelLabelsTP);
+        }
+
+        // Variable Channels
+        if (HasVariableOutput())
+        {
+            m_defaultDevice->defineProperty(VariableChannelsSP);
+            m_defaultDevice->defineProperty(VariableChannelVoltsNP);
+            m_defaultDevice->defineProperty(VariableChannelLabelsTP);
+        }
+
+        // USB Ports
+        if (HasUSBPort())
+        {
+            m_defaultDevice->defineProperty(USBPortSP);
+            m_defaultDevice->defineProperty(USBPortLabelsTP);
+        }
     }
     else
     {
@@ -216,52 +409,48 @@ bool PowerInterface::updateProperties()
         m_defaultDevice->deleteProperty(PowerOffOnDisconnectSP);
         if (HasLEDToggle())
             m_defaultDevice->deleteProperty(LEDControlSP);
-
-        // Power Ports
-        for (auto &port : PowerPortsSP)
-            m_defaultDevice->deleteProperty(port);
-        if (HasPerPortCurrent())
+        if (HasAutoDew())
         {
-            for (auto &current : PowerPortCurrentNP)
-                m_defaultDevice->deleteProperty(current);
+            m_defaultDevice->deleteProperty(AutoDewSP);
         }
-        for (auto &label : PowerPortLabelsTP)
-            m_defaultDevice->deleteProperty(label);
+        if (powerCapability & POWER_HAS_POWER_CYCLE)
+            m_defaultDevice->deleteProperty(PowerCycleAllSP);
 
-        // PWM Ports
-        for (auto &port : PWMPortsSP)
-            m_defaultDevice->deleteProperty(port);
-        for (auto &dutyCycle : PWMPortDutyCycleNP)
-            m_defaultDevice->deleteProperty(dutyCycle);
-        if (HasPerPortCurrent())
+        // Power Channels
+        if (HasDCOutput())
         {
-            for (auto &current : PWMPortCurrentNP)
-                m_defaultDevice->deleteProperty(current);
+            m_defaultDevice->deleteProperty(PowerChannelsSP);
+            if (HasPerPortCurrent())
+            {
+                m_defaultDevice->deleteProperty(PowerChannelCurrentNP);
+            }
+            m_defaultDevice->deleteProperty(PowerChannelLabelsTP);
         }
-        for (auto &label : PWMPortLabelsTP)
-            m_defaultDevice->deleteProperty(label);
 
-        // Variable Ports
-        for (auto &port : VariablePortsSP)
-            m_defaultDevice->deleteProperty(port);
-        for (auto &voltage : VariablePortVoltsNP)
-            m_defaultDevice->deleteProperty(voltage);
-        for (auto &label : VariablePortLabelsTP)
-            m_defaultDevice->deleteProperty(label);
+        // DEW Channels
+        if (HasDewOutput())
+        {
+            m_defaultDevice->deleteProperty(DewChannelsSP);
+            m_defaultDevice->deleteProperty(DewChannelDutyCycleNP);
+            if (HasPerPortCurrent())
+                m_defaultDevice->deleteProperty(DewChannelCurrentNP);
+            m_defaultDevice->deleteProperty(DewChannelLabelsTP);
+        }
 
-        // Clear vectors
-        PowerPortsSP.clear();
-        PowerPortCurrentNP.clear();
-        PowerPortLabelsTP.clear();
+        // Variable Channels
+        if (HasVariableOutput())
+        {
+            m_defaultDevice->deleteProperty(VariableChannelsSP);
+            m_defaultDevice->deleteProperty(VariableChannelVoltsNP);
+            m_defaultDevice->deleteProperty(VariableChannelLabelsTP);
+        }
 
-        PWMPortsSP.clear();
-        PWMPortDutyCycleNP.clear();
-        PWMPortCurrentNP.clear();
-        PWMPortLabelsTP.clear();
-
-        VariablePortsSP.clear();
-        VariablePortVoltsNP.clear();
-        VariablePortLabelsTP.clear();
+        // USB Ports
+        if (HasUSBPort())
+        {
+            m_defaultDevice->deleteProperty(USBPortSP);
+            m_defaultDevice->deleteProperty(USBPortLabelsTP);
+        }
     }
 
     return true;
@@ -274,56 +463,78 @@ bool PowerInterface::processNumber(const char *dev, const char *name, double val
         // Over Voltage Protection
         if (OverVoltageProtectionNP.isNameMatch(name))
         {
-            OverVoltageProtectionNP.update(values, names, n);
-            OverVoltageProtectionNP.setState(IPS_OK);
-            OverVoltageProtectionNP.apply();
-            return true;
+            return m_defaultDevice->updateProperty(OverVoltageProtectionNP, values, names, n, []()
+            {
+                return true;
+            }, true);
         }
 
-        // PWM Duty Cycles
-        for (size_t i = 0; i < PWMPortDutyCycleNP.size(); i++)
+        // DEW Channel Duty Cycles
+        if (DewChannelDutyCycleNP.isNameMatch(name))
         {
-            if (PWMPortDutyCycleNP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(DewChannelDutyCycleNP, values, names, n, [this, values]()
             {
-                PWMPortDutyCycleNP[i].update(values, names, n);
-                if (SetPWMPort(i, PWMPortsSP[i][0].getState() == ISS_ON, values[0]))
+                bool allSuccessful = true;
+                for (size_t i = 0; i < DewChannelDutyCycleNP.size(); i++)
                 {
-                    PWMPortDutyCycleNP[i].setState(IPS_OK);
-                    PWMPortDutyCycleNP[i].apply();
-                    return true;
+                    // If We try to update a duty cycle while the channel is OFF, then we save as-is.
+                    // Otherwise, we need to set the duty cycle on the device.
+                    if (DewChannelsSP[i].getState() == ISS_ON && !SetDewPort(i, true, values[i]))
+                    {
+                        allSuccessful = false;
+                    }
                 }
-                else
-                {
-                    PWMPortDutyCycleNP[i].setState(IPS_ALERT);
-                    PWMPortDutyCycleNP[i].apply();
-                    return false;
-                }
-            }
+                return allSuccessful;
+            }, true);
         }
 
-        // Variable Voltage
-        for (size_t i = 0; i < VariablePortVoltsNP.size(); i++)
+        // Variable Channel Voltage
+        if (VariableChannelVoltsNP.isNameMatch(name))
         {
-            if (VariablePortVoltsNP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(VariableChannelVoltsNP, values, names, n, [this, values]()
             {
-                VariablePortVoltsNP[i].update(values, names, n);
-                if (SetVariablePort(i, VariablePortsSP[i][0].getState() == ISS_ON, values[0]))
+                bool allSuccessful = true;
+                for (size_t i = 0; i < VariableChannelVoltsNP.size(); i++)
                 {
-                    VariablePortVoltsNP[i].setState(IPS_OK);
-                    VariablePortVoltsNP[i].apply();
-                    return true;
+                    // If We try to update a voltage while the channel is OFF, then we save as-is.
+                    // Otherwise, we need to set the voltage on the device.
+                    if (VariableChannelsSP[i].getState() == ISS_ON && !SetVariablePort(i, true, values[i]))
+                    {
+                        allSuccessful = false;
+                    }
                 }
-                else
-                {
-                    VariablePortVoltsNP[i].setState(IPS_ALERT);
-                    VariablePortVoltsNP[i].apply();
-                    return false;
-                }
-            }
+                return allSuccessful;
+            }, true);
         }
     }
 
     return false;
+}
+
+bool PowerInterface::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    return false;
+}
+
+bool PowerInterface::CyclePower()
+{
+    // Default implementation: cycle all power ports
+    bool success = true;
+    for (size_t i = 0; i < PowerChannelsSP.size(); ++i)
+    {
+        if (!SetPowerPort(i, false)) // Turn off
+            success = false;
+    }
+    // Small delay to ensure power off
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    for (size_t i = 0; i < PowerChannelsSP.size(); ++i)
+    {
+        if (!SetPowerPort(i, true)) // Turn on
+            success = false;
+    }
+    return success;
 }
 
 bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -333,100 +544,139 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // Power Off on Disconnect
         if (PowerOffOnDisconnectSP.isNameMatch(name))
         {
-            PowerOffOnDisconnectSP.update(states, names, n);
-            PowerOffOnDisconnectSP.setState(IPS_OK);
-            PowerOffOnDisconnectSP.apply();
-            return true;
+            return m_defaultDevice->updateProperty(PowerOffOnDisconnectSP, states, names, n, []()
+            {
+                return true;
+            }, true);
         }
 
         // LED Control
         if (HasLEDToggle() && LEDControlSP.isNameMatch(name))
         {
-            // Find current ON index before updating
-            auto prevOnIndex = LEDControlSP.findOnSwitchIndex();
-
-            // Update the switch states
-            LEDControlSP.update(states, names, n);
-
-            // Try to enable/disable LEDs
-            if (SetLEDEnabled(LEDControlSP[0].getState() == ISS_ON))
+            return m_defaultDevice->updateProperty(LEDControlSP, states, names, n, [this, states]()
             {
-                LEDControlSP.setState(IPS_OK);
-                LEDControlSP.apply();
-                return true;
+                return SetLEDEnabled(states[0] == ISS_ON);
+            }, true);
+        }
+
+        // Auto Dew Control
+        if (HasAutoDew() && AutoDewSP.isNameMatch(name))
+        {
+            return m_defaultDevice->updateProperty(AutoDewSP, states, names, n, [this, states]()
+            {
+                bool allSuccessful = true;
+                for (size_t i = 0; i < AutoDewSP.size(); i++)
+                {
+                    // Only change if state is different
+                    if (AutoDewSP[i].getState() != states[i])
+                    {
+                        if (!SetAutoDewEnabled(i, states[i] == ISS_ON))
+                        {
+                            allSuccessful = false;
+                        }
+                    }
+                }
+                return allSuccessful;
+            }, true);
+        }
+
+        // Power Cycle All
+        if ((powerCapability & POWER_HAS_POWER_CYCLE) && PowerCycleAllSP.isNameMatch(name))
+        {
+            PowerCycleAllSP.update(states, names, n);
+            if (CyclePower())
+            {
+                PowerCycleAllSP.setState(IPS_OK);
             }
             else
             {
-                // Reset and restore previous state on failure
-                LEDControlSP.reset();
-                LEDControlSP[prevOnIndex].setState(ISS_ON);
-                LEDControlSP.setState(IPS_ALERT);
-                LEDControlSP.apply();
-                return false;
+                PowerCycleAllSP.setState(IPS_ALERT);
             }
+            PowerCycleAllSP.reset();
+            PowerCycleAllSP.apply();
+            return true;
         }
 
-        // Power Ports
-        for (size_t i = 0; i < PowerPortsSP.size(); i++)
+        // Power Channels
+        if (PowerChannelsSP.isNameMatch(name))
         {
-            if (PowerPortsSP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(PowerChannelsSP, states, names, n, [this, states]()
             {
-                PowerPortsSP[i].update(states, names, n);
-                if (SetPowerPort(i, PowerPortsSP[i][0].getState() == ISS_ON))
+                bool allSuccessful = true;
+                for (size_t i = 0; i < PowerChannelsSP.size(); i++)
                 {
-                    PowerPortsSP[i].setState(IPS_OK);
-                    PowerPortsSP[i].apply();
-                    return true;
+                    // Only change if state is different
+                    if (PowerChannelsSP[i].getState() != states[i])
+                    {
+                        if (!SetPowerPort(i, states[i] == ISS_ON))
+                        {
+                            allSuccessful = false;
+                        }
+                    }
                 }
-                else
-                {
-                    PowerPortsSP[i].setState(IPS_ALERT);
-                    PowerPortsSP[i].apply();
-                    return false;
-                }
-            }
+                return allSuccessful;
+            }, true);
         }
 
-        // PWM Ports
-        for (size_t i = 0; i < PWMPortsSP.size(); i++)
+        // DEW Channels
+        if (DewChannelsSP.isNameMatch(name))
         {
-            if (PWMPortsSP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(DewChannelsSP, states, names, n, [this, states]()
             {
-                PWMPortsSP[i].update(states, names, n);
-                if (SetPWMPort(i, PWMPortsSP[i][0].getState() == ISS_ON, PWMPortDutyCycleNP[i][0].getValue()))
+                bool allSuccessful = true;
+                for (size_t i = 0; i < DewChannelsSP.size(); i++)
                 {
-                    PWMPortsSP[i].setState(IPS_OK);
-                    PWMPortsSP[i].apply();
-                    return true;
+                    // Only change if state is different
+                    if (DewChannelsSP[i].getState() != states[i])
+                    {
+                        if (!SetDewPort(i, states[i] == ISS_ON, DewChannelDutyCycleNP[i].getValue()))
+                        {
+                            allSuccessful = false;
+                        }
+                    }
                 }
-                else
-                {
-                    PWMPortsSP[i].setState(IPS_ALERT);
-                    PWMPortsSP[i].apply();
-                    return false;
-                }
-            }
+                return allSuccessful;
+            }, true);
         }
 
-        // Variable Ports
-        for (size_t i = 0; i < VariablePortsSP.size(); i++)
+        // Variable Channels
+        if (VariableChannelsSP.isNameMatch(name))
         {
-            if (VariablePortsSP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(VariableChannelsSP, states, names, n, [this, states]()
             {
-                VariablePortsSP[i].update(states, names, n);
-                if (SetVariablePort(i, VariablePortsSP[i][0].getState() == ISS_ON, VariablePortVoltsNP[i][0].getValue()))
+                bool allSuccessful = true;
+                for (size_t i = 0; i < VariableChannelsSP.size(); i++)
                 {
-                    VariablePortsSP[i].setState(IPS_OK);
-                    VariablePortsSP[i].apply();
-                    return true;
+                    if (VariableChannelsSP[i].getState() != states[i])
+                    {
+                        if (!SetVariablePort(i, states[i] == ISS_ON, VariableChannelVoltsNP[i].getValue()))
+                        {
+                            allSuccessful = false;
+                        }
+                    }
                 }
-                else
+                return allSuccessful;
+            }, true);
+        }
+
+        // USB Ports
+        if (HasUSBPort() && USBPortSP.isNameMatch(name))
+        {
+            return m_defaultDevice->updateProperty(USBPortSP, states, names, n, [this, states]()
+            {
+                bool allSuccessful = true;
+                for (size_t i = 0; i < USBPortSP.size(); i++)
                 {
-                    VariablePortsSP[i].setState(IPS_ALERT);
-                    VariablePortsSP[i].apply();
-                    return false;
+                    if (USBPortSP[i].getState() != states[i])
+                    {
+                        if (!SetUSBPort(i, states[i] == ISS_ON))
+                        {
+                            allSuccessful = false;
+                        }
+                    }
                 }
-            }
+                return allSuccessful;
+            }, true);
         }
     }
 
@@ -437,40 +687,40 @@ bool PowerInterface::processText(const char *dev, const char *name, char *texts[
 {
     if (dev != nullptr && strcmp(dev, m_defaultDevice->getDeviceName()) == 0)
     {
-        // Power Port Labels
-        for (size_t i = 0; i < PowerPortLabelsTP.size(); i++)
+        // Power Channel Labels
+        if (PowerChannelLabelsTP.isNameMatch(name))
         {
-            if (PowerPortLabelsTP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(PowerChannelLabelsTP, texts, names, n, []()
             {
-                PowerPortLabelsTP[i].update(texts, names, n);
-                PowerPortLabelsTP[i].setState(IPS_OK);
-                PowerPortLabelsTP[i].apply();
                 return true;
-            }
+            }, true);
         }
 
-        // PWM Port Labels
-        for (size_t i = 0; i < PWMPortLabelsTP.size(); i++)
+        // DEW Channel Labels
+        if (DewChannelLabelsTP.isNameMatch(name))
         {
-            if (PWMPortLabelsTP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(DewChannelLabelsTP, texts, names, n, []()
             {
-                PWMPortLabelsTP[i].update(texts, names, n);
-                PWMPortLabelsTP[i].setState(IPS_OK);
-                PWMPortLabelsTP[i].apply();
                 return true;
-            }
+            }, true);
         }
 
-        // Variable Port Labels
-        for (size_t i = 0; i < VariablePortLabelsTP.size(); i++)
+        // Variable Channel Labels
+        if (VariableChannelLabelsTP.isNameMatch(name))
         {
-            if (VariablePortLabelsTP[i].isNameMatch(name))
+            return m_defaultDevice->updateProperty(VariableChannelLabelsTP, texts, names, n, []()
             {
-                VariablePortLabelsTP[i].update(texts, names, n);
-                VariablePortLabelsTP[i].setState(IPS_OK);
-                VariablePortLabelsTP[i].apply();
                 return true;
-            }
+            }, true);
+        }
+
+        // USB Port Labels
+        if (HasUSBPort() && USBPortLabelsTP.isNameMatch(name))
+        {
+            return m_defaultDevice->updateProperty(USBPortLabelsTP, texts, names, n, []()
+            {
+                return true;
+            }, true);
         }
     }
 
@@ -484,7 +734,7 @@ bool PowerInterface::SetPowerPort(size_t port, bool enabled)
     return false;
 }
 
-bool PowerInterface::SetPWMPort(size_t port, bool enabled, double dutyCycle)
+bool PowerInterface::SetDewPort(size_t port, bool enabled, double dutyCycle)
 {
     INDI_UNUSED(port);
     INDI_UNUSED(enabled);
@@ -506,6 +756,13 @@ bool PowerInterface::SetLEDEnabled(bool enabled)
     return false;
 }
 
+bool PowerInterface::SetUSBPort(size_t port, bool enabled)
+{
+    INDI_UNUSED(port);
+    INDI_UNUSED(enabled);
+    return false;
+}
+
 bool PowerInterface::saveConfigItems(FILE *fp)
 {
     OverVoltageProtectionNP.save(fp);
@@ -513,17 +770,29 @@ bool PowerInterface::saveConfigItems(FILE *fp)
     if (HasLEDToggle())
         LEDControlSP.save(fp);
 
-    for (auto &label : PowerPortLabelsTP)
-        label.save(fp);
-    for (auto &label : PWMPortLabelsTP)
-        label.save(fp);
-    for (auto &label : VariablePortLabelsTP)
-        label.save(fp);
+    PowerChannelsSP.save(fp);
+    PowerChannelLabelsTP.save(fp);
 
-    for (auto &dutyCycle : PWMPortDutyCycleNP)
-        dutyCycle.save(fp);
-    for (auto &voltage : VariablePortVoltsNP)
-        voltage.save(fp);
+    if (HasAutoDew())
+    {
+        AutoDewSP.save(fp);
+    }
+
+    DewChannelDutyCycleNP.save(fp);
+    DewChannelLabelsTP.save(fp);
+
+    if (HasVariableOutput())
+    {
+        VariableChannelsSP.save(fp);
+        VariableChannelVoltsNP.save(fp);
+        VariableChannelLabelsTP.save(fp);
+    }
+
+    if (HasUSBPort())
+    {
+        USBPortSP.save(fp);
+        USBPortLabelsTP.save(fp);
+    }
 
     return true;
 }
