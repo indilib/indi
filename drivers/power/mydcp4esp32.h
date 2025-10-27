@@ -208,7 +208,6 @@ class MyDCP4ESP : public INDI::DefaultDevice, public INDI::PowerInterface
             CH3MODE_CH3TEMP
         };
 
-        INDI::PropertyNumber ChannelPowerNP{4};
         INDI::PropertySwitch TempProbeFoundSP{4};
         INDI::PropertyNumber TemperatureNP{4};
         INDI::PropertyNumber ChannelOffsetNP{4};
@@ -219,9 +218,7 @@ class MyDCP4ESP : public INDI::DefaultDevice, public INDI::PowerInterface
         INDI::PropertyNumber DewpointNP{1};
         INDI::PropertySwitch TrackingModeSP{3};
         INDI::PropertyNumber TrackingOffsetNP{1};
-        INDI::PropertyNumber Ch3ManualPowerNP{1};
         INDI::PropertySwitch Ch3ModeSP{5};
-        INDI::PropertySwitch RebootSP{1};
         INDI::PropertyText   CheckCodeTP{1};
         INDI::PropertyNumber FWversionNP{1};
 
