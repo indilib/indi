@@ -215,8 +215,8 @@ bool iAFSRotator::getFirmware()
     char errstr[MAXRBUF];
     char resp[16] = {0};
     char joefirmwareinfo[16] = {0};
-    char iafsfirm[6] = {0};
-    char caafirm[6] = {0};
+    char iafsfirm[7] = {0};
+    char caafirm[7] = {0};
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, ":FW1#", 5, &nbytes_written)) != TTY_OK)
     {
@@ -851,3 +851,4 @@ bool iAFSRotator::ISNewNumber (const char * dev, const char * name, double value
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
+
