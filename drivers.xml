@@ -385,6 +385,10 @@
             <driver name="Gemini Focusing Rotator">indi_gemini_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="iOptron Focusing Rotator" manufacturer="iOptron">
+            <driver name="iOptron Focusing Rotator">indi_iafscaa_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="Pyxis" manufacturer="Optec">
             <driver name="Pyxis">indi_pyxis_rotator</driver>
             <version>1.1</version>
