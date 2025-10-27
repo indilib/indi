@@ -178,6 +178,11 @@ class SestoSenso2 : public Focuser
     public:
         SestoSenso2(const std::string &name, int port);
 
+        const char *getDeviceName()
+        {
+            return m_Communication->getDeviceName();
+        }
+
         // Presets
         bool applyMotorPreset(const std::string &name);
         bool setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
@@ -209,6 +214,9 @@ class SestoSenso2 : public Focuser
         bool setRecoveryDelay(int32_t delay);
         bool getRecoveryDelay(int32_t &delay);
         bool getModel(std::string &model); // Added to SestoSenso2
+        
+        // SestoSenso3 Model Detection
+        bool getSubModel(std::string &submodel);
 };
 
 /*****************************************************************************************

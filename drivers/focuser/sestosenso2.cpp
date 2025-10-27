@@ -3,6 +3,8 @@
     Copyright (C) 2020 Piotr Zyziuk
     Copyright (C) 2020 Jasem Mutlaq (Added Esatto support)
 
+    Jasem Mutlaq 2025: Added SestoSenso3 support.
+    
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -1243,23 +1245,50 @@ bool SestoSenso2::Ack()
         std::string modelName;
         if (m_SestoSenso2->getModel(modelName))
         {
-            if (modelName.find("SESTOSENSO3 SC") != std::string::npos)
+            LOGF_INFO("Model name: %s", modelName.c_str());
+            
+            // Check if it's a SestoSenso3 variant (requires submodel query)
+            if (modelName.find("SESTOSENSO3") != std::string::npos)
             {
-                m_SestoSensoModel = SESTOSENSO3_SC;
+                // Query submodel to determine specific variant
+                std::string subModel;
+                if (m_SestoSenso2->getSubModel(subModel))
+                {
+                    LOGF_INFO("SubModel: %s", subModel.c_str());
+                    
+                    if (subModel.find("SESTOSENSO3SC") != std::string::npos)
+                    {
+                        m_SestoSensoModel = SESTOSENSO3_SC;
+                        LOG_INFO("Detected: SestoSenso3 SC (Automatic Calibration)");
+                    }
+                    else if (subModel.find("SESTOSENSO3LS") != std::string::npos)
+                    {
+                        m_SestoSensoModel = SESTOSENSO3_LS;
+                        LOG_INFO("Detected: SestoSenso3 LS (Manual + Semi-Automatic Calibration)");
+                    }
+                    else
+                    {
+                        m_SestoSensoModel = SESTOSENSO3_STANDARD;
+                        LOG_INFO("Detected: SestoSenso3 Standard (Manual + Semi-Automatic Calibration)");
+                    }
+                }
+                else
+                {
+                    // Fallback if submodel query fails
+                    m_SestoSensoModel = SESTOSENSO3_STANDARD;
+                    LOG_WARN("Failed to query submodel, defaulting to SestoSenso3 Standard");
+                }
             }
-            else if (modelName.find("SESTOSENSO3 LS") != std::string::npos)
+            else if (modelName.find("SESTOSENSO2") != std::string::npos)
             {
-                m_SestoSensoModel = SESTOSENSO3_LS;
-            }
-            else if (modelName.find("SESTOSENSO3") != std::string::npos)
-            {
-                m_SestoSensoModel = SESTOSENSO3_STANDARD;
+                m_SestoSensoModel = SESTOSENSO2;
+                LOG_INFO("Detected: SestoSenso2 (Manual Calibration)");
             }
             else
             {
-                m_SestoSensoModel = SESTOSENSO2; // Default to SestoSenso2 if no specific SestoSenso3 model is found
+                m_SestoSensoModel = SESTOSENSO2;
+                LOGF_WARN("Unknown model '%s', defaulting to SestoSenso2", modelName.c_str());
             }
-            LOGF_INFO("Model name: %s (Detected Model: %d)", modelName.c_str(), m_SestoSensoModel);
         }
     }
 

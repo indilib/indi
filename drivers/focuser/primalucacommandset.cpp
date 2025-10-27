@@ -417,6 +417,46 @@ bool SestoSenso2::getModel(std::string &model)
     return m_Communication->get(GENERIC_NODE, "MODNAME", model);
 }
 
+/******************************************************************************************************
+ * Get SubModel for SestoSenso3 variants
+*******************************************************************************************************/
+bool SestoSenso2::getSubModel(std::string &submodel)
+{
+    json jsonRequest = {{"req", {{"srv", {{"GET_MODEL_SUBMODEL", ""}}}}}};
+    json jsonResponse;
+    
+    if (m_Communication->sendRequest(jsonRequest, &jsonResponse))
+    {
+        try
+        {
+            std::string response;
+            jsonResponse["srv"]["GET_MODEL_SUBMODEL"].get_to(response);
+            
+            // Parse: "Model = SESTOSENSO3, SubModel = SESTOSENSO3SC, ARCO = Not enabled"
+            size_t subModelPos = response.find("SubModel = ");
+            if (subModelPos != std::string::npos)
+            {
+                subModelPos += 11; // Length of "SubModel = "
+                size_t commaPos = response.find(",", subModelPos);
+                if (commaPos != std::string::npos)
+                {
+                    submodel = response.substr(subModelPos, commaPos - subModelPos);
+                }
+                else
+                {
+                    // No comma found, take until end of string
+                    submodel = response.substr(subModelPos);
+                }
+                return true;
+            }
+        }
+        catch (json::exception &e)
+        {
+            LOGF_ERROR("Error parsing submodel response: %s", e.what());
+        }
+    }
+    return false;
+}
 
 bool SestoSenso2::storeAsMaxPosition()
 {
