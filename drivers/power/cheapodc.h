@@ -43,9 +43,12 @@
     V1.2
         - Add support for addtional Controller Pins supported in CheapoDC firmware 2.2.0.
         - Fix GET command processing to not throw a JSON error when an error response is received from device
+    V2.0
+        - Major refactor to move to INDI Power Interface
+        - Support for new CheapoDC firmware 2.3.0 internal Humidity sensor capability
 */
-#define CHEAPODC_VERSION_MAJOR 1
-#define CHEAPODC_VERSION_MINOR 2
+#define CHEAPODC_VERSION_MAJOR 2
+#define CHEAPODC_VERSION_MINOR 0
 
 // CheapoDC Commands used
 #define CDC_CMD_ATPQ "ATPQ" // ambient temperature - float %3.2f
@@ -82,6 +85,7 @@
 // pin number in the stub command string will form the correct CheapoDC command string.
 #define CDC_CMD_CPM "CPM%d"   // Controller Pin Mode for pin x  (0=Disabled, 1=Controller, 2=PWM, 3=Boolean)
 #define CDC_CMD_CPO "CPO%d"   // Controller Pin Output for pin x (0 to 100)
+#define CDC_CMD_SDAP "SDAP"   // Internal Humidity sensor SDA Pin
 
 #define CDC_GET_COMMAND "{\"GET\":\"%s\"}"
 #define CDC_SET_COMMAND "{\"SET\":{\"%s\":\"%s\"}}"
@@ -173,7 +177,8 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         {
             OPENMETEO = 0,
             OPENWEATHER,
-            EXTERNALSOURCE
+            EXTERNALSOURCE,
+            INTERNALSOURCE  // Supported in CheapoDC firmware 2.3.0 and later
         };
 
         enum CheapoDCLocation
@@ -205,11 +210,21 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         };
 
         const char* pinModeText[MAX_PIN_MODES] = {"Disabled", "Controller", "PWM", "Boolean"};
-        int lastControllerPinMode[CDC_TOTAL_ADDITIONAL_OUTPUTS];
+        const char* channelLabels[MAX_PIN_MODES] = {"Output %d (Disabled)", "Output %d (Controller)", 
+                                    "Output %d (PWM)", "Output %d (On/Off)"};
+        int powerChannelToOutput[CDC_TOTAL_ADDITIONAL_OUTPUTS+CDC_MIN_ADDITIONAL_OUTPUT] = { -1, -1, -1, -1, -1, -1  };
+        int dewChannelToOutput[CDC_TOTAL_ADDITIONAL_OUTPUTS+CDC_MIN_ADDITIONAL_OUTPUT] = { -1, -1, -1, -1, -1, -1  };
+        int outputToChannel[CDC_TOTAL_ADDITIONAL_OUTPUTS] = { -1, -1, -1, -1 };
+        int lastControllerPinMode[CDC_TOTAL_ADDITIONAL_OUTPUTS] = { CONTROLLER_PIN_MODE_DISABLED, CONTROLLER_PIN_MODE_DISABLED,
+                                            CONTROLLER_PIN_MODE_DISABLED, CONTROLLER_PIN_MODE_DISABLED };
 
         bool fwVOneDetected = false;
+        bool internalHumiditySensorSupported = false;
         bool additionalOutputsSupported = false;
-        int timerIndex;
+        int fwMajorVersion = 0;
+        int fwMinorVersion = 0;
+        int fwPatchVersion = 0;
+        int timerIndex = -1;
         unsigned int previousControllerMode = MANUAL;
         unsigned int prevMinOutput = 0;
         unsigned int prevMaxOutput = 100;
@@ -217,12 +232,8 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         char activeTelescopeDevice[MAXINDINAME] = {"Telescope Simulator"};
         char activeFocuserDevice[MAXINDINAME] = {"Focuser Simulator"};
         char activeWeatherDevice[MAXINDINAME] = {"Weather Simulator"};
-        bool usingOpenWeather = false;
-        bool previouslyUsingOpenWeather = usingOpenWeather;
         bool usingExternalWeatherSource = false;
         bool previuoslyUsingExternalWeatherSource = usingExternalWeatherSource;
-        bool doMainControlRedraw = false;
-        bool doOptionsRedraw = false;
 
         int msleep(long duration);
         bool sendCommand(const char *cmd, char *response);
@@ -231,8 +242,7 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         bool Handshake();
         bool Ack();
         bool readSettings();
-        void redrawMainControl();
-        void redrawOptions();
+        void refreshSettings(bool delayRefresh = false);
         void getWeatherSource();
         bool setWeatherSource(int value);
         bool setControllerMode(int value);
@@ -261,9 +271,7 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
                                    const char *humidityAttribute);
         void setActiveDevice(const char *telescopeDevice, const char *focuserDevice, const char *weatherDevice);
         bool setAdditionalOutput( int outputPin, int output );
-        bool checkAddtionalOutputs();
-        bool checkForOutputModeChange();
-
+        bool checkOutputConfiguration();
 
         // Connection::Serial *serialConnection { nullptr };
         Connection::TCP *tcpConnection{nullptr};
@@ -279,7 +287,6 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         INDI::PropertyNumber OutputPowerNP{1};
         INDI::PropertyNumber MinimumOutputNP{1};
         INDI::PropertyNumber MaximumOutputNP{1};
-        INDI::PropertySwitch ControllerModeSP{3};
         INDI::PropertySwitch TemperatureModeSP{2};
         INDI::PropertySwitch SetPointModeSP{3};
         INDI::PropertyNumber XtrnTemperatureNP{2};
@@ -290,7 +297,7 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         INDI::PropertyNumber TrackingRangeNP{1};
         INDI::PropertyNumber UpdateOutputEveryNP{1};
         INDI::PropertyNumber QueryWeatherEveryNP{1};
-        INDI::PropertySwitch WeatherSourceSP{3};
+        INDI::PropertySwitch WeatherSourceSP{4};
         INDI::PropertyText WeatherQueryAPIKeyTP{1};
         INDI::PropertyText WeatherUpdatedTP{1};
         INDI::PropertyNumber LocationNP{2};
@@ -298,5 +305,4 @@ class CheapoDC : public INDI::DefaultDevice, public INDI::PowerInterface
         INDI::PropertySwitch RefreshSP{1};
         INDI::PropertyText DeviceTimeTP{2};
         INDI::PropertyText ActiveDeviceTP{3};
-        INDI::PropertyNumber AdditionalOutputsNP[CDC_TOTAL_ADDITIONAL_OUTPUTS] = {1, 1, 1, 1};
 };
