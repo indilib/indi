@@ -35,7 +35,10 @@
 #include <time.h>           // for nsleep() 
 #include <errno.h>          // for nsleep() 
 
-#define CDRIVER_VERSION_MAJOR           1
+// Version 1.0 - First release.
+// Version 2.0 - Refactor for INDI::Power Interface
+
+#define CDRIVER_VERSION_MAJOR           2
 #define CDRIVER_VERSION_MINOR           0
 
 /***************************** myDCP4ESP32 Commands **************************/
