@@ -174,7 +174,6 @@ class MyDCP4ESP : public INDI::DefaultDevice, public INDI::PowerInterface
     private:
         int  timerIndex;
         int  myDCP4Firmware = 0;
-        bool ch3ManualPower = false;
         float channelActive[4] = {1};
         int  msleep( long duration);
         bool sendCommand(const char *cmd, char *response);
