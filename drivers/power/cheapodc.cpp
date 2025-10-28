@@ -52,23 +52,18 @@ bool CheapoDC::initProperties()
 
     setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
 
-    SetCapability(INDI::PowerInterface::POWER_HAS_DEW_OUT | INDI::PowerInterface::POWER_HAS_AUTO_DEW);
-    INDI::PowerInterface::initProperties(DEW_TAB, 0, 1 + CDC_TOTAL_ADDITIONAL_OUTPUTS, 0, 1, 0);
-
-    /* Output Power */
-    // OutputPowerNP[0].fill("OUTPUT", "Power (%)", "%3.0f", 0, 100, 1, 0.);
-    // OutputPowerNP.fill(getDeviceName(), "OUTPUT", "Output", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    SetCapability(INDI::PowerInterface::POWER_HAS_DEW_OUT | INDI::PowerInterface::POWER_HAS_AUTO_DEW | INDI::PowerInterface::POWER_HAS_DC_OUT );
 
     /* Minimum Output Power */
     MinimumOutputNP[0].fill("MINIMUMOUTPUT", "Power (%)", "%3.0f", 0, 99, 1, prevMinOutput);
-    MinimumOutputNP.fill(getDeviceName(), "MINIMUMOUTPUT", "Output Min", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    MinimumOutputNP.fill(getDeviceName(), "MINIMUMOUTPUT", "Controller Min", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Maximum Output Power */
     MaximumOutputNP[0].fill("MAXIMUMOUTPUT", "Power (%)", "%3.0f", 1, 100, 1, prevMaxOutput);
-    MaximumOutputNP.fill(getDeviceName(), "MAXIMUMOUTPUT", "Output Max", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    MaximumOutputNP.fill(getDeviceName(), "MAXIMUMOUTPUT", "Controller Max", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    XtrnTemperatureNP[WEATHER_QUERY].fill("WEATHERQUERY", "Weather Query (\u2103)", "%3.2f", -50., 120., 0., 0.);
-    XtrnTemperatureNP[EXTERNAL_INPUT].fill("EXTERNALINPUT", "External Input (\u2103)", "%3.2f", -50., 120., 0., 0.);
+    XtrnTemperatureNP[WEATHER_QUERY].fill("WEATHERQUERY", "Weather Source (\u2103)", "%3.2f", -50., 120., 0., 0.);
+    XtrnTemperatureNP[EXTERNAL_INPUT].fill("EXTERNALINPUT", "Focuser Device (\u2103)", "%3.2f", -50., 120., 0., 0.);
     XtrnTemperatureNP.fill(getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     HumidityNP[0].fill("HUMIDITY", "Relative (%)", "%3.0f", 0., 100., 0., 0.);
@@ -84,21 +79,15 @@ bool CheapoDC::initProperties()
 
     /* Track Point Offset */
     TrackPointOffsetNP[0].fill("TRACKPOINTOFFSET", "-5.0 to 5.0 (\u2103)", "%2.1f", -5., 5., 0.5, 0.);
-    TrackPointOffsetNP.fill(getDeviceName(), "TRACKPOINTOFFSET", "Track Point Offset", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    TrackPointOffsetNP.fill(getDeviceName(), "TRACKPOINTOFFSET", "Track Point Offset", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /*  Tracking Range */
     TrackingRangeNP[0].fill("TRACKINGRANGE", "4.0 to 10.0 (\u2103)", "%2.1f", 4, 10, .5, 5.0);
-    TrackingRangeNP.fill(getDeviceName(), "TRACKINGRANGE", "Tracking Range", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
-    /*  Dew Controller mode */
-    // ControllerModeSP[AUTOMATIC].fill("AUTOMATIC", "Automatic", ISS_OFF);
-    // ControllerModeSP[MANUAL].fill("MANUAL", "Manual", ISS_ON);
-    // ControllerModeSP[OFF].fill("OFF", "Off", ISS_OFF);
-    // ControllerModeSP.fill(getDeviceName(), "CONTROLLER_MODE", "Controller Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    TrackingRangeNP.fill(getDeviceName(), "TRACKINGRANGE", "Tracking Range", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /*  Temperature mode */
-    TemperatureModeSP[WEATHER_QUERY].fill("WEATHER_QUERY", "Weather Query", ISS_ON);
-    TemperatureModeSP[EXTERNAL_INPUT].fill("EXTERNAL_INPUT", "External Input", ISS_OFF);
+    TemperatureModeSP[WEATHER_QUERY].fill("WEATHER_QUERY", "Weather Source", ISS_ON);
+    TemperatureModeSP[EXTERNAL_INPUT].fill("EXTERNAL_INPUT", "Focuser Device", ISS_OFF);
     TemperatureModeSP.fill(getDeviceName(), "TEMPERATURE_MODE", "Temperature Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /*  Set Point mode */
@@ -122,11 +111,12 @@ bool CheapoDC::initProperties()
     /*  Set Weather Source */
     WeatherSourceSP[OPENMETEO].fill("OPENMETEO", "Open-Meteo", ISS_ON);
     WeatherSourceSP[OPENWEATHER].fill("OPENWEATHER", "OpenWeather", ISS_OFF);
-    WeatherSourceSP[EXTERNALSOURCE].fill("EXTERNALSOURCE", "External Source", ISS_OFF);
-    WeatherSourceSP.fill(getDeviceName(), "WEATHER_SOURCE", "Weather Source", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    WeatherSourceSP[EXTERNALSOURCE].fill("EXTERNALSOURCE", "Weather Device", ISS_OFF);
+    WeatherSourceSP[INTERNALSOURCE].fill("INTERNALSOURCE", "CheapoDC Sensor", ISS_OFF);
+    WeatherSourceSP.fill(getDeviceName(), "WEATHER_SOURCE", "Weather Source", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Weather Query API Key*/
-    WeatherQueryAPIKeyTP[0].fill("API_KEY", "Weather API Key", nullptr);
+    WeatherQueryAPIKeyTP[0].fill("API_KEY", "OpenWeather API Key", nullptr);
     WeatherQueryAPIKeyTP.fill(getDeviceName(), "WEATHER_API_KEY", "Weather API Key", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /*  Weather Updated */
@@ -207,37 +197,26 @@ bool CheapoDC::updateProperties()
             IDSnoopDevice(activeWeatherDevice, CDC_SNOOP_WEATHER_PROPERTY);
 
         // Main Control Tab
+        defineProperty(WeatherSourceSP);
         defineProperty(TemperatureModeSP);
         defineProperty(XtrnTemperatureNP);
         defineProperty(SetPointModeSP);
         defineProperty(HumidityNP);
         defineProperty(DewpointNP);
         defineProperty(SetPointTemperatureNP);
-        if (checkAddtionalOutputs()) 
-        {
-            for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
-                if (lastControllerPinMode[i] != CONTROLLER_PIN_MODE_DISABLED)   
-                    defineProperty(AdditionalOutputsNP[i]);
-        }
-        defineProperty(RefreshSP);
-        // Options Tab
         defineProperty(MinimumOutputNP);
         defineProperty(MaximumOutputNP);
         defineProperty(TrackPointOffsetNP);
         defineProperty(TrackingRangeNP);
+        defineProperty(RefreshSP);
+        // Options Tab
         defineProperty(UpdateOutputEveryNP);
         defineProperty(QueryWeatherEveryNP);
-        // Get weather source to determin if API Key needed
-        getWeatherSource();
-        if (fwVOneDetected) // Set FW2.x features to RO
+        if (fwVOneDetected) // Set Weather Source selection to RO
         {
             WeatherSourceSP.setPermission(IP_RO);
         }
-        defineProperty(WeatherSourceSP);
-        if (usingOpenWeather)
-        {
-            defineProperty(WeatherQueryAPIKeyTP);
-        }
+        defineProperty(WeatherQueryAPIKeyTP);
         defineProperty(WeatherUpdatedTP);
         defineProperty(ActiveDeviceTP);
 
@@ -259,6 +238,7 @@ bool CheapoDC::updateProperties()
     }
     else
     {
+        deleteProperty(WeatherSourceSP);
         deleteProperty(MinimumOutputNP);
         deleteProperty(MaximumOutputNP);
         deleteProperty(TemperatureModeSP);
@@ -267,21 +247,12 @@ bool CheapoDC::updateProperties()
         deleteProperty(HumidityNP);
         deleteProperty(DewpointNP);
         deleteProperty(SetPointTemperatureNP);
-        if (additionalOutputsSupported)
-        {
-            for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
-                deleteProperty(AdditionalOutputsNP[i]);
-        }
         deleteProperty(RefreshSP);
         deleteProperty(TrackPointOffsetNP);
         deleteProperty(TrackingRangeNP);
         deleteProperty(UpdateOutputEveryNP);
         deleteProperty(QueryWeatherEveryNP);
-        deleteProperty(WeatherSourceSP);
-        if (usingOpenWeather)
-        {
-            deleteProperty(WeatherQueryAPIKeyTP);
-        }
+        deleteProperty(WeatherQueryAPIKeyTP);
         deleteProperty(WeatherUpdatedTP);
         deleteProperty(ActiveDeviceTP);
 
@@ -295,75 +266,6 @@ bool CheapoDC::updateProperties()
     }
 
     return true;
-}
-
-void CheapoDC::redrawMainControl()
-{
-    // Main Control Tab delete properties
-    deleteProperty(TemperatureModeSP);
-    deleteProperty(XtrnTemperatureNP);
-    deleteProperty(SetPointModeSP);
-    deleteProperty(HumidityNP);
-    deleteProperty(DewpointNP);
-    deleteProperty(SetPointTemperatureNP);
-    if (additionalOutputsSupported)
-    {
-        for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
-            deleteProperty(AdditionalOutputsNP[i]);
-    }
-    deleteProperty(RefreshSP);
-
-    // Main Control Tab re-define properties to pick up changes and maintain order
-    defineProperty(TemperatureModeSP);
-    defineProperty(XtrnTemperatureNP);
-    defineProperty(SetPointModeSP);
-    defineProperty(HumidityNP);
-    defineProperty(DewpointNP);
-    defineProperty(SetPointTemperatureNP);
-    if (additionalOutputsSupported)
-    {
-        for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
-            if (lastControllerPinMode[i] != CONTROLLER_PIN_MODE_DISABLED)   
-                defineProperty(AdditionalOutputsNP[i]);
-    }
-    defineProperty(RefreshSP);
-
-    doMainControlRedraw = false;
-}
-
-void CheapoDC::redrawOptions()
-{
-    // Options Tab delete properties
-    deleteProperty(MinimumOutputNP);
-    deleteProperty(MaximumOutputNP);
-    deleteProperty(TrackPointOffsetNP);
-    deleteProperty(TrackingRangeNP);
-    deleteProperty(UpdateOutputEveryNP);
-    deleteProperty(QueryWeatherEveryNP);
-    deleteProperty(WeatherSourceSP);
-    if (usingOpenWeather || previouslyUsingOpenWeather)
-    {
-        deleteProperty(WeatherQueryAPIKeyTP);
-    }
-    deleteProperty(WeatherUpdatedTP);
-    deleteProperty(ActiveDeviceTP);
-
-    // Options Tab re-define properties to pick up changes and maintain order
-    defineProperty(MinimumOutputNP);
-    defineProperty(MaximumOutputNP);
-    defineProperty(TrackPointOffsetNP);
-    defineProperty(TrackingRangeNP);
-    defineProperty(UpdateOutputEveryNP);
-    defineProperty(QueryWeatherEveryNP);
-    defineProperty(WeatherSourceSP);
-    if (usingOpenWeather)
-    {
-        defineProperty(WeatherQueryAPIKeyTP);
-    }
-    defineProperty(WeatherUpdatedTP);
-    defineProperty(ActiveDeviceTP);
-
-    doOptionsRedraw = false;
 }
 
 const char *CheapoDC::getDefaultName()
@@ -399,7 +301,7 @@ bool CheapoDC::sendCommand(const char *cmd, char *resp)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    LOGF_DEBUG("CMD <%s>", cmd);
+    LOGF_DEBUG("CMD: [%s]", cmd);
     tcflush(PortFD, TCIOFLUSH);
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
@@ -416,13 +318,13 @@ bool CheapoDC::sendCommand(const char *cmd, char *resp)
         if ((rc = tty_nread_section(PortFD, resp, CDC_RESPONSE_LENGTH, '\n', CDC_READ_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Error reading response for command <%s>: %s.", cmd, errstr);
+            LOGF_ERROR("Error reading response for command [%s]: %s.", cmd, errstr);
             return false;
         }
 
         if (nbytes_read < 2)
         {
-            LOGF_ERROR("Invalid response <%s> for command <%s>.", resp, cmd);
+            LOGF_ERROR("Invalid response [%s] for command [%s].", resp, cmd);
             return false;
         }
     }
@@ -545,8 +447,13 @@ bool CheapoDC::Handshake()
 
 bool CheapoDC::Ack()
 {
-
     char resp[CDC_RESPONSE_LENGTH] = {};
+
+    fwVOneDetected = false;
+    additionalOutputsSupported = false;
+    internalHumiditySensorSupported = false;
+
+    memset(resp, '\0', sizeof(resp));
 
     if (!this->sendGetCommand(CDC_CMD_FW, resp))
         return false;
@@ -554,99 +461,251 @@ bool CheapoDC::Ack()
     FWversionTP[0].setText(resp);
     FWversionTP.setState(IPS_OK);
     FWversionTP.apply();
+    //LOG_INFO("CheapoDC ACK.");
+    //LOG_INFO(resp);
 
-    fwVOneDetected = resp[0] == '1';
+    if (!sscanf(resp, "%d.%d.%d", &fwMajorVersion, &fwMinorVersion, &fwPatchVersion))
+    {
+        LOGF_ERROR("Parsing Firmware Version: Response (%s) for Command (%s) not valid.", resp, CDC_CMD_FW);
+        return false;
+    }
 
-    return true;
+    if (fwMajorVersion == 1)
+    {
+        fwVOneDetected = true;
+    }
+    else
+    {
+        // Addtional outputs supported in release 2.20 FW
+        if ((fwMajorVersion > 2) || (fwMinorVersion >= 2)) // 2.2.0+
+        {
+            additionalOutputsSupported = true;
+        } 
+
+        // Internal Humidity Sensor supported in release 2.3.0 FW  
+        if ((fwMajorVersion > 2) || (fwMinorVersion >= 3)) // 2.3.0+
+        {
+            internalHumiditySensorSupported = false;
+
+            // Test to see if the internal sensor is configured
+            memset(resp, '\0', sizeof(resp));
+            if (this->sendGetCommand(CDC_CMD_SDAP, resp))
+            {
+                int internalSDAPin;
+
+                if (sscanf(resp, "%d", &internalSDAPin) == 1)
+                {
+                    if (internalSDAPin >= 0)
+                    {
+                        internalHumiditySensorSupported = true;
+                    }
+                }
+            }
+        }
+    }
+
+    return checkOutputConfiguration();
 }
 
-bool CheapoDC::checkAddtionalOutputs()
+// Check available outputs and configure INDI:PowerInterface properties
+bool CheapoDC::checkOutputConfiguration()
 {
-    additionalOutputsSupported = false;
+    int dewOutputs = 0;
+    int powerOutputs = 0;
+    char resp[CDC_RESPONSE_LENGTH] = {};
+    char command[CDC_COMMAND_LENGTH] = {}; 
+    bool useDewLabels = false;
+    bool usePowerLabels = false;
 
-    for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+    if (additionalOutputsSupported)
     {
-        char resp[CDC_RESPONSE_LENGTH] = {};
-        char command[CDC_COMMAND_LENGTH] = {};
-        int mode, ok;
-        int pin = i + CDC_MIN_ADDITIONAL_OUTPUT;
+        // Calculate number of Dew and Power outputs
+        for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+        {
+            int mode;
+            int pin = i + CDC_MIN_ADDITIONAL_OUTPUT;
 
-        snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPM, pin);
-        if (!this->sendGetCommand(command, resp))
-            return false;
+            memset(resp, '\0', sizeof(resp));
+            memset(command, '\0', sizeof(command));
 
-        ok = sscanf(resp, "%d", &mode);
+            snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPM, pin);
+            if (!this->sendGetCommand(command, resp))
+                return false;
 
-        if (ok == 1) {
-            char name[MAXINDILABEL] = {};
-            char labelM[MAXINDILABEL] = {};
-            char labelS[MAXINDILABEL] = {};
-            snprintf(name, MAXINDILABEL, "OUTPUT_PIN%d", pin);
-            snprintf(labelM, MAXINDILABEL, "Output %d", pin);
-            snprintf(labelS, MAXINDILABEL, "%s (%%)", pinModeText[mode]);
+            if (sscanf(resp, "%d", &mode)) {
+                
+                switch (mode)
+                {
+                    case CONTROLLER_PIN_MODE_DISABLED:
+                        // Do nothing since we don't show Disabled Outputs
+                        break;
+                    case CONTROLLER_PIN_MODE_CONTROLLER:
+                        dewOutputs++;
+                        break;
+                    case CONTROLLER_PIN_MODE_PWM:
+                        dewOutputs++;
+                        break;
+                    case CONTROLLER_PIN_MODE_BOOLEAN:
+                        powerOutputs++;
+                        break;
+                    default:
+                        LOGF_ERROR("Get Output Mode Pin %d: Response [%s] for Command [%s] not valid.", pin, resp, command);
+                }
+
+                lastControllerPinMode[i] = mode;
+
+            }
+            else
+                LOGF_ERROR("Get Output Mode Pin %d: Response [%s] for Command [%s] not valid.", pin, resp, command);
             
-            switch (mode)
+        }
+    }
+
+    //LOGF_INFO("CheapoDC Additional Outputs: Dew Outputs: %d, Power Outputs: %d", dewOutputs, powerOutputs);
+
+    PI::initProperties(DEW_TAB, powerOutputs, dewOutputs+1, 0, 1, 0);
+
+    // Set up initial Min and Max output values for controller output
+    memset(resp, '\0', sizeof(resp));
+
+    if (!sendGetCommand(CDC_CMD_OMIN, resp))
+        return false;
+
+    if (!sscanf(resp, "%d", &prevMinOutput))
+        return false;
+
+    memset(resp, '\0', sizeof(resp));
+
+    if (!sendGetCommand(CDC_CMD_OMAX, resp))
+        return false;
+
+    if (!sscanf(resp, "%d", &prevMaxOutput))
+        return false;
+
+    DewChannelDutyCycleNP[0].setMin(prevMinOutput);
+    DewChannelDutyCycleNP[0].setMax(prevMaxOutput);
+    DewChannelDutyCycleNP.apply();
+    MinimumOutputNP[0].setMax(prevMaxOutput - 1);
+    MinimumOutputNP[0].setValue(prevMinOutput);
+    MinimumOutputNP.apply();
+    MaximumOutputNP[0].setMin(prevMinOutput + 1);
+    MaximumOutputNP[0].setValue(prevMaxOutput);
+    MaximumOutputNP.apply();
+
+    useDewLabels = PI::DewChannelLabelsTP.load();
+    
+    // Overwrite default Dew Channel Labels but allow for custom labels
+    if ((!useDewLabels) || (strcmp( PI::DewChannelLabelsTP[0].getText(), PI::DewChannelLabelsTP[0].getLabel()) == 0))
+    {
+        LOG_INFO("Setting default Dew Channel Labels.");
+        PI::DewChannelLabelsTP[0].setText("Controller Output");
+        PI::DewChannelsSP[0].setLabel("Controller Output");
+        PI::DewChannelDutyCycleNP[0].setLabel("Controller Output");
+        PI::AutoDewSP[0].setLabel("Controller Output");
+    }
+
+    if (powerOutputs > 0)
+    {
+        usePowerLabels = PI::PowerChannelLabelsTP.load();
+    }
+
+    if ((dewOutputs + powerOutputs) > 0)
+    {
+        dewOutputs = 1;
+        powerOutputs = 0;
+        for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+        {
+            char labelC[MAXINDILABEL] = {};
+            char dewLabel[MAXINDILABEL] = {};
+            int pin = i + CDC_MIN_ADDITIONAL_OUTPUT;
+            memset(labelC, '\0', sizeof(labelC));
+            memset(dewLabel, '\0', sizeof(dewLabel));
+
+            snprintf(labelC, MAXINDILABEL, channelLabels[lastControllerPinMode[i]], pin);
+            snprintf(dewLabel, MAXINDILABEL, "%s (%%)", labelC);
+
+            //LOGF_INFO("Dew count %d Power count %d", dewOutputs, powerOutputs);
+            //LOGF_INFO("CheapoDC Additional Output Pin %d Mode %d Label: %s", pin, lastControllerPinMode[i], labelC);
+            outputToChannel[i] = -1;
+
+            switch (lastControllerPinMode[i])
             {
                 case CONTROLLER_PIN_MODE_DISABLED:
                     // Do nothing since we don't show Disabled Outputs
                     break;
                 case CONTROLLER_PIN_MODE_CONTROLLER:
-                    AdditionalOutputsNP[i][0].fill(name, labelS, "%3.0f", 0, 100, 1, 0.);
-                    AdditionalOutputsNP[i].fill(getDeviceName(), name, labelM, MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-                    break;
                 case CONTROLLER_PIN_MODE_PWM:
-                    AdditionalOutputsNP[i][0].fill(name, labelS, "%3.0f", 0, 100, 1, 0.);
-                    AdditionalOutputsNP[i].fill(getDeviceName(), name, labelM, MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+                    // Check to see if pin modes have been changed sin last time...
+                    if (useDewLabels) 
+                    {
+                        int lastPin = -1;
+                        char lastMode[MAXINDILABEL] = {};
+
+
+                        if (sscanf(PI::DewChannelLabelsTP[dewOutputs].getText(), "Output %d (%s)", &lastPin, lastMode) == 2)
+                        {
+                            if (lastControllerPinMode[i] == CONTROLLER_PIN_MODE_CONTROLLER)
+                            {
+                                useDewLabels = (strcmp(lastMode, "Controller") == 0);
+                            }
+                            else
+                            {
+                                useDewLabels = (strcmp(lastMode, "PWM") == 0);
+                            }
+                            useDewLabels = (lastPin == pin) && useDewLabels;
+                        }
+                    }
+                    if ((!useDewLabels) || (strcmp(PI::DewChannelLabelsTP[dewOutputs].getText(), PI::DewChannelLabelsTP[dewOutputs].getLabel()) == 0))
+                    {
+                        PI::DewChannelLabelsTP[dewOutputs].setText(labelC);
+                        PI::DewChannelsSP[dewOutputs].setLabel(labelC);
+                        PI::DewChannelDutyCycleNP[dewOutputs].setLabel(dewLabel);
+                    }
+                    dewChannelToOutput[dewOutputs] = pin;
+                    outputToChannel[i] = dewOutputs;
+                    //LOGF_INFO("Mapping Output to Dew Channel %d, Pin %d to Channel %d", i, pin, dewOutputs);
+                    dewOutputs++;
                     break;
                 case CONTROLLER_PIN_MODE_BOOLEAN:
-                    AdditionalOutputsNP[i][0].fill(name, labelS, "%3.0f", 0, 100, 100, 0.);
-                    AdditionalOutputsNP[i].fill(getDeviceName(), name, labelM, MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+                    // Check to see if pin modes have been changed since last time...
+                    if (usePowerLabels) 
+                    {
+                        int lastPin = -1;
+
+                        if (sscanf(PI::PowerChannelLabelsTP[powerOutputs].getText(), channelLabels[lastControllerPinMode[i]], &lastPin) == 1)
+                        {
+                            usePowerLabels = (lastPin == pin);
+                        }
+                    }
+                    if ((!usePowerLabels) || (strcmp(PI::PowerChannelLabelsTP[powerOutputs].getText(), PI::PowerChannelLabelsTP[powerOutputs].getLabel()) == 0))
+                    {
+                        PI::PowerChannelLabelsTP[powerOutputs].setText(labelC);
+                        PI::PowerChannelsSP[powerOutputs].setLabel(labelC);
+                    }
+                    powerChannelToOutput[powerOutputs] = pin;
+                    outputToChannel[i] = powerOutputs;
+                    //LOGF_INFO("Mapping Output tp Power Channel %d,Pin %d to Channel %d", i, pin, powerOutputs);
+                    powerOutputs++;
                     break;
                 default:
-                    LOGF_ERROR("Get Output Mode Pin %d: Response <%s> for Command <%s> not valid.", pin, resp, command);
-            }
-
-            lastControllerPinMode[i] = mode;
-
+                    // Do nothing
+                    break;
+            } 
         }
-        else
-            LOGF_ERROR("Get Output Mode Pin %d: Response <%s> for Command <%s> not valid.", pin, resp, command);
-        
     }
 
-    additionalOutputsSupported = true;
+    PI::DewChannelLabelsTP.apply();
+    if (powerOutputs > 0)
+        PI::PowerChannelLabelsTP.apply();
+
     return true;
    
 }
 
-bool CheapoDC::checkForOutputModeChange()
-{
-    for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
-    {   
-        char resp[CDC_RESPONSE_LENGTH] = {};
-        char command[CDC_COMMAND_LENGTH] = {};
-        int mode, ok;
-        int pin = i + CDC_MIN_ADDITIONAL_OUTPUT;
-
-        snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPM, pin);
-        if (!this->sendGetCommand(command, resp))
-            return false;
-
-        ok = sscanf(resp, "%d", &mode);
-
-        if (ok == 1)
-        {
-            if (lastControllerPinMode[i] != mode)
-                return true;
-        }
-    }
-    return false;
-}
-
-
 void CheapoDC::getWeatherSource()
 {
     char resp[CDC_RESPONSE_LENGTH] = {};
+    bool usingOpenWeather = false;
 
     if (sendGetCommand(CDC_CMD_WS, resp))
     {
@@ -668,10 +727,9 @@ void CheapoDC::getWeatherSource()
             int ok = 0;
 
             ok = sscanf(resp, "%d", &newWeatherSource);
-            usingOpenWeather = (newWeatherSource == OPENWEATHER);
             usingExternalWeatherSource = (newWeatherSource == EXTERNALSOURCE);
 
-            if ((ok == 1) && (newWeatherSource <= EXTERNALSOURCE))
+            if ((ok == 1) && (newWeatherSource <= INTERNALSOURCE))
             {
                 WeatherSourceSP.reset();
                 WeatherSourceSP[newWeatherSource].setState(ISS_ON);
@@ -679,7 +737,7 @@ void CheapoDC::getWeatherSource()
                 WeatherSourceSP.apply();
             }
             else
-                LOGF_ERROR("Get Weather Source: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_WS);
+                LOGF_ERROR("Get Weather Source: Response [%s] for Command [%s] not valid.", resp, CDC_CMD_WS);
         }
     }
 }
@@ -702,14 +760,18 @@ bool CheapoDC::setControllerMode(int value)
 bool CheapoDC::setTemperatureMode(int value)
 {
     if ((value < WEATHER_QUERY) || (value > EXTERNAL_INPUT))
+    {
+        LOGF_ERROR("Invalid Temperature Mode value: %d.", value);
+        
         return false;
+    }
     else
     {
         char valBuf[CDC_SET_VALUE_LENGTH] = {};
 
         // Check Focuser Snoop if EXTERNAL_INPUT
         if ((value == EXTERNAL_INPUT) && (strlen(ActiveDeviceTP[ACTIVE_FOCUSER].getText()) == 0))
-            LOG_INFO("Temperature Mode set to External Input. Set Snoop Device for Focuser to send temperatures from the Focuser Device.");
+            LOG_INFO("Temperature Mode set to Focuser Device. Configure Snoop Device for Focuser to send temperatures from the Focuser Device.");
         
         sprintf(valBuf, CDC_INT_VALUE, value);
         return sendSetCommand(CDC_CMD_DCTM, valBuf);
@@ -732,16 +794,32 @@ bool CheapoDC::setSetPointMode(int value)
 
 bool CheapoDC::setWeatherSource(int value)
 {
+    int maxValue = internalHumiditySensorSupported ? INTERNALSOURCE : EXTERNALSOURCE;
+
     if (fwVOneDetected)
     {
         LOGF_WARN("CheapoDC firmware V%s does not support Set Weather Source. Please upgrade firmware to latest V2+.", FWversionTP[0].getText());
         return false;
     }
-    if ((value < OPENMETEO) || (value > EXTERNALSOURCE))
-        return false;
-    else
+    if ((value < OPENMETEO) || (value > maxValue))
     {
+        if (value == INTERNALSOURCE)
+        {
+            LOG_WARN("Setting Weather Source to CheapoDC Sensor requires firmware v2.3.0+ with a configured sensor.");
+        }
+        else
+        {
+            LOGF_ERROR("Invalid Weather Source value: %d.", value);
+        } 
+        refreshSettings( true ); // Refresh to show actual state  
+        return false;
+    }
+    else
+    { 
         char valBuf[CDC_SET_VALUE_LENGTH] = {};
+
+        if (value == EXTERNALSOURCE)
+            LOG_INFO("Weather Source set to Weather Device. Configure Snoop Device for Weather to receive weather data.");
 
         sprintf(valBuf, CDC_INT_VALUE, value);
         return sendSetCommand(CDC_CMD_WS, valBuf);
@@ -750,26 +828,121 @@ bool CheapoDC::setWeatherSource(int value)
 
 bool CheapoDC::SetPowerPort(size_t port, bool enabled)
 {
-    INDI_UNUSED(port);
-    INDI_UNUSED(enabled);
-    LOG_DEBUG("SetPowerPort not supported by CheapoDC.");
+    bool returnValue = false;
+    int output = powerChannelToOutput[port];
+
+    //LOGF_INFO("SetPowerPort: port=%zu, enabled=%s, Output=%d", port, enabled ? "true" : "false", output);
+
+    if ((output >= CDC_MIN_ADDITIONAL_OUTPUT) && (output < (CDC_TOTAL_ADDITIONAL_OUTPUTS + CDC_MIN_ADDITIONAL_OUTPUT)))
+    {
+        if (enabled)
+        {
+            returnValue = setAdditionalOutput(output, 100);
+        }
+        else
+        {
+            returnValue = setAdditionalOutput(output, 0);
+        }
+    }
+    else
+    {
+        LOGF_ERROR("SetPowerPort: Invalid Output %d to port mapping %zu.", output, port);
+        returnValue = false;
+    }
+    if (returnValue)
+    {
+        PI::PowerChannelsSP.setState(IPS_BUSY);
+        PI::PowerChannelsSP.apply();
+        refreshSettings();
+        return true;
+    }
+    return false;
+}
+
+bool CheapoDC::SetAutoDewEnabled(size_t port, bool enabled)
+{
+    if (port != 0) // CheapoDC has a single auto dew control
+    {
+        LOGF_WARN("SetAutoDewEnabled: Invalid port number %zu.", port);
+        return false;
+    }
+
+    if (setControllerMode(enabled ? AUTOMATIC : OFF))
+    {
+        PI::AutoDewSP.setState(IPS_BUSY);
+        PI::AutoDewSP.apply();
+        refreshSettings();
+        return true;
+    }
     return false;
 }
 
 bool CheapoDC::SetDewPort(size_t port, bool enabled, double dutyCycle)
 {
-    INDI_UNUSED(enabled);
-    if (port == 0) // Main dew output
-    {
-        return setOutput(static_cast<int>(dutyCycle));
+    bool returnValue = false;
+
+    //LOGF_INFO("SetDewPort: port=%zu, enabled=%s, dutyCycle=%.2f", port, enabled ? "true" : "false", dutyCycle);
+    if (port == 0) // Main dew output 
+    {   
+        if (AutoDewSP[0].getState() == ISS_ON)
+        {
+            LOG_WARN("Cannot set duty cycle for Controller while Auto Dew Control is enabled.");
+            refreshSettings( true ); // Refresh to show actual state
+            return false;
+        }
+        if (enabled)
+        {
+            if (previousControllerMode != MANUAL)
+            {
+                // Ignore the duty cycle and just set to Manual mode
+                returnValue = setControllerMode(MANUAL);
+            }
+            else if ((dutyCycle < prevMinOutput) || (dutyCycle > prevMaxOutput))
+            {
+                LOGF_WARN("Controller Duty cycle %.2f is out of range (%.2f - %.2f).", 
+                          dutyCycle, static_cast<double>(prevMinOutput), static_cast<double>(prevMaxOutput));
+            }
+            else
+            {
+                returnValue = setControllerMode(MANUAL) && setOutput(static_cast<int>(dutyCycle));
+            }
+        }
+        else
+        {
+            returnValue = setControllerMode(OFF);
+        }
     }
-    else if (port >= 1 && port <= CDC_TOTAL_ADDITIONAL_OUTPUTS) // Additional outputs
+    else if (port >= 1 && port <= CDC_TOTAL_ADDITIONAL_OUTPUTS) // Additional 4 outputs (2 to 5) 4 Ports (1 to 4)
     {
+        int output = dewChannelToOutput[port];
         // Additional outputs are 1-based in the interface, map to CDC_MIN_ADDITIONAL_OUTPUT + (port - 1)
-        return setAdditionalOutput(static_cast<int>(CDC_MIN_ADDITIONAL_OUTPUT + (port - 1)), static_cast<int>(dutyCycle));
+        if (lastControllerPinMode[output - CDC_MIN_ADDITIONAL_OUTPUT] == CONTROLLER_PIN_MODE_PWM)
+        {
+            if (enabled)
+            {
+                returnValue = setAdditionalOutput(output, static_cast<int>(dutyCycle));
+            }
+            else
+            {
+                returnValue = setAdditionalOutput(output, 0);
+            }
+        }
+        else
+        {
+            LOGF_WARN("Duty cycle for output %d is set by %s.", output, PI::AutoDewSP[0].getLabel());
+        }
     }
-    LOGF_WARN("SetDewPort: Invalid port number %zu.", port);
-    return false;
+
+    if (returnValue)
+    {
+        PI::DewChannelDutyCycleNP.setState(IPS_BUSY);
+        PI::DewChannelsSP.setState(IPS_BUSY);
+        PI::DewChannelDutyCycleNP.apply();
+        PI::DewChannelsSP.apply();
+    }
+
+    refreshSettings( true ); // Delay since multiple Dew Port settings can be done in succession
+    return returnValue;
 }
 
 bool CheapoDC::SetVariablePort(size_t port, bool enabled, double voltage)
@@ -786,12 +959,6 @@ bool CheapoDC::SetLEDEnabled(bool enabled)
     INDI_UNUSED(enabled);
     LOG_DEBUG("SetLEDEnabled not supported by CheapoDC.");
     return false;
-}
-
-bool CheapoDC::SetAutoDewEnabled(size_t port, bool enabled)
-{
-    INDI_UNUSED(port); // CheapoDC has a single auto dew control
-    return setControllerMode(enabled ? AUTOMATIC : MANUAL);
 }
 
 bool CheapoDC::CyclePower()
@@ -816,15 +983,6 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
     if (INDI::PowerInterface::processSwitch(dev, name, states, names, n))
         return true;
-
-    // if (ControllerModeSP.isNameMatch(name)) // Handled by PowerInterface
-    // {
-    //     ControllerModeSP.update(states, names, n);
-    //     ControllerModeSP.setState(IPS_BUSY);
-    //     ControllerModeSP.apply();
-    //     result = setControllerMode(ControllerModeSP.findOnSwitchIndex());
-    //     return result && readSettings();
-    // }
 
     if (TemperatureModeSP.isNameMatch(name))
     {
@@ -932,7 +1090,10 @@ bool CheapoDC::setAdditionalOutput(int pin, int value)
 bool CheapoDC::setMinimumOutput(int value)
 {
     if (value >= MaximumOutputNP[0].getValue())
+    {
+        LOGF_WARN("Minimum Output %d must be less than Maximum Output %d.", value, MaximumOutputNP[0].getValue());
         return false;
+    }
     else
     {
         char valBuf[CDC_SET_VALUE_LENGTH] = {};
@@ -945,7 +1106,10 @@ bool CheapoDC::setMinimumOutput(int value)
 bool CheapoDC::setMaximumOutput(int value)
 {
     if (value <= MinimumOutputNP[0].getValue())
+    {
+        LOGF_WARN("Maximum Output %d must be greater than Minimum Output %d.", value, MinimumOutputNP[0].getValue());
         return false;
+    }
     else
     {
         char valBuf[CDC_SET_VALUE_LENGTH] = {};
@@ -1112,45 +1276,12 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         return result && readSettings();
     }
 
-    // if (OutputPowerNP.isNameMatch(name)) // Handled by PowerInterface
-    // {
-    //     if (ControllerModeSP.findOnSwitchIndex() == MANUAL)
-    //     {
-    //         int minOutput = MinimumOutputNP[0].getValue();
-    //         int maxOutput = MaximumOutputNP[0].getValue();
-
-    //         OutputPowerNP.update(values, names, n);
-
-    //         if ((minOutput <= OutputPowerNP[0].getValue()) && (maxOutput >= OutputPowerNP[0].getValue()))
-    //         {
-    //             OutputPowerNP.setState(IPS_BUSY);
-    //             OutputPowerNP.apply();
-
-    //             result = setOutput(OutputPowerNP[0].getValue());
-    //         }
-    //         else
-    //         {
-    //             LOGF_WARN("Output must be >= Minimum Output (%d) and <= MaximumOutput (%d).", minOutput, maxOutput);
-    //             result = false;
-    //         }
-    //         return result && readSettings();
-    //     }
-    //     else
-    //     {
-    //         LOG_WARN("Controller Mode must be set to Manual to set Output Power.");
-    //         readSettings();
-    //         return false;
-    //     }
-    // }
-
     if (MinimumOutputNP.isNameMatch(name))
     {
         MinimumOutputNP.update(values, names, n);
         MinimumOutputNP.setState(IPS_BUSY);
         MinimumOutputNP.apply();
         result = setMinimumOutput(MinimumOutputNP[0].getValue());
-        doMainControlRedraw = true;
-        doOptionsRedraw = true;
         return result && readSettings();
     }
 
@@ -1160,8 +1291,6 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         MaximumOutputNP.setState(IPS_BUSY);
         MaximumOutputNP.apply();
         result = setMaximumOutput(MaximumOutputNP[0].getValue());
-        doMainControlRedraw = true;
-        doOptionsRedraw = true;
         return result && readSettings();
     }
 
@@ -1200,19 +1329,6 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         result = setLocation(LocationNP[LOCATION_LATITUDE].getValue(), LocationNP[LOCATION_LONGITUDE].getValue());
         return result && readSettings();
     }
-
-    for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
-    {
-        if ((additionalOutputsSupported) && (AdditionalOutputsNP[i].isNameMatch(name)))
-        {
-            AdditionalOutputsNP[i].update(values, names, n);
-            AdditionalOutputsNP[i].setState(IPS_BUSY);
-            AdditionalOutputsNP[i].apply();
-            result = setAdditionalOutput(i + CDC_MIN_ADDITIONAL_OUTPUT, AdditionalOutputsNP[i][0].getValue());
-            return result && readSettings();
-        }
-    }
-
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -1275,7 +1391,7 @@ bool CheapoDC::ISNewText(const char *dev, const char *name, char *texts[], char 
     if (INDI::PowerInterface::processText(dev, name, texts, names, n))
         return true;
 
-    if (usingOpenWeather && (WeatherQueryAPIKeyTP.isNameMatch(name)))
+    if (WeatherQueryAPIKeyTP.isNameMatch(name))
     {
         WeatherQueryAPIKeyTP.update(texts, names, n);
         WeatherQueryAPIKeyTP.setState(IPS_BUSY);
@@ -1436,6 +1552,7 @@ bool CheapoDC::readSettings()
     unsigned int output, minOutput, maxOutput, updatePeriod;
     float trackPointOffset, latitude, longitude;
     unsigned int controllerMode, temperatureMode, setPointMode, queryPeriod;
+    bool powerChannelsExist = false;
     
     // Get Temperatures first
     if (!sendGetCommand(CDC_CMD_ATPQ, resp))
@@ -1474,7 +1591,7 @@ bool CheapoDC::readSettings()
         HumidityNP.apply();
     }
     else
-        LOGF_ERROR("Get Humidity: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_HU);
+        LOGF_ERROR("Get Humidity: Response [%s] for Command [%s] not valid.", resp, CDC_CMD_HU);
 
     // Get Dew Point
     memset(resp, '\0', sizeof(resp));
@@ -1491,7 +1608,7 @@ bool CheapoDC::readSettings()
         DewpointNP.apply();
     }
     else
-        LOGF_ERROR("Get Dew point: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_DP);
+        LOGF_ERROR("Get Dew point: Response [%s] for Command [%s] not valid.", resp, CDC_CMD_DP);
     // Get Set Point
     memset(resp, '\0', sizeof(resp));
 
@@ -1507,24 +1624,100 @@ bool CheapoDC::readSettings()
         SetPointTemperatureNP.apply();
     }
     else
-        LOGF_ERROR("Get Set Point: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_SP);
+        LOGF_ERROR("Get Set Point: Response [%s] for Command [%s] not valid.", resp, CDC_CMD_SP);
 
-    // Get Power output
+    // Get Controller Mode to set Dew Channel and Auto Dew states
     memset(resp, '\0', sizeof(resp));
-
-    if (!sendGetCommand(CDC_CMD_DCO, resp))
+    if (!sendGetCommand(CDC_CMD_DCM, resp))
         return false;
 
-    ok = sscanf(resp, "%d", &output);
+    ok = sscanf(resp, "%d", &controllerMode);
 
-    if (ok == 1)
+    if (ok != 1)
+        LOGF_ERROR("Get Controller Mode: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_DCM);
+
+    previousControllerMode = controllerMode;
+    if (controllerMode == OFF)
     {
-        DewChannelsSP[0].setState(output > 0 ? ISS_ON : ISS_OFF);
-        DewChannelsSP.setState(IPS_OK);
-        DewChannelsSP.apply();
+        DewChannelsSP[0].setState(ISS_OFF);
+        AutoDewSP[0].setState(ISS_OFF);
+        DewChannelDutyCycleNP[0].setValue(0);
     }
     else
-        LOGF_ERROR("Get Power Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_DCO);
+    {
+        DewChannelsSP[0].setState(controllerMode == MANUAL ? ISS_ON : ISS_OFF);
+        AutoDewSP[0].setState(controllerMode == AUTOMATIC ? ISS_ON : ISS_OFF);
+
+        memset(resp, '\0', sizeof(resp));
+
+        if (!sendGetCommand(CDC_CMD_DCO, resp))
+            return false;
+
+        if (sscanf(resp, "%d", &output))
+        {
+            DewChannelDutyCycleNP[0].setValue(output);
+        }
+        else
+            LOGF_ERROR("Get Power Output: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_DCO);
+    }
+
+    // Addtional Outputs added in release 2.20 FW
+    if (additionalOutputsSupported)
+    {  
+        for (int p = 0; p < CDC_TOTAL_ADDITIONAL_OUTPUTS; p++)
+        {
+            //LOGF_INFO("Output to Channel %d with Channel %d", p, outputToChannel[p]);
+            if (outputToChannel[p] >= 0)
+            {
+                char command[CDC_COMMAND_LENGTH] = {};
+                int pin = p + CDC_MIN_ADDITIONAL_OUTPUT;
+
+                memset(resp, '\0', sizeof(resp));
+        
+                snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPO, pin);
+                if (!this->sendGetCommand(command, resp))
+                    return false;
+                
+                if (sscanf(resp, "%d", &output))
+                {
+                    switch (lastControllerPinMode[p])
+                    {
+                    case CONTROLLER_PIN_MODE_CONTROLLER:
+                    //LOGF_INFO("Controller PIN Mode Controller for output %d, Duty cycle: %d", pin, output);
+                        DewChannelDutyCycleNP[outputToChannel[p]].setValue(output);
+                        DewChannelsSP[outputToChannel[p]].setState(ISS_OFF);
+                        break;
+                    case CONTROLLER_PIN_MODE_PWM:
+                    //LOGF_INFO("Controller PIN Mode PWM for output %d, Duty cycle: %d", pin, output);
+                        DewChannelDutyCycleNP[outputToChannel[p]].setValue(output);
+                        if (output > 0)
+                            DewChannelsSP[outputToChannel[p]].setState(ISS_ON);
+                        //DewChannelsSP[outputToChannel[p]].setState(output > 0 ? ISS_ON : ISS_OFF );
+                        break;
+                    case CONTROLLER_PIN_MODE_BOOLEAN:
+                    //LOGF_INFO("Controller PIN Mode BOOLEAN for output %d, State: %d", pin, output);
+                        PowerChannelsSP[outputToChannel[p]].setState(output > 0 ? ISS_ON : ISS_OFF );
+                        powerChannelsExist = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    DewChannelsSP.setState(IPS_OK);
+    DewChannelsSP.apply();
+    DewChannelDutyCycleNP.setState(IPS_OK);
+    DewChannelDutyCycleNP.apply();
+    AutoDewSP.setState(IPS_OK);
+    AutoDewSP.apply();
+    if (powerChannelsExist)
+    {
+        PowerChannelsSP.setState(IPS_OK);
+        PowerChannelsSP.apply();
+    }
 
     // Get Minimum output
     memset(resp, '\0', sizeof(resp));
@@ -1539,19 +1732,17 @@ bool CheapoDC::readSettings()
         if (minOutput != prevMinOutput)
         {
             MinimumOutputNP[0].setValue(minOutput);
-            OutputPowerNP[0].setMin(minOutput);
-            OutputPowerNP.apply();
+            DewChannelDutyCycleNP[0].setMin(minOutput);
+            DewChannelDutyCycleNP.apply();
             MaximumOutputNP[0].setMin(minOutput + 1);
             MaximumOutputNP.apply();
-            doMainControlRedraw = true;
-            doOptionsRedraw = true;
             prevMinOutput = minOutput;
         }
         MinimumOutputNP.setState(IPS_OK);
         MinimumOutputNP.apply();
     }
     else
-        LOGF_ERROR("Get Minimum Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_OMIN);
+        LOGF_ERROR("Get Minimum Output: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_OMIN);
 
     // Get Maximum output
     memset(resp, '\0', sizeof(resp));
@@ -1567,19 +1758,17 @@ bool CheapoDC::readSettings()
         if (maxOutput != prevMaxOutput)
         {
             MaximumOutputNP[0].setValue(maxOutput);
-            OutputPowerNP[0].setMax(maxOutput);
-            OutputPowerNP.apply();
+            DewChannelDutyCycleNP[0].setMax(maxOutput);
+            DewChannelDutyCycleNP.apply();
             MinimumOutputNP[0].setMax(maxOutput - 1);
             MinimumOutputNP.apply();
-            doMainControlRedraw = true;
-            doOptionsRedraw = true;
             prevMaxOutput = maxOutput;
         }
         MaximumOutputNP.setState(IPS_OK);
         MaximumOutputNP.apply();
     }
     else
-        LOGF_ERROR("Get Maximum Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_OMAX);
+        LOGF_ERROR("Get Maximum Output: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_OMAX);
 
     // Get Track Point Offset
     memset(resp, '\0', sizeof(resp));
@@ -1596,7 +1785,7 @@ bool CheapoDC::readSettings()
         TrackPointOffsetNP.apply();
     }
     else
-        LOGF_ERROR("Get Track Point Offset: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_TPO);
+        LOGF_ERROR("Get Track Point Offset: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_TPO);
 
     // Get Tracking Range
     memset(resp, '\0', sizeof(resp));
@@ -1613,7 +1802,7 @@ bool CheapoDC::readSettings()
         TrackingRangeNP.apply();
     }
     else
-        LOGF_ERROR("Get Update Output Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_TKR);
+        LOGF_ERROR("Get Update Output Every: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_TKR);
 
     // Get Output Update Period
     memset(resp, '\0', sizeof(resp));
@@ -1630,7 +1819,7 @@ bool CheapoDC::readSettings()
         UpdateOutputEveryNP.apply();
     }
     else
-        LOGF_ERROR("Get Query Weather Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_UOE);
+        LOGF_ERROR("Get Query Weather Every: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_UOE);
 
     // Get Query Weather Period
     memset(resp, '\0', sizeof(resp));
@@ -1647,7 +1836,7 @@ bool CheapoDC::readSettings()
         QueryWeatherEveryNP.apply();
     }
     else
-        LOGF_ERROR("Get Query Weather Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_WQE);
+        LOGF_ERROR("Get Query Weather Every: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_WQE);
 
     // Get Device Date-Time and UTC Offset (Not supported in FW V1)
     if (!fwVOneDetected)
@@ -1676,7 +1865,7 @@ bool CheapoDC::readSettings()
         }
         else
         {
-            LOGF_ERROR("Get UTC Offset: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_TMZ);
+            LOGF_ERROR("Get UTC Offset: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_TMZ);
             DeviceTimeTP.setState(IPS_ALERT);
         }
     }
@@ -1696,7 +1885,7 @@ bool CheapoDC::readSettings()
         LocationNP.apply();
     }
     else
-        LOGF_ERROR("Get Latitude: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_LAT);
+        LOGF_ERROR("Get Latitude: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_LAT);
 
     // Get Location - Longitude
     memset(resp, '\0', sizeof(resp));
@@ -1715,7 +1904,7 @@ bool CheapoDC::readSettings()
         LocationNP.apply();
     }
     else
-        LOGF_ERROR("Get Longitude: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_LON);
+        LOGF_ERROR("Get Longitude: Response [%s] for Command [%s] invalid.", resp, CDC_CMD_LON);
 
     // Get Set Point Mode
     memset(resp, '\0', sizeof(resp));
@@ -1733,25 +1922,20 @@ bool CheapoDC::readSettings()
         SetPointModeSP.apply();
     }
     else
-        LOGF_ERROR("Get Set Point Mode: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_SPM);
+        LOGF_ERROR("Get Set Point Mode: Response [%s] for Command [%s] not valid.", resp, CDC_CMD_SPM);
 
     // Get weather source
-    previouslyUsingOpenWeather = usingOpenWeather;
     getWeatherSource();
-    doOptionsRedraw = (previouslyUsingOpenWeather != usingOpenWeather);
 
-    // Get API Key if using OpenWeather
-    if (usingOpenWeather)
-    {
-        memset(resp, '\0', sizeof(resp));
+    // Get OpenWeather API Key
+    memset(resp, '\0', sizeof(resp));
 
-        if (!sendGetCommand(CDC_CMD_WKEY, resp))
-            return false;
+    if (!sendGetCommand(CDC_CMD_WKEY, resp))
+        return false;
 
-        WeatherQueryAPIKeyTP[0].setText(resp);
-        WeatherQueryAPIKeyTP.setState(IPS_OK);
-        WeatherQueryAPIKeyTP.apply();
-    }
+    WeatherQueryAPIKeyTP[0].setText(resp);
+    WeatherQueryAPIKeyTP.setState(IPS_OK);
+    WeatherQueryAPIKeyTP.apply();
 
     // Get Last Weather Update date time
     memset(resp, '\0', sizeof(resp));
@@ -1775,32 +1959,6 @@ bool CheapoDC::readSettings()
     ActiveDeviceTP.setState(IPS_OK);
     ActiveDeviceTP.apply();
 
-    // Get Controller Mode
-    memset(resp, '\0', sizeof(resp));
-
-    if (!sendGetCommand(CDC_CMD_DCM, resp))
-        return false;
-
-    ok = sscanf(resp, "%d", &controllerMode);
-
-    if ((ok == 1) && (controllerMode <= OFF))
-    {
-        AutoDewSP.reset();
-        AutoDewSP[controllerMode == AUTOMATIC ? 0 : 1].setState(ISS_ON); // Map AUTOMATIC to 0, MANUAL/OFF to 1
-        AutoDewSP.setState(IPS_OK);
-        AutoDewSP.apply();
-
-        if (controllerMode != previousControllerMode)
-        {
-            // The permission logic for OutputPowerNP is now handled by the PowerInterface
-            // based on the AutoDewSP state.
-            doMainControlRedraw = true;
-            previousControllerMode = controllerMode;
-        }
-    }
-    else
-        LOGF_ERROR("Get Controller Mode: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_DCM);
-
     // Get Temperature Mode
     memset(resp, '\0', sizeof(resp));
 
@@ -1817,46 +1975,13 @@ bool CheapoDC::readSettings()
         TemperatureModeSP.apply();
     }
     else
-        LOGF_ERROR("Get Temperature Mode: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_DCTM);
+        LOGF_ERROR("Get Temperature Mode: Response [%s] for Command [%s] not valid.", resp, CDC_CMD_DCTM);
 
     // Refresh
     RefreshSP.reset();
     RefreshSP[0].setState(ISS_OFF);
     RefreshSP.setState(IPS_OK);
     RefreshSP.apply();
-
-    // Addtional Outputs added in release 2.20 FW
-    if (additionalOutputsSupported)
-    {
-        if (checkForOutputModeChange())
-        {
-            additionalOutputsSupported = checkAddtionalOutputs();
-            doMainControlRedraw = true;
-        }
-        
-        for (int p = 0; p < CDC_TOTAL_ADDITIONAL_OUTPUTS; p++)
-        {
-            if (lastControllerPinMode[p] != CONTROLLER_PIN_MODE_DISABLED)
-            {
-                char resp[CDC_RESPONSE_LENGTH] = {};
-                char command[CDC_COMMAND_LENGTH] = {};
-                int pin = p + CDC_MIN_ADDITIONAL_OUTPUT;
-        
-                snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPO, pin);
-                if (!this->sendGetCommand(command, resp))
-                    return false;
-                
-                ok = sscanf(resp, "%d", &output);
-
-                if (ok == 1)
-                {
-                    AdditionalOutputsNP[p][0].setValue(output);
-                    AdditionalOutputsNP[p].setState(IPS_OK);
-                    AdditionalOutputsNP[p].apply();
-                }
-            }
-        }
-    }
 
     // Check for Snoop and settings alignment
     // For Temperature Device
@@ -1875,18 +2000,11 @@ bool CheapoDC::readSettings()
             (!previuoslyUsingExternalWeatherSource) && 
             (strlen(ActiveDeviceTP[ACTIVE_WEATHER].getText()) == 0))
         {
-            LOG_INFO("Weather Source set to External Source. Set Snoop Device for Weather to send temperature/humidity from the Weather Device.");
+            LOG_INFO("Weather Source set to Weather Device. Configure Snoop Device for Weather to send temperature/humidity from the Weather Device.");
         }
         previuoslyUsingExternalWeatherSource = usingExternalWeatherSource;
 
     }
-
-    // Check to see if any properties need to be redrawn
-    if (doMainControlRedraw)
-        redrawMainControl();
-
-    if (doOptionsRedraw)
-        redrawOptions();
 
     return true;
 }
@@ -1896,7 +2014,7 @@ bool CheapoDC::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     INDI::PowerInterface::saveConfigItems(fp);
     ActiveDeviceTP.save(fp);
-    MinimumOutputNP.save(fp);
+   /* MinimumOutputNP.save(fp);
     MaximumOutputNP.save(fp);
     TrackPointOffsetNP.save(fp);
     TrackingRangeNP.save(fp);
@@ -1907,8 +2025,30 @@ bool CheapoDC::saveConfigItems(FILE *fp)
     LocationNP.save(fp);
     SetPointModeSP.save(fp);
     TemperatureModeSP.save(fp);
-    SetPointTemperatureNP.save(fp);
+    SetPointTemperatureNP.save(fp); */
     return true;
+}
+
+void CheapoDC::refreshSettings(bool delayRefresh )
+{
+    // Stop current timer
+    if (timerIndex != -1)
+    {
+        
+        RemoveTimer(timerIndex);
+    }
+    if (!delayRefresh)
+    {
+        // Read settings immediately
+        readSettings();
+        // Restart timer
+        timerIndex = SetTimer(getCurrentPollingPeriod()); //
+    }
+    else
+    {
+        // Wait then refresh
+        timerIndex = SetTimer(500);
+    }
 }
 
 void CheapoDC::TimerHit()
