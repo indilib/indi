@@ -152,6 +152,7 @@ class PowerInterface
          * \param nDewPorts Number of DEW/Dew heater ports
          * \param nVariablePorts Number of variable voltage ports
          * \param nAutoDewPorts Number of Auto Dew ports
+         * \param nUSBPorts Number of USB ports
          */
         void initProperties(const char *groupName, size_t nPowerPorts = 0, size_t nDewPorts = 0, size_t nVariablePorts = 0,
                             size_t nAutoDewPorts = 0, size_t nUSBPorts = 0);
