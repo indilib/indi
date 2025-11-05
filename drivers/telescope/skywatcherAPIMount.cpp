@@ -1651,18 +1651,21 @@ bool SkywatcherAPIMount::trackUsingPID()
     INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
     // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
-    // FIXME: This was not tested.
+    // The Moon and Sun appear to move eastward (increasing RA) relative to the stars
+    // because their westward motion due to Earth's rotation is slower than the sidereal rate.
     if (TrackModeSP[TRACK_LUNAR].getState() == ISS_ON)
     {
-        // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
-        // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
-        double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+        // TRACKRATE_LUNAR: how many arcsecs/sec the Moon moves westward (apparent motion)
+        // TRACKRATE_SIDEREAL: how many arcsecs/sec the stars move westward (apparent motion)
+        // Since the Moon moves slower westward, it effectively moves eastward relative to stars
+        double dRA = (TRACKRATE_SIDEREAL - TRACKRATE_LUNAR) * m_TrackingRateTimer.elapsed() / 1000.0;
         m_SkyTrackingTarget.rightascension += dRA / (3600.0 * 15.0);
         m_TrackingRateTimer.restart();
     }
     else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
-        double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+        // Similar logic: Sun moves slower westward than stars, so it moves eastward relative to stars
+        double dRA = (TRACKRATE_SIDEREAL - TRACKRATE_SOLAR) * m_TrackingRateTimer.elapsed() / 1000.0;
         m_SkyTrackingTarget.rightascension += dRA / (3600.0 * 15.0);
         m_TrackingRateTimer.restart();
     }
@@ -1848,19 +1851,22 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
     double JDoffset { timeStep / (60 * 60 * 24) } ;
 
     // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
-    // FIXME: This was not tested.
+    // The Moon and Sun appear to move eastward (increasing RA) relative to the stars
+    // because their westward motion due to Earth's rotation is slower than the sidereal rate.
     if (TrackModeSP[TRACK_LUNAR].getState() == ISS_ON)
     {
-        // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
-        // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
-        double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
-        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        // TRACKRATE_LUNAR: how many arcsecs/sec the Moon moves westward (apparent motion)
+        // TRACKRATE_SIDEREAL: how many arcsecs/sec the stars move westward (apparent motion)
+        // Since the Moon moves slower westward, it effectively moves eastward relative to stars
+        double dRA = (TRACKRATE_SIDEREAL - TRACKRATE_LUNAR) * m_TrackingRateTimer.elapsed() / 1000.0;
+        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) / 15.0;
         m_TrackingRateTimer.restart();
     }
     else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
-        double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
-        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        // Similar logic: Sun moves slower westward than stars, so it moves eastward relative to stars
+        double dRA = (TRACKRATE_SIDEREAL - TRACKRATE_SOLAR) * m_TrackingRateTimer.elapsed() / 1000.0;
+        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) / 15.0;
         m_TrackingRateTimer.restart();
     }
 
