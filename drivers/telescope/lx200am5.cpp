@@ -802,7 +802,13 @@ bool LX200AM5::goHome()
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::park()
 {
-    return sendCommand(":hP#");
+    // JM 2025.11.08: Many users do not like default ZWO parking position
+    // which is horizontal and does not go back to expected home position
+    // with CW down and looking at celestial pole.
+    // For now this is reverted now back to go back to that position instead
+    // of parking until ZWO releases update for custom parking positions.
+    return goHome();
+    //return sendCommand(":hP#");
 }
 
 /////////////////////////////////////////////////////////////////////////////
