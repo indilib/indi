@@ -101,8 +101,6 @@ bool GuideSim::SetupParms()
     // up much in guiding error.
     m_PolarError = SimulatorSettingsNP[SIM_POLAR].getValue();
     m_PolarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
-    // Camera rotation
-    m_RotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
     //  Kwiq++
     m_KingGamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * DEGREES_TO_RADIANS;
     m_KingTheta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * DEGREES_TO_RADIANS;
@@ -110,7 +108,14 @@ bool GuideSim::SetupParms()
     // That is, we can say exposure duration = 10s, and m_TimeFactor = 0.05
     // and the system will simulate a 10s exposure, but it will only take 0.5 seconds.
     m_TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
-
+    // This is the rotation offset of the simulated camera respective to North.
+    // Because the simulated star field is calculated with their RA/DEC-coordinates
+    // (see DrawCcdFrame()) the origin angle of star field points north. So this value
+    // for EQ mounts normally simulate a certain camera offset and is a constant.
+    // For ALTAZ-mount this variable is altered consecutively by the value of the parallactic
+    // angle (transfered through a signal from KStars/skymapdrawabstract.cpp) and this way used
+    // to simulate the deviation of the camera orientation from N.
+    m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
     m_Seeing = SimulatorSettingsNP[SIM_SEEING].getValue();
     m_RaTimeDrift = SimulatorSettingsNP[SIM_RA_DRIFT].getValue();
     m_DecTimeDrift = SimulatorSettingsNP[SIM_DEC_DRIFT].getValue();
@@ -179,7 +184,7 @@ bool GuideSim::initProperties()
     SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.3f", -600, 600, 0,
                                         0); /* PAE = Polar Alignment Error */
     SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.3f", 0, 6000, 0, 0);
-    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
+    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation Offset", "%4.1f", -360, 360, 0, 0);
     SimulatorSettingsNP[SIM_KING_GAMMA].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
     SimulatorSettingsNP[SIM_KING_THETA].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
@@ -196,7 +201,9 @@ bool GuideSim::initProperties()
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
-
+    // load() is important to fill all editfields with saved values also, so ISNewNumber() of one field
+    // doesn't update the other fields of the group with the "old" contents.
+    SimulatorSettingsNP.load();
     // RGB Simulation
     SimulateRgbSP[SIMULATE_YES].fill("SIMULATE_YES", "Yes", ISS_OFF);
     SimulateRgbSP[SIMULATE_NO].fill("SIMULATE_NO", "No", ISS_ON);
@@ -471,15 +478,18 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = m_RotationCW + 270;
-        if (theta > 360)
-            theta -= 360;
+        m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
+        double theta = m_RotationOffset;
+        if (!std::isnan(RotatorAngle))
+            theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
-        else if (theta < -360)
-            theta += 360;
+        theta = range360(theta);
+        LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, theta);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
+        // TS: 2025-06-09: Below we have "Invert horizontally" and in the end
+        // this produces a rotation CCW with origin N (TODO: adjust matrix?)
         pa = pprx * cos(theta * M_PI / 180.0);
         pb = ppry * sin(theta * M_PI / 180.0);
 
@@ -737,7 +747,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         ccdx = pa * sx + pb * sy + pc;
                         ccdy = pd * sx + pe * sy + pf;
 
-                        // Invert horizontally
+                        // Invert horizontally and transform CW to CCW (see above)
                         ccdx = ccdW - ccdx;
 
                         rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time, zeroPointK, zeroPointZ);

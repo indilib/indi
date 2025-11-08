@@ -125,6 +125,7 @@ class GuideSim : public INDI::CCD
         float m_OAGoffset { 0 };
         double m_RotationCW { 0 };
         float m_TimeFactor { 1 };
+        double m_RotationOffset { 0 };
 
         bool m_SimulateRGB { false };
 
