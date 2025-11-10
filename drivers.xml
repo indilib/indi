@@ -763,6 +763,10 @@
             <driver name="Astrometry">indi_astrometry</driver>
             <version>0.1</version>
         </device>
+        <device label="Safety Monitor" manufacturer="Others">
+            <driver name="Safety Monitor">indi_safetymonitor</driver>
+            <version>0.1</version>
+        </device>
         <device label="INDI Alpaca Server" manufacturer="Alpaca">
             <driver name="INDI Alpaca Server">indi_alpaca_server</driver>
             <version>0.1</version>

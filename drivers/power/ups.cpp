@@ -2,8 +2,7 @@
   Copyright(c) 2025 Jérémie Klein. All rights reserved.
 
   INDI UPS Driver using NUT (Network UPS Tools)
-  This driver monitors a UPS through NUT and exposes its status through INDI's weather interface.
-  Battery level and power status are mapped to weather parameters for compatibility.
+  This driver monitors a UPS through NUT and exposes battery status via SAFETY_STATUS.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -43,9 +42,6 @@ UPS::UPS()
 {
     setVersion(1, 0);
     
-    // Setup for TCP Connection
-    setWeatherConnection(CONNECTION_TCP);
-    
     // Create TCP Connection
     tcpConnection = new Connection::TCP(this);
     // Set default values for TCP connection
@@ -65,7 +61,7 @@ const char *UPS::getDefaultName()
 
 bool UPS::initProperties()
 {
-    INDI::Weather::initProperties();
+    INDI::DefaultDevice::initProperties();
 
     // Setup UPS name property
     UPSNameTP[0].fill("NAME", "UPS Name", "ups");  // Default UPS name
@@ -78,31 +74,39 @@ bool UPS::initProperties()
 
     // Setup update period
     UpdatePeriodNP[0].fill("PERIOD", "Period (s)", "%.1f", 1, 3600, 1, 10);
-    UpdatePeriodNP.fill(getDeviceName(), "UPDATE_PERIOD", "Update", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
-
-    // Add UPS parameters as weather parameters
-    addParameter("BATTERY_CHARGE", "Battery Charge", 10, 100, 0);
-    addParameter("BATTERY_VOLTAGE", "Battery Voltage", 12, 14, 0);
-    addParameter("INPUT_VOLTAGE", "Input Voltage", 210, 240, 0);
-
-    // Set critical parameters
-    setCriticalParameter("BATTERY_CHARGE");
-
-    // Load config before setting any defaults
-    loadConfig(true);
+    UpdatePeriodNP.fill(getDeviceName(), "UPDATE_PERIOD", "Update", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    
+    // UPS parameters
+    UPSParametersNP[UPS_BATTERY_CHARGE].fill("BATTERY_CHARGE", "Battery Charge (%)", "%.1f", 0, 100, 0, 0);
+    UPSParametersNP[UPS_BATTERY_VOLTAGE].fill("BATTERY_VOLTAGE", "Battery Voltage (V)", "%.2f", 0, 100, 0, 0);
+    UPSParametersNP[UPS_INPUT_VOLTAGE].fill("INPUT_VOLTAGE", "Input Voltage (V)", "%.2f", 0, 300, 0, 0);
+    UPSParametersNP.fill(getDeviceName(), "UPS_PARAMETERS", "Parameters", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    
+    // Battery thresholds
+    BatteryThresholdsNP[BATTERY_WARNING_THRESHOLD].fill("WARNING", "Warning Level (%)", "%.0f", 0, 100, 5, 25);
+    BatteryThresholdsNP[BATTERY_CRITICAL_THRESHOLD].fill("CRITICAL", "Critical Level (%)", "%.0f", 0, 100, 5, 15);
+    BatteryThresholdsNP.fill(getDeviceName(), "BATTERY_THRESHOLDS", "Battery Thresholds", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    
+    // Safety Status property
+    SafetyStatusLP[0].fill("SAFETY", "Safety", IPS_IDLE);
+    SafetyStatusLP.fill(getDeviceName(), "SAFETY_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
 
     addDebugControl();
+    setDriverInterface(AUX_INTERFACE);
 
     return true;
 }
 
 void UPS::ISGetProperties(const char *dev)
 {
-    INDI::Weather::ISGetProperties(dev);
+    INDI::DefaultDevice::ISGetProperties(dev);
 
     // Define UPS name property
     defineProperty(UPSNameTP);
     defineProperty(ConnectionSettingsNP);
+    defineProperty(BatteryThresholdsNP);
+    
+    loadConfig(true);
 }
 
 bool UPS::Handshake()
@@ -118,17 +122,17 @@ bool UPS::Handshake()
     
     LOGF_DEBUG("Handshake: Using file descriptor %d", PortFD);
     
-    // Vérifier si le socket est valide avec un test simple
+    // Check if socket is valid
     int socket_test = 0;
     if (fcntl(PortFD, F_GETFL, &socket_test) < 0) {
         LOGF_ERROR("Socket test failed: %s", strerror(errno));
         return false;
     }
     
-    // Attendre un peu pour que la connexion soit bien établie
+    // Wait a bit for connection to be established
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
-    // Attempt a simple command first to test communication
+    // Test communication with simple command
     std::string response = makeNUTRequest("VER");
     if (response.empty())
     {
@@ -138,7 +142,7 @@ bool UPS::Handshake()
     
     LOGF_DEBUG("Handshake: VER command response: %s", response.c_str());
     
-    // Liste des UPS disponibles pour vérification
+    // List available UPS
     response = makeNUTRequest("LIST UPS");
     if (response.empty())
     {
@@ -148,7 +152,7 @@ bool UPS::Handshake()
     
     LOGF_DEBUG("Handshake: LIST UPS command response: %s", response.c_str());
     
-    // Try to communicate with the NUT server using the configured UPS
+    // Try to query the configured UPS
     if (!queryUPSStatus())
     {
         LOG_ERROR("Handshake failed: could not query UPS status for the configured UPS name");
@@ -161,41 +165,62 @@ bool UPS::Handshake()
 
 bool UPS::Connect()
 {
-    if (!INDI::Weather::Connect())
+    if (!INDI::DefaultDevice::Connect())
         return false;
     
-    // Connection is now managed by the tcpConnection object
-    // After successful connection, set timer for polling
-    SetTimer(UpdatePeriodNP[0].getValue() * 1000);
+    // Start timer for periodic updates
+    m_TimerID = SetTimer(static_cast<uint32_t>(UpdatePeriodNP[0].getValue() * 1000));
     
     return true;
 }
 
 bool UPS::Disconnect()
 {
-    // The tcpConnection object will handle closing the socket
+    if (m_TimerID > 0)
+    {
+        RemoveTimer(m_TimerID);
+        m_TimerID = -1;
+    }
+    
     LOG_INFO("Disconnected from NUT server.");
-    return INDI::Weather::Disconnect();
+    return INDI::DefaultDevice::Disconnect();
 }
 
 bool UPS::updateProperties()
 {
-    INDI::Weather::updateProperties();
+    INDI::DefaultDevice::updateProperties();
     
     if (isConnected())
     {
-        // If we've just connected, ensure status is up to date
-        if (LastParseSuccess == false)
-        {
-            LOG_INFO("Initial connection established, updating UPS status...");
-            updateWeather();
-        }
+        defineProperty(UpdatePeriodNP);
+        defineProperty(UPSParametersNP);
+        defineProperty(SafetyStatusLP);
+        
+        // Initial update
+        updateUPSStatus();
+    }
+    else
+    {
+        deleteProperty(UpdatePeriodNP);
+        deleteProperty(UPSParametersNP);
+        deleteProperty(SafetyStatusLP);
     }
     
     return true;
 }
 
-IPState UPS::updateWeather()
+void UPS::TimerHit()
+{
+    if (!isConnected())
+        return;
+    
+    updateUPSStatus();
+    
+    // Re-arm timer
+    m_TimerID = SetTimer(static_cast<uint32_t>(UpdatePeriodNP[0].getValue() * 1000));
+}
+
+void UPS::updateUPSStatus()
 {
     // Get the file descriptor from the TCP connection
     PortFD = tcpConnection->getPortFD();
@@ -203,47 +228,86 @@ IPState UPS::updateWeather()
     if (PortFD == -1)
     {
         LOG_ERROR("Connection lost, invalid file descriptor");
-        return IPS_ALERT;
+        SafetyStatusLP.setState(IPS_ALERT);
+        SafetyStatusLP.apply();
+        return;
     }
 
     if (!queryUPSStatus())
     {
         LastParseSuccess = false;
-        return IPS_ALERT;
+        SafetyStatusLP.setState(IPS_ALERT);
+        SafetyStatusLP.apply();
+        return;
     }
 
-    // Update weather parameters based on UPS status
+    // Update UPS parameters
     try 
     {
+        double batteryCharge = 0;
+        bool hasCharge = false;
+        
         // Battery charge
         if (upsParameters.count("battery.charge"))
         {
-            double charge = std::stod(upsParameters["battery.charge"]);
-            setParameterValue("BATTERY_CHARGE", charge);
+            batteryCharge = std::stod(upsParameters["battery.charge"]);
+            UPSParametersNP[UPS_BATTERY_CHARGE].setValue(batteryCharge);
+            hasCharge = true;
         }
 
         // Battery voltage
         if (upsParameters.count("battery.voltage"))
         {
             double voltage = std::stod(upsParameters["battery.voltage"]);
-            setParameterValue("BATTERY_VOLTAGE", voltage);
+            UPSParametersNP[UPS_BATTERY_VOLTAGE].setValue(voltage);
         }
 
         // Input voltage
         if (upsParameters.count("input.voltage"))
         {
             double voltage = std::stod(upsParameters["input.voltage"]);
-            setParameterValue("INPUT_VOLTAGE", voltage);
+            UPSParametersNP[UPS_INPUT_VOLTAGE].setValue(voltage);
         }
+        
+        UPSParametersNP.setState(IPS_OK);
+        UPSParametersNP.apply();
+
+        // Determine safety status based on battery charge
+        IPState safetyState = IPS_IDLE;
+        
+        if (hasCharge)
+        {
+            double criticalThreshold = BatteryThresholdsNP[BATTERY_CRITICAL_THRESHOLD].getValue();
+            double warningThreshold = BatteryThresholdsNP[BATTERY_WARNING_THRESHOLD].getValue();
+            
+            if (batteryCharge <= criticalThreshold)
+            {
+                safetyState = IPS_ALERT;
+                LOGF_WARN("Battery critically low: %.1f%% (<= %.0f%%)", batteryCharge, criticalThreshold);
+            }
+            else if (batteryCharge <= warningThreshold)
+            {
+                safetyState = IPS_BUSY;
+                LOGF_WARN("Battery low: %.1f%% (<= %.0f%%)", batteryCharge, warningThreshold);
+            }
+            else
+            {
+                safetyState = IPS_OK;
+                LOGF_DEBUG("Battery normal: %.1f%%", batteryCharge);
+            }
+        }
+        
+        SafetyStatusLP.setState(safetyState);
+        SafetyStatusLP.apply();
 
         LastParseSuccess = true;
-        return IPS_OK;
     }
     catch (const std::exception &e)
     {
         LOGF_ERROR("Error parsing UPS status: %s", e.what());
         LastParseSuccess = false;
-        return IPS_ALERT;
+        SafetyStatusLP.setState(IPS_ALERT);
+        SafetyStatusLP.apply();
     }
 }
 
@@ -279,9 +343,9 @@ bool UPS::parseUPSResponse(const std::string& response)
     std::string line;
     int lineCount = 0;
 
-    LOGF_DEBUG("Parsing response of %d bytes", response.length());
+    LOGF_DEBUG("Parsing response of %zu bytes", response.length());
 
-    // Vérifions d'abord si la réponse contient une erreur
+    // Check for error first
     if (response.find("ERR ") != std::string::npos) {
         size_t pos = response.find("ERR ");
         size_t end = response.find('\n', pos);
@@ -296,7 +360,7 @@ bool UPS::parseUPSResponse(const std::string& response)
     while (std::getline(iss, line))
     {
         lineCount++;
-        // Ignorer les lignes vides ou les fins de message
+        // Ignore empty lines or end markers
         if (line.empty() || line == "END") {
             continue;
         }
@@ -307,7 +371,7 @@ bool UPS::parseUPSResponse(const std::string& response)
             LOGF_DEBUG("Processing line: %s", line.c_str());
             
             std::istringstream lineStream(line);
-            std::string var, ups, name, value;
+            std::string var, ups, name;
             lineStream >> var >> ups >> name;
             
             // Extract value between quotes
@@ -315,7 +379,7 @@ bool UPS::parseUPSResponse(const std::string& response)
             size_t lastQuote = line.rfind('"');
             if (firstQuote != std::string::npos && lastQuote != std::string::npos && firstQuote < lastQuote)
             {
-                value = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+                std::string value = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
                 upsParameters[name] = value;
                 LOGF_DEBUG("UPS Parameter: %s = %s", name.c_str(), value.c_str());
             }
@@ -328,14 +392,14 @@ bool UPS::parseUPSResponse(const std::string& response)
         }
     }
 
-    LOGF_DEBUG("Parsed %d lines, found %d parameters", lineCount, upsParameters.size());
+    LOGF_DEBUG("Parsed %d lines, found %zu parameters", lineCount, upsParameters.size());
     return !upsParameters.empty();
 }
 
 std::string UPS::makeNUTRequest(const std::string& command)
 {
-    int retries = ConnectionSettingsNP[0].getValue();
-    int retryDelay = ConnectionSettingsNP[1].getValue();
+    int retries = static_cast<int>(ConnectionSettingsNP[0].getValue());
+    int retryDelay = static_cast<int>(ConnectionSettingsNP[1].getValue());
     
     LOGF_DEBUG("NUT Command: %s", command.c_str());
 
@@ -375,20 +439,19 @@ std::string UPS::makeNUTRequest(const std::string& command)
             
             LOGF_DEBUG("Sent %d bytes to NUT server", nbytes_written);
 
-            // Pour collecter une réponse multiligne complète
+            // Collect multiline response
             std::string fullResponse;
             char buffer[4096] = {0};
             
-            // Contrôle du timeout et des tentatives de lecture
             int readAttempts = 3;
-            int timeout = 2; // secondes
+            int timeout = 2; // seconds
             
-            // Lire les données jusqu'à timeout ou réception d'un "END" spécifique au protocole NUT
+            // Read data until timeout or receiving "END"
             while(readAttempts > 0) {
                 int nbytes_read = 0;
                 memset(buffer, 0, sizeof(buffer));
                 
-                // Lire une ligne à la fois
+                // Read one line at a time
                 rc = tty_read_section(PortFD, buffer, '\n', timeout, &nbytes_read);
                 
                 if (rc == TTY_OK && nbytes_read > 0) {
@@ -397,23 +460,21 @@ std::string UPS::makeNUTRequest(const std::string& command)
                     
                     fullResponse += buffer;
                     
-                    // Si la ligne contient "END" ou "ERR", c'est généralement la fin d'une commande NUT
+                    // If line contains "END" or "ERR", it's the end of NUT command response
                     if (strstr(buffer, "END") != nullptr || strstr(buffer, "ERR") != nullptr) {
                         break;
                     }
                     
-                    // Continuer à lire plus de données
                     continue;
                 }
                 else if (rc == TTY_TIME_OUT) {
-                    // Si nous avons déjà des données mais plus rien à lire, on a probablement tout
+                    // If we already have data and no more to read, we're done
                     if (!fullResponse.empty()) {
-                        LOGF_DEBUG("Read timeout after receiving %d bytes total", fullResponse.length());
+                        LOGF_DEBUG("Read timeout after receiving %zu bytes total", fullResponse.length());
                         break;
                     }
                 }
                 else {
-                    // Erreur de lecture
                     char errorMsg[MAXRBUF];
                     tty_error_msg(rc, errorMsg, MAXRBUF);
                     LOGF_ERROR("Error reading response: %s (error code: %d)", errorMsg, rc);
@@ -434,7 +495,7 @@ std::string UPS::makeNUTRequest(const std::string& command)
                 return "";
             }
             
-            LOGF_DEBUG("Received full response (%d bytes): %s", fullResponse.length(), fullResponse.c_str());
+            LOGF_DEBUG("Received full response (%zu bytes): %s", fullResponse.length(), fullResponse.c_str());
             return fullResponse;
         }
         catch (const std::exception& e)
@@ -466,7 +527,7 @@ bool UPS::ISNewText(const char *dev, const char *name, char *texts[], char *name
         }
     }
 
-    return INDI::Weather::ISNewText(dev, name, texts, names, n);
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 bool UPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -486,44 +547,58 @@ bool UPS::ISNewNumber(const char *dev, const char *name, double values[], char *
             UpdatePeriodNP.update(values, names, n);
             UpdatePeriodNP.setState(IPS_OK);
             UpdatePeriodNP.apply();
-            SetTimer(UpdatePeriodNP[0].getValue() * 1000); // Convert to milliseconds
+            
+            // Restart timer with new period
+            if (m_TimerID > 0)
+            {
+                RemoveTimer(m_TimerID);
+                m_TimerID = SetTimer(static_cast<uint32_t>(UpdatePeriodNP[0].getValue() * 1000));
+            }
+            
+            saveConfig();
+            return true;
+        }
+        else if (BatteryThresholdsNP.isNameMatch(name))
+        {
+            BatteryThresholdsNP.update(values, names, n);
+            BatteryThresholdsNP.setState(IPS_OK);
+            BatteryThresholdsNP.apply();
+            
+            // Re-evaluate safety status with new thresholds
+            if (isConnected())
+                updateUPSStatus();
+            
             saveConfig();
             return true;
         }
     }
 
-    return INDI::Weather::ISNewNumber(dev, name, values, names, n);
+    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 bool UPS::saveConfigItems(FILE *fp)
 {
-    INDI::Weather::saveConfigItems(fp);
+    INDI::DefaultDevice::saveConfigItems(fp);
     
     UPSNameTP.save(fp);
     ConnectionSettingsNP.save(fp);
     UpdatePeriodNP.save(fp);
+    BatteryThresholdsNP.save(fp);
     
     return true;
 }
 
 bool UPS::loadConfig(bool silent, const char *property)
 {
-    bool result = INDI::Weather::loadConfig(silent, property);
+    bool result = INDI::DefaultDevice::loadConfig(silent, property);
 
     if (property == nullptr)
     {
-        result &= UPSNameTP.load();
-        result &= ConnectionSettingsNP.load();
-        result &= UpdatePeriodNP.load();
-        if (result)
-            SetTimer(UpdatePeriodNP[0].getValue() * 1000); // Convert to milliseconds
+        UPSNameTP.load();
+        ConnectionSettingsNP.load();
+        UpdatePeriodNP.load();
+        BatteryThresholdsNP.load();
     }
     
     return result;
 }
-
-IPState UPS::checkParameterState(const std::string &name) const
-{
-    // Use the parent class implementation which already handles thresholds correctly
-    return INDI::Weather::checkParameterState(name);
-} 

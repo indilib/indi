@@ -69,6 +69,11 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     // Weather Status
     // @INDI_STANDARD_PROPERTY@
     critialParametersLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", statusGroup, IPS_IDLE);
+
+    // Safety Status (standard property for safety monitoring)
+    // @INDI_STANDARD_PROPERTY@
+    SafetyStatusLP[0].fill("SAFETY", "Safety", IPS_IDLE);
+    SafetyStatusLP.fill(getDeviceName(), "SAFETY_STATUS", "Safety", statusGroup, IPS_IDLE);
 }
 
 bool WeatherInterface::updateProperties()
@@ -81,6 +86,8 @@ bool WeatherInterface::updateProperties()
 
         if (critialParametersLP.count() > 0)
             m_defaultDevice->defineProperty(critialParametersLP);
+
+        m_defaultDevice->defineProperty(SafetyStatusLP);
 
         if (ParametersNP.count() > 0)
             m_defaultDevice->defineProperty(ParametersNP);
@@ -98,6 +105,8 @@ bool WeatherInterface::updateProperties()
 
         if (critialParametersLP.count() > 0)
             m_defaultDevice->deleteProperty(critialParametersLP);
+
+        m_defaultDevice->deleteProperty(SafetyStatusLP);
 
         if (ParametersNP.count() > 0)
             m_defaultDevice->deleteProperty(ParametersNP);
@@ -459,6 +468,10 @@ bool WeatherInterface::syncCriticalParameters()
         if (oneCriticalParam.getState() > critialParametersLP.getState())
             critialParametersLP.setState(oneCriticalParam.getState());
     }
+
+    // Update the SafetyStatusLP to mirror the overall critical parameters state
+    SafetyStatusLP.setState(critialParametersLP.getState());
+    SafetyStatusLP.apply();
 
     // if Any state changed, return true.
     for (size_t i = 0; i < critialParametersLP.count(); i++)

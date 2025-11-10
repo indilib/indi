@@ -101,6 +101,24 @@ ELSE()
     MESSAGE(WARNING "Skipping build of INDI WatchDog driver since INDI POSIX Client is not built")
 ENDIF()
 
+# ########## Safety Monitor ###############
+if(INDI_BUILD_CLIENT)
+    SET(safetymonitor_SRC
+        safetymonitor.cpp
+        safetymonitor_client.cpp)
+
+    IF(UNITY_BUILD)
+        ENABLE_UNITY_BUILD(safetymonitor safetymonitor_SRC 10 cpp)
+    ENDIF()
+
+    add_executable(indi_safetymonitor ${safetymonitor_SRC})
+
+    target_link_libraries(indi_safetymonitor indidriver indiclient)
+    install(TARGETS indi_safetymonitor RUNTIME DESTINATION bin)
+ELSE()
+    MESSAGE(WARNING "Skipping build of INDI Safety Monitor driver since INDI POSIX Client is not built")
+ENDIF()
+
 # ########## Flip Flat & Flip Man Driver ###############
 SET(flipflat_SRC
     flip_flat.cpp)

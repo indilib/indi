@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "indiweather.h"
+#include "defaultdevice.h"
 #include "connectionplugins/connectiontcp.h"
 #include <string>
 #include <functional>
@@ -38,7 +38,7 @@
 #include <indijson.hpp>
 #endif
 
-class UPS : public INDI::Weather
+class UPS : public INDI::DefaultDevice
 {
     public:
         UPS();
@@ -56,13 +56,17 @@ class UPS : public INDI::Weather
     protected:
         bool Connect() override;
         bool Disconnect() override;
-        virtual IPState updateWeather() override;
-        IPState checkParameterState(const std::string &name) const;
         
-        // Handshake will be called by the Connection::TCP class
-        bool Handshake() override;
+        // Timer callback for periodic updates
+        void TimerHit() override;
 
     private:
+        // Handshake will be called by the Connection::TCP class
+        bool Handshake();
+        
+        // Update UPS status
+        void updateUPSStatus();
+        
         // NUT helper methods
         bool queryUPSStatus();
         bool parseUPSResponse(const std::string& response);
@@ -76,6 +80,24 @@ class UPS : public INDI::Weather
         
         // Update period
         INDI::PropertyNumber UpdatePeriodNP {1};  // Update period in seconds
+        
+        // UPS parameters (battery charge, voltage, etc.)
+        INDI::PropertyNumber UPSParametersNP {3};
+        enum {
+            UPS_BATTERY_CHARGE,
+            UPS_BATTERY_VOLTAGE,
+            UPS_INPUT_VOLTAGE
+        };
+        
+        // Safety status property
+        INDI::PropertyLight SafetyStatusLP {1};
+        
+        // Battery charge thresholds
+        INDI::PropertyNumber BatteryThresholdsNP {2};
+        enum {
+            BATTERY_WARNING_THRESHOLD,
+            BATTERY_CRITICAL_THRESHOLD
+        };
 
         // UPS status parameters mapping
         std::map<std::string, std::string> upsParameters;
@@ -86,4 +108,5 @@ class UPS : public INDI::Weather
         // State variables
         bool LastParseSuccess {false};
         int PortFD {-1};
-}; 
+        int m_TimerID {-1};
+};
