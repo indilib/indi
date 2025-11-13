@@ -183,8 +183,8 @@ bool PegasusPPB::Handshake()
 
     PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VOLTAGE_SENSOR |
                       POWER_HAS_OVERALL_CURRENT | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE | POWER_HAS_LED_TOGGLE);
-    // 4 DC ports, 2 DEW ports, 0 Variable port, 1 Auto Dew port (global), 0 USB ports
-    PI::initProperties(POWER_TAB, 4, 2, 0, 1, 0);
+    // 1 DC port group (controls all 4 outputs together), 2 DEW ports, 0 Variable port, 1 Auto Dew port (global), 0 USB ports
+    PI::initProperties(POWER_TAB, 1, 2, 0, 1, 0);
 
     return !strcmp(response, "PPB_OK");
 }
@@ -389,94 +389,123 @@ bool PegasusPPB::getSensorData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() < PA_N)
         {
-            LOG_WARN("Received wrong number of detailed sensor data. Retrying...");
+            LOGF_WARN("Received wrong number of detailed sensor data. Expected at least %d, got %zu. Retrying...", PA_N, result.size());
             return false;
         }
 
         if (result == lastSensorData)
             return true;
 
-        // Power Sensors
-        PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
-        PI::PowerSensorsNP.setState(IPS_OK);
-        if (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
-            PI::PowerSensorsNP.apply();
-
-        // Environment Sensors
-        setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
-        setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
-        setParameterValue("WEATHER_DEWPOINT", std::stod(result[PA_DEW_POINT]));
-        if (lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
-                lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
-                lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT])
+        try
         {
-            if (WI::syncCriticalParameters())
-                critialParametersLP.apply();
-            ParametersNP.setState(IPS_OK);
-            ParametersNP.apply();
-        }
-
-        // Power Channels (4 ports)
-        if (PI::PowerChannelsSP.size() >= 1)
-            PI::PowerChannelsSP[0].setState((result[PA_PORT_STATUS][0] == '1') ? ISS_ON : ISS_OFF);
-        if (PI::PowerChannelsSP.size() >= 2)
-            PI::PowerChannelsSP[1].setState((result[PA_PORT_STATUS][1] == '1') ? ISS_ON : ISS_OFF);
-        if (PI::PowerChannelsSP.size() >= 3)
-            PI::PowerChannelsSP[2].setState((result[PA_PORT_STATUS][2] == '1') ? ISS_ON : ISS_OFF);
-        if (PI::PowerChannelsSP.size() >= 4)
-            PI::PowerChannelsSP[3].setState((result[PA_PORT_STATUS][3] == '1') ? ISS_ON : ISS_OFF);
-        if (lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
-            PI::PowerChannelsSP.apply();
-
-        // DSLR Power Status (This is a specific power output, not a generic USB port)
-        DSLRPowerSP[INDI_ENABLED].setState((std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF);
-        DSLRPowerSP[INDI_DISABLED].setState((std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF);
-        DSLRPowerSP.setState((std::stoi(result[PA_DSLR_STATUS]) == 1) ? IPS_OK : IPS_IDLE);
-        if (lastSensorData[PA_DSLR_STATUS] != result[PA_DSLR_STATUS])
-            DSLRPowerSP.apply();
-
-        // Dew PWM (2 ports)
-        if (PI::DewChannelDutyCycleNP.size() >= 1)
-            PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
-        if (PI::DewChannelDutyCycleNP.size() >= 2)
-            PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
-        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
-            PI::DewChannelDutyCycleNP.apply();
-
-        // Update Dew Channel switches based on actual power status
-        // If Auto Dew is enabled, it may turn channels on/off, so we need to reflect that
-        bool dewChannelChanged = false;
-        if (PI::DewChannelsSP.size() >= 1)
-        {
-            auto newState = (std::stoi(result[PA_DEW_1]) > 0) ? ISS_ON : ISS_OFF;
-            if (PI::DewChannelsSP[0].getState() != newState)
+            // Power Sensors
+            if (result.size() > PA_VOLTAGE && result.size() > PA_CURRENT)
             {
-                PI::DewChannelsSP[0].setState(newState);
-                dewChannelChanged = true;
+                PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
+                PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
+                PI::PowerSensorsNP.setState(IPS_OK);
+                if (lastSensorData.size() > PA_CURRENT &&
+                    (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT]))
+                    PI::PowerSensorsNP.apply();
             }
-        }
-        if (PI::DewChannelsSP.size() >= 2)
-        {
-            auto newState = (std::stoi(result[PA_DEW_2]) > 0) ? ISS_ON : ISS_OFF;
-            if (PI::DewChannelsSP[1].getState() != newState)
+
+            // Environment Sensors
+            if (result.size() > PA_TEMPERATURE && result.size() > PA_HUMIDITY && result.size() > PA_DEW_POINT)
             {
-                PI::DewChannelsSP[1].setState(newState);
-                dewChannelChanged = true;
+                setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
+                setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
+                setParameterValue("WEATHER_DEWPOINT", std::stod(result[PA_DEW_POINT]));
+                if (lastSensorData.size() > PA_DEW_POINT &&
+                    (lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
+                     lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
+                     lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT]))
+                {
+                    if (WI::syncCriticalParameters())
+                        critialParametersLP.apply();
+                    ParametersNP.setState(IPS_OK);
+                    ParametersNP.apply();
+                }
             }
+
+            // Power Channel (single port group controlling all 4 physical outputs together)
+            if (result.size() > PA_PORT_STATUS && !result[PA_PORT_STATUS].empty())
+            {
+                const std::string& portStatus = result[PA_PORT_STATUS];
+                if (PI::PowerChannelsSP.size() >= 1 && portStatus.length() > 0)
+                {
+                    PI::PowerChannelsSP[0].setState((portStatus[0] == '1') ? ISS_ON : ISS_OFF);
+                    if (lastSensorData.size() > PA_PORT_STATUS && lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
+                        PI::PowerChannelsSP.apply();
+                }
+            }
+
+            // DSLR Power Status (This is a specific power output, not a generic USB port)
+            if (result.size() > PA_DSLR_STATUS && !result[PA_DSLR_STATUS].empty())
+            {
+                int dslrStatus = std::stoi(result[PA_DSLR_STATUS]);
+                DSLRPowerSP[INDI_ENABLED].setState((dslrStatus == 1) ? ISS_ON : ISS_OFF);
+                DSLRPowerSP[INDI_DISABLED].setState((dslrStatus == 0) ? ISS_ON : ISS_OFF);
+                DSLRPowerSP.setState((dslrStatus == 1) ? IPS_OK : IPS_IDLE);
+                if (lastSensorData.size() > PA_DSLR_STATUS && lastSensorData[PA_DSLR_STATUS] != result[PA_DSLR_STATUS])
+                    DSLRPowerSP.apply();
+            }
+
+            // Dew PWM (2 ports)
+            if (result.size() > PA_DEW_1 && result.size() > PA_DEW_2)
+            {
+                if (PI::DewChannelDutyCycleNP.size() >= 1)
+                    PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
+                if (PI::DewChannelDutyCycleNP.size() >= 2)
+                    PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
+                if (lastSensorData.size() > PA_DEW_2 &&
+                    (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2]))
+                    PI::DewChannelDutyCycleNP.apply();
+            }
+
+            // Update Dew Channel switches based on actual power status
+            // If Auto Dew is enabled, it may turn channels on/off, so we need to reflect that
+            if (result.size() > PA_DEW_1 && result.size() > PA_DEW_2)
+            {
+                bool dewChannelChanged = false;
+                if (PI::DewChannelsSP.size() >= 1)
+                {
+                    auto newState = (std::stoi(result[PA_DEW_1]) > 0) ? ISS_ON : ISS_OFF;
+                    if (PI::DewChannelsSP[0].getState() != newState)
+                    {
+                        PI::DewChannelsSP[0].setState(newState);
+                        dewChannelChanged = true;
+                    }
+                }
+                if (PI::DewChannelsSP.size() >= 2)
+                {
+                    auto newState = (std::stoi(result[PA_DEW_2]) > 0) ? ISS_ON : ISS_OFF;
+                    if (PI::DewChannelsSP[1].getState() != newState)
+                    {
+                        PI::DewChannelsSP[1].setState(newState);
+                        dewChannelChanged = true;
+                    }
+                }
+                if (dewChannelChanged)
+                    PI::DewChannelsSP.apply();
+            }
+
+            // Auto Dew (global)
+            if (result.size() > PA_AUTO_DEW && !result[PA_AUTO_DEW].empty())
+            {
+                if (PI::AutoDewSP.size() >= 1)
+                    PI::AutoDewSP[0].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
+                if (lastSensorData.size() > PA_AUTO_DEW && lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
+                    PI::AutoDewSP.apply();
+            }
+
+            lastSensorData = result;
+            return true;
         }
-        if (dewChannelChanged)
-            PI::DewChannelsSP.apply();
-
-        // Auto Dew (global)
-        if (PI::AutoDewSP.size() >= 1)
-            PI::AutoDewSP[0].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
-        if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
-            PI::AutoDewSP.apply();
-
-        lastSensorData = result;
-
-        return true;
+        catch (const std::exception& e)
+        {
+            LOGF_ERROR("Error parsing sensor data: %s. Response was: %s", e.what(), res);
+            return false;
+        }
     }
 
     return false;
