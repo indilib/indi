@@ -91,7 +91,7 @@ OPTION(INDI_BUILD_SERVER "Build INDI Server" ON)
 OPTION(INDI_BUILD_CLIENT "Build INDI POSIX Client" ON)
 OPTION(INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
 OPTION(INDI_BUILD_COMMON "Build base classes for INDI 3rd Party Drivers" ON)
-OPTION(INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
+OPTION(INDI_BUILD_QT_CLIENT "Build INDI Qt Client" OFF)
 OPTION(INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION(INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
 OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
@@ -238,7 +238,7 @@ add_subdirectory(libs/indidevice)
 # Supported OS: All
 #
 # ##################################################################################################
-if(INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
+if(INDI_BUILD_CLIENT OR INDI_BUILD_QT_CLIENT)
     add_subdirectory(libs/indiabstractclient)
 endif()
 
@@ -269,15 +269,15 @@ endif(INDI_BUILD_CLIENT AND NOT ANDROID)
 
 # ##################################################################################################
 #
-# Component   : INDI Qt5 Client
-# Dependencies: Qt5Network, zlib, cfitsio, Qt5Core
+# Component   : INDI Qt Client
+# Dependencies: Qt5/Qt6 Network, zlib, cfitsio, Qt5/Qt6 Core
 # Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
 #
 # ##################################################################################################
-if(INDI_BUILD_QT5_CLIENT)
-    message(STATUS "Building INDI Client with Qt5 support")
+if(INDI_BUILD_QT_CLIENT)
+    message(STATUS "Building INDI Qt Client")
     add_subdirectory(libs/indiclientqt)
-endif(INDI_BUILD_QT5_CLIENT)
+endif(INDI_BUILD_QT_CLIENT)
 
 
 # ##################################################################################################
@@ -428,7 +428,7 @@ if(MSVC)
 endif()
 
 # Install common dev files for all except server
-if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
+if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT_CLIENT)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/inicpp.h
         ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h
@@ -446,7 +446,7 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
         )
     endif(NOT SYSTEM_JSONLIB)
-endif(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
+endif(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
@@ -464,6 +464,6 @@ if(INDI_BUILD_CLIENT)
     message(STATUS "## INDI Client")
 endif()
 
-if(INDI_BUILD_QT5_CLIENT)
-    message(STATUS "## INDI Qt5 Client")
+if(INDI_BUILD_QT_CLIENT)
+    message(STATUS "## INDI Qt Client")
 endif()

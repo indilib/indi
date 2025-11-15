@@ -47,24 +47,25 @@ void BaseClientQtPrivate::listenINDI()
     while (clientSocket.bytesAvailable() > 0)
     {
         const QByteArray data = clientSocket.readAll();
-        
+
         auto documents = xmlParser.parseChunk(data.constData(), data.size());
 
         if (documents.size() == 0)
         {
             if (xmlParser.hasErrorMessage())
             {
-                IDLog("Bad XML from %s/%d: %s\n%.*s\n", cServer.c_str(), cPort, xmlParser.errorMessage(), data.size(), data.constData());
+                IDLog("Bad XML from %s/%d: %s\n%.*s\n", cServer.c_str(), cPort, xmlParser.errorMessage(), static_cast<int>(data.size()),
+                      data.constData());
             }
             break;
         }
 
-        for (const auto &doc: documents)
+        for (const auto &doc : documents)
         {
             LilXmlElement root = doc.root();
 
             if (verbose)
-                    root.print(stderr, 0);
+                root.print(stderr, 0);
 
             int err_code = dispatchCommand(root, msg);
 
@@ -96,7 +97,8 @@ BaseClientQt::BaseClientQt(QObject *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
     connect(&d->clientSocket, &QTcpSocket::errorOccurred, this, [d, this](QAbstractSocket::SocketError socketError)
 #else
-    connect(&d->clientSocket, qOverload<QAbstractSocket::SocketError>(&QTcpSocket::error), this, [d, this](QAbstractSocket::SocketError socketError)
+    connect(&d->clientSocket, qOverload<QAbstractSocket::SocketError>(&QTcpSocket::error), this, [d,
+            this](QAbstractSocket::SocketError socketError)
 #endif
     {
         if (d->sConnected == false)

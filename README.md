@@ -34,10 +34,11 @@ INDI 3rd party drivers are available in a [dedicated 3rdparty repository](https:
 
 Learn more about INDI:
 
-- [Features](http://indilib.org/about/features.html)
-- [Discover INDI](http://indilib.org/about/discover-indi.html)
-- [Supported Devices](http://indilib.org/devices/)
-- [Clients](http://indilib.org/about/clients.html)
+- [Features](https://indilib.org/about/features.html)
+- [Discover INDI](https://indilib.org/about/discover-indi.html)
+- [Supported Devices](https://drivers.indilib.org)
+- [Clients](https://indilib.org/about/clients.html)
+- [Development](https://docs.indilib.org)
 
 # Building
 
@@ -51,6 +52,7 @@ sudo apt-get install -y \
   cdbs \
   dkms \
   cmake \
+  ninja-build \
   fxload \
   libev-dev \
   libgps-dev \
@@ -72,16 +74,30 @@ sudo apt-get install -y \
   libdc1394-dev \
   libboost-regex-dev \
   libcurl4-gnutls-dev \
-  libtheora-dev
+  libtheora-dev \
+  libxisf-dev
+
 ```
 
-## XISF Support
-
-To enable [XISF format](https://pixinsight.com/xisf/) support in INDI, you need to build or install [libxisf](https://gitea.nouspiro.space/nou/libXISF) package.
+On Arch Linux:
 
 ```bash
-sudo apt-add-repository ppa:mutlaqja/ppa
-sudo apt-get -y install libxisf-dev
+sudo pacman -S --needed \
+  libnova \
+  cfitsio \
+  libusb \
+  zlib \
+  libev \
+  gsl \
+  base-devel \
+  cmake \
+  ninja \
+  git \
+  libjpeg-turbo \
+  curl \
+  libtiff \
+  fftw \
+  libxisf
 ```
 
 ## Create Project Directory
@@ -110,11 +126,10 @@ It is worth making your own fork of indi in your own personal repository and clo
 ## Build indi-core (cmake)
 
 ```bash
-mkdir -p ~/Projects/build/indi-core
-cd ~/Projects/build/indi-core
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ~/Projects/indi
-make -j4
-sudo make install
+cd ~/Projects/indi
+cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+sudo cmake --install build
 ```
 
 ## Build indi-core (script)
@@ -252,9 +267,8 @@ INDI server only provides convenient port, fork and data steering services. If d
 
 - [INDI API](http://www.indilib.org/api/index.html)
 - [INDI Developer Manual](https://docs.indilib.org/)
-- [Tutorials](http://indilib.org/develop/tutorials.html)
 - [Developers Forum](http://indilib.org/forum/development.html)
-- [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)
+- [Developers Chat](https://webchat.kde.org/#/room/#kstars:kde.org)
 - Sample drivers are available under examples and drivers/skeleton directories. They can be used as a starting point for your driver development.
 
 ### Code Style

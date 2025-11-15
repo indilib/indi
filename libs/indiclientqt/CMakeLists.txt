@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 project(indiclientqt CXX)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
+
 set(QT_ANDROID "" CACHE STRING "Qt Android path")
 
 if(ANDROID)
@@ -15,18 +19,23 @@ if(ANDROID)
         set(CFITSIO_INCLUDE_DIR ${CFITSIO_DIR})
         set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
     endif()
+    
+    set(QT_VERSION_MAJOR 5)
 else()
-    find_package(Qt5Core REQUIRED)
-    find_package(Qt5Network REQUIRED)
+    # Try Qt6 first, fall back to Qt5 if not found
+    find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Network)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
     find_package(ZLIB REQUIRED)
     find_package(CFITSIO REQUIRED)
+    
+    message(STATUS "Using Qt${QT_VERSION_MAJOR} for indiclientqt")
 endif()
 
 list(APPEND ${PROJECT_NAME}_LIBS
     indicore
     indidevice
     indiabstractclient
-    Qt5::Network
+    Qt${QT_VERSION_MAJOR}::Network
     ${ZLIB_LIBRARY}
 )
 
