@@ -27,7 +27,8 @@
 #include "indidevapi.h"
 
 SafetyMonitorClient::SafetyMonitorClient(const std::string &deviceName, std::function<void()> statusCallback)
-    : m_DeviceName(deviceName), m_DeviceOnline(false), m_HasSafetyStatus(false), m_SafetyStatusLP(1), m_StatusCallback(statusCallback)
+    : m_DeviceName(deviceName), m_DeviceOnline(false), m_HasSafetyStatus(false), m_SafetyStatusLP(1),
+      m_StatusCallback(statusCallback)
 {
 }
 
@@ -38,20 +39,20 @@ SafetyMonitorClient::~SafetyMonitorClient()
 bool SafetyMonitorClient::connectToServer(const std::string &host, int port)
 {
     setServer(host.c_str(), port);
-    
+
     if (!connectServer())
     {
-        LOGF_ERROR("Failed to connect to server %s:%d for device %s", 
+        LOGF_ERROR("Failed to connect to server %s:%d for device %s",
                    host.c_str(), port, m_DeviceName.c_str());
         return false;
     }
-    
+
     // Watch for the specific device
     watchDevice(m_DeviceName.c_str());
-    
-    LOGF_INFO("Safety Monitor Client: Connecting to %s@%s:%d", 
+
+    LOGF_INFO("Safety Monitor Client: Connecting to %s@%s:%d",
               m_DeviceName.c_str(), host.c_str(), port);
-    
+
     return true;
 }
 
@@ -59,7 +60,7 @@ IPState SafetyMonitorClient::getSafetyStatus() const
 {
     if (!m_HasSafetyStatus)
         return IPS_IDLE;
-    
+
     return m_SafetyStatusLP.getState();
 }
 
@@ -91,9 +92,9 @@ void SafetyMonitorClient::newProperty(INDI::Property property)
         {
             m_SafetyStatusLP = property;
             m_HasSafetyStatus = true;
-            LOGF_INFO("Safety Monitor Client: Received SAFETY_STATUS from %s, state: %s", 
+            LOGF_INFO("Safety Monitor Client: Received SAFETY_STATUS from %s, state: %s",
                       m_DeviceName.c_str(), pstateStr(m_SafetyStatusLP.getState()));
-            
+
             // Notify parent driver of status change
             if (m_StatusCallback)
                 m_StatusCallback();
@@ -105,13 +106,12 @@ void SafetyMonitorClient::updateProperty(INDI::Property property)
 {
     if (property.getDeviceName() == m_DeviceName && property.isNameMatch("SAFETY_STATUS"))
     {
-        auto lp = property.getLight();
-        if (lp)
+        if (m_SafetyStatusLP.getState() != property.getState())
         {
             m_SafetyStatusLP = property;
-            LOGF_INFO("Safety Monitor Client: Updated SAFETY_STATUS from %s, state: %s", 
+            LOGF_INFO("Safety Monitor Client: Updated safety status from %s, state: %s",
                       m_DeviceName.c_str(), pstateStr(m_SafetyStatusLP.getState()));
-            
+
             // Notify parent driver of status change
             if (m_StatusCallback)
                 m_StatusCallback();
@@ -126,7 +126,7 @@ void SafetyMonitorClient::serverConnected()
 
 void SafetyMonitorClient::serverDisconnected(int exitCode)
 {
-    LOGF_WARN("Safety Monitor Client: Disconnected from server for %s (exit code: %d)", 
+    LOGF_WARN("Safety Monitor Client: Disconnected from server for %s (exit code: %d)",
               m_DeviceName.c_str(), exitCode);
     m_DeviceOnline = false;
     m_HasSafetyStatus = false;
