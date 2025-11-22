@@ -33,13 +33,14 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/ioctl.h>
+#include <cmath>
 
 // We declare an auto pointer to WandererBoxPlusV3.
 static std::unique_ptr<WandererBoxPlusV3> WandererBoxplusv3(new WandererBoxPlusV3());
 
 
 
-WandererBoxPlusV3::WandererBoxPlusV3()
+WandererBoxPlusV3::WandererBoxPlusV3() : INDI::DefaultDevice(), INDI::WeatherInterface(this)
 {
     setVersion(1, 0);
 }
@@ -48,8 +49,9 @@ bool WandererBoxPlusV3::initProperties()
 {
 
     INDI::DefaultDevice::initProperties();
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | WEATHER_INTERFACE);
 
+    WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
 
     addAuxControls();
 
@@ -104,7 +106,13 @@ bool WandererBoxPlusV3::initProperties()
    ENVMonitorNP[ENV_Humidity].fill( "ENV_Humidity", "Ambient Humidity %", "%4.2f", 0, 999, 100, 0);
     ENVMonitorNP[ENV_Temp].fill( "ENV_Temp", "Ambient Temperature (C)", "%4.2f", 0, 999, 100, 0);
     ENVMonitorNP[DEW_Point].fill( "DEW_Point", "Dew Point (C)", "%4.2f", 0, 999, 100, 0);
-    ENVMonitorNP.fill(getDeviceName(), "ENV_Monitor", "Environment",ENVIRONMENT_TAB, IP_RO,60, IPS_IDLE);
+    ENVMonitorNP.fill(getDeviceName(), "ENV_Monitor", "Environment", SENSORS_TAB, IP_RO,60, IPS_IDLE);
+
+    // Weather Interface Parameters
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
+    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15);
+    setCriticalParameter("WEATHER_TEMPERATURE");
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     serialConnection->registerHandshake([&]()
@@ -309,10 +317,19 @@ void WandererBoxPlusV3::updateENV(double temp1,double DHTH,double DHTT)
     ENVMonitorNP[Probe1_Temp].setValue(temp1);
     ENVMonitorNP[ENV_Humidity].setValue(DHTH);
     ENVMonitorNP[ENV_Temp].setValue(DHTT);
-    ENVMonitorNP[DEW_Point].setValue((237.7 * ((17.27 * DHTT) / (237.7 + DHTT) + log((DHTH / 100)))) / (17.27 - ((17.27 * DHTT) / (237.7 + DHTT) + log((DHTH / 100)))));;
+    double dewPoint = (237.7 * ((17.27 * DHTT) / (237.7 + DHTT) + std::log((DHTH / 100)))) / (17.27 - ((17.27 * DHTT) / (237.7 + DHTT) + std::log((DHTH / 100))));
+    ENVMonitorNP[DEW_Point].setValue(dewPoint);
     ENVMonitorNP.setState(IPS_OK);
     ENVMonitorNP.apply();
 
+    // Update Weather Interface parameters
+    setParameterValue("WEATHER_TEMPERATURE", DHTT);
+    setParameterValue("WEATHER_HUMIDITY", DHTH);
+    setParameterValue("WEATHER_DEWPOINT", dewPoint);
+    ParametersNP.setState(IPS_OK);
+    ParametersNP.apply();
+    if (syncCriticalParameters())
+        critialParametersLP.apply();
 }
 
 
@@ -420,6 +437,8 @@ bool WandererBoxPlusV3::updateProperties()
         }
         defineProperty(ENVMonitorNP);
 
+        // Weather
+        WI::updateProperties();
 
     }
     else
@@ -428,6 +447,9 @@ bool WandererBoxPlusV3::updateProperties()
         deleteProperty(CalibrateSP);
         deleteProperty(PowerMonitorNP);
         deleteProperty(ENVMonitorNP);
+
+        // Weather
+        WI::updateProperties();
 
         deleteProperty(dc2ControlSP);
         deleteProperty(setDC2voltageNP);
@@ -450,6 +472,12 @@ bool WandererBoxPlusV3::updateProperties()
 
 bool WandererBoxPlusV3::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    if (dev && !strcmp(dev, getDeviceName()))
+    {
+        if (strstr(name, "WEATHER_"))
+            return WI::processSwitch(dev, name, states, names, n);
+    }
+
     // Calibrate
     if (CalibrateSP.isNameMatch(name))
     {
@@ -571,6 +599,8 @@ bool WandererBoxPlusV3::ISNewNumber(const char * dev, const char * name, double 
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
+        if (strstr(name, "WEATHER_"))
+            return WI::processNumber(dev, name, values, names, n);
         // DC3
         if (DC3ControlNP.isNameMatch(name))
         {
@@ -674,6 +704,7 @@ void WandererBoxPlusV3::TimerHit()
 bool WandererBoxPlusV3::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
 
     DC3diffSP.save(fp);
     DC3diffSETNP.save(fp);
@@ -682,5 +713,13 @@ bool WandererBoxPlusV3::saveConfigItems(FILE * fp)
 
     setDC2voltageNP.save(fp);
     return true;
+}
+
+IPState WandererBoxPlusV3::updateWeather()
+{
+    // Weather is updated in updateENV() which is called from getData()
+    // This method is required by WeatherInterface but we update weather
+    // synchronously with sensor data, so we just return OK
+    return IPS_OK;
 }
 
