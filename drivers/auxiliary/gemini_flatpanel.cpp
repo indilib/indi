@@ -11,7 +11,7 @@ static std::unique_ptr<GeminiFlatpanel> mydriver(new GeminiFlatpanel());
 
 GeminiFlatpanel::GeminiFlatpanel() : LightBoxInterface(this), DustCapInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 const char *GeminiFlatpanel::getDefaultName()
@@ -31,7 +31,7 @@ bool GeminiFlatpanel::initProperties()
 
 
     // Driver interface will be set dynamically in Handshake() based on device capabilities
-    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
 
     // Initialize device selection property
     DeviceTypeSP.fill(
@@ -496,12 +496,11 @@ bool GeminiFlatpanel::Handshake()
         commandTerminator = adapter->getCommandTerminator();
 
         // Set driver interface based on device capabilities
-        uint32_t interface = AUX_INTERFACE | LIGHTBOX_INTERFACE;
         if (adapter && adapter->supportsDustCap())
         {
-            interface |= DUSTCAP_INTERFACE;
+            setDriverInterface(getDriverInterface() | DUSTCAP_INTERFACE);
+            syncDriverInfo();
         }
-        setDriverInterface(interface);
 
         // Get config status from adapter
         int adapterConfigStatus;
@@ -595,12 +594,11 @@ bool GeminiFlatpanel::Handshake()
     }
 
     // Set driver interface based on device capabilities
-    uint32_t interface = AUX_INTERFACE | LIGHTBOX_INTERFACE;
     if (adapter && adapter->supportsDustCap())
     {
-        interface |= DUSTCAP_INTERFACE;
+        setDriverInterface(getDriverInterface() | DUSTCAP_INTERFACE);
+        syncDriverInfo();
     }
-    setDriverInterface(interface);
 
     // Check config status using adapter
     int adapterConfigStatus;
