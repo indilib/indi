@@ -82,18 +82,19 @@ bool LX200AM5::initProperties()
 
     // Slew Rates
 
-    SlewRateSP[0].setLabel("0.5x");
-    SlewRateSP[1].setLabel("1x");
-    SlewRateSP[2].setLabel("2x");
-    SlewRateSP[3].setLabel("4x");
-    SlewRateSP[4].setLabel("8x");
-    SlewRateSP[5].setLabel("20x");
-    SlewRateSP[6].setLabel("60x");
-    SlewRateSP[7].setLabel("720x");
-    SlewRateSP[8].setLabel("1440x");
+    SlewRateSP[0].setLabel("0.25x");
+    SlewRateSP[1].setLabel("0.5x");
+    SlewRateSP[2].setLabel("1x");
+    SlewRateSP[3].setLabel("2x");
+    SlewRateSP[4].setLabel("4x");
+    SlewRateSP[5].setLabel("8x");
+    SlewRateSP[6].setLabel("20x");
+    SlewRateSP[7].setLabel("60x");
+    SlewRateSP[8].setLabel("720x");
+    SlewRateSP[9].setLabel("1440x");
     SlewRateSP.reset();
     // 1440x is the default
-    SlewRateSP[8].setState(ISS_ON);
+    SlewRateSP[9].setState(ISS_ON);
 
     // Home/Zero position
     // HomeSP[0].fill("GO", "Go", ISS_OFF);
