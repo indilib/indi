@@ -89,3 +89,11 @@ SET(WeatherFlow_SRC
 add_executable(indi_weatherflow_weather ${WeatherFlow_SRC})
 target_link_libraries(indi_weatherflow_weather indidriver ${HTTPLIB_LIBRARY} ${JSONLIB})
 install(TARGETS indi_weatherflow_weather RUNTIME DESTINATION bin)
+
+# ########## HiTech Weather Driver ###############
+SET(hitechweather_SRC
+    hitechweather.cpp)
+
+add_executable(indi_hitech_weather ${hitechweather_SRC})
+target_link_libraries(indi_hitech_weather indidriver indi_hid ${USB1_LIBRARIES})
+install(TARGETS indi_hitech_weather RUNTIME DESTINATION bin)
