@@ -95,5 +95,5 @@ SET(hitechweather_SRC
     hitechweather.cpp)
 
 add_executable(indi_hitech_weather ${hitechweather_SRC})
-target_link_libraries(indi_hitech_weather indidriver indi_hid ${USB1_LIBRARIES})
+target_link_libraries(indi_hitech_weather indidriver ${HIDAPILIB})
 install(TARGETS indi_hitech_weather RUNTIME DESTINATION bin)

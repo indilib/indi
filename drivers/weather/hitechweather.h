@@ -25,7 +25,12 @@
 #pragma once
 
 #include "indiweather.h"
-#include "indi_hidapi.h"
+
+#ifdef _USE_SYSTEM_HIDAPILIB
+#include <hidapi/hidapi.h>
+#else
+#include <indi_hidapi.h>
+#endif
 
 class HitechWeather : public INDI::Weather
 {
@@ -50,11 +55,11 @@ class HitechWeather : public INDI::Weather
         // HiTech Weather USB identifiers
         static constexpr unsigned short HITECH_VID = 0x04D8;
         static constexpr unsigned short HITECH_PID = 0xF772;
-        
+
         // Command bytes
         static constexpr unsigned char CMD_GET_SKY_TEMP = 0x50;
         static constexpr unsigned char CMD_GET_AMBIENT = 0x5A;
-        
+
         // Helper functions
         bool getSkyTemperature(double &skyTemp);
         bool getAmbientTemperature(double &ambientTemp);
