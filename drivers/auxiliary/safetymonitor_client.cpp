@@ -106,16 +106,13 @@ void SafetyMonitorClient::updateProperty(INDI::Property property)
 {
     if (property.getDeviceName() == m_DeviceName && property.isNameMatch("SAFETY_STATUS"))
     {
-        if (m_SafetyStatusLP.getState() != property.getState())
-        {
-            m_SafetyStatusLP = property;
-            LOGF_INFO("Safety Monitor Client: Updated safety status from %s, state: %s",
-                      m_DeviceName.c_str(), pstateStr(m_SafetyStatusLP.getState()));
+        m_SafetyStatusLP = property;
+        LOGF_INFO("Safety Monitor Client: Updated safety status from %s, state: %s",
+                  m_DeviceName.c_str(), pstateStr(m_SafetyStatusLP.getState()));
 
-            // Notify parent driver of status change
-            if (m_StatusCallback)
-                m_StatusCallback();
-        }
+        // Notify parent driver of status change
+        if (m_StatusCallback)
+            m_StatusCallback();
     }
 }
 
