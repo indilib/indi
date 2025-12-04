@@ -92,15 +92,10 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         };
         enum
         {
-            SENSOR_VOLTAGE,
-            SENSOR_CURRENT,
             SENSOR_AVG_AMPS,
             SENSOR_AMP_HOURS,
             SENSOR_WATT_HOURS,
-            SENSOR_TOTAL_CURRENT,
-            SENSOR_12V_CURRENT,
-            SENSOR_DEWA_CURRENT,
-            SENSOR_DEWB_CURRENT
+            SENSOR_EXT_N
         };
     protected:
         const char *getDefaultName() override;
@@ -113,6 +108,12 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         virtual bool SetLEDEnabled(bool enabled) override;
         virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
         virtual bool SetUSBPort(size_t port, bool enabled) override;
+
+        // Weather Overrides
+        virtual IPState updateWeather() override
+        {
+            return IPS_OK;
+        }
 
     private:
         bool Handshake();
@@ -154,7 +155,7 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Power Sensors
-        INDI::PropertyNumber PowerSensorsNP {9};
+        INDI::PropertyNumber ExtendedPowerNP {3};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Adjustable Hub

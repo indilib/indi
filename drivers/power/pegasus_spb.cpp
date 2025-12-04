@@ -56,13 +56,11 @@ bool PegasusSPB::initProperties()
     PI::initProperties(POWER_TAB, 1, 2, 0, 1,
                        0); // 1 DC port (Quad Hub), 2 DEW ports (switchable), 0 Variable, 1 Auto Dew (global), 0 USB
 
-    // Power Sensors
-    PowerSensorsNP[SENSOR_VOLTAGE].fill("VOLTAGE", "Voltage", "%.2f", 0, 20, 0, 0);
-    PowerSensorsNP[SENSOR_CURRENT].fill("CURRENT", "Current", "%.2f", 0, 10, 0, 0);
-    PowerSensorsNP[SENSOR_AVG_AMPS].fill("AVG_AMPS", "Avg Amps", "%.2f", 0, 10, 0, 0);
-    PowerSensorsNP[SENSOR_AMP_HOURS].fill("AMP_HOURS", "Amp Hours", "%.2f", 0, 1000, 0, 0);
-    PowerSensorsNP[SENSOR_WATT_HOURS].fill("WATT_HOURS", "Watt Hours", "%.2f", 0, 10000, 0, 0);
-    PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Power Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    // Extended Power Sensors
+    ExtendedPowerNP[SENSOR_AVG_AMPS].fill("AVG_AMPS", "Avg Amps", "%.2f", 0, 10, 0, 0);
+    ExtendedPowerNP[SENSOR_AMP_HOURS].fill("AMP_HOURS", "Amp Hours", "%.2f", 0, 1000, 0, 0);
+    ExtendedPowerNP[SENSOR_WATT_HOURS].fill("WATT_HOURS", "Watt Hours", "%.2f", 0, 10000, 0, 0);
+    ExtendedPowerNP.fill(getDeviceName(), "EXT_POWER_SENSORS", "Extended Power Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Power-Dew SwitchA
     PowerDewSwitchASP[0].fill("DEW", "Dew", ISS_OFF);
@@ -125,7 +123,7 @@ bool PegasusSPB::updateProperties()
         PowerDewSwitchBSP.setState(IPS_OK);
         PowerDewSwitchBSP.apply();
 
-        defineProperty(PowerSensorsNP);
+        defineProperty(ExtendedPowerNP);
 
         defineProperty(HumidityOffsetNP);
         int humidityOffset = getHumidityOffset();
@@ -148,7 +146,7 @@ bool PegasusSPB::updateProperties()
         deleteProperty(DewAggressNP);
         deleteProperty(PowerDewSwitchASP);
         deleteProperty(PowerDewSwitchBSP);
-        deleteProperty(PowerSensorsNP);
+        deleteProperty(ExtendedPowerNP);
         deleteProperty(HumidityOffsetNP);
         deleteProperty(TemperatureOffsetNP);
         WI::updateProperties();
@@ -669,13 +667,13 @@ bool PegasusSPB::getConsumptionData()
         // These are custom consumption metrics, not directly mapped to INDI::PowerInterface's standard sensors.
         // Keep them as is, or consider if they should be mapped to custom INDI properties if needed.
         // For now, we will keep them as is, as they are not part of the core INDI::PowerInterface.
-        PowerSensorsNP[SENSOR_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
-        PowerSensorsNP[SENSOR_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
-        PowerSensorsNP[SENSOR_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
-        PowerSensorsNP.setState(IPS_OK);
+        ExtendedPowerNP[SENSOR_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
+        ExtendedPowerNP[SENSOR_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
+        ExtendedPowerNP[SENSOR_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
+        ExtendedPowerNP.setState(IPS_OK);
         if (lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] || lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS]
                 || lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
-            PowerSensorsNP.apply();
+            ExtendedPowerNP.apply();
 
         lastConsumptionData = result;
 
@@ -789,7 +787,6 @@ bool PegasusSPB::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     PI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
-    PI::saveConfigItems(fp);
 
     DewAggressNP.save(fp);
     HumidityOffsetNP.save(fp);
