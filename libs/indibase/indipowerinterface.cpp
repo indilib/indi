@@ -778,8 +778,12 @@ bool PowerInterface::saveConfigItems(FILE *fp)
         AutoDewSP.save(fp);
     }
 
-    DewChannelDutyCycleNP.save(fp);
-    DewChannelLabelsTP.save(fp);
+    if (HasDewOutput())
+    {
+        DewChannelsSP.save(fp);
+        DewChannelDutyCycleNP.save(fp);
+        DewChannelLabelsTP.save(fp);
+    }
 
     if (HasVariableOutput())
     {
