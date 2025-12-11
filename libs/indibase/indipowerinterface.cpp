@@ -123,7 +123,7 @@ void PowerInterface::initProperties(const char *groupName, size_t nPowerPorts, s
             char propName[MAXINDINAME];
             char propLabel[MAXINDILABEL];
             snprintf(propName, MAXINDINAME, "POWER_CHANNEL_%d", static_cast<int>(i + 1));
-            snprintf(propLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[i].getText());
+            snprintf(propLabel, MAXINDILABEL, "%s (A)", PowerChannelLabelsTP[i].getText());
             PowerChannelCurrentNP[i].fill(propName, propLabel, "%.2f", 0, 999, 0, 0);
         }
         PowerChannelCurrentNP.fill(m_defaultDevice->getDeviceName(), "POWER_CURRENTS", "Currents", POWER_TAB, IP_RO, 60,
