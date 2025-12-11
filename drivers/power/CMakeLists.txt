@@ -96,3 +96,11 @@ SET(celestron_dewpower_SRC
 add_executable(indi_celestron_dewpower ${celestron_dewpower_SRC})
 target_link_libraries(indi_celestron_dewpower indidriver)
 install(TARGETS indi_celestron_dewpower RUNTIME DESTINATION bin)
+
+# ########## SVBONY PowerBox ###############
+SET(svbonypowerbox_SRC
+    svbony_powerbox.cpp)
+
+add_executable(indi_svbony_powerbox ${svbonypowerbox_SRC})
+target_link_libraries(indi_svbony_powerbox indidriver)
+install(TARGETS indi_svbony_powerbox RUNTIME DESTINATION bin)
