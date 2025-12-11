@@ -17,7 +17,10 @@ INDI_SRCS=$(dirname $(realpath $0))/..
 rm -rf build/deb_indi-core
 mkdir -p build/deb_indi-core
 pushd build/deb_indi-core
-cp -r ${INDI_SRCS}/* ./
+for x in "${INDI_SRCS}"/*; do
+    [ "$(basename "$x")" = "build" ] && continue
+    cp -r "$x" ./
+done
 fakeroot debian/rules -j$(($(nproc)+1)) binary
 pwd
 popd
