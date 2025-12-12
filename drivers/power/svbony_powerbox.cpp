@@ -66,13 +66,6 @@ bool SVBONYPowerBox::initProperties()
     addAuxControls();
 
     ////////////////////////////////////////////////////////////////////////////
-    /// Sensor Data
-    ////////////////////////////////////////////////////////////////////////////
-    //    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15); // *** To-Do :この範囲で良いか確認する。資料、ASCOM、問い合わせなど。
-    //    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
-    //    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15);
-
-    ////////////////////////////////////////////////////////////////////////////
     /// Serial Connection
     ////////////////////////////////////////////////////////////////////////////
     serialConnection = new Connection::Serial(this);
@@ -92,22 +85,12 @@ bool SVBONYPowerBox::updateProperties()
 
     if (isConnected())
     {
-        /*
-            To-Do: Main Controle の追加がある場合は
-            defineProperty で追加する
-        */
-
         PI::updateProperties();
         WI::updateProperties();
         setupComplete = true;
     }
     else
     {
-        /*
-            To-Do: Main Controle が追加された場合は
-            deleteProperty で削除する
-        */
-
         PI::updateProperties();
         WI::updateProperties();
         setupComplete = false;
@@ -147,8 +130,8 @@ bool SVBONYPowerBox::Handshake()
         PI::initProperties(
             POWER_TAB,
             5, // DC Ports
-            3, // Dew Ports
-            0, // Variable Ports
+            2, // Dew Ports
+            1, // Variable Ports
             0, // Auto Dew Ports
             2  // USB Ports
         );
@@ -242,8 +225,9 @@ bool SVBONYPowerBox::Handshake()
         2  // USB Ports
     );
 
-    // Variable Channel Voltage
-    VariableChannelVoltsNP[0].setMinMax(0.0, 15.0); // Range for variable output
+    // Set the variable voltage channel to 0V to 15.3V
+    VariableChannelVoltsNP[0].setMinMax(0.0, 15.3); // Range for variable output
+    VariableChannelVoltsNP[0].setStep(0.1); // Step size
     VariableChannelVoltsNP.apply();
 
     return true;
@@ -495,17 +479,40 @@ void SVBONYPowerBox::Get_State()
         // Regurated Output Voltage Update
         double voltage = std::round((res[7] * 15.3 / 253.0) * 10.0) / 10.0;
 
-        VariableChannelsSP[0].setState(res[6] ? ISS_ON : ISS_OFF);
-        VariableChannelVoltsNP[0].setValue(voltage);
+        if (voltage <= 0.0)
+        {
+            // When the voltage is 0V, set the channel to off.
+            // Keep the voltage of the control panel channel at the set value.
+            VariableChannelsSP[0].setState(ISS_OFF);
+        }
+        else
+        {
+            // When the voltage is greater than 0V, set the channel to on.
+            // Reflect the acquired voltage on the control panel.
+            VariableChannelsSP[0].setState(ISS_ON);
+            VariableChannelVoltsNP[0].setValue(voltage);
+        }        
         VariableChannelsSP.apply();
         VariableChannelVoltsNP.apply();
 
-        // Auto Dew State Update
+        // Dew State Update
         for (int i = 0; i < 2; i++)
         {
-            // To-Do: State Update
-            DewChannelsSP[i].setState(res[i + 8] ? ISS_ON : ISS_OFF);
-            DewChannelDutyCycleNP[i].setValue(std::round(100.0*(res[i+7]/255.0)));
+            unsigned char pwmValue = std::round(100.0*(((double)res[i+8])/255.0));
+
+            if (pwmValue == 0)
+            {
+                // When the duty cycle is 0%, set the channel to off.
+                // Keep the duty cycle of the control panel channel at the set value.
+                DewChannelsSP[i].setState(ISS_OFF);
+            }
+            else
+            {
+                // When the duty cycle is greater than 0%, set the channel to on.
+                // Reflect the acquired duty cycle on the control panel.
+                DewChannelsSP[i].setState(ISS_ON);
+                DewChannelDutyCycleNP[i].setValue(std::round(100.0*(res[i+8]/255.0)));
+            }
         }
         DewChannelsSP.apply();
         DewChannelDutyCycleNP.apply();
@@ -547,11 +554,15 @@ bool SVBONYPowerBox::SetDewPort(size_t port, bool enabled, double dutyCycle)
     unsigned char cmd[3];
     cmd[0] = 0x01;
     cmd[1] = port + 8; // pwmA, pwmB are Dew ports
-    cmd[2] = enabled ? (unsigned char)(0xFF * (dutyCycle / 100)) : 0x00;
+    cmd[2] = enabled ? (unsigned char)std::round(255.0 * ((double)dutyCycle / 100.0)) : 0x00;
 
     return sendCommand(cmd, sizeof cmd, nullptr, 2);
 }
 
+/*
+    enabled: true to turn on the variable port, false to turn off
+    voltage: voltage to set when enabled is true (0.0V to 15.3V)
+*/
 bool SVBONYPowerBox::SetVariablePort(size_t port, bool enabled, double voltage)
 {
     if (port >= 1)
