@@ -127,6 +127,8 @@ bool SVBONYPowerBox::Handshake()
         /* POWER_HAS_AUTO_DEW | */ // Not supported
         POWER_HAS_POWER_CYCLE |
         POWER_HAS_USB_TOGGLE;
+        /* POWER_HAS_OVER_VOTALGE_PROTECTION | */ // Not supported
+        /* POWER_OFF_ON_DISCONNECT; */ // Not supported
 
     if (isSimulation()) // If in simulation mode, skip actual handshake
     {
