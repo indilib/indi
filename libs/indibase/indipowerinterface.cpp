@@ -351,8 +351,10 @@ bool PowerInterface::updateProperties()
         // Define properties only if connected
         if (HasVoltageSensor() || HasOverallCurrent())
             m_defaultDevice->defineProperty(PowerSensorsNP);
-        m_defaultDevice->defineProperty(OverVoltageProtectionNP);
-        m_defaultDevice->defineProperty(PowerOffOnDisconnectSP);
+        if (HasOverVoltageProtection())
+            m_defaultDevice->defineProperty(OverVoltageProtectionNP);
+        if (ShouldPowerOffOnDisconnect())
+            m_defaultDevice->defineProperty(PowerOffOnDisconnectSP);
         if (HasLEDToggle())
             m_defaultDevice->defineProperty(LEDControlSP);
         if (HasAutoDew())
@@ -405,8 +407,10 @@ bool PowerInterface::updateProperties()
         // Delete properties when disconnected
         if (HasVoltageSensor() || HasOverallCurrent())
             m_defaultDevice->deleteProperty(PowerSensorsNP);
-        m_defaultDevice->deleteProperty(OverVoltageProtectionNP);
-        m_defaultDevice->deleteProperty(PowerOffOnDisconnectSP);
+        if (HasOverVoltageProtection())
+            m_defaultDevice->deleteProperty(OverVoltageProtectionNP);
+        if (ShouldPowerOffOnDisconnect())
+            m_defaultDevice->deleteProperty(PowerOffOnDisconnectSP);
         if (HasLEDToggle())
             m_defaultDevice->deleteProperty(LEDControlSP);
         if (HasAutoDew())
@@ -765,13 +769,18 @@ bool PowerInterface::SetUSBPort(size_t port, bool enabled)
 
 bool PowerInterface::saveConfigItems(FILE *fp)
 {
-    OverVoltageProtectionNP.save(fp);
-    PowerOffOnDisconnectSP.save(fp);
+    if (HasOverVoltageProtection())
+        OverVoltageProtectionNP.save(fp);
+    if (ShouldPowerOffOnDisconnect())
+        PowerOffOnDisconnectSP.save(fp);
     if (HasLEDToggle())
         LEDControlSP.save(fp);
 
-    PowerChannelsSP.save(fp);
-    PowerChannelLabelsTP.save(fp);
+    if (HasDCOutput())
+    {
+        PowerChannelsSP.save(fp);
+        PowerChannelLabelsTP.save(fp);
+    }
 
     if (HasAutoDew())
     {
