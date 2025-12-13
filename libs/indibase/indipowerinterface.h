@@ -40,16 +40,18 @@ class PowerInterface
          */
         enum
         {
-            POWER_HAS_DC_OUT            = 1 << 0,  /*!< Has 12V DC outputs */
-            POWER_HAS_DEW_OUT           = 1 << 1,  /*!< Has DEW outputs for dew heaters */
-            POWER_HAS_VARIABLE_OUT      = 1 << 2,  /*!< Has variable voltage outputs */
-            POWER_HAS_VOLTAGE_SENSOR    = 1 << 3,  /*!< Has voltage monitoring */
-            POWER_HAS_OVERALL_CURRENT   = 1 << 4,  /*!< Has overall current monitoring */
-            POWER_HAS_PER_PORT_CURRENT  = 1 << 5,  /*!< Has per-port current monitoring */
-            POWER_HAS_LED_TOGGLE        = 1 << 6,  /*!< Can toggle power LEDs */
-            POWER_HAS_AUTO_DEW          = 1 << 7,  /*!< Has automatic dew control */
-            POWER_HAS_POWER_CYCLE       = 1 << 8,  /*!< Can cycle power to all ports */
-            POWER_HAS_USB_TOGGLE        = 1 << 9   /*!< Can toggle power to specific USB ports */
+            POWER_HAS_DC_OUT                    = 1 << 0,  /*!< Has 12V DC outputs */
+            POWER_HAS_DEW_OUT                   = 1 << 1,  /*!< Has DEW outputs for dew heaters */
+            POWER_HAS_VARIABLE_OUT              = 1 << 2,  /*!< Has variable voltage outputs */
+            POWER_HAS_VOLTAGE_SENSOR            = 1 << 3,  /*!< Has voltage monitoring */
+            POWER_HAS_OVERALL_CURRENT           = 1 << 4,  /*!< Has overall current monitoring */
+            POWER_HAS_PER_PORT_CURRENT          = 1 << 5,  /*!< Has per-port current monitoring */
+            POWER_HAS_LED_TOGGLE                = 1 << 6,  /*!< Can toggle power LEDs */
+            POWER_HAS_AUTO_DEW                  = 1 << 7,  /*!< Has automatic dew control */
+            POWER_HAS_POWER_CYCLE               = 1 << 8,  /*!< Can cycle power to all ports */
+            POWER_HAS_USB_TOGGLE                = 1 << 9,  /*!< Can toggle power to specific USB ports */
+            POWER_HAS_OVER_VOTALGE_PROTECTION   = 1 << 10, /*!< Do not toggle output DC ports if voltage exceeds a threshold */
+            POWER_OFF_ON_DISCONNECT             = 1 << 11, /*!< Power off all DC, Dew, and Variable ports when driver is disconnected*/
         } PowerCapability;
 
         /**
@@ -139,6 +141,24 @@ class PowerInterface
         bool HasUSBPort()
         {
             return powerCapability & POWER_HAS_USB_TOGGLE;
+        }
+
+        /**
+         * @return True if DC ports can only be toggled if the input voltage is within a certain threshold.
+         * @note This applies to *unregulated* power controller where the output DC voltage matches the input DC voltage
+         */
+        bool HasOverVoltageProtection()
+        {
+            return powerCapability & POWER_HAS_OVER_VOTALGE_PROTECTION;
+        }
+
+        /**
+         * @return True if all power should be toggled off when driver is connected.
+         * @note Default behavior is power output does not change on driver disconnect.
+         */
+        bool ShouldPowerOffOnDisconnect()
+        {
+            return powerCapability & POWER_OFF_ON_DISCONNECT;
         }
 
     protected:
