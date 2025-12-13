@@ -33,6 +33,7 @@
 #include <chrono>
 #include <thread>
 #include <memory>
+#include <cmath>
 #include <termios.h>
 #include <unistd.h>
 #include <inttypes.h>
@@ -49,7 +50,7 @@ static std::unique_ptr<SVBONYPowerBox> svbonypowerbox(new SVBONYPowerBox());
 #define TIMEOUT_SEC 0
 #define TIMEOUT_MSEC 500
 
-SVBONYPowerBox::SVBONYPowerBox() : INDI::PowerInterface(this), INDI::WeatherInterface(this)
+SVBONYPowerBox::SVBONYPowerBox() : INDI::PowerInterface(this)
 {
     setVersion(1, 0);
 }
@@ -58,16 +59,16 @@ bool SVBONYPowerBox::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    setDriverInterface(AUX_INTERFACE | POWER_INTERFACE | WEATHER_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
 
-    // Note: PI::initProperties will be called in Handshake() after device identification
-    WI::initProperties(MAIN_CONTROL_TAB, MAIN_CONTROL_TAB);
+    // Initialize Weather Sensor Properties
+    WeatherSVBSensorsNP[SVB_SENSOR_DS18B20_TEMP].fill("DS18B20_TEMP", "Lens Temperature(C)", "%.1f", -100, 200, 0.1, 0);
+    WeatherSVBSensorsNP[SVB_SENSOR_SHT40_TEMP].fill("SHT40_TEMP", "Temperature(C)", "%.1f", -100, 200, 0.1, 0);
+    WeatherSVBSensorsNP[SVB_SENSOR_SHT40_HUMIDITY].fill("SHT40_HUMI", "Humidity %", "%.1f", 0, 100, 0.1, 0);
+    WeatherSVBSensorsNP[SVB_SENSOR_DEW_POINT].fill("DEW_POINT", "Dew Point(C)", "%.1f", -100, 200, 0.1, 0);
+    WeatherSVBSensorsNP.fill(getDeviceName(), "WEATHER_SV_SENSORS", "Weather Sensors", "Dew",IP_RO, 0, IPS_IDLE);
 
-    addAuxControls();
-
-    ////////////////////////////////////////////////////////////////////////////
-    /// Serial Connection
-    ////////////////////////////////////////////////////////////////////////////
+    // Serial Connection
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]()
     {
@@ -85,14 +86,18 @@ bool SVBONYPowerBox::updateProperties()
 
     if (isConnected())
     {
+        // Define Weather sensor properties
+        defineProperty(WeatherSVBSensorsNP);
+        
         PI::updateProperties();
-        WI::updateProperties();
         setupComplete = true;
     }
     else
     {
+        // Delete Weather sensor properties
+        deleteProperty(WeatherSVBSensorsNP);
+
         PI::updateProperties();
-        WI::updateProperties();
         setupComplete = false;
     }
 
@@ -102,7 +107,6 @@ bool SVBONYPowerBox::updateProperties()
 bool SVBONYPowerBox::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
-    WI::saveConfigItems(fp);
     PI::saveConfigItems(fp);
     return true;
 }
@@ -123,7 +127,7 @@ bool SVBONYPowerBox::Handshake()
             POWER_HAS_OVERALL_CURRENT |
             /* POWER_HAS_PER_PORT_CURRENT | */ // Not supported
             /* POWER_HAS_LED_TOGGLE | */ // Not supported
-            POWER_HAS_AUTO_DEW |
+            /* POWER_HAS_AUTO_DEW | */ // Not supported
             POWER_HAS_POWER_CYCLE |
             POWER_HAS_USB_TOGGLE
         );
@@ -225,9 +229,11 @@ bool SVBONYPowerBox::Handshake()
         2  // USB Ports
     );
 
-    // Set the variable voltage channel to 0V to 15.3V
+    /*
+        Set the variable voltage channel to 0V to 15.3V
+    */
     VariableChannelVoltsNP[0].setMinMax(0.0, 15.3); // Range for variable output
-    VariableChannelVoltsNP[0].setStep(0.1); // Step size
+    VariableChannelVoltsNP[0].setStep(1); // Step size
     VariableChannelVoltsNP.apply();
 
     return true;
@@ -396,11 +402,18 @@ void SVBONYPowerBox::TimerHit()
     SetTimer(100);
 }
 
+/*
+    Retrieve each parameter of the SV241 Pro and reflect them in the INDI properties.
+*/
 void SVBONYPowerBox::Get_State()
 {
     unsigned char cmd = 0;
     unsigned char res[10] = {0};
     double value = 0;
+    double shtTemp = 0.0;
+    double shtHumidity = 0.0;
+    bool hasShtTemp = false;
+    bool hasShtHumidity = false;
     // Read power
     cmd = 0x02;
     if (sendCommand(&cmd, 1, res, 4))
@@ -425,7 +438,7 @@ void SVBONYPowerBox::Get_State()
     {
         value = std::round((convert4BytesToDouble(res, 100) - 255.5) * 100.0) / 100.0; // Adjust for offset
         LOGF_DEBUG("DS18B20 Temperature Value: %lf C", value);
-        setParameterValue("WEATHER_TEMPERATURE", value);
+        WeatherSVBSensorsNP[SVB_SENSOR_DS18B20_TEMP].setValue(value);
     }
 
     // Read SHT40 Temperature
@@ -434,7 +447,9 @@ void SVBONYPowerBox::Get_State()
     {
         value = std::round((convert4BytesToDouble(res, 100) - 254) * 10.0) / 10.0; // Adjust for offset
         LOGF_DEBUG("SHT40 Temperature Value: %lf C", value);
-        setParameterValue("WEATHER_DEWPOINT", value);
+        WeatherSVBSensorsNP[SVB_SENSOR_SHT40_TEMP].setValue(value);
+        shtTemp = value;
+        hasShtTemp = true;
     }
     // Read SHT40 Humidity
     cmd = 0x06;
@@ -442,8 +457,22 @@ void SVBONYPowerBox::Get_State()
     {
         value = std::round((convert4BytesToDouble(res, 100) - 254) * 10.0) / 10.0; // Adjust for offset
         LOGF_DEBUG("SHT40 Humidity Value: %lf %", value);
-        setParameterValue("WEATHER_HUMIDITY", value);
+        WeatherSVBSensorsNP[SVB_SENSOR_SHT40_HUMIDITY].setValue(value);
+        shtHumidity = value;
+        hasShtHumidity = true;
     }
+
+    // Calculate dew point from SHT40 temperature and humidity
+    if (hasShtTemp && hasShtHumidity)
+    {
+        double svp = CalculateSVP(shtTemp);
+        double vp = CalculateVP(shtHumidity, svp);
+        double dewPoint = CalculateDewPointFromVP(vp);
+        LOGF_DEBUG("Dew Point Value: %lf C", dewPoint);
+        WeatherSVBSensorsNP[SVB_SENSOR_DEW_POINT].setValue(dewPoint);
+    }
+    WeatherSVBSensorsNP.apply();  // Apply all parameter changes
+
     // Read load Current
     cmd = 0x07;
     if (sendCommand(&cmd, 1, res, 4))
@@ -516,8 +545,7 @@ void SVBONYPowerBox::Get_State()
         }
         DewChannelsSP.apply();
         DewChannelDutyCycleNP.apply();
-}
-    ParametersNP.apply();  // Apply all parameter changes
+    }
 }
 
 bool SVBONYPowerBox::processButtonSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -628,4 +656,36 @@ double SVBONYPowerBox::convert4BytesToDouble(const unsigned char *data, double s
                    static_cast<uint32_t>(data[3]);
 
     return static_cast<double>(raw) / scale;
+}
+
+double SVBONYPowerBox::CalculateSVP(double temperature)
+{
+    // 6.11 × 10^(7.5 × T / (237.7 + T))
+    return 6.11 * std::pow(10.0, 7.5 * temperature / (237.7 + temperature));
+}
+
+double SVBONYPowerBox::CalculateVP(double humidity, double svp)
+{
+    // VP = RH × SVP / 100
+    return humidity * svp / 100.0;
+}
+
+double SVBONYPowerBox::CalculateDewPointFromVP(double vp)
+{
+    double minDifference = 1e6;
+    double minTemp = -100.0;
+
+    for (double temp = -100.0; temp <= 100.0; temp += 0.01)
+    {
+        double currentSvp = CalculateSVP(temp);
+        double difference = std::fabs(vp - currentSvp);
+        if (difference < minDifference)
+        {
+            minDifference = difference;
+            minTemp = temp;
+        }
+    }
+
+    // Round to 2 decimal places
+    return std::round(minTemp * 100.0) / 100.0;
 }

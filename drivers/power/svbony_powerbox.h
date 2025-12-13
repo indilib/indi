@@ -26,7 +26,6 @@
 
 #include "defaultdevice.h"
 #include "indipowerinterface.h"
-#include "indiweatherinterface.h"
 
 #include <vector>
 #include <stdint.h>
@@ -38,7 +37,7 @@ namespace Connection
 class Serial;
 }
 
-class SVBONYPowerBox : public INDI::DefaultDevice, public INDI::PowerInterface, public INDI::WeatherInterface
+class SVBONYPowerBox : public INDI::DefaultDevice, public INDI::PowerInterface
 {
     public:
         SVBONYPowerBox();
@@ -50,12 +49,6 @@ class SVBONYPowerBox : public INDI::DefaultDevice, public INDI::PowerInterface, 
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-
-        // Weather Overrides
-        virtual IPState updateWeather() override
-        {
-            return IPS_OK;
-        }
 
     protected:
         virtual const char *getDefaultName() override;
@@ -79,7 +72,25 @@ class SVBONYPowerBox : public INDI::DefaultDevice, public INDI::PowerInterface, 
         bool processButtonSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
         void Get_State();
-        double convert4BytesToDouble(const unsigned char* data, double scale);
+        
+        static double convert4BytesToDouble(const unsigned char* data, double scale);
+
+        // Dew point calculation helpers
+        static double CalculateSVP(double temperature);
+        static double CalculateVP(double humidity, double svp);
+        static double CalculateDewPointFromVP(double vp);
+
+        // Weather Sensors Indices
+        enum
+        {
+            SVB_SENSOR_DS18B20_TEMP,   /*!< DS18B20 Temperature */
+            SVB_SENSOR_SHT40_TEMP,     /*!< SHT40 Temperature */
+            SVB_SENSOR_SHT40_HUMIDITY, /*!< SHT40 Humidity */
+            SVB_SENSOR_DEW_POINT,      /*!< Dew Point */
+            N_SVB_WEATHER_SENSORS     /*!< Number of weather sensors */
+        };
+        // Main Control - Overall Weather Sensors
+        INDI::PropertyNumber WeatherSVBSensorsNP {N_SVB_WEATHER_SENSORS};
 
         Connection::Serial *serialConnection { nullptr };
 };
