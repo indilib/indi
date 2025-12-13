@@ -116,21 +116,22 @@ bool SVBONYPowerBox::saveConfigItems(FILE *fp)
 */
 bool SVBONYPowerBox::Handshake()
 {
+    uint32_t SVB_capabilities =
+        POWER_HAS_DC_OUT |
+        POWER_HAS_DEW_OUT |
+        POWER_HAS_VARIABLE_OUT |
+        POWER_HAS_VOLTAGE_SENSOR |
+        /* POWER_HAS_OVERALL_CURRENT | */ // Not supported
+        /* POWER_HAS_PER_PORT_CURRENT | */ // Not supported
+        /* POWER_HAS_LED_TOGGLE | */ // Not supported
+        /* POWER_HAS_AUTO_DEW | */ // Not supported
+        POWER_HAS_POWER_CYCLE |
+        POWER_HAS_USB_TOGGLE;
+
     if (isSimulation()) // If in simulation mode, skip actual handshake
     {
         // Set capabilities and initialize PI properties
-        PI::SetCapability(
-            POWER_HAS_DC_OUT |
-            POWER_HAS_DEW_OUT |
-            POWER_HAS_VARIABLE_OUT |
-            POWER_HAS_VOLTAGE_SENSOR |
-            /* POWER_HAS_OVERALL_CURRENT | */ // Not supported
-            /* POWER_HAS_PER_PORT_CURRENT | */ // Not supported
-            /* POWER_HAS_LED_TOGGLE | */ // Not supported
-            /* POWER_HAS_AUTO_DEW | */ // Not supported
-            POWER_HAS_POWER_CYCLE |
-            POWER_HAS_USB_TOGGLE
-        );
+        PI::SetCapability(SVB_capabilities);
         PI::initProperties(
             POWER_TAB,
             5, // DC Ports
@@ -208,18 +209,7 @@ bool SVBONYPowerBox::Handshake()
     LOG_INFO("Handshake successful.");
 
     // Set capabilities and initialize PI properties
-    PI::SetCapability(
-        POWER_HAS_DC_OUT |
-        POWER_HAS_DEW_OUT |
-        POWER_HAS_VARIABLE_OUT |
-        POWER_HAS_VOLTAGE_SENSOR |
-        /* POWER_HAS_OVERALL_CURRENT | */ // Not supported
-        /* POWER_HAS_PER_PORT_CURRENT | */ // Not supported
-        /* POWER_HAS_LED_TOGGLE | */ // Not supported
-        /* POWER_HAS_AUTO_DEW | */ // Not supported
-        POWER_HAS_POWER_CYCLE |
-        POWER_HAS_USB_TOGGLE // To-Do: USBトグルに対応しているか要確認
-    );
+    PI::SetCapability(SVB_capabilities);
     PI::initProperties(
         POWER_TAB,
         5, // DC Ports
