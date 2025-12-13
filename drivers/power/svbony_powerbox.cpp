@@ -66,7 +66,7 @@ bool SVBONYPowerBox::initProperties()
     WeatherSVBSensorsNP[SVB_SENSOR_SHT40_TEMP].fill("SHT40_TEMP", "Temperature(C)", "%.1f", -100, 200, 0.1, 0);
     WeatherSVBSensorsNP[SVB_SENSOR_SHT40_HUMIDITY].fill("SHT40_HUMI", "Humidity %", "%.1f", 0, 100, 0.1, 0);
     WeatherSVBSensorsNP[SVB_SENSOR_DEW_POINT].fill("DEW_POINT", "Dew Point(C)", "%.1f", -100, 200, 0.1, 0);
-    WeatherSVBSensorsNP.fill(getDeviceName(), "WEATHER_SV_SENSORS", "Weather Sensors", "Dew",IP_RO, 0, IPS_IDLE);
+    WeatherSVBSensorsNP.fill(getDeviceName(), "WEATHER_SV_SENSORS", "Weather Sensors", DEW_TAB, IP_RO, 0, IPS_IDLE);
 
     // Serial Connection
     serialConnection = new Connection::Serial(this);
@@ -124,7 +124,7 @@ bool SVBONYPowerBox::Handshake()
             POWER_HAS_DEW_OUT |
             POWER_HAS_VARIABLE_OUT |
             POWER_HAS_VOLTAGE_SENSOR |
-            POWER_HAS_OVERALL_CURRENT |
+            /* POWER_HAS_OVERALL_CURRENT | */ // Not supported
             /* POWER_HAS_PER_PORT_CURRENT | */ // Not supported
             /* POWER_HAS_LED_TOGGLE | */ // Not supported
             /* POWER_HAS_AUTO_DEW | */ // Not supported
@@ -213,10 +213,10 @@ bool SVBONYPowerBox::Handshake()
         POWER_HAS_DEW_OUT |
         POWER_HAS_VARIABLE_OUT |
         POWER_HAS_VOLTAGE_SENSOR |
-        POWER_HAS_OVERALL_CURRENT |
+        /* POWER_HAS_OVERALL_CURRENT | */ // Not supported
         /* POWER_HAS_PER_PORT_CURRENT | */ // Not supported
         /* POWER_HAS_LED_TOGGLE | */ // Not supported
-        POWER_HAS_AUTO_DEW |
+        /* POWER_HAS_AUTO_DEW | */ // Not supported
         POWER_HAS_POWER_CYCLE |
         POWER_HAS_USB_TOGGLE // To-Do: USBトグルに対応しているか要確認
     );
@@ -236,6 +236,45 @@ bool SVBONYPowerBox::Handshake()
     VariableChannelVoltsNP[0].setStep(1); // Step size
     VariableChannelVoltsNP.apply();
 
+    /*
+        Change property labels to match the device
+    */
+    // DC Channels
+    for (size_t i = 0; i < PowerChannelsSP.size(); i++)
+    {
+        char propLabel[MAXINDILABEL];
+        snprintf(propLabel, MAXINDILABEL, "DC %d", static_cast<int>(i + 1));
+        PowerChannelsSP[i].setLabel(propLabel);
+        PowerChannelLabelsTP[i].setLabel(propLabel);
+    }
+    PowerChannelsSP.apply();
+    PowerChannelLabelsTP.apply();
+    //Dew Channels
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
+    {
+        char propLabel[MAXINDILABEL];
+        char propDutyLabel[MAXINDILABEL];
+        snprintf(propLabel, MAXINDILABEL, "PWM %d", static_cast<int>(i + 1));
+        snprintf(propDutyLabel, MAXINDILABEL, "PWM %d (%%)", static_cast<int>(i + 1));
+        DewChannelsSP[i].setLabel(propLabel);
+        DewChannelLabelsTP[i].setLabel(propLabel);
+        DewChannelDutyCycleNP[i].setLabel(propDutyLabel);
+    }
+    DewChannelsSP.apply();
+    DewChannelLabelsTP.apply();
+    // USB Channels
+    USBPortSP[0].setLabel("USB C,1,2");
+    USBPortLabelsTP[0].setLabel("USB C,1,2");
+    USBPortSP[1].setLabel("USB 3,4,5");
+    USBPortLabelsTP[1].setLabel("USB 3,4,5");
+    USBPortSP.apply();
+    USBPortLabelsTP.apply();
+    //Variable Channel
+    VariableChannelsSP[0].setLabel("REGULATED");
+    VariableChannelVoltsNP[0].setLabel("REGULATED (V)");
+    VariableChannelLabelsTP[0].setLabel("REGULATED");
+    VariableChannelsSP.apply();
+    VariableChannelLabelsTP.apply();
     return true;
 }
 
@@ -505,7 +544,7 @@ void SVBONYPowerBox::Get_State()
         }
         PI::USBPortSP.apply();
 
-        // Regurated Output Voltage Update
+        // Regulated Output Voltage Update
         double voltage = std::round((res[7] * 15.3 / 253.0) * 10.0) / 10.0;
 
         if (voltage <= 0.0)
