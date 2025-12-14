@@ -451,7 +451,7 @@ void SVBONYPowerBox::Get_State()
     {
         value = convert4BytesToDouble(res, 100);
         LOGF_DEBUG("INA219 Power Value: %lf mW", value);
-        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(value);
+        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(value/1000.0);
         PI::PowerSensorsNP.apply();
     }
     // Read load voltage
@@ -510,7 +510,7 @@ void SVBONYPowerBox::Get_State()
     {
         value = convert4BytesToDouble(res, 100);
         LOGF_DEBUG("INA219 Current Value: %lf mA", value);
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(value);
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(value/1000.0);
         PI::PowerSensorsNP.apply();
     }
     /*
