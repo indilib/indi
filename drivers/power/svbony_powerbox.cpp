@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/ioctl.h>
+#include <algorithm>
 
 // Declaration for an auto pointer to SVBONYPowerBox
 static std::unique_ptr<SVBONYPowerBox> svbonypowerbox(new SVBONYPowerBox());
@@ -58,7 +59,7 @@ SVBONYPowerBox::SVBONYPowerBox() : INDI::PowerInterface(this)
 bool SVBONYPowerBox::initProperties()
 {
     INDI::DefaultDevice::initProperties();
-
+    addAuxControls();
     setDriverInterface(AUX_INTERFACE | POWER_INTERFACE);
 
     // Initialize Weather Sensor Properties
@@ -88,7 +89,7 @@ bool SVBONYPowerBox::updateProperties()
     {
         // Define Weather sensor properties
         defineProperty(WeatherSVBSensorsNP);
-        
+
         PI::updateProperties();
         setupComplete = true;
     }
@@ -127,8 +128,8 @@ bool SVBONYPowerBox::Handshake()
         /* POWER_HAS_AUTO_DEW | */ // Not supported
         POWER_HAS_POWER_CYCLE |
         POWER_HAS_USB_TOGGLE;
-        /* POWER_HAS_OVER_VOTALGE_PROTECTION | */ // Not supported
-        /* POWER_OFF_ON_DISCONNECT; */ // Not supported
+    /* POWER_HAS_OVER_VOTALGE_PROTECTION | */ // Not supported
+    /* POWER_OFF_ON_DISCONNECT; */ // Not supported
 
     if (isSimulation()) // If in simulation mode, skip actual handshake
     {
@@ -267,6 +268,7 @@ bool SVBONYPowerBox::Handshake()
     VariableChannelLabelsTP[0].setLabel("REGULATED");
     VariableChannelsSP.apply();
     VariableChannelLabelsTP.apply();
+
     return true;
 }
 
@@ -451,7 +453,7 @@ void SVBONYPowerBox::Get_State()
     {
         value = convert4BytesToDouble(res, 100);
         LOGF_DEBUG("INA219 Power Value: %lf mW", value);
-        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(value/1000.0);
+        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(value / 1000.0);
         PI::PowerSensorsNP.apply();
     }
     // Read load voltage
@@ -510,7 +512,7 @@ void SVBONYPowerBox::Get_State()
     {
         value = convert4BytesToDouble(res, 100);
         LOGF_DEBUG("INA219 Current Value: %lf mA", value);
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(value/1000.0);
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(value / 1000.0);
         PI::PowerSensorsNP.apply();
     }
     /*
@@ -537,7 +539,7 @@ void SVBONYPowerBox::Get_State()
         PI::USBPortSP.apply();
 
         // Regulated Output Voltage Update
-        double voltage = std::round((res[7] * 15.3 / 253.0) * 10.0) / 10.0;
+        double voltage = std::round((res[7] * 15.3 / 255.0) * 10.0) / 10.0;
 
         if (voltage <= 0.0)
         {
@@ -551,14 +553,14 @@ void SVBONYPowerBox::Get_State()
             // Reflect the acquired voltage on the control panel.
             VariableChannelsSP[0].setState(ISS_ON);
             VariableChannelVoltsNP[0].setValue(voltage);
-        }        
+        }
         VariableChannelsSP.apply();
         VariableChannelVoltsNP.apply();
 
         // Dew State Update
         for (int i = 0; i < 2; i++)
         {
-            unsigned char pwmValue = std::round(100.0*(((double)res[i+8])/255.0));
+            unsigned char pwmValue = std::round(100.0 * (((double)res[i + 8]) / 255.0));
 
             if (pwmValue == 0)
             {
@@ -571,7 +573,7 @@ void SVBONYPowerBox::Get_State()
                 // When the duty cycle is greater than 0%, set the channel to on.
                 // Reflect the acquired duty cycle on the control panel.
                 DewChannelsSP[i].setState(ISS_ON);
-                DewChannelDutyCycleNP[i].setValue(std::round(100.0*(res[i+8]/255.0)));
+                DewChannelDutyCycleNP[i].setValue(std::round(100.0 * (res[i + 8] / 255.0)));
             }
         }
         DewChannelsSP.apply();
@@ -630,7 +632,8 @@ bool SVBONYPowerBox::SetVariablePort(size_t port, bool enabled, double voltage)
     unsigned char cmd[3];
     cmd[0] = 0x01;
     cmd[1] = 7; // Regulated output port
-    cmd[2] = enabled ? (unsigned char)(voltage * (253.0 / 15.3)) : 0x00;
+    double raw = (voltage / 15.3) * 255.0;
+    cmd[2] = enabled ? (unsigned char)(std::max(0.0, std::min(255.0, raw))) : 0x00;
 
     return sendCommand(cmd, sizeof cmd, nullptr, 2);
 }
