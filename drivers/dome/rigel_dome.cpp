@@ -74,6 +74,10 @@ bool RigelDome::initProperties()
     SetParkDataType(PARK_AZ);
     addAuxControls();
 
+    // Initialize Pulsar Dome Drive workaround variables
+    previousAngle = -1;
+    stuckAngleCounter = 0;
+
     return true;
 }
 
@@ -247,6 +251,59 @@ void RigelDome::TimerHit()
 
     bool isMoving = (m_rawMotorState != M_Idle && m_rawMotorState != M_MovingAtSideral);
 
+    /*
+        Pulsar Dome Drive workaround to fix issue where the motor seems to
+        be struggling as it tries to get to the final position.
+        This improved version tracks consecutive cycles with no angle change
+        and only stops the motor after multiple cycles if we're close to target.
+    */
+    double currentAngle = DomeAbsPosNP[0].getValue();
+
+    if (previousAngle >= 0 && isMoving)
+    {
+        // Check if angle has changed (with small tolerance for floating point comparison)
+        if (std::abs(currentAngle - previousAngle) < 0.01)
+        {
+            stuckAngleCounter++;
+            LOGF_DEBUG("Angle unchanged for %d consecutive cycle(s): %.3f degrees", stuckAngleCounter, currentAngle);
+
+            // Only stop if stuck for multiple cycles AND close to target
+            if (stuckAngleCounter >= STUCK_THRESHOLD)
+            {
+                double diff = std::abs(targetAz - currentAngle);
+                // Account for wrap-around (e.g., target 1, current 359)
+                if (diff > 180)
+                    diff = 360.0 - diff;
+
+                if (diff < ANGLE_TOLERANCE)
+                {
+                    char res[DRIVER_LEN] = {0};
+                    if (sendCommand("STOP", res))
+                    {
+                        LOGF_INFO("Motor stopped: position unchanged for %d cycles, within %.1f° of target",
+                                  STUCK_THRESHOLD, ANGLE_TOLERANCE);
+                        stuckAngleCounter = 0;
+                        setDomeState(DOME_SYNCED);
+                        SetTimer(getCurrentPollingPeriod());
+                        return;
+                    }
+                }
+                else
+                {
+                    LOGF_WARN("Motor stuck but %.1f° away from target - allowing more time", diff);
+                }
+            }
+        }
+        else
+        {
+            // Angle changed, reset counter
+            stuckAngleCounter = 0;
+        }
+    }
+
+    previousAngle = currentAngle;
+    /* END Pulsar Dome Drive workaround */
+
     if (DomeAbsPosNP.getState() == IPS_BUSY && isMoving == false)
     {
         bool isHoming = (OperationSP.getState() == IPS_BUSY && OperationSP[OPERATION_FIND_HOME].getState() == ISS_ON);
@@ -313,6 +370,9 @@ IPState RigelDome::MoveAbs(double az)
     if (sendCommand(cmd, res) == false)
         return IPS_ALERT;
 
+    // Reset stuck counter for new movement
+    stuckAngleCounter = 0;
+
     return (res[0] == 'A') ? IPS_BUSY : IPS_ALERT;
 }
 
@@ -358,6 +418,9 @@ IPState RigelDome::Park()
     targetAz = GetAxis1Park();
     if (setParkAz(targetAz))
     {
+        // Reset stuck counter for parking movement
+        stuckAngleCounter = 0;
+
         char res[DRIVER_LEN] = {0};
         if (sendCommand("GO P", res) == false)
             return IPS_ALERT;
@@ -372,6 +435,9 @@ IPState RigelDome::Park()
 /////////////////////////////////////////////////////////////////////////////
 bool RigelDome::home()
 {
+    // Reset stuck counter for homing movement
+    stuckAngleCounter = 0;
+
     char res[DRIVER_LEN] = {0};
     if (sendCommand("GO H", res) == false)
         return false;
@@ -384,6 +450,9 @@ bool RigelDome::home()
 /////////////////////////////////////////////////////////////////////////////
 bool RigelDome::calibrate()
 {
+    // Reset stuck counter for calibration movement
+    stuckAngleCounter = 0;
+
     char res[DRIVER_LEN] = {0};
     if (sendCommand("CALIBRATE", res) == false)
         return false;
@@ -451,6 +520,9 @@ bool RigelDome::Abort()
 {
     if (sendCommand("STOP"))
     {
+        // Reset stuck counter when aborting movement
+        stuckAngleCounter = 0;
+
         if (OperationSP.getState() == IPS_BUSY)
         {
             LOGF_INFO("%s is aborted.", OperationSP[OPERATION_CALIBRATE].getState() == ISS_ON ? "Calibration" : "Finding home");
