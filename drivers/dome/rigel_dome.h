@@ -65,6 +65,12 @@ class RigelDome : public INDI::Dome
         RigelMotorState m_rawMotorState {M_Idle};
         double targetAz { 0 };
 
+        // Pulsar Dome Drive workaround for stuck motor detection
+        double previousAngle { -1 };
+        int stuckAngleCounter { 0 };
+        static constexpr const int STUCK_THRESHOLD = 3;  // 3 consecutive cycles
+        static constexpr const double ANGLE_TOLERANCE = 1.0;  // 1 degree
+
         ///////////////////////////////////////////////////////////////////////////////
         /// Shutter Functions
         ///////////////////////////////////////////////////////////////////////////////
