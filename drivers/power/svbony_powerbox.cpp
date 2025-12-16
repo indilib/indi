@@ -289,6 +289,13 @@ bool SVBONYPowerBox::ISNewSwitch(const char *dev, const char *name, ISState *sta
         if (processButtonSwitch(dev, name, states, names, n))
             return true;
     }
+#if 0 // May output a large amount of logs; disable
+    // Handle Debug switch
+    if (strcmp(name, "DEBUG") == 0)
+    {
+        tty_set_debug(strcmp(names[0], "ENABLE") == 0 ? true : false);
+    }
+#endif
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
