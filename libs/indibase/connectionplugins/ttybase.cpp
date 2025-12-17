@@ -166,6 +166,8 @@ TTYBase::TTY_RESPONSE TTYBase::read(uint8_t *buffer, uint32_t nbytes, uint8_t ti
 
     uint32_t numBytesToRead =  nbytes;
     int bytesRead = 0;
+    int zero_read_count = 0;
+    const int MAX_ZERO_READS = 3;
     TTY_RESPONSE timeoutResponse = TTY_OK;
     *nbytes_read  = 0;
 
@@ -184,6 +186,21 @@ TTYBase::TTY_RESPONSE TTYBase::read(uint8_t *buffer, uint32_t nbytes, uint8_t ti
 
         if (bytesRead < 0)
             return TTY_READ_ERROR;
+
+        if (bytesRead == 0)
+        {
+            zero_read_count++;
+            if (zero_read_count >= MAX_ZERO_READS)
+            {
+                DEBUGFDEVICE(m_DriverName, m_DebugChannel,
+                             "%s: Device not responding (zero bytes read %d times)", __FUNCTION__, MAX_ZERO_READS);
+                return TTY_READ_ERROR;
+            }
+            usleep(10000);  // 10ms delay before retry
+            continue;
+        }
+
+        zero_read_count = 0;  // Reset counter on successful read
 
         DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%d bytes read and %d bytes remaining...", bytesRead,
                      numBytesToRead - bytesRead);
@@ -210,6 +227,8 @@ TTYBase::TTY_RESPONSE TTYBase::readSection(uint8_t *buffer, uint32_t nsize, uint
         return TTY_ERRNO;
 
     int bytesRead = 0;
+    int zero_read_count = 0;
+    const int MAX_ZERO_READS = 3;
     TTY_RESPONSE timeoutResponse = TTY_OK;
     *nbytes_read  = 0;
     memset(buffer, 0, nsize);
@@ -229,6 +248,21 @@ TTYBase::TTY_RESPONSE TTYBase::readSection(uint8_t *buffer, uint32_t nsize, uint
 
         if (bytesRead < 0)
             return TTY_READ_ERROR;
+
+        if (bytesRead == 0)
+        {
+            zero_read_count++;
+            if (zero_read_count >= MAX_ZERO_READS)
+            {
+                DEBUGFDEVICE(m_DriverName, m_DebugChannel,
+                             "%s: Device not responding (zero bytes read %d times)", __FUNCTION__, MAX_ZERO_READS);
+                return TTY_READ_ERROR;
+            }
+            usleep(10000);  // 10ms delay before retry
+            continue;
+        }
+
+        zero_read_count = 0;  // Reset counter on successful read
 
         DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: buffer[%d]=%#X (%c)", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
