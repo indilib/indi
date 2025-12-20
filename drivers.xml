@@ -1079,5 +1079,9 @@
             <driver name="Celestron Dew Power">indi_celestron_dewpower</driver>
             <version>1.0</version>
         </device>
+        <device label="SVBONY SV241 Pro" manufacturer="SVBONY">
+            <driver name="SVBONY SV241 Pro">indi_svbony_powerbox</driver>
+            <version>1.2</version>
+        </device>
     </devGroup>
 </driversList>
