@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2025 Tetsuya Kakura. All rights reserved.
 
   SVBONYPowerBox
 
