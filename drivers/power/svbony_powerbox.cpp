@@ -27,6 +27,7 @@
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "inditimer.h"
 
 #include <cerrno>
 #include <cstring>
@@ -77,6 +78,16 @@ bool SVBONYPowerBox::initProperties()
     });
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     registerConnection(serialConnection);
+
+// Trigger connection by default
+    INDI::Timer::singleShot(500, [this]()
+    {
+        if (Connect())
+        {
+            setConnected(true);
+            updateProperties();
+        }
+    });
 
     return true;
 }
@@ -154,10 +165,19 @@ bool SVBONYPowerBox::Handshake()
     flags &= ~(TIOCM_RTS | TIOCM_DTR); // Clear RTS and DTR to reset device
     ioctl(PortFD, TIOCMSET, &flags);
 
-    bool isResetting = true;
+
+    bool isResetting = false;
     int retryCount = 0;
     const int maxRetries = 10;
 
+    tcflush(PortFD, TCIOFLUSH);  // Flush both input and output buffers
+    unsigned char cmd = 0x08;
+    unsigned char res[10] = {0};
+    if (sendCommand(&cmd, 1, res, 10))
+    {
+        std::string response((char*)res);
+        isResetting = response.find("ts") != std::string::npos;
+    }
     while (isResetting && retryCount < maxRetries)
     {
         char buf[512] = {0};
@@ -195,7 +215,6 @@ bool SVBONYPowerBox::Handshake()
             ```
         */
         isResetting =
-            response.find("ts") != std::string::npos ||
             response.find("\n") != std::string::npos ||
             response.find("POW") != std::string::npos ||
             response.find("0x00") != std::string::npos ||
