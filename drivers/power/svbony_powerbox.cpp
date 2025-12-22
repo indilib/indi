@@ -79,7 +79,7 @@ bool SVBONYPowerBox::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     registerConnection(serialConnection);
 
-// Trigger connection by default
+    // Trigger connection by default
     INDI::Timer::singleShot(500, [this]()
     {
         if (Connect())
@@ -166,18 +166,10 @@ bool SVBONYPowerBox::Handshake()
     ioctl(PortFD, TIOCMSET, &flags);
 
 
-    bool isResetting = false;
+    bool isResetting = true;
     int retryCount = 0;
     const int maxRetries = 10;
 
-    tcflush(PortFD, TCIOFLUSH);  // Flush both input and output buffers
-    unsigned char cmd = 0x08;
-    unsigned char res[10] = {0};
-    if (sendCommand(&cmd, 1, res, 10))
-    {
-        std::string response((char*)res);
-        isResetting = response.find("ts") != std::string::npos;
-    }
     while (isResetting && retryCount < maxRetries)
     {
         char buf[512] = {0};
@@ -226,7 +218,12 @@ bool SVBONYPowerBox::Handshake()
         ++retryCount;
     }
     tcflush(PortFD, TCIOFLUSH);  // Flush both input and output buffers
-    sendCommand((const unsigned char*)"\x07", 1, nullptr, 4); // Send a dummy command to wake up the device
+    // Send commands to the SV241 Pro and verify the response
+    if (sendCommand((const unsigned char*)"\x08", 1, nullptr, 10) == false)
+    {
+        LOG_ERROR("Handshake failed.");
+        return false;
+    };
 
     LOG_INFO("Handshake successful.");
 
@@ -433,9 +430,18 @@ bool SVBONYPowerBox::sendCommand(const unsigned char* cmd, unsigned int cmd_len,
         return false;
     }
 
-    for (int i = 0; i < nbytes_read; i++)
+    checksum = 0;
+    int i;
+    for (i = 0; i < (nbytes_read - 1); i++)
     {
+        checksum += response[i];
         LOGF_DEBUG("RES <%02X>", response[i]);
+    }
+    LOGF_DEBUG("RES <%02X>", response[i]);
+    if ( (unsigned char)(checksum % 0xFF) != response[nbytes_read - 1])
+    {
+        LOG_ERROR("Serial read error: checksum mismatch");
+        return false;
     }
 
     if (res)
