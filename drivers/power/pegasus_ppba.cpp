@@ -687,30 +687,6 @@ bool PegasusPPBA::getSensorData()
                 lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
             PI::DewChannelDutyCycleNP.apply();
 
-        // Update Dew Channel switches based on actual power status
-        // If Auto Dew is enabled, it may turn channels on/off, so we need to reflect that
-        bool dewChannelChanged = false;
-        if (PI::DewChannelsSP.size() > 0)
-        {
-            auto newState = (std::stoi(result[PA_DEW_1]) > 0) ? ISS_ON : ISS_OFF;
-            if (PI::DewChannelsSP[0].getState() != newState)
-            {
-                PI::DewChannelsSP[0].setState(newState);
-                dewChannelChanged = true;
-            }
-        }
-        if (PI::DewChannelsSP.size() > 1)
-        {
-            auto newState = (std::stoi(result[PA_DEW_2]) > 0) ? ISS_ON : ISS_OFF;
-            if (PI::DewChannelsSP[1].getState() != newState)
-            {
-                PI::DewChannelsSP[1].setState(newState);
-                dewChannelChanged = true;
-            }
-        }
-        if (dewChannelChanged)
-            PI::DewChannelsSP.apply();
-
         // Auto Dew
         if (PI::AutoDewSP.size() > 0)
         {
