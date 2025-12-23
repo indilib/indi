@@ -69,8 +69,8 @@ bool PegasusPPBA::initProperties()
                       POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
                       POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW);
     // Power Interface properties
-    // 1 DC output, 2 DEW outputs, 1 Variable output, 1 Auto Dew ports (Global), 0 USB ports
-    PI::initProperties(POWER_TAB, 1, 2, 1, 1, 0);
+    // 1 DC output, 2 DEW outputs, 0 Variable output (individually implemented), 1 Auto Dew ports (Global), 0 USB ports
+    PI::initProperties(POWER_TAB, 1, 2, 0, 1, 0);
 
     // overwrite labels to device labelling
     DewChannelsSP.setLabel("Dew Heater Channels");
@@ -100,6 +100,16 @@ bool PegasusPPBA::initProperties()
     PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_12V_CURRENT].fill("STATS_12V_CURRENT", "12V current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
+
+    // Adjustable Voltage
+    AdjOutVoltSP[ADJOUT_OFF].fill("ADJOUT_OFF", "Off", ISS_ON);
+    AdjOutVoltSP[ADJOUT_3V].fill("ADJOUT_3V", "3V", ISS_OFF);
+    AdjOutVoltSP[ADJOUT_5V].fill("ADJOUT_5V", "5V", ISS_OFF);
+    AdjOutVoltSP[ADJOUT_8V].fill("ADJOUT_8V", "8V", ISS_OFF);
+    AdjOutVoltSP[ADJOUT_9V].fill("ADJOUT_9V", "9V", ISS_OFF);
+    AdjOutVoltSP[ADJOUT_12V].fill("ADJOUT_12V", "12V", ISS_OFF);
+    AdjOutVoltSP.fill(getDeviceName(), "ADJOUT_VOLTAGE", "Adj voltage", POWER_TAB, IP_RW,
+                      ISR_1OFMANY, 60, IPS_IDLE);
 
     // Power on Boot
     PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", "Quad Out", ISS_ON);
@@ -184,6 +194,7 @@ bool PegasusPPBA::updateProperties()
 
         // Power Interface properties
         PI::updateProperties();
+        defineProperty(AdjOutVoltSP);
         defineProperty(PowerStatisticsNP);
         // disable dew port label changes
         deleteProperty(DewChannelLabelsTP);
@@ -219,6 +230,7 @@ bool PegasusPPBA::updateProperties()
 
         // Power Interface properties
         PI::updateProperties();
+        deleteProperty(AdjOutVoltSP);
         deleteProperty(PowerStatisticsNP);
 
         if (m_HasExternalMotor)
@@ -298,6 +310,54 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
         // Process power-related switches via PowerInterface
         if (PI::processSwitch(dev, name, states, names, n))
             return true;
+
+        // Adjustable Voltage
+        if (AdjOutVoltSP.isNameMatch(name))
+        {
+            int previous_index = AdjOutVoltSP.findOnSwitchIndex();
+            AdjOutVoltSP.update(states, names, n);
+            int target_index = AdjOutVoltSP.findOnSwitchIndex();
+            int adjv = 0;
+            switch(target_index)
+            {
+                case ADJOUT_OFF:
+                    adjv = 0;
+                    break;
+                case ADJOUT_3V:
+                    adjv = 3;
+                    break;
+                case ADJOUT_5V:
+                    adjv = 5;
+                    break;
+                case ADJOUT_8V:
+                    adjv = 8;
+                    break;
+                case ADJOUT_9V:
+                    adjv = 9;
+                    break;
+                case ADJOUT_12V:
+                    adjv = 12;
+                    break;
+            }
+
+            AdjOutVoltSP.setState(IPS_ALERT);
+            char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+            snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
+            if (sendCommand(cmd, res))
+            {
+                AdjOutVoltSP.setState(IPS_OK);
+                saveConfig(AdjOutVoltSP);
+            }
+            else
+            {
+                AdjOutVoltSP.reset();
+                AdjOutVoltSP[previous_index].setState(ISS_ON);
+                AdjOutVoltSP.setState(IPS_ALERT);
+            }
+
+            AdjOutVoltSP.apply();
+            return true;
+        }
 
         // Reboot
         if (RebootSP.isNameMatch(name))
@@ -494,18 +554,6 @@ bool PegasusPPBA::setPowerEnabled(uint8_t port, bool enabled)
     return false;
 }
 
-bool PegasusPPBA::setAdjustableOutput(uint8_t voltage)
-{
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "P2:%d", voltage);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
-}
-
 bool PegasusPPBA::setLedIndicator(bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
@@ -641,27 +689,21 @@ bool PegasusPPBA::getSensorData()
             if (lastSensorData.size() < PA_N || lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
                 PI::PowerChannelsSP.apply();
         }
-
         // Adjustable Power Status
-        //        AdjOutS[INDI_ENABLED].s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_ON : ISS_OFF;
-        //        AdjOutS[INDI_DISABLED].s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_OFF : ISS_ON;
-        //        AdjOutSP.s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? IPS_OK : IPS_IDLE;
-        //        if (lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
-        //            IDSetSwitch(&AdjOutSP, nullptr);
-
-        // Adjustable Power Status (Variable Output)
-        if (PI::VariableChannelsSP.size() > 0)
+        AdjOutVoltSP.reset();
+        if (std::stoi(result[PA_ADJ_STATUS]) == 0)
+            AdjOutVoltSP[ADJOUT_OFF].setState(ISS_ON);
+        else
         {
-            PI::VariableChannelsSP[0].setState((std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_ON : ISS_OFF);
-            if (PI::VariableChannelVoltsNP.size() > 0)
-                PI::VariableChannelVoltsNP[0].setValue(std::stod(result[PA_PWRADJ]));
-            if (lastSensorData.size() < PA_N ||
-                    lastSensorData[PA_PWRADJ] != result[PA_PWRADJ] || lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
-            {
-                PI::VariableChannelsSP.apply();
-                PI::VariableChannelVoltsNP.apply();
-            }
+            AdjOutVoltSP[ADJOUT_3V].setState((std::stoi(result[PA_PWRADJ]) == 3) ? ISS_ON : ISS_OFF);
+            AdjOutVoltSP[ADJOUT_5V].setState((std::stoi(result[PA_PWRADJ]) == 5) ? ISS_ON : ISS_OFF);
+            AdjOutVoltSP[ADJOUT_8V].setState((std::stoi(result[PA_PWRADJ]) == 8) ? ISS_ON : ISS_OFF);
+            AdjOutVoltSP[ADJOUT_9V].setState((std::stoi(result[PA_PWRADJ]) == 9) ? ISS_ON : ISS_OFF);
+            AdjOutVoltSP[ADJOUT_12V].setState((std::stoi(result[PA_PWRADJ]) == 12) ? ISS_ON : ISS_OFF);
         }
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_PWRADJ] != result[PA_PWRADJ] || lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
+            AdjOutVoltSP.apply();
 
         // Power Warn (This is a custom property, not part of INDI::PowerInterface)
         PowerWarnLP[0].setState((std::stoi(result[PA_PWR_WARN]) == 1) ? IPS_ALERT : IPS_OK);
@@ -968,18 +1010,6 @@ bool PegasusPPBA::SetDewPort(size_t port, bool enabled, double dutyCycle)
     // Convert duty cycle percentage (0-100) to 0-255 range
     auto pwmValue = static_cast<uint8_t>(dutyCycle / 100.0 * 255.0);
     return setDewPWM(port + 3, enabled ? pwmValue : 0);
-}
-
-bool PegasusPPBA::SetVariablePort(size_t port, bool enabled, double voltage)
-{
-    INDI_UNUSED(port); // PPBA only has one adjustable output
-
-    // Set voltage first
-    setAdjustableOutput(static_cast<uint8_t>(voltage));
-
-    // Then enable/disable
-    return setAdjustableOutput(enabled ? 1 : 0);
-
 }
 
 bool PegasusPPBA::SetLEDEnabled(bool enabled)
