@@ -97,6 +97,12 @@ bool PegasusSPB::initProperties()
     PowerStatisticsNP[STATS_12V_CURRENT].fill("STATS_12V_CURRENT", "12V current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
 
+    // Firmware Group
+    FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
+    FirmwareTP[FIRMWARE_UPTIME].fill("UPTIME", "Uptime (h)", "NA");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+                    IPS_IDLE);
+
     // Environment Group
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
@@ -165,6 +171,10 @@ bool PegasusSPB::updateProperties()
         deleteProperty(PowerChannelCurrentNP);
         deleteProperty(PowerChannelLabelsTP);
 
+        // Firmware
+        defineProperty(FirmwareTP);
+        getFirmware();
+
         setupComplete = true;
     }
     else
@@ -176,6 +186,7 @@ bool PegasusSPB::updateProperties()
         deleteProperty(TemperatureOffsetNP);
         WI::updateProperties();
         PI::updateProperties();
+        deleteProperty(FirmwareTP);
         deleteProperty(PowerStatisticsNP);
         setupComplete = false;
     }
@@ -571,6 +582,29 @@ int PegasusSPB::getTemperatureOffset()
     return -1;
 }
 
+bool PegasusSPB::getFirmware()
+{
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("PV", res))
+    {
+        std::vector<std::string> result = split(res, ":");
+        if (result.size() > 1)
+        {
+            LOGF_INFO("Detected firmware %s", result[1]);
+            FirmwareTP[FIRMWARE_VERSION].setText(result[1]);
+            FirmwareTP.setState(IPS_OK);
+            FirmwareTP.apply();
+            return true;
+        }
+        else
+        {
+            FirmwareTP.setState(IPS_ALERT);
+            FirmwareTP.apply();
+            return false;
+        }
+    }
+}
+
 // Removed updatePropertiesPowerDewMode function definition
 
 bool PegasusSPB::setFixedPowerPortState(int portNumber, bool enabled)
@@ -751,6 +785,13 @@ bool PegasusSPB::getMetricsData()
                     lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
                 PI::DewChannelCurrentNP.apply();
         }
+
+        std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));
+        using dhours = std::chrono::duration<double, std::ratio<3600 >>;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
+        FirmwareTP[FIRMWARE_UPTIME].setText(ss.str().c_str());
+        FirmwareTP.apply();
 
         lastMetricsData = result;
 

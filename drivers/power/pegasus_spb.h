@@ -131,6 +131,7 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         int getHumidityOffset();
         bool setTemperatureOffset(int level);
         int getTemperatureOffset();
+        bool getFirmware();
         bool getSensorData();
         bool getConsumptionData();
         bool getMetricsData();
@@ -148,6 +149,7 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
         static constexpr const uint8_t PEGASUS_LEN {128};
         static constexpr const char *ENVIRONMENT_TAB {"Environment"};
+        static constexpr const char *FIRMWARE_TAB {"Firmware"};
         double map(double value, double from1, double to1, double from2, double to2);
 
         ////////////////////////////////////////////////////////////////////////////////////
@@ -177,4 +179,14 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         INDI::PropertyNumber HumidityOffsetNP {1};
         INDI::PropertyNumber TemperatureOffsetNP {1};
 
+        ////////////////////////////////////////////////////////////////////////////////////
+        /// Firmware
+        ////////////////////////////////////////////////////////////////////////////////////
+
+        INDI::PropertyText FirmwareTP {2};
+        enum
+        {
+            FIRMWARE_VERSION,
+            FIRMWARE_UPTIME,
+        };
 };
