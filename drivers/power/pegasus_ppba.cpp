@@ -72,6 +72,20 @@ bool PegasusPPBA::initProperties()
     // 1 DC output, 2 DEW outputs, 1 Variable output, 1 Auto Dew ports (Global), 0 USB ports
     PI::initProperties(POWER_TAB, 1, 2, 1, 1, 0);
 
+
+    // Power Sensors
+    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
+
+    // Quad 12v Power
+    QuadOutSP[INDI_ENABLED].fill("QUADOUT_ON", "Enable", ISS_OFF);
+    QuadOutSP[INDI_DISABLED].fill("QUADOUT_OFF", "Disable", ISS_OFF);
+    QuadOutSP.fill(getDeviceName(), "QUADOUT_POWER", "Quad Output", MAIN_CONTROL_TAB,
+                   IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // Power on Boot
     PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", "Quad Out", ISS_ON);
     PowerOnBootSP[POWER_PORT_2].fill("POWER_PORT_2", "Adj Out", ISS_ON);
@@ -146,6 +160,7 @@ bool PegasusPPBA::updateProperties()
         }
 
         // Main Control
+        defineProperty(QuadOutSP);
         defineProperty(RebootSP);
         defineProperty(PowerWarnLP); // This is a custom property, not part of INDI::PowerInterface
         defineProperty(PowerOnBootSP); // Re-add PowerOnBootSP
@@ -155,6 +170,7 @@ bool PegasusPPBA::updateProperties()
 
         // Power Interface properties
         PI::updateProperties();
+        defineProperty(PowerStatisticsNP);
 
         // Focuser
         if (m_HasExternalMotor)
@@ -175,6 +191,7 @@ bool PegasusPPBA::updateProperties()
     else
     {
         // Main Control
+        deleteProperty(QuadOutSP);
         deleteProperty(RebootSP);
         deleteProperty(PowerWarnLP);
         deleteProperty(PowerOnBootSP);
@@ -183,6 +200,7 @@ bool PegasusPPBA::updateProperties()
 
         // Power Interface properties
         PI::updateProperties();
+        deleteProperty(PowerStatisticsNP);
 
         if (m_HasExternalMotor)
         {
@@ -262,12 +280,40 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
         if (PI::processSwitch(dev, name, states, names, n))
             return true;
 
+        // Quad 12V Power
+        if (QuadOutSP.isNameMatch(name))
+        {
+            QuadOutSP.update(states, names, n);
+
+            QuadOutSP.setState(IPS_ALERT);
+            char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+            snprintf(cmd, PEGASUS_LEN, "P1:%d", QuadOutSP[INDI_ENABLED].getState() == ISS_ON);
+            if (sendCommand(cmd, res))
+            {
+                QuadOutSP.setState(!strcmp(cmd, res) ? IPS_OK : IPS_ALERT);
+            }
+
+            QuadOutSP.reset();
+            QuadOutSP.apply();
+            return true;
+        }
+
         // Reboot
         if (RebootSP.isNameMatch(name))
         {
             RebootSP.setState(reboot() ? IPS_OK : IPS_ALERT);
             RebootSP.apply();
             LOG_INFO("Rebooting device...");
+            return true;
+        }
+
+        // Power on boot
+        if (PowerOnBootSP.isNameMatch(name))
+        {
+            PowerOnBootSP.update(states, names, n);
+            PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
+            PowerOnBootSP.apply();
+            saveConfig(true, PowerOnBootSP.getName());
             return true;
         }
 
@@ -587,6 +633,15 @@ bool PegasusPPBA::getSensorData()
             ParametersNP.apply();
         }
 
+        // Power Status
+        QuadOutSP[INDI_ENABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF);
+        QuadOutSP[INDI_DISABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_OFF : ISS_ON);
+        QuadOutSP.setState((std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE);
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS] ||
+                lastSensorData[6] != result[6]) // Check index 6 as well, assuming it's covered by PA_N
+            QuadOutSP.apply();
+
         // Power Status (DC Output)
         if (PI::PowerChannelsSP.size() > 0)
         {
@@ -687,11 +742,16 @@ bool PegasusPPBA::getConsumptionData()
         if (result == lastConsumptionData)
             return true;
 
-        // Power Consumption Statistics are not directly mapped to INDI::PowerInterface properties.
-        // The overall power (PI::SENSOR_POWER) is already calculated in getSensorData().
-        // We will just update the lastConsumptionData for change detection.
-        INDI_UNUSED(result);
-        INDI_UNUSED(lastConsumptionData);
+        // Power Statistics
+        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
+        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
+        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
+        PowerStatisticsNP.setState(IPS_OK);
+        if (lastConsumptionData.size() < PS_N ||
+                lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] ||
+                lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] ||
+                lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
+            PowerStatisticsNP.apply();
 
         lastConsumptionData = result;
 
@@ -733,6 +793,8 @@ bool PegasusPPBA::getMetricsData()
         if (result == lastMetricsData)
             return true;
 
+        // Power Sensors
+        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
         // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
             PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
@@ -749,6 +811,7 @@ bool PegasusPPBA::getMetricsData()
         {
             PI::PowerChannelCurrentNP.apply();
             PI::DewChannelCurrentNP.apply();
+            PowerStatisticsNP.apply();
         }
 
         std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));

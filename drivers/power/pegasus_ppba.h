@@ -166,6 +166,19 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         ////////////////////////////////////////////////////////////////////////////////////
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
+        // Power Statistics
+        INDI::PropertyNumber PowerStatisticsNP {5};
+        enum
+        {
+            STATS_AVG_AMPS,
+            STATS_AMP_HOURS,
+            STATS_WATT_HOURS,
+            STATS_TOTAL_CURRENT
+        };
+
+        /// Power Group
+        INDI::PropertySwitch QuadOutSP {2};
+
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
@@ -191,10 +204,6 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         {
             AUTO_DEW_AGGRESSION
         };
-
-        ////////////////////////////////////////////////////////////////////////////////////
-        /// Focuser
-        ////////////////////////////////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser
