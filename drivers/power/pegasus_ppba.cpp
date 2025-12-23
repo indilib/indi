@@ -72,6 +72,25 @@ bool PegasusPPBA::initProperties()
     // 1 DC output, 2 DEW outputs, 1 Variable output, 1 Auto Dew ports (Global), 0 USB ports
     PI::initProperties(POWER_TAB, 1, 2, 1, 1, 0);
 
+    // overwrite labels to device labelling
+    DewChannelsSP.setLabel("Dew Heater Channels");
+    if (DewChannelsSP.size() > 0)
+    {
+        DewChannelsSP[0].setLabel("Dew A");
+        DewChannelDutyCycleNP[0].setLabel("Dew A (%)");
+        DewChannelCurrentNP[0].setLabel("Dew A (A)");
+    }
+    if (DewChannelsSP.size() > 1)
+    {
+        DewChannelsSP[1].setLabel("Dew B");
+        DewChannelDutyCycleNP[1].setLabel("Dew B (%)");
+        DewChannelCurrentNP[1].setLabel("Dew B (A)");
+    }
+
+    AutoDewSP[0].setLabel("Auto Dew Control");
+
+    // disable label changes
+    DewChannelLabelsTP.resize(0);
 
     // Power Sensors
     PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
