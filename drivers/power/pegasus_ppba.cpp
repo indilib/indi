@@ -101,12 +101,6 @@ bool PegasusPPBA::initProperties()
     PowerStatisticsNP[STATS_12V_CURRENT].fill("STATS_12V_CURRENT", "12V current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
 
-    // Quad 12v Power
-    QuadOutSP[INDI_ENABLED].fill("QUADOUT_ON", "Enable", ISS_OFF);
-    QuadOutSP[INDI_DISABLED].fill("QUADOUT_OFF", "Disable", ISS_OFF);
-    QuadOutSP.fill(getDeviceName(), "QUADOUT_POWER", "Quad Output", MAIN_CONTROL_TAB,
-                   IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
     // Power on Boot
     PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", "Quad Out", ISS_ON);
     PowerOnBootSP[POWER_PORT_2].fill("POWER_PORT_2", "Adj Out", ISS_ON);
@@ -181,7 +175,6 @@ bool PegasusPPBA::updateProperties()
         }
 
         // Main Control
-        defineProperty(QuadOutSP);
         defineProperty(RebootSP);
         defineProperty(PowerWarnLP); // This is a custom property, not part of INDI::PowerInterface
         defineProperty(PowerOnBootSP); // Re-add PowerOnBootSP
@@ -218,7 +211,6 @@ bool PegasusPPBA::updateProperties()
     else
     {
         // Main Control
-        deleteProperty(QuadOutSP);
         deleteProperty(RebootSP);
         deleteProperty(PowerWarnLP);
         deleteProperty(PowerOnBootSP);
@@ -306,24 +298,6 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
         // Process power-related switches via PowerInterface
         if (PI::processSwitch(dev, name, states, names, n))
             return true;
-
-        // Quad 12V Power
-        if (QuadOutSP.isNameMatch(name))
-        {
-            QuadOutSP.update(states, names, n);
-
-            QuadOutSP.setState(IPS_ALERT);
-            char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "P1:%d", QuadOutSP[INDI_ENABLED].getState() == ISS_ON);
-            if (sendCommand(cmd, res))
-            {
-                QuadOutSP.setState(!strcmp(cmd, res) ? IPS_OK : IPS_ALERT);
-            }
-
-            QuadOutSP.reset();
-            QuadOutSP.apply();
-            return true;
-        }
 
         // Reboot
         if (RebootSP.isNameMatch(name))
@@ -659,15 +633,6 @@ bool PegasusPPBA::getSensorData()
             ParametersNP.setState(IPS_OK);
             ParametersNP.apply();
         }
-
-        // Power Status
-        QuadOutSP[INDI_ENABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF);
-        QuadOutSP[INDI_DISABLED].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_OFF : ISS_ON);
-        QuadOutSP.setState((std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE);
-        if (lastSensorData.size() < PA_N ||
-                lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS] ||
-                lastSensorData[6] != result[6]) // Check index 6 as well, assuming it's covered by PA_N
-            QuadOutSP.apply();
 
         // Power Status (DC Output)
         if (PI::PowerChannelsSP.size() > 0)

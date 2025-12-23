@@ -177,9 +177,6 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
             STATS_12V_CURRENT
         };
 
-        /// Power Group
-        INDI::PropertySwitch QuadOutSP {2};
-
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
