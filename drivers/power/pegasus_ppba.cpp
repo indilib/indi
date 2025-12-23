@@ -86,17 +86,19 @@ bool PegasusPPBA::initProperties()
         DewChannelDutyCycleNP[1].setLabel("Dew B (%)");
         DewChannelCurrentNP[1].setLabel("Dew B (A)");
     }
+    PowerChannelsSP.setLabel("Quad Output");
+    if (PowerChannelsSP.size() > 0)
+        PowerChannelsSP[0].setLabel("Enable 12V Ports");
+    // 12 V Current
 
     AutoDewSP[0].setLabel("Auto Dew Control");
-
-    // disable label changes
-    DewChannelLabelsTP.resize(0);
 
     // Power Sensors
     PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_12V_CURRENT].fill("STATS_12V_CURRENT", "12V current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
 
     // Quad 12v Power
@@ -190,6 +192,12 @@ bool PegasusPPBA::updateProperties()
         // Power Interface properties
         PI::updateProperties();
         defineProperty(PowerStatisticsNP);
+        // disable dew port label changes
+        deleteProperty(DewChannelLabelsTP);
+        // disable single power channels, since Pegasus controls the entire quad port
+        deleteProperty(PowerChannelCurrentNP);
+        deleteProperty(PowerChannelLabelsTP);
+        //
 
         // Focuser
         if (m_HasExternalMotor)
@@ -790,9 +798,8 @@ bool PegasusPPBA::getMetricsData()
 
         // Power Sensors
         PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
+        PowerStatisticsNP[STATS_12V_CURRENT].setValue(std::stod(result[PC_12V_CURRENT]));
         // Power Sensors (Per-port current monitoring)
-        if (PI::PowerChannelCurrentNP.size() > 0)
-            PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
         if (PI::DewChannelCurrentNP.size() > 0)
             PI::DewChannelCurrentNP[0].setValue(std::stod(result[PC_DEWA_CURRENT]));
         if (PI::DewChannelCurrentNP.size() > 1)

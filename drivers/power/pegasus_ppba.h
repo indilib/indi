@@ -173,7 +173,8 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
             STATS_AVG_AMPS,
             STATS_AMP_HOURS,
             STATS_WATT_HOURS,
-            STATS_TOTAL_CURRENT
+            STATS_TOTAL_CURRENT,
+            STATS_12V_CURRENT
         };
 
         /// Power Group
