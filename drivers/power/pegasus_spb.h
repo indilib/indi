@@ -153,9 +153,16 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
-
-        // Power Sensors
-        INDI::PropertyNumber ExtendedPowerNP {3};
+        // Power Statistics
+        INDI::PropertyNumber PowerStatisticsNP {5};
+        enum
+        {
+            STATS_AVG_AMPS,
+            STATS_AMP_HOURS,
+            STATS_WATT_HOURS,
+            STATS_TOTAL_CURRENT,
+            STATS_12V_CURRENT
+        };
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Adjustable Hub

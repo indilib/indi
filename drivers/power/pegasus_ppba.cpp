@@ -89,7 +89,6 @@ bool PegasusPPBA::initProperties()
     PowerChannelsSP.setLabel("Quad Output");
     if (PowerChannelsSP.size() > 0)
         PowerChannelsSP[0].setLabel("Enable 12V Ports");
-    // 12 V Current
 
     AutoDewSP[0].setLabel("Auto Dew Control");
 
@@ -201,7 +200,6 @@ bool PegasusPPBA::updateProperties()
         // disable single power channels, since Pegasus controls the entire quad port
         deleteProperty(PowerChannelCurrentNP);
         deleteProperty(PowerChannelLabelsTP);
-        //
 
         // Focuser
         if (m_HasExternalMotor)

@@ -56,12 +56,6 @@ bool PegasusSPB::initProperties()
     PI::initProperties(POWER_TAB, 1, 2, 0, 1,
                        0); // 1 DC port (Quad Hub), 2 DEW ports (switchable), 0 Variable, 1 Auto Dew (global), 0 USB
 
-    // Extended Power Sensors
-    ExtendedPowerNP[SENSOR_AVG_AMPS].fill("AVG_AMPS", "Avg Amps", "%.2f", 0, 10, 0, 0);
-    ExtendedPowerNP[SENSOR_AMP_HOURS].fill("AMP_HOURS", "Amp Hours", "%.2f", 0, 1000, 0, 0);
-    ExtendedPowerNP[SENSOR_WATT_HOURS].fill("WATT_HOURS", "Watt Hours", "%.2f", 0, 10000, 0, 0);
-    ExtendedPowerNP.fill(getDeviceName(), "EXT_POWER_SENSORS", "Extended Power Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
-
     // Power-Dew SwitchA
     PowerDewSwitchASP[0].fill("DEW", "Dew", ISS_OFF);
     PowerDewSwitchASP[1].fill("POWER", "Power", ISS_ON);
@@ -75,6 +69,33 @@ bool PegasusSPB::initProperties()
     //DewAggress
     DewAggressNP[0].fill("DEW_AGGRESS", "Agg Level", "%.2f", 0, 100, 1, 0);
     DewAggressNP.fill(getDeviceName(), "DEW-AGGESS", "Auto Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
+
+    // overwrite labels to device labelling
+    DewChannelsSP.setLabel("Dew Heater Channels");
+    if (DewChannelsSP.size() > 0)
+    {
+        DewChannelsSP[0].setLabel("Dew A");
+        DewChannelDutyCycleNP[0].setLabel("Dew A (%)");
+        DewChannelCurrentNP[0].setLabel("Dew A (A)");
+    }
+    if (DewChannelsSP.size() > 1)
+    {
+        DewChannelsSP[1].setLabel("Dew B");
+        DewChannelDutyCycleNP[1].setLabel("Dew B (%)");
+        DewChannelCurrentNP[1].setLabel("Dew B (A)");
+    }
+    PowerChannelsSP.setLabel("Quad Output");
+    if (PowerChannelsSP.size() > 0)
+        PowerChannelsSP[0].setLabel("Enable 12V Ports");
+
+    AutoDewSP[0].setLabel("Auto Dew Control");
+    // Power Sensors
+    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_12V_CURRENT].fill("STATS_12V_CURRENT", "12V current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
 
     // Environment Group
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
@@ -123,8 +144,6 @@ bool PegasusSPB::updateProperties()
         PowerDewSwitchBSP.setState(IPS_OK);
         PowerDewSwitchBSP.apply();
 
-        defineProperty(ExtendedPowerNP);
-
         defineProperty(HumidityOffsetNP);
         int humidityOffset = getHumidityOffset();
         HumidityOffsetNP[0].setValue(static_cast<double>(humidityOffset));
@@ -139,6 +158,13 @@ bool PegasusSPB::updateProperties()
 
         WI::updateProperties();
         PI::updateProperties();
+        defineProperty(PowerStatisticsNP);
+        // disable dew port label changes
+        deleteProperty(DewChannelLabelsTP);
+        // disable single power channels, since Pegasus controls the entire quad port
+        deleteProperty(PowerChannelCurrentNP);
+        deleteProperty(PowerChannelLabelsTP);
+
         setupComplete = true;
     }
     else
@@ -146,11 +172,11 @@ bool PegasusSPB::updateProperties()
         deleteProperty(DewAggressNP);
         deleteProperty(PowerDewSwitchASP);
         deleteProperty(PowerDewSwitchBSP);
-        deleteProperty(ExtendedPowerNP);
         deleteProperty(HumidityOffsetNP);
         deleteProperty(TemperatureOffsetNP);
         WI::updateProperties();
         PI::updateProperties();
+        deleteProperty(PowerStatisticsNP);
         setupComplete = false;
     }
 
@@ -664,16 +690,16 @@ bool PegasusSPB::getConsumptionData()
         if (result == lastConsumptionData)
             return true;
 
-        // These are custom consumption metrics, not directly mapped to INDI::PowerInterface's standard sensors.
-        // Keep them as is, or consider if they should be mapped to custom INDI properties if needed.
-        // For now, we will keep them as is, as they are not part of the core INDI::PowerInterface.
-        ExtendedPowerNP[SENSOR_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
-        ExtendedPowerNP[SENSOR_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
-        ExtendedPowerNP[SENSOR_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
-        ExtendedPowerNP.setState(IPS_OK);
-        if (lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] || lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS]
-                || lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
-            ExtendedPowerNP.apply();
+        // Power Statistics
+        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
+        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
+        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
+        PowerStatisticsNP.setState(IPS_OK);
+        if (lastConsumptionData.size() < PS_N ||
+                lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] ||
+                lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] ||
+                lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
+            PowerStatisticsNP.apply();
 
         lastConsumptionData = result;
 
@@ -699,10 +725,12 @@ bool PegasusSPB::getMetricsData()
             return true;
 
         // Update PI::PowerSensorsNP with total current
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
-        PI::PowerSensorsNP.setState(IPS_OK);
-        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
-            PI::PowerSensorsNP.apply();
+        // Power Sensors
+        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
+        PowerStatisticsNP[STATS_12V_CURRENT].setValue(std::stod(result[PC_12V_CURRENT]));
+        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT]||
+                lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+            PowerStatisticsNP.apply();
 
         // Update PI::PowerChannelCurrentNP for the quad hub
         if (PI::PowerChannelCurrentNP.size() > 0)
