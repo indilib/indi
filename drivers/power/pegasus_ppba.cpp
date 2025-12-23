@@ -34,7 +34,7 @@
 // We declare an auto pointer to PegasusPPBA.
 static std::unique_ptr<PegasusPPBA> ppba(new PegasusPPBA());
 
-PegasusPPBA::PegasusPPBA() : INDI::DefaultDevice(), FI(this), WI(this), INDI::PowerInterface(this)
+PegasusPPBA::PegasusPPBA() : INDI::DefaultDevice(), FI(this), WI(this), PI(this)
 {
     setVersion(1, 3);
     lastSensorData.reserve(PA_N);
