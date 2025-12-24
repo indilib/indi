@@ -681,10 +681,28 @@ bool PegasusSPB::getSensorData()
             PI::DewChannelDutyCycleNP.apply();
 
         // Auto Dew
-        PI::AutoDewSP[0].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
+        bool autodew = std::stoi(result[PA_AUTO_DEW]);
+        PI::AutoDewSP[0].setState(autodew ? ISS_ON : ISS_OFF);
         PI::AutoDewSP.setState(IPS_OK);
         if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             PI::AutoDewSP.apply();
+
+        // ensure that dew heater channels are on, since the PPBA auto dew control handles both ports automatically
+        if (autodew)
+        {
+            bool changed = false;
+            for (size_t i = 0; i < DewChannelsSP.size(); i++)
+            {
+                if (DewChannelsSP[i].getState() == ISS_OFF)
+                {
+                    DewChannelsSP[i].setState(ISS_ON);
+                    LOGF_INFO("Auto dew on, enabling channel %s", (i == 0 ? "A" : "B"));
+                    changed = true;
+                }
+            }
+            if (changed)
+                DewChannelsSP.apply();
+        }
 
         // Environment Sensors (remain as is, handled by WeatherInterface)
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
