@@ -590,7 +590,7 @@ bool PegasusSPB::getFirmware()
         std::vector<std::string> result = split(res, ":");
         if (result.size() > 1)
         {
-            LOGF_INFO("Detected firmware %s", result[1]);
+            LOGF_INFO("Detected firmware %s", result[1].c_str());
             FirmwareTP[FIRMWARE_VERSION].setText(result[1]);
             FirmwareTP.setState(IPS_OK);
             FirmwareTP.apply();
@@ -598,11 +598,16 @@ bool PegasusSPB::getFirmware()
         }
         else
         {
+            LOGF_WARN("Unexpected firmware response: %s", res);
             FirmwareTP.setState(IPS_ALERT);
             FirmwareTP.apply();
             return false;
         }
     }
+    LOGF_WARN("Retreiving firmware failed: %s", res);
+    FirmwareTP.setState(IPS_ALERT);
+    FirmwareTP.apply();
+    return false;
 }
 
 // Removed updatePropertiesPowerDewMode function definition
