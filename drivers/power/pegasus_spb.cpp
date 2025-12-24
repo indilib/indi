@@ -680,13 +680,6 @@ bool PegasusSPB::getSensorData()
         if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
             PI::DewChannelDutyCycleNP.apply();
 
-        // Update DewChannelsSP (on/off state) based on duty cycle
-        PI::DewChannelsSP[0].setState(PI::DewChannelDutyCycleNP[0].getValue() > 0 ? ISS_ON : ISS_OFF);
-        PI::DewChannelsSP[1].setState(PI::DewChannelDutyCycleNP[1].getValue() > 0 ? ISS_ON : ISS_OFF);
-        PI::DewChannelsSP.setState(IPS_OK);
-        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
-            PI::DewChannelsSP.apply();
-
         // Auto Dew
         PI::AutoDewSP[0].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
         PI::AutoDewSP.setState(IPS_OK);
