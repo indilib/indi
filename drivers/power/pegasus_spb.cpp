@@ -782,15 +782,6 @@ bool PegasusSPB::getMetricsData()
                 lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
             PowerStatisticsNP.apply();
 
-        // Update PI::PowerChannelCurrentNP for the quad hub
-        if (PI::PowerChannelCurrentNP.size() > 0)
-        {
-            PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
-            PI::PowerChannelCurrentNP.setState(IPS_OK);
-            if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
-                PI::PowerChannelCurrentNP.apply();
-        }
-
         // Update PI::DewChannelCurrentNP for Dew ports
         if (PI::DewChannelCurrentNP.size() > 0)
         {
