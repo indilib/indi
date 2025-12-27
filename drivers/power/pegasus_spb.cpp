@@ -70,31 +70,52 @@ bool PegasusSPB::initProperties()
     DewAggressNP[0].fill("DEW_AGGRESS", "Agg Level", "%.2f", 0, 100, 1, 0);
     DewAggressNP.fill(getDeviceName(), "DEW-AGGESS", "Auto Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
-    // overwrite labels to device labelling
-    DewChannelsSP.setLabel("Dew Heater Channels");
-    if (DewChannelsSP.size() > 0)
+    // overwrite labels to device labelling defaults
+    DewChannelsSP.setLabel("Dew Heater");
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
     {
-        DewChannelsSP[0].setLabel("Dew A");
-        DewChannelDutyCycleNP[0].setLabel("Dew A (%)");
-        DewChannelCurrentNP[0].setLabel("Dew A (A)");
+        std::string name (1, static_cast<char>('A' + i));
+        DewChannelLabelsTP[i].setLabel("Dew " + name);
+        DewChannelLabelsTP[i].setText("Dew " + name);
     }
-    if (DewChannelsSP.size() > 1)
+    if (PowerChannelLabelsTP.size() > 0 && PowerChannelCurrentNP.size() > 0)
     {
-        DewChannelsSP[1].setLabel("Dew B");
-        DewChannelDutyCycleNP[1].setLabel("Dew B (%)");
-        DewChannelCurrentNP[1].setLabel("Dew B (A)");
+        PowerChannelLabelsTP[0].setLabel("Quad Output");
+        PowerChannelLabelsTP[0].setText("Enable 12V ports");
+        PowerChannelCurrentNP[0].setLabel("12 V current (A)");
     }
-    PowerChannelsSP.setLabel("Quad Output");
-    if (PowerChannelsSP.size() > 0)
-        PowerChannelsSP[0].setLabel("Enable 12V Ports");
 
+    // set the labels to the configured values
+    DewChannelLabelsTP.load();
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
+    {
+        char dewChannelLabel[MAXINDILABEL];
+        char dewDutyCycleLabel[MAXINDILABEL];
+        char dewChannelCurrentLabel[MAXINDILABEL];
+        snprintf(dewChannelLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+        snprintf(dewDutyCycleLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
+        snprintf(dewChannelCurrentLabel, MAXINDILABEL, "%s (A)", DewChannelLabelsTP[i].getText());
+        DewChannelsSP[i].setLabel(dewChannelLabel);
+        DewChannelDutyCycleNP[i].setLabel(dewDutyCycleLabel);
+        DewChannelCurrentNP[i].setLabel(dewChannelCurrentLabel);
+    }
+    PowerChannelLabelsTP.load();
+    if (PowerChannelLabelsTP.size() > 0 && PowerChannelsSP.size() > 0)
+    {
+        char powerChannelLabel[MAXINDILABEL];
+        snprintf(powerChannelLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[0].getText());
+        PowerChannelsSP[0].setLabel(powerChannelLabel);
+    }
+
+    AutoDewSP.setLabel("Dew Control");
     AutoDewSP[0].setLabel("Auto Dew Control");
+    PowerChannelsSP.setLabel("Quad Output");
+
     // Power Sensors
     PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_12V_CURRENT].fill("STATS_12V_CURRENT", "12V current (A)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
 
     // Firmware Group
@@ -165,11 +186,6 @@ bool PegasusSPB::updateProperties()
         WI::updateProperties();
         PI::updateProperties();
         defineProperty(PowerStatisticsNP);
-        // disable dew port label changes
-        deleteProperty(DewChannelLabelsTP);
-        // disable single power channels, since Pegasus controls the entire quad port
-        deleteProperty(PowerChannelCurrentNP);
-        deleteProperty(PowerChannelLabelsTP);
 
         // Firmware
         defineProperty(FirmwareTP);
@@ -774,16 +790,24 @@ bool PegasusSPB::getMetricsData()
         if (result == lastMetricsData)
             return true;
 
-        // Update PI::PowerSensorsNP with total current
         // Power Sensors
         PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
-        PowerStatisticsNP[STATS_12V_CURRENT].setValue(std::stod(result[PC_12V_CURRENT]));
-        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT]||
-                lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
             PowerStatisticsNP.apply();
 
+        // Power Sensors (Per-port current monitoring)
+        if (PI::PowerChannelCurrentNP.size() > 0)
+        {
+            PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
+            if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+            {
+                PI::PowerChannelCurrentNP.setState(IPS_OK);
+                PI::PowerChannelCurrentNP.apply();
+            }
+        }
+
         // Update PI::DewChannelCurrentNP for Dew ports
-        if (PI::DewChannelCurrentNP.size() > 0)
+        if (PI::DewChannelCurrentNP.size() > 1)
         {
             PI::DewChannelCurrentNP[0].setValue(std::stod(result[PC_DEWA_CURRENT]));
             PI::DewChannelCurrentNP[1].setValue(std::stod(result[PC_DEWB_CURRENT]));

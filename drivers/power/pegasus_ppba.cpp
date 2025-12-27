@@ -838,7 +838,15 @@ bool PegasusPPBA::getMetricsData()
         PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
         // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
+        {
             PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
+            if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+            {
+                PI::PowerChannelCurrentNP.setState(IPS_OK);
+                PI::PowerChannelCurrentNP.apply();
+            }
+        }
+        // Update PI::DewChannelCurrentNP for Dew ports
         if (PI::DewChannelCurrentNP.size() > 0)
             PI::DewChannelCurrentNP[0].setValue(std::stod(result[PC_DEWA_CURRENT]));
         if (PI::DewChannelCurrentNP.size() > 1)
@@ -846,7 +854,6 @@ bool PegasusPPBA::getMetricsData()
         if (lastMetricsData.size() < PC_N ||
                 lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT]
                 || // Total current is not directly mapped to PI properties, but we keep it for change detection
-                lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
                 lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
                 lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
         {
