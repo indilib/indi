@@ -72,24 +72,34 @@ bool PegasusPPBA::initProperties()
     // 1 DC output, 2 DEW outputs, 0 Variable output (individually implemented), 1 Auto Dew ports (Global), 0 USB ports
     PI::initProperties(POWER_TAB, 1, 2, 0, 1, 0);
 
-    // overwrite labels to device labelling
-    DewChannelsSP.setLabel("Dew Heater Channels");
-    if (DewChannelsSP.size() > 0)
+    // overwrite labels to device labelling defaults
+    DewChannelsSP.setLabel("Dew Heater");
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
     {
-        DewChannelsSP[0].setLabel("Dew A");
-        DewChannelDutyCycleNP[0].setLabel("Dew A (%)");
-        DewChannelCurrentNP[0].setLabel("Dew A (A)");
+        std::string name (1, static_cast<char>('A' + i));
+        DewChannelLabelsTP[i].setLabel("Dew " + name);
+        DewChannelLabelsTP[i].setText("Dew " + name);
     }
-    if (DewChannelsSP.size() > 1)
+    DewChannelLabelsTP.load();
+    // set the labels to the configured values
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
     {
-        DewChannelsSP[1].setLabel("Dew B");
-        DewChannelDutyCycleNP[1].setLabel("Dew B (%)");
-        DewChannelCurrentNP[1].setLabel("Dew B (A)");
+        char dewChannelLabel[MAXINDILABEL];
+        char dewDutyCycleLabel[MAXINDILABEL];
+        char dewChannelCurrentLabel[MAXINDILABEL];
+        snprintf(dewChannelLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+        snprintf(dewDutyCycleLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
+        snprintf(dewChannelCurrentLabel, MAXINDILABEL, "%s (A)", DewChannelLabelsTP[i].getText());
+        DewChannelsSP[i].setLabel(dewChannelLabel);
+        DewChannelDutyCycleNP[i].setLabel(dewDutyCycleLabel);
+        DewChannelCurrentNP[i].setLabel(dewChannelCurrentLabel);
     }
+
     PowerChannelsSP.setLabel("Quad Output");
     if (PowerChannelsSP.size() > 0)
         PowerChannelsSP[0].setLabel("Enable 12V Ports");
 
+    AutoDewSP.setLabel("Dew Control");
     AutoDewSP[0].setLabel("Auto Dew Control");
 
     // Power Sensors
@@ -195,11 +205,6 @@ bool PegasusPPBA::updateProperties()
         PI::updateProperties();
         defineProperty(AdjOutVoltSP);
         defineProperty(PowerStatisticsNP);
-        // disable dew port label changes
-        deleteProperty(DewChannelLabelsTP);
-        // disable single power channels, since Pegasus controls the entire quad port
-        deleteProperty(PowerChannelCurrentNP);
-        deleteProperty(PowerChannelLabelsTP);
 
         // Focuser
         if (m_HasExternalMotor)
