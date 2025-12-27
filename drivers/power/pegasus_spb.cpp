@@ -56,12 +56,6 @@ bool PegasusSPB::initProperties()
     PI::initProperties(POWER_TAB, 1, 2, 0, 1,
                        0); // 1 DC port (Quad Hub), 2 DEW ports (switchable), 0 Variable, 1 Auto Dew (global), 0 USB
 
-    // Extended Power Sensors
-    ExtendedPowerNP[SENSOR_AVG_AMPS].fill("AVG_AMPS", "Avg Amps", "%.2f", 0, 10, 0, 0);
-    ExtendedPowerNP[SENSOR_AMP_HOURS].fill("AMP_HOURS", "Amp Hours", "%.2f", 0, 1000, 0, 0);
-    ExtendedPowerNP[SENSOR_WATT_HOURS].fill("WATT_HOURS", "Watt Hours", "%.2f", 0, 10000, 0, 0);
-    ExtendedPowerNP.fill(getDeviceName(), "EXT_POWER_SENSORS", "Extended Power Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
-
     // Power-Dew SwitchA
     PowerDewSwitchASP[0].fill("DEW", "Dew", ISS_OFF);
     PowerDewSwitchASP[1].fill("POWER", "Power", ISS_ON);
@@ -75,6 +69,60 @@ bool PegasusSPB::initProperties()
     //DewAggress
     DewAggressNP[0].fill("DEW_AGGRESS", "Agg Level", "%.2f", 0, 100, 1, 0);
     DewAggressNP.fill(getDeviceName(), "DEW-AGGESS", "Auto Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
+
+    // overwrite labels to device labelling defaults
+    DewChannelsSP.setLabel("Dew Heater");
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
+    {
+        std::string name (1, static_cast<char>('A' + i));
+        DewChannelLabelsTP[i].setLabel("Dew " + name);
+        DewChannelLabelsTP[i].setText("Dew " + name);
+    }
+    if (PowerChannelLabelsTP.size() > 0 && PowerChannelCurrentNP.size() > 0)
+    {
+        PowerChannelLabelsTP[0].setLabel("Quad Output");
+        PowerChannelLabelsTP[0].setText("Enable 12V ports");
+        PowerChannelCurrentNP[0].setLabel("12 V current (A)");
+    }
+
+    // set the labels to the configured values
+    DewChannelLabelsTP.load();
+    for (size_t i = 0; i < DewChannelsSP.size(); i++)
+    {
+        char dewChannelLabel[MAXINDILABEL];
+        char dewDutyCycleLabel[MAXINDILABEL];
+        char dewChannelCurrentLabel[MAXINDILABEL];
+        snprintf(dewChannelLabel, MAXINDILABEL, "%s", DewChannelLabelsTP[i].getText());
+        snprintf(dewDutyCycleLabel, MAXINDILABEL, "%s (%%)", DewChannelLabelsTP[i].getText());
+        snprintf(dewChannelCurrentLabel, MAXINDILABEL, "%s (A)", DewChannelLabelsTP[i].getText());
+        DewChannelsSP[i].setLabel(dewChannelLabel);
+        DewChannelDutyCycleNP[i].setLabel(dewDutyCycleLabel);
+        DewChannelCurrentNP[i].setLabel(dewChannelCurrentLabel);
+    }
+    PowerChannelLabelsTP.load();
+    if (PowerChannelLabelsTP.size() > 0 && PowerChannelsSP.size() > 0)
+    {
+        char powerChannelLabel[MAXINDILABEL];
+        snprintf(powerChannelLabel, MAXINDILABEL, "%s", PowerChannelLabelsTP[0].getText());
+        PowerChannelsSP[0].setLabel(powerChannelLabel);
+    }
+
+    AutoDewSP.setLabel("Dew Control");
+    AutoDewSP[0].setLabel("Auto Dew Control");
+    PowerChannelsSP.setLabel("Quad Output");
+
+    // Power Sensors
+    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
+
+    // Firmware Group
+    FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
+    FirmwareTP[FIRMWARE_UPTIME].fill("UPTIME", "Uptime (h)", "NA");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+                    IPS_IDLE);
 
     // Environment Group
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
@@ -123,8 +171,6 @@ bool PegasusSPB::updateProperties()
         PowerDewSwitchBSP.setState(IPS_OK);
         PowerDewSwitchBSP.apply();
 
-        defineProperty(ExtendedPowerNP);
-
         defineProperty(HumidityOffsetNP);
         int humidityOffset = getHumidityOffset();
         HumidityOffsetNP[0].setValue(static_cast<double>(humidityOffset));
@@ -139,6 +185,12 @@ bool PegasusSPB::updateProperties()
 
         WI::updateProperties();
         PI::updateProperties();
+        defineProperty(PowerStatisticsNP);
+
+        // Firmware
+        defineProperty(FirmwareTP);
+        getFirmware();
+
         setupComplete = true;
     }
     else
@@ -146,11 +198,12 @@ bool PegasusSPB::updateProperties()
         deleteProperty(DewAggressNP);
         deleteProperty(PowerDewSwitchASP);
         deleteProperty(PowerDewSwitchBSP);
-        deleteProperty(ExtendedPowerNP);
         deleteProperty(HumidityOffsetNP);
         deleteProperty(TemperatureOffsetNP);
         WI::updateProperties();
         PI::updateProperties();
+        deleteProperty(FirmwareTP);
+        deleteProperty(PowerStatisticsNP);
         setupComplete = false;
     }
 
@@ -545,6 +598,34 @@ int PegasusSPB::getTemperatureOffset()
     return -1;
 }
 
+bool PegasusSPB::getFirmware()
+{
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("PV", res))
+    {
+        std::vector<std::string> result = split(res, ":");
+        if (result.size() > 1)
+        {
+            LOGF_INFO("Detected firmware %s", result[1].c_str());
+            FirmwareTP[FIRMWARE_VERSION].setText(result[1]);
+            FirmwareTP.setState(IPS_OK);
+            FirmwareTP.apply();
+            return true;
+        }
+        else
+        {
+            LOGF_WARN("Unexpected firmware response: %s", res);
+            FirmwareTP.setState(IPS_ALERT);
+            FirmwareTP.apply();
+            return false;
+        }
+    }
+    LOGF_WARN("Retreiving firmware failed: %s", res);
+    FirmwareTP.setState(IPS_ALERT);
+    FirmwareTP.apply();
+    return false;
+}
+
 // Removed updatePropertiesPowerDewMode function definition
 
 bool PegasusSPB::setFixedPowerPortState(int portNumber, bool enabled)
@@ -615,18 +696,29 @@ bool PegasusSPB::getSensorData()
         if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
             PI::DewChannelDutyCycleNP.apply();
 
-        // Update DewChannelsSP (on/off state) based on duty cycle
-        PI::DewChannelsSP[0].setState(PI::DewChannelDutyCycleNP[0].getValue() > 0 ? ISS_ON : ISS_OFF);
-        PI::DewChannelsSP[1].setState(PI::DewChannelDutyCycleNP[1].getValue() > 0 ? ISS_ON : ISS_OFF);
-        PI::DewChannelsSP.setState(IPS_OK);
-        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
-            PI::DewChannelsSP.apply();
-
         // Auto Dew
-        PI::AutoDewSP[0].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
+        bool autodew = std::stoi(result[PA_AUTO_DEW]);
+        PI::AutoDewSP[0].setState(autodew ? ISS_ON : ISS_OFF);
         PI::AutoDewSP.setState(IPS_OK);
         if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             PI::AutoDewSP.apply();
+
+        // ensure that dew heater channels are on, since the PPBA auto dew control handles both ports automatically
+        if (autodew)
+        {
+            bool changed = false;
+            for (size_t i = 0; i < DewChannelsSP.size(); i++)
+            {
+                if (DewChannelsSP[i].getState() == ISS_OFF)
+                {
+                    DewChannelsSP[i].setState(ISS_ON);
+                    LOGF_INFO("Auto dew on, enabling channel %s", (i == 0 ? "A" : "B"));
+                    changed = true;
+                }
+            }
+            if (changed)
+                DewChannelsSP.apply();
+        }
 
         // Environment Sensors (remain as is, handled by WeatherInterface)
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
@@ -664,16 +756,16 @@ bool PegasusSPB::getConsumptionData()
         if (result == lastConsumptionData)
             return true;
 
-        // These are custom consumption metrics, not directly mapped to INDI::PowerInterface's standard sensors.
-        // Keep them as is, or consider if they should be mapped to custom INDI properties if needed.
-        // For now, we will keep them as is, as they are not part of the core INDI::PowerInterface.
-        ExtendedPowerNP[SENSOR_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
-        ExtendedPowerNP[SENSOR_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
-        ExtendedPowerNP[SENSOR_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
-        ExtendedPowerNP.setState(IPS_OK);
-        if (lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] || lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS]
-                || lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
-            ExtendedPowerNP.apply();
+        // Power Statistics
+        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
+        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
+        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
+        PowerStatisticsNP.setState(IPS_OK);
+        if (lastConsumptionData.size() < PS_N ||
+                lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] ||
+                lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] ||
+                lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
+            PowerStatisticsNP.apply();
 
         lastConsumptionData = result;
 
@@ -698,23 +790,24 @@ bool PegasusSPB::getMetricsData()
         if (result == lastMetricsData)
             return true;
 
-        // Update PI::PowerSensorsNP with total current
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
-        PI::PowerSensorsNP.setState(IPS_OK);
+        // Power Sensors
+        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
         if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
-            PI::PowerSensorsNP.apply();
+            PowerStatisticsNP.apply();
 
-        // Update PI::PowerChannelCurrentNP for the quad hub
+        // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
         {
             PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
-            PI::PowerChannelCurrentNP.setState(IPS_OK);
             if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+            {
+                PI::PowerChannelCurrentNP.setState(IPS_OK);
                 PI::PowerChannelCurrentNP.apply();
+            }
         }
 
         // Update PI::DewChannelCurrentNP for Dew ports
-        if (PI::DewChannelCurrentNP.size() > 0)
+        if (PI::DewChannelCurrentNP.size() > 1)
         {
             PI::DewChannelCurrentNP[0].setValue(std::stod(result[PC_DEWA_CURRENT]));
             PI::DewChannelCurrentNP[1].setValue(std::stod(result[PC_DEWB_CURRENT]));
@@ -723,6 +816,13 @@ bool PegasusSPB::getMetricsData()
                     lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
                 PI::DewChannelCurrentNP.apply();
         }
+
+        std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));
+        using dhours = std::chrono::duration<double, std::ratio<3600 >>;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
+        FirmwareTP[FIRMWARE_UPTIME].setText(ss.str().c_str());
+        FirmwareTP.apply();
 
         lastMetricsData = result;
 

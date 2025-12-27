@@ -69,7 +69,6 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         // Power Overrides
         virtual bool SetPowerPort(size_t port, bool enabled) override;
         virtual bool SetDewPort(size_t port, bool enabled, double dutyCycle) override;
-        virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
         virtual bool SetLEDEnabled(bool enabled) override;
         virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
         virtual bool CyclePower() override;
@@ -136,7 +135,6 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         // Power
         bool setPowerEnabled(uint8_t port, bool enabled);
         bool setPowerOnBoot();
-        bool setAdjustableOutput(uint8_t voltage);
         bool setLedIndicator(bool enabled);
 
         // Dew
@@ -166,11 +164,33 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         ////////////////////////////////////////////////////////////////////////////////////
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
+        // Power Statistics
+        INDI::PropertyNumber PowerStatisticsNP {4};
+        enum
+        {
+            STATS_AVG_AMPS,
+            STATS_AMP_HOURS,
+            STATS_WATT_HOURS,
+            STATS_TOTAL_CURRENT
+        };
+
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
         // Short circuit warn
         INDI::PropertyLight PowerWarnLP {1};
+
+        // Adjustable power port
+        INDI::PropertySwitch AdjOutVoltSP {6};
+        enum
+        {
+            ADJOUT_OFF,
+            ADJOUT_3V,
+            ADJOUT_5V,
+            ADJOUT_8V,
+            ADJOUT_9V,
+            ADJOUT_12V,
+        };
 
         // Select which power is ON on bootup
         INDI::PropertySwitch PowerOnBootSP {4};
@@ -191,10 +211,6 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         {
             AUTO_DEW_AGGRESSION
         };
-
-        ////////////////////////////////////////////////////////////////////////////////////
-        /// Focuser
-        ////////////////////////////////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser
