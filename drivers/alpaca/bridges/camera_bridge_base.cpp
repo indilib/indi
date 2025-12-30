@@ -125,6 +125,8 @@ void CameraBridge::handleRequest(const std::string &method, const httplib::Reque
         handleCanPulseGuide(req, res);
     else if (method == "cansetccdtemperature")
         handleCanSetCCDTemperature(req, res);
+    else if (method == "canfastreadout")
+        handleCanFastReadout(req, res);
     else if (method == "hasshutter")
         handleHasShutter(req, res);
     // Temperature control
@@ -134,6 +136,8 @@ void CameraBridge::handleRequest(const std::string &method, const httplib::Reque
         handleCoolerOn(req, res);
     else if (method == "coolerpower")
         handleCoolerPower(req, res);
+    else if (method == "cangetcoolerpower")
+        handleCanGetCoolerPower(req, res);
     else if (method == "setccdtemperature")
         handleSetCCDTemperature(req, res);
     // Gain and offset
@@ -369,8 +373,9 @@ void CameraBridge::updateProperty(INDI::Property property)
         else if (state == IPS_OK)
         {
             m_IsExposing = false;
-            m_CameraState = 0; // Idle
-            m_PercentCompleted = 100.0;
+            // Don't set to Idle yet - waiting for image download
+            m_CameraState = 4; // Downloading
+            // Keep percent at exposure completion level, will be set to 100% when image arrives
         }
         else if (state == IPS_ALERT)
         {
@@ -389,7 +394,7 @@ void CameraBridge::updateProperty(INDI::Property property)
     {
         // Image data received
         INDI::PropertyBlob blobProperty(property);
-        if (blobProperty.getState() == IPS_OK && blobProperty[0].getBlobLen() > 0)
+        if (blobProperty[0].getBlobLen() > 0)
         {
             // Extract image data from FITS
             const uint8_t* fitsData = static_cast<const uint8_t*>(blobProperty[0].getBlob());
@@ -401,6 +406,7 @@ void CameraBridge::updateProperty(INDI::Property property)
             {
                 m_ImageReady = true;
                 m_CameraState = 0; // Idle
+                m_PercentCompleted = 100.0; // Image fully downloaded and ready
                 DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG,
                              "Image ready: %dx%d, %d-bit, %d-axis",
                              m_LastImageWidth, m_LastImageHeight, m_LastImageBPP, m_LastImageNAxis);
@@ -464,6 +470,48 @@ void CameraBridge::requestNewSwitch(const INDI::PropertySwitch &switchProperty)
     DeviceManager::getInstance()->sendNewSwitch(switchProperty);
 }
 
+// Helper method to extract transaction IDs from request
+void CameraBridge::extractTransactionIDs(const httplib::Request &req, uint32_t &clientID, uint32_t &serverID)
+{
+    clientID = 0;
+    serverID = 0;
+
+    // Try to extract ClientTransactionID from query string (GET requests)
+    if (req.has_param("ClientTransactionID"))
+    {
+        try
+        {
+            clientID = static_cast<uint32_t>(std::stoul(req.get_param_value("ClientTransactionID")));
+        }
+        catch (...)
+        {
+            clientID = 0;
+        }
+    }
+    // Try to extract from request body (PUT requests)
+    else if (!req.body.empty())
+    {
+        httplib::Params params;
+        httplib::detail::parse_query_text(req.body, params);
+
+        if (params.count("ClientTransactionID"))
+        {
+            try
+            {
+                clientID = static_cast<uint32_t>(std::stoul(params.find("ClientTransactionID")->second));
+            }
+            catch (...)
+            {
+                clientID = 0;
+            }
+        }
+    }
+
+    // ServerTransactionID is typically incremented for each response
+    // For simplicity, we'll use 0 for now (can be enhanced later)
+    serverID = 0;
+}
+
 // Helper methods for sending standard JSON responses
 void CameraBridge::sendResponse(httplib::Response &res, bool success, const std::string &errorMessage)
 {
@@ -497,19 +545,27 @@ void CameraBridge::sendResponse(httplib::Response &res, const T &value, bool suc
     res.set_content(response.dump(), "application/json");
 }
 
+// Implementation with request parameter for transaction ID extraction
 template <typename T>
-void CameraBridge::sendResponseValue(httplib::Response &res, const T &value,
+void CameraBridge::sendResponseValue(httplib::Response &res, const httplib::Request &req, const T &value,
                                      bool success, const std::string &errorMessage)
 {
-    sendResponse(res, value, success, errorMessage, 0, 0);
+    uint32_t clientID, serverID;
+    extractTransactionIDs(req, clientID, serverID);
+    sendResponse(res, value, success, errorMessage, clientID, serverID);
 }
 
-// Implementation of sendResponseStatus
-void CameraBridge::sendResponseStatus(httplib::Response &res, bool success,
+// Implementation with request parameter for transaction ID extraction
+void CameraBridge::sendResponseStatus(httplib::Response &res, const httplib::Request &req, bool success,
                                       const std::string &errorMessage)
 {
+    uint32_t clientID, serverID;
+    extractTransactionIDs(req, clientID, serverID);
+
     json response =
     {
+        {"ClientTransactionID", clientID},
+        {"ServerTransactionID", serverID},
         {"ErrorNumber", success ? 0 : 1},
         {"ErrorMessage", success ? "" : errorMessage}
     };
@@ -528,15 +584,16 @@ template void CameraBridge::sendResponse<bool>(httplib::Response &res, const boo
 template void CameraBridge::sendResponse<json>(httplib::Response &res, const json &value, bool success,
         const std::string &errorMessage, int clientID, int serverID);
 
-template void CameraBridge::sendResponseValue<std::string>(httplib::Response &res,
+// Explicit template instantiations for request-based methods
+template void CameraBridge::sendResponseValue<std::string>(httplib::Response &res, const httplib::Request &req,
         const std::string &value, bool success, const std::string &errorMessage);
-template void CameraBridge::sendResponseValue<double>(httplib::Response &res,
+template void CameraBridge::sendResponseValue<double>(httplib::Response &res, const httplib::Request &req,
         const double &value, bool success, const std::string &errorMessage);
-template void CameraBridge::sendResponseValue<int>(httplib::Response &res,
+template void CameraBridge::sendResponseValue<int>(httplib::Response &res, const httplib::Request &req,
         const int &value, bool success, const std::string &errorMessage);
-template void CameraBridge::sendResponseValue<bool>(httplib::Response &res,
+template void CameraBridge::sendResponseValue<bool>(httplib::Response &res, const httplib::Request &req,
         const bool &value, bool success, const std::string &errorMessage);
-template void CameraBridge::sendResponseValue<json>(httplib::Response &res,
+template void CameraBridge::sendResponseValue<json>(httplib::Response &res, const httplib::Request &req,
         const json &value, bool success, const std::string &errorMessage);
 
 // Image processing helper functions

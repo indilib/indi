@@ -91,12 +91,14 @@ class CameraBridge : public IDeviceBridge
         void handleCanStopExposure(const httplib::Request &req, httplib::Response &res);
         void handleCanPulseGuide(const httplib::Request &req, httplib::Response &res);
         void handleCanSetCCDTemperature(const httplib::Request &req, httplib::Response &res);
+        void handleCanFastReadout(const httplib::Request &req, httplib::Response &res);
         void handleHasShutter(const httplib::Request &req, httplib::Response &res);
 
         // Camera-specific Alpaca API methods - Temperature
         void handleCCDTemperature(const httplib::Request &req, httplib::Response &res);
         void handleCoolerOn(const httplib::Request &req, httplib::Response &res);
         void handleCoolerPower(const httplib::Request &req, httplib::Response &res);
+        void handleCanGetCoolerPower(const httplib::Request &req, httplib::Response &res);
         void handleSetCCDTemperature(const httplib::Request &req, httplib::Response &res);
 
         // Camera-specific Alpaca API methods - Gain/Offset
@@ -146,6 +148,9 @@ class CameraBridge : public IDeviceBridge
         void requestNewNumber(const INDI::PropertyNumber &numberProperty);
         void requestNewSwitch(const INDI::PropertySwitch &switchProperty);
 
+        // Helper method to extract transaction IDs from request
+        void extractTransactionIDs(const httplib::Request &req, uint32_t &clientID, uint32_t &serverID);
+
         // Helper methods for sending standard JSON responses
         void sendResponse(httplib::Response &res, bool success, const std::string &errorMessage);
 
@@ -154,12 +159,12 @@ class CameraBridge : public IDeviceBridge
         void sendResponse(httplib::Response &res, const T &value, bool success = true,
                           const std::string &errorMessage = "", int clientID = 0, int serverID = 0);
 
-        // Simplified response methods without transaction IDs
+        // Response methods with transaction ID extraction from request
         template <typename T>
-        void sendResponseValue(httplib::Response &res, const T &value,
+        void sendResponseValue(httplib::Response &res, const httplib::Request &req, const T &value,
                                bool success = true, const std::string &errorMessage = "");
 
-        void sendResponseStatus(httplib::Response &res, bool success,
+        void sendResponseStatus(httplib::Response &res, const httplib::Request &req, bool success,
                                 const std::string &errorMessage = "");
 
         // Image processing helpers
@@ -201,6 +206,7 @@ class CameraBridge : public IDeviceBridge
 
         // Current state tracking - Temperature
         double m_CCDTemperature {0.0};
+        double m_TargetCCDTemperature {0.0};
         bool m_CoolerOn {false};
         double m_CoolerPower {0.0};
 

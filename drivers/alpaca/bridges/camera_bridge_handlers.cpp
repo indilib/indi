@@ -48,102 +48,102 @@ void CameraBridge::handleConnected(const httplib::Request &req, httplib::Respons
     {
         // Return connection status
         bool connected = m_Device.isConnected();
-        sendResponseValue(res, connected);
+        sendResponseValue(res, req, connected);
     }
     else if (req.method == "PUT")
     {
         // Acknowledge connection status request, but do not control connection from bridge
-        sendResponseStatus(res, true, "");
+        sendResponseStatus(res, req, true, "");
     }
 }
 
 void CameraBridge::handleName(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, std::string(m_Device.getDeviceName()));
+    sendResponseValue(res, req, std::string(m_Device.getDeviceName()));
 }
 
 void CameraBridge::handleDescription(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
     std::string description = "INDI Camera Bridge for " + std::string(m_Device.getDeviceName());
-    sendResponseValue(res, description);
+    sendResponseValue(res, req, description);
 }
 
 void CameraBridge::handleDriverInfo(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
     std::string driverInfo = "INDI Alpaca Camera Bridge v1.0";
-    sendResponseValue(res, driverInfo);
+    sendResponseValue(res, req, driverInfo);
 }
 
 void CameraBridge::handleDriverVersion(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
     std::string version = "1.0.0";
-    sendResponseValue(res, version);
+    sendResponseValue(res, req, version);
 }
 
 void CameraBridge::handleInterfaceVersion(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
     int interfaceVersion = 3; // Alpaca Camera Interface v3
-    sendResponseValue(res, interfaceVersion);
+    sendResponseValue(res, req, interfaceVersion);
 }
 
 // Camera Information Properties
 void CameraBridge::handleCameraXSize(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CameraXSize);
+    sendResponseValue(res, req, m_CameraXSize);
 }
 
 void CameraBridge::handleCameraYSize(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CameraYSize);
+    sendResponseValue(res, req, m_CameraYSize);
 }
 
 void CameraBridge::handleMaxBinX(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_MaxBinX);
+    sendResponseValue(res, req, m_MaxBinX);
 }
 
 void CameraBridge::handleMaxBinY(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_MaxBinY);
+    sendResponseValue(res, req, m_MaxBinY);
 }
 
 void CameraBridge::handleCanAsymmetricBin(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CanAsymmetricBin);
+    sendResponseValue(res, req, m_CanAsymmetricBin);
 }
 
 void CameraBridge::handlePixelSizeX(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_PixelSizeX);
+    sendResponseValue(res, req, m_PixelSizeX);
 }
 
 void CameraBridge::handlePixelSizeY(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_PixelSizeY);
+    sendResponseValue(res, req, m_PixelSizeY);
 }
 
 void CameraBridge::handleBinX(const httplib::Request &req, httplib::Response &res)
@@ -152,7 +152,7 @@ void CameraBridge::handleBinX(const httplib::Request &req, httplib::Response &re
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_BinX);
+        sendResponseValue(res, req, m_BinX);
     }
     else if (req.method == "PUT")
     {
@@ -171,15 +171,15 @@ void CameraBridge::handleBinX(const httplib::Request &req, httplib::Response &re
                 {
                     horBinElement->setValue(newBinX);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
             }
-            sendResponseStatus(res, false, "Failed to set BinX: CCD_BINNING property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set BinX: CCD_BINNING property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'BinX' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'BinX' parameter in request body");
         }
     }
 }
@@ -190,7 +190,7 @@ void CameraBridge::handleBinY(const httplib::Request &req, httplib::Response &re
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_BinY);
+        sendResponseValue(res, req, m_BinY);
     }
     else if (req.method == "PUT")
     {
@@ -209,15 +209,15 @@ void CameraBridge::handleBinY(const httplib::Request &req, httplib::Response &re
                 {
                     verBinElement->setValue(newBinY);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
             }
-            sendResponseStatus(res, false, "Failed to set BinY: CCD_BINNING property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set BinY: CCD_BINNING property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'BinY' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'BinY' parameter in request body");
         }
     }
 }
@@ -228,7 +228,7 @@ void CameraBridge::handleStartX(const httplib::Request &req, httplib::Response &
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_StartX);
+        sendResponseValue(res, req, m_StartX);
     }
     else if (req.method == "PUT")
     {
@@ -247,15 +247,15 @@ void CameraBridge::handleStartX(const httplib::Request &req, httplib::Response &
                 {
                     xElement->setValue(newStartX);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
             }
-            sendResponseStatus(res, false, "Failed to set StartX: CCD_FRAME property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set StartX: CCD_FRAME property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'StartX' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'StartX' parameter in request body");
         }
     }
 }
@@ -266,7 +266,7 @@ void CameraBridge::handleStartY(const httplib::Request &req, httplib::Response &
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_StartY);
+        sendResponseValue(res, req, m_StartY);
     }
     else if (req.method == "PUT")
     {
@@ -285,15 +285,15 @@ void CameraBridge::handleStartY(const httplib::Request &req, httplib::Response &
                 {
                     yElement->setValue(newStartY);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
             }
-            sendResponseStatus(res, false, "Failed to set StartY: CCD_FRAME property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set StartY: CCD_FRAME property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'StartY' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'StartY' parameter in request body");
         }
     }
 }
@@ -304,7 +304,7 @@ void CameraBridge::handleNumX(const httplib::Request &req, httplib::Response &re
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_NumX);
+        sendResponseValue(res, req, m_NumX);
     }
     else if (req.method == "PUT")
     {
@@ -323,15 +323,15 @@ void CameraBridge::handleNumX(const httplib::Request &req, httplib::Response &re
                 {
                     widthElement->setValue(newNumX);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
             }
-            sendResponseStatus(res, false, "Failed to set NumX: CCD_FRAME property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set NumX: CCD_FRAME property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'NumX' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'NumX' parameter in request body");
         }
     }
 }
@@ -342,7 +342,7 @@ void CameraBridge::handleNumY(const httplib::Request &req, httplib::Response &re
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_NumY);
+        sendResponseValue(res, req, m_NumY);
     }
     else if (req.method == "PUT")
     {
@@ -361,15 +361,15 @@ void CameraBridge::handleNumY(const httplib::Request &req, httplib::Response &re
                 {
                     heightElement->setValue(newNumY);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
             }
-            sendResponseStatus(res, false, "Failed to set NumY: CCD_FRAME property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set NumY: CCD_FRAME property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'NumY' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'NumY' parameter in request body");
         }
     }
 }
@@ -377,45 +377,53 @@ void CameraBridge::handleNumY(const httplib::Request &req, httplib::Response &re
 // Camera Capabilities
 void CameraBridge::handleCanAbortExposure(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CanAbortExposure);
+    sendResponseValue(res, req, m_CanAbortExposure);
 }
 
 void CameraBridge::handleCanStopExposure(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CanStopExposure);
+    sendResponseValue(res, req, m_CanStopExposure);
 }
 
 void CameraBridge::handleCanPulseGuide(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CanPulseGuide);
+    sendResponseValue(res, req, m_CanPulseGuide);
 }
 
 void CameraBridge::handleCanSetCCDTemperature(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CanSetCCDTemperature);
+    sendResponseValue(res, req, m_CanSetCCDTemperature);
+}
+
+void CameraBridge::handleCanFastReadout(const httplib::Request &req, httplib::Response &res)
+{
+    // Transaction IDs extracted in sendResponseValue
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    // INDI cameras typically don't support fast readout mode
+    sendResponseValue(res, req, false);
 }
 
 void CameraBridge::handleHasShutter(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_HasShutter);
+    sendResponseValue(res, req, m_HasShutter);
 }
 
 // Temperature Control
 void CameraBridge::handleCCDTemperature(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CCDTemperature);
+    sendResponseValue(res, req, m_CCDTemperature);
 }
 
 void CameraBridge::handleCoolerOn(const httplib::Request &req, httplib::Response &res)
@@ -424,7 +432,7 @@ void CameraBridge::handleCoolerOn(const httplib::Request &req, httplib::Response
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_CoolerOn);
+        sendResponseValue(res, req, m_CoolerOn);
     }
     else if (req.method == "PUT")
     {
@@ -449,28 +457,45 @@ void CameraBridge::handleCoolerOn(const httplib::Request &req, httplib::Response
                     switchProperty.findWidgetByName("COOLER_OFF")->setState(ISS_ON);
                 }
                 requestNewSwitch(switchProperty);
-                sendResponseStatus(res, true, "");
+                sendResponseStatus(res, req, true, "");
                 return;
             }
-            sendResponseStatus(res, false, "Failed to set CoolerOn: CCD_COOLER property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set CoolerOn: CCD_COOLER property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'CoolerOn' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'CoolerOn' parameter in request body");
         }
     }
 }
 
 void CameraBridge::handleCoolerPower(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CoolerPower);
+    sendResponseValue(res, req, m_CoolerPower);
+}
+
+void CameraBridge::handleCanGetCoolerPower(const httplib::Request &req, httplib::Response &res)
+{
+    // Transaction IDs extracted in sendResponseValue
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    // Return true if CCD_COOLER_POWER property exists
+    INDI::Property coolerPowerProperty = m_Device.getProperty("CCD_COOLER_POWER");
+    bool canGet = coolerPowerProperty.isValid();
+    sendResponseValue(res, req, canGet);
 }
 
 void CameraBridge::handleSetCCDTemperature(const httplib::Request &req, httplib::Response &res)
 {
-    if (req.method == "PUT")
+    std::lock_guard<std::mutex> lock(m_Mutex);
+
+    if (req.method == "GET")
+    {
+        // Return the target temperature setpoint
+        sendResponseValue(res, req, m_TargetCCDTemperature);
+    }
+    else if (req.method == "PUT")
     {
         httplib::Params params;
         httplib::detail::parse_query_text(req.body, params);
@@ -478,25 +503,27 @@ void CameraBridge::handleSetCCDTemperature(const httplib::Request &req, httplib:
         if (params.count("SetCCDTemperature"))
         {
             double newTemperature = std::stod(params.find("SetCCDTemperature")->second);
+            m_TargetCCDTemperature = newTemperature;  // Track the target
+
             INDI::Property temperatureProperty = m_Device.getProperty("CCD_TEMPERATURE");
             if (temperatureProperty.isValid() && temperatureProperty.getType() == INDI_NUMBER)
             {
                 INDI::PropertyNumber numberProperty(temperatureProperty);
                 numberProperty[0].setValue(newTemperature);
                 requestNewNumber(numberProperty);
-                sendResponseStatus(res, true, "");
+                sendResponseStatus(res, req, true, "");
                 return;
             }
-            sendResponseStatus(res, false, "Failed to set CCDTemperature: CCD_TEMPERATURE property not found or invalid.");
+            sendResponseStatus(res, req, false, "Failed to set CCDTemperature: CCD_TEMPERATURE property not found or invalid.");
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'SetCCDTemperature' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'SetCCDTemperature' parameter in request body");
         }
     }
     else
     {
-        sendResponseStatus(res, false, "Method not supported");
+        sendResponseStatus(res, req, false, "Method not supported");
     }
 }
 
@@ -507,13 +534,13 @@ void CameraBridge::handleGain(const httplib::Request &req, httplib::Response &re
 
     if (!m_HasGain)
     {
-        sendResponseStatus(res, false, "Gain not supported");
+        sendResponseStatus(res, req, false, "Gain not supported");
         return;
     }
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, static_cast<int>(m_Gain));
+        sendResponseValue(res, req, static_cast<int>(m_Gain));
     }
     else if (req.method == "PUT")
     {
@@ -535,11 +562,11 @@ void CameraBridge::handleGain(const httplib::Request &req, httplib::Response &re
                     {
                         gainElement->setValue(newGain);
                         requestNewNumber(numberProperty);
-                        sendResponseStatus(res, true, "");
+                        sendResponseStatus(res, req, true, "");
                         return;
                     }
                 }
-                sendResponseStatus(res, false, "Failed to set Gain via CCD_CONTROLS");
+                sendResponseStatus(res, req, false, "Failed to set Gain via CCD_CONTROLS");
             }
             else
             {
@@ -549,44 +576,44 @@ void CameraBridge::handleGain(const httplib::Request &req, httplib::Response &re
                     INDI::PropertyNumber numberProperty(gainProperty);
                     numberProperty[0].setValue(newGain);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
-                sendResponseStatus(res, false, "Failed to set Gain via CCD_GAIN");
+                sendResponseStatus(res, req, false, "Failed to set Gain via CCD_GAIN");
             }
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'Gain' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'Gain' parameter in request body");
         }
     }
 }
 
 void CameraBridge::handleGainMin(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasGain)
-        sendResponseValue(res, static_cast<int>(m_GainMin));
+        sendResponseValue(res, req, static_cast<int>(m_GainMin));
     else
-        sendResponseStatus(res, false, "Gain not supported");
+        sendResponseStatus(res, req, false, "Gain not supported");
 }
 
 void CameraBridge::handleGainMax(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasGain)
-        sendResponseValue(res, static_cast<int>(m_GainMax));
+        sendResponseValue(res, req, static_cast<int>(m_GainMax));
     else
-        sendResponseStatus(res, false, "Gain not supported");
+        sendResponseStatus(res, req, false, "Gain not supported");
 }
 
 void CameraBridge::handleGains(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasGain)
@@ -594,11 +621,11 @@ void CameraBridge::handleGains(const httplib::Request &req, httplib::Response &r
         json gainsArray = json::array();
         for (const auto& gain : m_Gains)
             gainsArray.push_back(gain);
-        sendResponseValue(res, gainsArray);
+        sendResponseValue(res, req, gainsArray);
     }
     else
     {
-        sendResponseStatus(res, false, "Gain not supported");
+        sendResponseStatus(res, req, false, "Gain not supported");
     }
 }
 
@@ -608,13 +635,13 @@ void CameraBridge::handleOffset(const httplib::Request &req, httplib::Response &
 
     if (!m_HasOffset)
     {
-        sendResponseStatus(res, false, "Offset not supported");
+        sendResponseStatus(res, req, false, "Offset not supported");
         return;
     }
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, static_cast<int>(m_Offset));
+        sendResponseValue(res, req, static_cast<int>(m_Offset));
     }
     else if (req.method == "PUT")
     {
@@ -636,11 +663,11 @@ void CameraBridge::handleOffset(const httplib::Request &req, httplib::Response &
                     {
                         offsetElement->setValue(newOffset);
                         requestNewNumber(numberProperty);
-                        sendResponseStatus(res, true, "");
+                        sendResponseStatus(res, req, true, "");
                         return;
                     }
                 }
-                sendResponseStatus(res, false, "Failed to set Offset via CCD_CONTROLS");
+                sendResponseStatus(res, req, false, "Failed to set Offset via CCD_CONTROLS");
             }
             else
             {
@@ -650,44 +677,44 @@ void CameraBridge::handleOffset(const httplib::Request &req, httplib::Response &
                     INDI::PropertyNumber numberProperty(offsetProperty);
                     numberProperty[0].setValue(newOffset);
                     requestNewNumber(numberProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
-                sendResponseStatus(res, false, "Failed to set Offset via CCD_OFFSET");
+                sendResponseStatus(res, req, false, "Failed to set Offset via CCD_OFFSET");
             }
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'Offset' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'Offset' parameter in request body");
         }
     }
 }
 
 void CameraBridge::handleOffsetMin(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasOffset)
-        sendResponseValue(res, static_cast<int>(m_OffsetMin));
+        sendResponseValue(res, req, static_cast<int>(m_OffsetMin));
     else
-        sendResponseStatus(res, false, "Offset not supported");
+        sendResponseStatus(res, req, false, "Offset not supported");
 }
 
 void CameraBridge::handleOffsetMax(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasOffset)
-        sendResponseValue(res, static_cast<int>(m_OffsetMax));
+        sendResponseValue(res, req, static_cast<int>(m_OffsetMax));
     else
-        sendResponseStatus(res, false, "Offset not supported");
+        sendResponseStatus(res, req, false, "Offset not supported");
 }
 
 void CameraBridge::handleOffsets(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (m_HasOffset)
@@ -695,11 +722,11 @@ void CameraBridge::handleOffsets(const httplib::Request &req, httplib::Response 
         json offsetsArray = json::array();
         for (const auto& offset : m_Offsets)
             offsetsArray.push_back(offset);
-        sendResponseValue(res, offsetsArray);
+        sendResponseValue(res, req, offsetsArray);
     }
     else
     {
-        sendResponseStatus(res, false, "Offset not supported");
+        sendResponseStatus(res, req, false, "Offset not supported");
     }
 }
 
@@ -710,7 +737,7 @@ void CameraBridge::handleReadoutMode(const httplib::Request &req, httplib::Respo
 
     if (req.method == "GET")
     {
-        sendResponseValue(res, m_ReadoutMode);
+        sendResponseValue(res, req, m_ReadoutMode);
     }
     else if (req.method == "PUT")
     {
@@ -736,60 +763,60 @@ void CameraBridge::handleReadoutMode(const httplib::Request &req, httplib::Respo
                             sw.setState(ISS_OFF);
                     }
                     requestNewSwitch(switchProperty);
-                    sendResponseStatus(res, true, "");
+                    sendResponseStatus(res, req, true, "");
                     return;
                 }
-                sendResponseStatus(res, false, "Failed to set ReadoutMode: CCD_READOUT_MODE property not found or invalid.");
+                sendResponseStatus(res, req, false, "Failed to set ReadoutMode: CCD_READOUT_MODE property not found or invalid.");
             }
             else
             {
-                sendResponseStatus(res, false, "Invalid ReadoutMode index.");
+                sendResponseStatus(res, req, false, "Invalid ReadoutMode index.");
             }
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'ReadoutMode' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'ReadoutMode' parameter in request body");
         }
     }
 }
 
 void CameraBridge::handleReadoutModes(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     json modesArray = json::array();
     for (const auto& mode : m_ReadoutModes)
         modesArray.push_back(mode);
-    sendResponseValue(res, modesArray);
+    sendResponseValue(res, req, modesArray);
 }
 
 void CameraBridge::handleSensorType(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_SensorType);
+    sendResponseValue(res, req, m_SensorType);
 }
 
 void CameraBridge::handleBayerOffsetX(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_BayerOffsetX);
+    sendResponseValue(res, req, m_BayerOffsetX);
 }
 
 void CameraBridge::handleBayerOffsetY(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_BayerOffsetY);
+    sendResponseValue(res, req, m_BayerOffsetY);
 }
 
 void CameraBridge::handleSensorName(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, std::string());
+    sendResponseValue(res, req, std::string());
 }
 
 // Exposure Control
@@ -800,28 +827,62 @@ void CameraBridge::handleStartExposure(const httplib::Request &req, httplib::Res
         httplib::Params params;
         httplib::detail::parse_query_text(req.body, params);
 
-        if (params.count("ExposureDuration"))
+        // Accept both "Duration" (ASCOM standard) and "ExposureDuration" (backward compatibility)
+        double exposureDuration = 0.0;
+        if (params.count("Duration"))
         {
-            double exposureDuration = std::stod(params.find("ExposureDuration")->second);
-            INDI::Property exposureProperty = m_Device.getProperty("CCD_EXPOSURE");
-            if (exposureProperty.isValid() && exposureProperty.getType() == INDI_NUMBER)
-            {
-                INDI::PropertyNumber numberProperty(exposureProperty);
-                numberProperty[0].setValue(exposureDuration);
-                requestNewNumber(numberProperty);
-                sendResponseStatus(res, true, "");
-                return;
-            }
-            sendResponseStatus(res, false, "Failed to start exposure: CCD_EXPOSURE property not found or invalid.");
+            exposureDuration = std::stod(params.find("Duration")->second);
+        }
+        else if (params.count("ExposureDuration"))
+        {
+            exposureDuration = std::stod(params.find("ExposureDuration")->second);
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'ExposureDuration' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'Duration' parameter in request body");
+            return;
         }
+
+        // Handle Light parameter for frame type (light vs dark frame)
+        bool isLightFrame = true; // Default to light frame
+        if (params.count("Light"))
+        {
+            std::string lightParam = params.find("Light")->second;
+            isLightFrame = (lightParam == "true" || lightParam == "True" || lightParam == "1");
+        }
+
+        // Set frame type if supported
+        INDI::Property frameTypeProperty = m_Device.getProperty("CCD_FRAME_TYPE");
+        if (frameTypeProperty.isValid() && frameTypeProperty.getType() == INDI_SWITCH)
+        {
+            INDI::PropertySwitch switchProperty(frameTypeProperty);
+            for (auto &sw : switchProperty)
+            {
+                if (isLightFrame && sw.isNameMatch("FRAME_LIGHT"))
+                    sw.setState(ISS_ON);
+                else if (!isLightFrame && sw.isNameMatch("FRAME_DARK"))
+                    sw.setState(ISS_ON);
+                else
+                    sw.setState(ISS_OFF);
+            }
+            requestNewSwitch(switchProperty);
+        }
+
+        // Start exposure
+        INDI::Property exposureProperty = m_Device.getProperty("CCD_EXPOSURE");
+        if (exposureProperty.isValid() && exposureProperty.getType() == INDI_NUMBER)
+        {
+            INDI::PropertyNumber numberProperty(exposureProperty);
+            numberProperty[0].setValue(exposureDuration);
+            requestNewNumber(numberProperty);
+            sendResponseStatus(res, req, true, "");
+            return;
+        }
+        sendResponseStatus(res, req, false, "Failed to start exposure: CCD_EXPOSURE property not found or invalid.");
     }
     else
     {
-        sendResponseStatus(res, false, "Method not supported");
+        sendResponseStatus(res, req, false, "Method not supported");
     }
 }
 
@@ -838,15 +899,15 @@ void CameraBridge::handleStopExposure(const httplib::Request &req, httplib::Resp
             {
                 abortElement->setState(ISS_ON);
                 requestNewSwitch(switchProperty);
-                sendResponseStatus(res, true, "");
+                sendResponseStatus(res, req, true, "");
                 return;
             }
         }
-        sendResponseStatus(res, false, "Failed to stop exposure: CCD_ABORT_EXPOSURE property not found or invalid.");
+        sendResponseStatus(res, req, false, "Failed to stop exposure: CCD_ABORT_EXPOSURE property not found or invalid.");
     }
     else
     {
-        sendResponseStatus(res, false, "Method not supported");
+        sendResponseStatus(res, req, false, "Method not supported");
     }
 }
 
@@ -863,35 +924,35 @@ void CameraBridge::handleAbortExposure(const httplib::Request &req, httplib::Res
             {
                 abortElement->setState(ISS_ON);
                 requestNewSwitch(switchProperty);
-                sendResponseStatus(res, true, "");
+                sendResponseStatus(res, req, true, "");
                 return;
             }
         }
-        sendResponseStatus(res, false, "Failed to abort exposure: CCD_ABORT_EXPOSURE property not found or invalid.");
+        sendResponseStatus(res, req, false, "Failed to abort exposure: CCD_ABORT_EXPOSURE property not found or invalid.");
     }
     else
     {
-        sendResponseStatus(res, false, "Method not supported");
+        sendResponseStatus(res, req, false, "Method not supported");
     }
 }
 
 void CameraBridge::handleImageReady(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_ImageReady);
+    sendResponseValue(res, req, m_ImageReady);
 }
 
 void CameraBridge::handleCameraState(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_CameraState);
+    sendResponseValue(res, req, m_CameraState);
 }
 
 void CameraBridge::handlePercentCompleted(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     // Calculate percentage if exposing
@@ -900,51 +961,51 @@ void CameraBridge::handlePercentCompleted(const httplib::Request &req, httplib::
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_ExposureStartTime).count() / 1000.0;
         double percentage = std::min(100.0, (elapsed / m_LastExposureDuration) * 100.0);
-        sendResponseValue(res, percentage);
+        sendResponseValue(res, req, percentage);
     }
     else
     {
-        sendResponseValue(res, m_PercentCompleted);
+        sendResponseValue(res, req, m_PercentCompleted);
     }
 }
 
 void CameraBridge::handleLastExposureDuration(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_LastExposureDuration);
+    sendResponseValue(res, req, m_LastExposureDuration);
 }
 
 void CameraBridge::handleLastExposureStartTime(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_LastExposureStartTime);
+    sendResponseValue(res, req, m_LastExposureStartTime);
 }
 
 void CameraBridge::handleExposureMin(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_ExposureMin);
+    sendResponseValue(res, req, m_ExposureMin);
 }
 
 void CameraBridge::handleExposureMax(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_ExposureMax);
+    sendResponseValue(res, req, m_ExposureMax);
 }
 
 // Image Data
 void CameraBridge::handleImageArray(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (!m_ImageReady || m_LastImageData.empty())
     {
-        sendResponseStatus(res, false, "No image available");
+        sendResponseStatus(res, req, false, "No image available");
         return;
     }
 
@@ -952,33 +1013,71 @@ void CameraBridge::handleImageArray(const httplib::Request &req, httplib::Respon
     json imageArray;
     formatImageAsJSON(m_LastImageData, m_LastImageWidth, m_LastImageHeight,
                       m_LastImageBPP, m_LastImageNAxis, imageArray);
-    sendResponseValue(res, imageArray);
+
+    // Even though the actual data is UInt16, we must report it as Int32
+    int elementType = 2;  // Int32
+
+    // Create response with metadata (Type and Rank are required by NINA)
+    uint32_t clientID, serverID;
+    extractTransactionIDs(req, clientID, serverID);
+
+    json response =
+    {
+        {"Value", imageArray},
+        {"Type", elementType},
+        {"Rank", m_LastImageNAxis},
+        {"ClientTransactionID", clientID},
+        {"ServerTransactionID", serverID},
+        {"ErrorNumber", 0},
+        {"ErrorMessage", ""}
+    };
+
+    res.set_content(response.dump(), "application/json");
 }
 
 void CameraBridge::handleImageArrayVariant(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
 
     if (!m_ImageReady || m_LastImageData.empty())
     {
-        sendResponseStatus(res, false, "No image available");
+        sendResponseStatus(res, req, false, "No image available");
         return;
     }
 
-    // For now, return same as ImageArray - ImageBytes format would be implemented later
+    // Format image as JSON array
     json imageArray;
     formatImageAsJSON(m_LastImageData, m_LastImageWidth, m_LastImageHeight,
                       m_LastImageBPP, m_LastImageNAxis, imageArray);
-    sendResponseValue(res, imageArray);
+
+    // Even though the actual data is UInt16, we must report it as Int32
+    int elementType = 2;  // Int32
+
+    // Create response with metadata
+    uint32_t clientID, serverID;
+    extractTransactionIDs(req, clientID, serverID);
+
+    json response =
+    {
+        {"Value", imageArray},
+        {"Type", elementType},
+        {"Rank", m_LastImageNAxis},
+        {"ClientTransactionID", clientID},
+        {"ServerTransactionID", serverID},
+        {"ErrorNumber", 0},
+        {"ErrorMessage", ""}
+    };
+
+    res.set_content(response.dump(), "application/json");
 }
 
 // Guiding
 void CameraBridge::handleIsPulseGuiding(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_IsPulseGuiding);
+    sendResponseValue(res, req, m_IsPulseGuiding);
 }
 
 void CameraBridge::handlePulseGuide(const httplib::Request &req, httplib::Response &res)
@@ -998,27 +1097,12 @@ void CameraBridge::handlePulseGuide(const httplib::Request &req, httplib::Respon
 
             if (!guideNSProperty.isValid() && !guideWEProperty.isValid())
             {
-                sendResponseStatus(res, false, "Pulse guiding properties (TELESCOPE_TIMED_GUIDE_NS, TELESCOPE_TIMED_GUIDE_WE) not found.");
+                sendResponseStatus(res, req, false,
+                                   "Pulse guiding properties (TELESCOPE_TIMED_GUIDE_NS, TELESCOPE_TIMED_GUIDE_WE) not found.");
                 return;
             }
 
-            if (direction == 0) // East
-            {
-                if (guideWEProperty.isValid() && guideWEProperty.getType() == INDI_NUMBER)
-                {
-                    INDI::PropertyNumber numberProperty(guideWEProperty);
-                    auto eastElement = numberProperty.findWidgetByName("TIMED_GUIDE_E");
-                    if (eastElement)
-                    {
-                        eastElement->setValue(duration);
-                        requestNewNumber(numberProperty);
-                        sendResponseStatus(res, true, "");
-                        return;
-                    }
-                }
-                sendResponseStatus(res, false, "Failed to pulse guide East.");
-            }
-            else if (direction == 1) // North
+            if (direction == 0) // North (ASCOM Alpaca standard)
             {
                 if (guideNSProperty.isValid() && guideNSProperty.getType() == INDI_NUMBER)
                 {
@@ -1028,13 +1112,13 @@ void CameraBridge::handlePulseGuide(const httplib::Request &req, httplib::Respon
                     {
                         northElement->setValue(duration);
                         requestNewNumber(numberProperty);
-                        sendResponseStatus(res, true, "");
+                        sendResponseStatus(res, req, true, "");
                         return;
                     }
                 }
-                sendResponseStatus(res, false, "Failed to pulse guide North.");
+                sendResponseStatus(res, req, false, "Failed to pulse guide North.");
             }
-            else if (direction == 2) // South
+            else if (direction == 1) // South (ASCOM Alpaca standard)
             {
                 if (guideNSProperty.isValid() && guideNSProperty.getType() == INDI_NUMBER)
                 {
@@ -1044,13 +1128,29 @@ void CameraBridge::handlePulseGuide(const httplib::Request &req, httplib::Respon
                     {
                         southElement->setValue(duration);
                         requestNewNumber(numberProperty);
-                        sendResponseStatus(res, true, "");
+                        sendResponseStatus(res, req, true, "");
                         return;
                     }
                 }
-                sendResponseStatus(res, false, "Failed to pulse guide South.");
+                sendResponseStatus(res, req, false, "Failed to pulse guide South.");
             }
-            else if (direction == 3) // West
+            else if (direction == 2) // East (ASCOM Alpaca standard)
+            {
+                if (guideWEProperty.isValid() && guideWEProperty.getType() == INDI_NUMBER)
+                {
+                    INDI::PropertyNumber numberProperty(guideWEProperty);
+                    auto eastElement = numberProperty.findWidgetByName("TIMED_GUIDE_E");
+                    if (eastElement)
+                    {
+                        eastElement->setValue(duration);
+                        requestNewNumber(numberProperty);
+                        sendResponseStatus(res, req, true, "");
+                        return;
+                    }
+                }
+                sendResponseStatus(res, req, false, "Failed to pulse guide East.");
+            }
+            else if (direction == 3) // West (ASCOM Alpaca standard)
             {
                 if (guideWEProperty.isValid() && guideWEProperty.getType() == INDI_NUMBER)
                 {
@@ -1060,46 +1160,46 @@ void CameraBridge::handlePulseGuide(const httplib::Request &req, httplib::Respon
                     {
                         westElement->setValue(duration);
                         requestNewNumber(numberProperty);
-                        sendResponseStatus(res, true, "");
+                        sendResponseStatus(res, req, true, "");
                         return;
                     }
                 }
-                sendResponseStatus(res, false, "Failed to pulse guide West.");
+                sendResponseStatus(res, req, false, "Failed to pulse guide West.");
             }
             else
             {
-                sendResponseStatus(res, false, "Invalid 'Direction' parameter.");
+                sendResponseStatus(res, req, false, "Invalid 'Direction' parameter.");
             }
         }
         else
         {
-            sendResponseStatus(res, false, "Missing 'Direction' or 'Duration' parameter in request body");
+            sendResponseStatus(res, req, false, "Missing 'Direction' or 'Duration' parameter in request body");
         }
     }
     else
     {
-        sendResponseStatus(res, false, "Method not supported");
+        sendResponseStatus(res, req, false, "Method not supported");
     }
 }
 
 // Additional Properties
 void CameraBridge::handleMaxADU(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_MaxADU);
+    sendResponseValue(res, req, m_MaxADU);
 }
 
 void CameraBridge::handleElectronsPerADU(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_ElectronsPerADU);
+    sendResponseValue(res, req, m_ElectronsPerADU);
 }
 
 void CameraBridge::handleFullWellCapacity(const httplib::Request &req, httplib::Response &res)
 {
-    INDI_UNUSED(req);
+    // Transaction IDs extracted in sendResponseValue
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponseValue(res, m_FullWellCapacity);
+    sendResponseValue(res, req, m_FullWellCapacity);
 }
