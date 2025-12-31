@@ -378,7 +378,7 @@
     </devGroup>
     <devGroup group="Rotators">
         <device label="Rigelsys nFrame" manufacturer="Rigel Systems">
-            <driver name="Rigelsys nFrame">indi_nstep_rotator</driver>
+            <driver name="Rigelsys nFrame">indi_nframe_rotator</driver>
             <version>1.0</version>
         </device>
         <device label="Gemini Focusing Rotator" manufacturer="Optec">
