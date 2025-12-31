@@ -1,3 +1,6 @@
+#ifndef _INDIAPI_H
+#define _INDIAPI_H
+
 #if 0
 INDI
 Copyright (C) 2003 Elwood C. Downey
@@ -510,4 +513,6 @@ extern "C" {
 // FIXME: duplicated from indidevapi.h. Can we share ?
 #ifdef __cplusplus
 }
+#endif
+
 #endif

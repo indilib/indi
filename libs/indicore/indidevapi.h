@@ -1,3 +1,6 @@
+#ifndef _INDIDEVAPI_H
+#define _INDIDEVAPI_H
+
 /** INDI
  *  Copyright (C) 2003 - 2006 Elwood C. Downey
  *
@@ -831,4 +834,6 @@ extern void xmlv1();
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
