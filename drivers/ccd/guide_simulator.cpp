@@ -170,21 +170,21 @@ bool GuideSim::initProperties()
     CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
     addCaptureFormat(format);
 
-    SimulatorSettingsNP[SIM_XRES].fill("SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
-    SimulatorSettingsNP[SIM_YRES].fill("SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
-    SimulatorSettingsNP[SIM_XSIZE].fill("SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 2.4);
-    SimulatorSettingsNP[SIM_YSIZE].fill("SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 2.4);
-    SimulatorSettingsNP[SIM_MAXVAL].fill("SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
-    SimulatorSettingsNP[SIM_BIAS].fill("SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
+    SimulatorSettingsNP[SIM_XRES].fill("SIM_XRES", "X resolution", "%4.0f", 0, 8192, 0, 1280);
+    SimulatorSettingsNP[SIM_YRES].fill("SIM_YRES", "Y resolution", "%4.0f", 0, 8192, 0, 1024);
+    SimulatorSettingsNP[SIM_XSIZE].fill("SIM_XSIZE", "X Pixel Size", "%4.2f", 0, 60, 0, 2.4);
+    SimulatorSettingsNP[SIM_YSIZE].fill("SIM_YSIZE", "Y Pixel Size", "%4.2f", 0, 60, 0, 2.4);
+    SimulatorSettingsNP[SIM_MAXVAL].fill("SIM_MAXVAL", "Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
+    SimulatorSettingsNP[SIM_BIAS].fill("SIM_BIAS", "Bias", "%4.0f", 0, 6000, 0, 10);
     SimulatorSettingsNP[SIM_SATURATION].fill("SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
     SimulatorSettingsNP[SIM_LIMITINGMAG].fill("SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
-    SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
+    SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "Noise", "%4.0f", 0, 6000, 0, 10);
     SimulatorSettingsNP[SIM_SKYGLOW].fill("SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
     SimulatorSettingsNP[SIM_OAGOFFSET].fill("SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
     SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.3f", -600, 600, 0,
                                         0); /* PAE = Polar Alignment Error */
     SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.3f", 0, 6000, 0, 0);
-    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation Offset", "%4.1f", -360, 360, 0, 0);
+    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation Offset", "%4.1f", -180, 180, 0, 0);
     SimulatorSettingsNP[SIM_KING_GAMMA].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
     SimulatorSettingsNP[SIM_KING_THETA].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
@@ -480,8 +480,12 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
         m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
         double theta = m_RotationOffset;
+        // With a rotator device the resulting camera rotation is the addition
+        // of offset and rotator angle.
         if (!std::isnan(RotatorAngle))
             theta += RotatorAngle;
+        // Without a rotator device ("Manual Rotator") the rotator angle is
+        // considered fixed to 0° and the camera rotation is equal to offset
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
         theta = range360(theta);
@@ -1040,7 +1044,7 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             m_OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue();
             m_PolarError = SimulatorSettingsNP[SIM_POLAR].getValue();
             m_PolarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
-            m_RotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
+            m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
             //  Kwiq++
             m_KingGamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * DEGREES_TO_RADIANS;
             m_KingTheta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * DEGREES_TO_RADIANS;
