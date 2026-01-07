@@ -43,8 +43,8 @@ static std::unique_ptr<TerransPowerBoxProV2> terranspowerboxprov2(new TerransPow
 #define TIMEOUT 500
 #define TAB_INFO "Status"
 
-int get_count=0;
-int init=0;
+int get_count = 0;
+int init = 0;
 double ch1_shuntv = 0;
 double ch2_shuntv = 0;
 double ch3_shuntv = 0;
@@ -60,13 +60,13 @@ double ch3_w = 0;
 double chusb_w = 0;
 double humidity = 0;
 double temperature = 0;
-double dewPoint=0;
+double dewPoint = 0;
 double mcu_temp = 0;
 
 
 TerransPowerBoxProV2::TerransPowerBoxProV2() : INDI::PowerInterface(this), INDI::WeatherInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 bool TerransPowerBoxProV2::initProperties()
@@ -79,11 +79,11 @@ bool TerransPowerBoxProV2::initProperties()
     INDI::WeatherInterface::initProperties(MAIN_CONTROL_TAB, MAIN_CONTROL_TAB);
 
     addAuxControls();
-    
+
     // Retain MCUTempNP as it's not power-related
-    IUFillNumber(&MCUTempN[0], "MCU_Temp", "MCU Temperature (C)", "%.2f", 0, 200, 0.01, 0);   
-    IUFillNumberVector(&MCUTempNP, MCUTempN, 1, getDeviceName(), "MCU_Temp", "MCU", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);        
-    
+    IUFillNumber(&MCUTempN[0], "MCU_Temp", "MCU Temperature (C)", "%.2f", 0, 200, 0.01, 0);
+    IUFillNumberVector(&MCUTempNP, MCUTempN, 1, getDeviceName(), "MCU_Temp", "MCU", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
     ////////////////////////////////////////////////////////////////////////////
     /// Sensor Data
     ////////////////////////////////////////////////////////////////////////////
@@ -95,7 +95,10 @@ bool TerransPowerBoxProV2::initProperties()
     /// Serial Connection
     ////////////////////////////////////////////////////////////////////////////
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&](){return Handshake();});
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
     registerConnection(serialConnection);
 
@@ -146,35 +149,37 @@ bool TerransPowerBoxProV2::Handshake()
 
     for(int HS = 0 ; HS < 3 ; HS++)
     {
-      if (sendCommand(">VR#",res))
-      {        
-        if(!strcmp(res, "*TPPNNN"))
+        if (sendCommand(">VR#", res))
         {
-          if (sendCommand(">VN#",res))
-          {        
-            if(!strcmp(res, "*V001"))
+            if(!strcmp(res, "*TPPNNN"))
             {
-               LOG_INFO("Handshake successfully!");
-               // Set capabilities and initialize PI properties
-               PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_USB_TOGGLE | POWER_HAS_VOLTAGE_SENSOR |
-                                 POWER_HAS_OVERALL_CURRENT | POWER_HAS_VARIABLE_OUT | POWER_HAS_PER_PORT_CURRENT);
-               PI::initProperties(POWER_TAB, 7, 0, 1, 0, 6);
-               return true;  
-            }else
-            {
-               LOG_INFO("The firmware version does not match the driver. Please use the latest firmware and driver!");
-               return false;              
+                if (sendCommand(">VN#", res))
+                {
+                    if(!strcmp(res, "*V001"))
+                    {
+                        LOG_INFO("Handshake successfully!");
+                        // Set capabilities and initialize PI properties
+                        PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_USB_TOGGLE | POWER_HAS_VOLTAGE_SENSOR |
+                                          POWER_HAS_OVERALL_CURRENT | POWER_HAS_VARIABLE_OUT | POWER_HAS_PER_PORT_CURRENT);
+                        PI::initProperties(POWER_TAB, 7, 0, 1, 0, 6);
+                        return true;
+                    }
+                    else
+                    {
+                        LOG_INFO("The firmware version does not match the driver. Please use the latest firmware and driver!");
+                        return false;
+                    }
+                }
             }
-          } 
-        }else
-        {
-           LOG_INFO("Handshake failed!"); 
-           LOG_INFO("Retry...");            
+            else
+            {
+                LOG_INFO("Handshake failed!");
+                LOG_INFO("Retry...");
+            }
         }
-      } 
     }
     LOG_INFO("Handshake failed!");
-    return false;   
+    return false;
 }
 
 
@@ -213,7 +218,7 @@ bool TerransPowerBoxProV2::ISNewNumber(const char * dev, const char * name, doub
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // Let PowerInterface handle its number properties  
+        // Let PowerInterface handle its number properties
         if (PI::processNumber(dev, name, values, names, n))
             return true;
     }
@@ -267,417 +272,406 @@ void TerransPowerBoxProV2::TimerHit()
         SetTimer(100);
         return;
     }
-  
+
     Get_State();
     SetTimer(100);
 }
 
 void TerransPowerBoxProV2::Get_State()
-{    
+{
     char res[CMD_LEN] = {0};
+    static bool powerChanged = false;
+    static bool usbChanged = false;
+
     if(get_count == 0)
     {
-       if (sendCommand(">GDA#",res))
-       {        
-         if(!strcmp(res, "*DA1NNN"))
-         {
-            PI::PowerChannelsSP[0].setState(ISS_ON);
-         }else if(!strcmp(res, "*DA0NNN"))
-         {
-            PI::PowerChannelsSP[0].setState(ISS_OFF);
-         }else
-         {
-            PI::PowerChannelsSP[0].setState(ISS_OFF);
-         }               
-       } 
-      get_count++;
-    }else if(get_count == 1)
-    {
-       if (sendCommand(">GDB#",res))
-       {        
-         if(!strcmp(res, "*DB1NNN"))
-         {
-            PI::PowerChannelsSP[1].setState(ISS_ON);
-         }else if(!strcmp(res, "*DB0NNN"))
-         {
-            PI::PowerChannelsSP[1].setState(ISS_OFF);
-         }else
-         {
-            PI::PowerChannelsSP[1].setState(ISS_OFF);
-         }               
-       } 
-      get_count++;
-    }else if(get_count == 2)
-    {
-       if (sendCommand(">GDC#",res))
-       {        
-         if(!strcmp(res, "*DC1NNN"))
-         {
-            PI::PowerChannelsSP[2].setState(ISS_ON);
-         }else if(!strcmp(res, "*DC0NNN"))
-         {
-            PI::PowerChannelsSP[2].setState(ISS_OFF);
-         }else
-         {
-            PI::PowerChannelsSP[2].setState(ISS_OFF);
-         }               
-       } 
-      get_count++;
-    }else if(get_count == 3)
-    {
-       if (sendCommand(">GDD#",res))
-       {        
-         if(!strcmp(res, "*DD1NNN"))
-         {
-            PI::PowerChannelsSP[3].setState(ISS_ON);
-         }else if(!strcmp(res, "*DD0NNN"))
-         {
-            PI::PowerChannelsSP[3].setState(ISS_OFF);
-         }else
-         {
-            PI::PowerChannelsSP[3].setState(ISS_OFF);
-         }               
-       } 
-      get_count++;
-    }else if(get_count == 4)
-    {
-       if (sendCommand(">GDE#",res))
-       {        
-         if(!strcmp(res, "*DE1NNN"))
-         {
-            PI::PowerChannelsSP[4].setState(ISS_ON);
-         }else if(!strcmp(res, "*DE0NNN"))
-         {
-            PI::PowerChannelsSP[4].setState(ISS_OFF);
-         }else
-         {
-            PI::PowerChannelsSP[4].setState(ISS_OFF);
-         }               
-       } 
-      get_count++;
-    }else if(get_count == 5)
-    {
-       if (sendCommand(">GDF#",res))
-       {        
-         if(!strcmp(res, "*DF1NNN"))
-         {
-            PI::PowerChannelsSP[5].setState(ISS_ON);
-         }else if(!strcmp(res, "*DF0NNN"))
-         {
-            PI::PowerChannelsSP[5].setState(ISS_OFF);
-         }else
-         {
-            PI::PowerChannelsSP[5].setState(ISS_OFF);
-         }               
-       } 
-      get_count++;
-    }else if(get_count == 6)
-    {
-      if (sendCommand(">GDG#",res))
-      {        
-        if(!strcmp(res, "*DG1NNN"))
+        powerChanged = false;  // Reset at start of power channel polling
+        if (sendCommand(">GDA#", res))
         {
-          PI::PowerChannelsSP[6].setState(ISS_ON);
-        }else if(!strcmp(res, "*DG0NNN"))
-        {
-          PI::PowerChannelsSP[6].setState(ISS_OFF);
-        }else
-        {
-          PI::PowerChannelsSP[6].setState(ISS_OFF);
-        }               
-      } 
-      PI::PowerChannelsSP.apply();
-      get_count++;
-    }else if(get_count == 7)
-    {
-      if (sendCommand(">GUA#",res))
-      {        
-        if(!strcmp(res, "*UA111N"))
-        {
-          PI::USBPortSP[0].setState(ISS_ON);
-        }else if(!strcmp(res, "*UA000N"))
-        {
-          PI::USBPortSP[0].setState(ISS_OFF);
-        }else
-        {
-          PI::USBPortSP[0].setState(ISS_OFF);
-        }               
-      } 
-      get_count++;
-    }else if(get_count == 8)
-    {
-      if (sendCommand(">GUB#",res))
-      {        
-        if(!strcmp(res, "*UB111N"))
-        {
-          PI::USBPortSP[1].setState(ISS_ON);
-        }else if(!strcmp(res, "*UB000N"))
-        {
-          PI::USBPortSP[1].setState(ISS_OFF);
-        }else
-        {
-          PI::USBPortSP[1].setState(ISS_OFF);
-        }               
-      } 
-      get_count++;
-    }else if(get_count == 9)
-    {
-      if (sendCommand(">GUC#",res))
-      {        
-        if(!strcmp(res, "*UC111N"))
-        {
-          PI::USBPortSP[2].setState(ISS_ON);
-        }else if(!strcmp(res, "*UC000N"))
-        {
-          PI::USBPortSP[2].setState(ISS_OFF);
-        }else
-        {
-          PI::USBPortSP[2].setState(ISS_OFF);
-        }               
-      } 
-      get_count++;
-    }else if(get_count == 10)
-    {
-      if (sendCommand(">GUD#",res))
-      {        
-        if(!strcmp(res, "*UD111N"))
-        {
-          PI::USBPortSP[3].setState(ISS_ON);
-        }else if(!strcmp(res, "*UD000N"))
-        {
-          PI::USBPortSP[3].setState(ISS_OFF);
-        }else
-        {
-          PI::USBPortSP[3].setState(ISS_OFF);
-        }               
-      } 
-      get_count++;
-    }else if(get_count == 11)
-    {
-      if (sendCommand(">GUE#",res))
-      {        
-        if(!strcmp(res, "*UE11NN"))
-        {
-          PI::USBPortSP[4].setState(ISS_ON);
-        }else if(!strcmp(res, "*UE00NN"))
-        {
-          PI::USBPortSP[4].setState(ISS_OFF);
-        }else
-        {
-          PI::USBPortSP[4].setState(ISS_OFF);
-        }               
-      } 
-      get_count++;
-    }else if(get_count == 12)
-    {
-      if (sendCommand(">GUF#",res))
-      {        
-        if(!strcmp(res, "*UF11NN"))
-        {
-          PI::USBPortSP[5].setState(ISS_ON);
-        }else if(!strcmp(res, "*UF00NN"))
-        {
-          PI::USBPortSP[5].setState(ISS_OFF);
-        }else
-        {
-          PI::USBPortSP[5].setState(ISS_OFF);
-        }               
-      } 
-      PI::USBPortSP.apply();
-      get_count++;
-    }else if(get_count == 13)
-    {
-      if (sendCommand(">GS#",res))
-      {        
-        // State save status - could be tracked separately if needed
-      } 
-      get_count++;
-    }else if(get_count == 14)
-    {
-      if (sendCommand(">GPF#",res))
-      {        
-        ch3_bus = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        ch3_bus = ch3_bus * 8 / 1000;
-        ch3_w = ch3_current * ch3_bus;
-        chusb_w = ch3_w - ch2_w - ch1_w;
-        if (chusb_w <= 0)
-        {
-          chusb_w = 0;
+            ISState newState = (!strcmp(res, "*DA1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[0].getState() != newState)
+            {
+                PI::PowerChannelsSP[0].setState(newState);
+                powerChanged = true;
+            }
         }
-        
-        PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(ch3_bus);
-        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(ch3_w);
-      } 
-      get_count++;
-    }else if(get_count == 15)
+        get_count++;
+    }
+    else if(get_count == 1)
     {
-      if (sendCommand(">GPE#",res))
-      {        
-        ch3_shuntv = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        ch3_current = ch3_shuntv * 40 / 1000000 / 0.01;  
-        ch3_w = ch3_current * ch3_bus;
-        chusb_w = ch3_w - ch2_w - ch1_w;
-        if (chusb_w <= 0)
+        if (sendCommand(">GDB#", res))
         {
-          chusb_w = 0;
+            ISState newState = (!strcmp(res, "*DB1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[1].getState() != newState)
+            {
+                PI::PowerChannelsSP[1].setState(newState);
+                powerChanged = true;
+            }
         }
-        
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(ch3_current);
-        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(ch3_w);
-        PI::PowerSensorsNP.setState(IPS_OK);
-        PI::PowerSensorsNP.apply();
-        PI::PowerChannelCurrentNP[2].setValue(ch3_current); // Assuming ch3 is port 2
-      } 
-      get_count++;
-    }else if(get_count == 16)
+        get_count++;
+    }
+    else if(get_count == 2)
     {
-      if (sendCommand(">GPC#",res))
-      {        
-        ch2_shuntv = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        ch2_current = ch2_shuntv * 40 / 1000000 / 0.002;
-        ch2_w = ch2_current * ch3_bus;
-        chusb_w = ch3_w - ch2_w - ch1_w;
-        if (chusb_w <= 0)
+        if (sendCommand(">GDC#", res))
         {
-          chusb_w = 0;
+            ISState newState = (!strcmp(res, "*DC1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[2].getState() != newState)
+            {
+                PI::PowerChannelsSP[2].setState(newState);
+                powerChanged = true;
+            }
         }
-        
-        PI::PowerChannelCurrentNP[1].setValue(ch2_current); // Assuming ch2 is port 1
-      } 
-      get_count++;
-    }else if(get_count == 17)
+        get_count++;
+    }
+    else if(get_count == 3)
     {
-      if (sendCommand(">GPA#",res))
-      {        
-        ch1_shuntv = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        ch1_current = ch1_shuntv * 40 / 1000000 / 0.002;
-        ch1_w = ch1_current * ch3_bus;
-        chusb_w = ch3_w - ch2_w - ch1_w;
-        if (chusb_w <= 0)
+        if (sendCommand(">GDD#", res))
         {
-          chusb_w = 0;
+            ISState newState = (!strcmp(res, "*DD1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[3].getState() != newState)
+            {
+                PI::PowerChannelsSP[3].setState(newState);
+                powerChanged = true;
+            }
         }
-        PI::PowerChannelCurrentNP[0].setValue(ch1_current); // Assuming ch1 is port 0
-        PI::PowerChannelCurrentNP.setState(IPS_OK);
-        PI::PowerChannelCurrentNP.apply();
-      } 
-      get_count++;
-    }else if(get_count == 18)
+        get_count++;
+    }
+    else if(get_count == 4)
     {
-      if (sendCommand(">GTC#",res))
-      {        
-        mcu_temp = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        if (mcu_temp == 0)
+        if (sendCommand(">GDE#", res))
         {
-           MCUTempN[0].value = 0;     
-        }else
-        {
-          if (res[2] == 'A')
-          {
-             mcu_temp = mcu_temp / 100;
-             MCUTempN[0].value = mcu_temp; 
-          
-          }else if (res[2] == 'B')
-          {
-             mcu_temp = mcu_temp / 100;
-             mcu_temp = mcu_temp * (-1);
-             MCUTempN[0].value = mcu_temp; 
-          }
+            ISState newState = (!strcmp(res, "*DE1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[4].getState() != newState)
+            {
+                PI::PowerChannelsSP[4].setState(newState);
+                powerChanged = true;
+            }
         }
-        MCUTempNP.s = IPS_OK;
-      } 
-      IDSetNumber(&MCUTempNP, nullptr);
-      get_count++;
-    }else if(get_count == 19)
+        get_count++;
+    }
+    else if(get_count == 5)
     {
-      if (sendCommand(">GTH#",res))
-      {        
-        humidity = (res[5]-0x30)+((res[4]-0x30)*10)+((res[3]-0x30)*100)+((res[2]-0x30)*1000);
-        if (humidity == 0)
-           {
-              setParameterValue("WEATHER_HUMIDITY", 0);
-           }
-           else
-           {
-              humidity = humidity / 100;
-              setParameterValue("WEATHER_HUMIDITY", humidity);
-          }
-      } 
-      ParametersNP.apply();
-      get_count++;
-    }else if(get_count == 20)
-    {
-      if (sendCommand(">GTT#",res))
-      {        
-        temperature = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        if (temperature == 0)
+        if (sendCommand(">GDF#", res))
         {
-           setParameterValue("WEATHER_TEMPERATURE", 0);   
-        }else
-        {
-          if (res[2] == 'A')
-          {
-             temperature = temperature / 100;
-             setParameterValue("WEATHER_TEMPERATURE", temperature);       
-          }else if (res[2] == 'B')
-          {
-             temperature = temperature / 100;
-             temperature = temperature * (-1);
-             setParameterValue("WEATHER_TEMPERATURE", temperature);       
-          }
+            ISState newState = (!strcmp(res, "*DF1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[5].getState() != newState)
+            {
+                PI::PowerChannelsSP[5].setState(newState);
+                powerChanged = true;
+            }
         }
-      } 
-      ParametersNP.apply();
-      get_count++;
-    }else if(get_count == 21)
+        get_count++;
+    }
+    else if(get_count == 6)
     {
-      if (sendCommand(">GTD#",res))
-      {        
-        dewPoint = (res[6]-0x30)+((res[5]-0x30)*10)+((res[4]-0x30)*100)+((res[3]-0x30)*1000);
-        if (dewPoint == 0)
+        if (sendCommand(">GDG#", res))
         {
-           setParameterValue("WEATHER_DEWPOINT", 0);   
-        }else
-        {
-          if (res[2] == 'A')
-          {
-             dewPoint = dewPoint / 100;
-             setParameterValue("WEATHER_DEWPOINT", dewPoint);       
-          }else if (res[2] == 'B')
-          {
-             dewPoint = dewPoint / 100;
-             dewPoint = dewPoint * (-1);
-             setParameterValue("WEATHER_DEWPOINT", dewPoint);       
-          }
+            ISState newState = (!strcmp(res, "*DG1NNN")) ? ISS_ON : ISS_OFF;
+            if (PI::PowerChannelsSP[6].getState() != newState)
+            {
+                PI::PowerChannelsSP[6].setState(newState);
+                powerChanged = true;
+            }
         }
-        ParametersNP.setState(IPS_OK);    
-      } 
-      ParametersNP.apply();  
-      get_count++;
-    }else if(get_count == 22)
+        if (powerChanged)
+        {
+            PI::PowerChannelsSP.apply();
+        }
+        get_count++;
+    }
+    else if(get_count == 7)
     {
-      // Skip auto heater status for now
-      get_count++;
-    }else if(get_count == 23)
+        usbChanged = false;  // Reset at start of USB port polling
+        if (sendCommand(">GUA#", res))
+        {
+            ISState newState = (!strcmp(res, "*UA111N")) ? ISS_ON : ISS_OFF;
+            if (PI::USBPortSP[0].getState() != newState)
+            {
+                PI::USBPortSP[0].setState(newState);
+                usbChanged = true;
+            }
+        }
+        get_count++;
+    }
+    else if(get_count == 8)
     {
-      // Skip auto heater status for now
-      get_count++;
-    }else if(get_count == 24)
+        if (sendCommand(">GUB#", res))
+        {
+            ISState newState = (!strcmp(res, "*UB111N")) ? ISS_ON : ISS_OFF;
+            if (PI::USBPortSP[1].getState() != newState)
+            {
+                PI::USBPortSP[1].setState(newState);
+                usbChanged = true;
+            }
+        }
+        get_count++;
+    }
+    else if(get_count == 9)
     {
-      // Skip auto heater status for now
-      get_count = 0;
+        if (sendCommand(">GUC#", res))
+        {
+            ISState newState = (!strcmp(res, "*UC111N")) ? ISS_ON : ISS_OFF;
+            if (PI::USBPortSP[2].getState() != newState)
+            {
+                PI::USBPortSP[2].setState(newState);
+                usbChanged = true;
+            }
+        }
+        get_count++;
+    }
+    else if(get_count == 10)
+    {
+        if (sendCommand(">GUD#", res))
+        {
+            ISState newState = (!strcmp(res, "*UD111N")) ? ISS_ON : ISS_OFF;
+            if (PI::USBPortSP[3].getState() != newState)
+            {
+                PI::USBPortSP[3].setState(newState);
+                usbChanged = true;
+            }
+        }
+        get_count++;
+    }
+    else if(get_count == 11)
+    {
+        if (sendCommand(">GUE#", res))
+        {
+            ISState newState = (!strcmp(res, "*UE11NN")) ? ISS_ON : ISS_OFF;
+            if (PI::USBPortSP[4].getState() != newState)
+            {
+                PI::USBPortSP[4].setState(newState);
+                usbChanged = true;
+            }
+        }
+        get_count++;
+    }
+    else if(get_count == 12)
+    {
+        if (sendCommand(">GUF#", res))
+        {
+            ISState newState = (!strcmp(res, "*UF11NN")) ? ISS_ON : ISS_OFF;
+            if (PI::USBPortSP[5].getState() != newState)
+            {
+                PI::USBPortSP[5].setState(newState);
+                usbChanged = true;
+            }
+        }
+        if (usbChanged)
+        {
+            PI::USBPortSP.apply();
+        }
+        get_count++;
+    }
+    else if(get_count == 13)
+    {
+        if (sendCommand(">GS#", res))
+        {
+            // State save status - could be tracked separately if needed
+        }
+        get_count++;
+    }
+    else if(get_count == 14)
+    {
+        if (sendCommand(">GPF#", res))
+        {
+            ch3_bus = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            ch3_bus = ch3_bus * 8 / 1000;
+            ch3_w = ch3_current * ch3_bus;
+            chusb_w = ch3_w - ch2_w - ch1_w;
+            if (chusb_w <= 0)
+            {
+                chusb_w = 0;
+            }
+
+            PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(ch3_bus);
+            PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(ch3_w);
+        }
+        get_count++;
+    }
+    else if(get_count == 15)
+    {
+        if (sendCommand(">GPE#", res))
+        {
+            ch3_shuntv = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            ch3_current = ch3_shuntv * 40 / 1000000 / 0.01;
+            ch3_w = ch3_current * ch3_bus;
+            chusb_w = ch3_w - ch2_w - ch1_w;
+            if (chusb_w <= 0)
+            {
+                chusb_w = 0;
+            }
+
+            PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(ch3_current);
+            PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(ch3_w);
+            PI::PowerSensorsNP.setState(IPS_OK);
+            PI::PowerSensorsNP.apply();
+            PI::PowerChannelCurrentNP[2].setValue(ch3_current); // Assuming ch3 is port 2
+        }
+        get_count++;
+    }
+    else if(get_count == 16)
+    {
+        if (sendCommand(">GPC#", res))
+        {
+            ch2_shuntv = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            ch2_current = ch2_shuntv * 40 / 1000000 / 0.002;
+            ch2_w = ch2_current * ch3_bus;
+            chusb_w = ch3_w - ch2_w - ch1_w;
+            if (chusb_w <= 0)
+            {
+                chusb_w = 0;
+            }
+
+            PI::PowerChannelCurrentNP[1].setValue(ch2_current); // Assuming ch2 is port 1
+        }
+        get_count++;
+    }
+    else if(get_count == 17)
+    {
+        if (sendCommand(">GPA#", res))
+        {
+            ch1_shuntv = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            ch1_current = ch1_shuntv * 40 / 1000000 / 0.002;
+            ch1_w = ch1_current * ch3_bus;
+            chusb_w = ch3_w - ch2_w - ch1_w;
+            if (chusb_w <= 0)
+            {
+                chusb_w = 0;
+            }
+            PI::PowerChannelCurrentNP[0].setValue(ch1_current); // Assuming ch1 is port 0
+            PI::PowerChannelCurrentNP.setState(IPS_OK);
+            PI::PowerChannelCurrentNP.apply();
+        }
+        get_count++;
+    }
+    else if(get_count == 18)
+    {
+        if (sendCommand(">GTC#", res))
+        {
+            mcu_temp = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            if (mcu_temp == 0)
+            {
+                MCUTempN[0].value = 0;
+            }
+            else
+            {
+                if (res[2] == 'A')
+                {
+                    mcu_temp = mcu_temp / 100;
+                    MCUTempN[0].value = mcu_temp;
+
+                }
+                else if (res[2] == 'B')
+                {
+                    mcu_temp = mcu_temp / 100;
+                    mcu_temp = mcu_temp * (-1);
+                    MCUTempN[0].value = mcu_temp;
+                }
+            }
+            MCUTempNP.s = IPS_OK;
+        }
+        IDSetNumber(&MCUTempNP, nullptr);
+        get_count++;
+    }
+    else if(get_count == 19)
+    {
+        if (sendCommand(">GTH#", res))
+        {
+            humidity = (res[5] - 0x30) + ((res[4] - 0x30) * 10) + ((res[3] - 0x30) * 100) + ((res[2] - 0x30) * 1000);
+            if (humidity == 0)
+            {
+                setParameterValue("WEATHER_HUMIDITY", 0);
+            }
+            else
+            {
+                humidity = humidity / 100;
+                setParameterValue("WEATHER_HUMIDITY", humidity);
+            }
+        }
+        ParametersNP.apply();
+        get_count++;
+    }
+    else if(get_count == 20)
+    {
+        if (sendCommand(">GTT#", res))
+        {
+            temperature = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            if (temperature == 0)
+            {
+                setParameterValue("WEATHER_TEMPERATURE", 0);
+            }
+            else
+            {
+                if (res[2] == 'A')
+                {
+                    temperature = temperature / 100;
+                    setParameterValue("WEATHER_TEMPERATURE", temperature);
+                }
+                else if (res[2] == 'B')
+                {
+                    temperature = temperature / 100;
+                    temperature = temperature * (-1);
+                    setParameterValue("WEATHER_TEMPERATURE", temperature);
+                }
+            }
+        }
+        ParametersNP.apply();
+        get_count++;
+    }
+    else if(get_count == 21)
+    {
+        if (sendCommand(">GTD#", res))
+        {
+            dewPoint = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
+            if (dewPoint == 0)
+            {
+                setParameterValue("WEATHER_DEWPOINT", 0);
+            }
+            else
+            {
+                if (res[2] == 'A')
+                {
+                    dewPoint = dewPoint / 100;
+                    setParameterValue("WEATHER_DEWPOINT", dewPoint);
+                }
+                else if (res[2] == 'B')
+                {
+                    dewPoint = dewPoint / 100;
+                    dewPoint = dewPoint * (-1);
+                    setParameterValue("WEATHER_DEWPOINT", dewPoint);
+                }
+            }
+            ParametersNP.setState(IPS_OK);
+        }
+        ParametersNP.apply();
+        get_count++;
+    }
+    else if(get_count == 22)
+    {
+        // Skip auto heater status for now
+        get_count++;
+    }
+    else if(get_count == 23)
+    {
+        // Skip auto heater status for now
+        get_count++;
+    }
+    else if(get_count == 24)
+    {
+        // Skip auto heater status for now
+        get_count = 0;
     }
     init = 1;
 }
 
-bool TerransPowerBoxProV2::processButtonSwitch(const char *dev, const char *name, ISState *states, char *names[],int n)
+bool TerransPowerBoxProV2::processButtonSwitch(const char *dev, const char *name, ISState * states, char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
     INDI_UNUSED(states);
     INDI_UNUSED(names);
     INDI_UNUSED(n);
-    
+
     // Auto heater handling would go here if needed
     return false;
 }
@@ -686,7 +680,8 @@ bool TerransPowerBoxProV2::processButtonSwitch(const char *dev, const char *name
 bool TerransPowerBoxProV2::SetPowerPort(size_t port, bool enabled)
 {
     char res[CMD_LEN] = {0};
-    const char* commands[][2] = {
+    const char* commands[][2] =
+    {
         {">SDA1#", ">SDA0#"},  // Port 0: DC A
         {">SDB1#", ">SDB0#"},  // Port 1: DC B
         {">SDC1#", ">SDC0#"},  // Port 2: DC C
@@ -695,18 +690,18 @@ bool TerransPowerBoxProV2::SetPowerPort(size_t port, bool enabled)
         {">SDF1#", ">SDF0#"},  // Port 5: DC F
         {">SDG1#", ">SDG0#"}   // Port 6: DC 19V
     };
-    
+
     if (port >= 7)
         return false;
-        
+
     const char* cmd = enabled ? commands[port][0] : commands[port][1];
-    
+
     if (sendCommand(cmd, res))
     {
         // Verify response matches expected state
         return true;
     }
-    
+
     return false;
 }
 
@@ -722,13 +717,13 @@ bool TerransPowerBoxProV2::SetDewPort(size_t port, bool enabled, double dutyCycl
 bool TerransPowerBoxProV2::SetVariablePort(size_t port, bool enabled, double voltage)
 {
     INDI_UNUSED(port);
-    
+
     if (!enabled)
     {
         sendCommand(">SA10#", nullptr);
         return true;
     }
-    
+
     // Map voltage to command
     if (voltage < 7)  // 5V
     {
@@ -742,7 +737,7 @@ bool TerransPowerBoxProV2::SetVariablePort(size_t port, bool enabled, double vol
     {
         sendCommand(">SA550#", nullptr);
     }
-    
+
     return true;
 }
 
@@ -770,7 +765,8 @@ bool TerransPowerBoxProV2::CyclePower()
 bool TerransPowerBoxProV2::SetUSBPort(size_t port, bool enabled)
 {
     char res[CMD_LEN] = {0};
-    const char* commands[][2] = {
+    const char* commands[][2] =
+    {
         {">SUA1A#", ">SUA0A#"},  // Port 0: USB A
         {">SUB1A#", ">SUB0A#"},  // Port 1: USB B
         {">SUC1A#", ">SUC0A#"},  // Port 2: USB C
@@ -778,17 +774,18 @@ bool TerransPowerBoxProV2::SetUSBPort(size_t port, bool enabled)
         {">SUE1A#", ">SUE0A#"},  // Port 4: USB E
         {">SUF1A#", ">SUF0A#"}   // Port 5: USB F
     };
-    
+
     if (port >= 6)
         return false;
-        
+
     const char* cmd = enabled ? commands[port][0] : commands[port][1];
-    
+
     if (sendCommand(cmd, res))
     {
         // Verify response matches expected state
         return true;
     }
-    
+
     return false;
 }
+

@@ -55,7 +55,7 @@ double mcu_temp = 0;
 
 TerransPowerBoxGoV2::TerransPowerBoxGoV2() : INDI::PowerInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 bool TerransPowerBoxGoV2::initProperties()
@@ -421,6 +421,11 @@ void TerransPowerBoxGoV2::TimerHit()
 
     // Update PowerInterface properties
     char res[CMD_LEN] = {0};
+    bool powerChanged = false;
+    bool usbChanged = false;
+    bool stateSaveChanged = false;
+    bool sensorsChanged = false;
+    bool mcuTempChanged = false;
 
     // Get Power Channel States
     for (size_t i = 0; i < PI::PowerChannelsSP.size(); ++i)
@@ -430,22 +435,26 @@ void TerransPowerBoxGoV2::TimerHit()
         {
             if (sendCommand(portCmds[i], res))
             {
-                if (!strcmp(res, "*D1NNN")) // Assuming D1NNN for ON, D0NNN for OFF
+                // Response format: *DA1NNN (channel A, state 1), *DB0NNN (channel B, state 0), etc.
+                // res[2] is the channel letter (A, B, C, D, E)
+                // res[3] is the state ('1' for ON, '0' for OFF)
+                char expectedChannel = 'A' + i;
+                if (strlen(res) >= 4 && res[2] == expectedChannel)
                 {
-                    PI::PowerChannelsSP[i].setState(ISS_ON);
-                }
-                else if (!strcmp(res, "*D0NNN"))
-                {
-                    PI::PowerChannelsSP[i].setState(ISS_OFF);
-                }
-                else
-                {
-                    PI::PowerChannelsSP[i].setState(ISS_OFF); // Default to OFF on unknown response
+                    ISState newState = (res[3] == '1') ? ISS_ON : ISS_OFF;
+                    if (PI::PowerChannelsSP[i].getState() != newState)
+                    {
+                        PI::PowerChannelsSP[i].setState(newState);
+                        powerChanged = true;
+                    }
                 }
             }
         }
     }
-    PI::PowerChannelsSP.apply();
+    if (powerChanged)
+    {
+        PI::PowerChannelsSP.apply();
+    }
 
     // Get USB Port States
     for (size_t i = 0; i < PI::USBPortSP.size(); ++i)
@@ -455,95 +464,125 @@ void TerransPowerBoxGoV2::TimerHit()
         {
             if (sendCommand(usbCmds[i], res))
             {
-                // Assuming *UA111N for ON, *UA000N for OFF for USB3.0 A/B
-                // Assuming *UE11NN for ON, *UE00NN for OFF for USB2.0 E/F
-                if ((i == 0 || i == 1) && !strcmp(res, "*U111N"))
+                // Response format: *UA000N (USB A, OFF), *UB111N (USB B, ON) for USB3.0 A/B
+                // Response format: *UE00NN (USB E, OFF), *UF11NN (USB F, ON) for USB2.0 E/F
+                // res[2] is the USB port letter (A, B, E, F)
+                // res[3] is the first state bit ('1' for ON, '0' for OFF)
+                const char *portLetters = "ABEF";
+                char expectedPort = portLetters[i];
+                if (strlen(res) >= 4 && res[2] == expectedPort)
                 {
-                    PI::USBPortSP[i].setState(ISS_ON);
-                }
-                else if ((i == 0 || i == 1) && !strcmp(res, "*U000N"))
-                {
-                    PI::USBPortSP[i].setState(ISS_OFF);
-                }
-                else if ((i == 2 || i == 3) && !strcmp(res, "*U11NN"))
-                {
-                    PI::USBPortSP[i].setState(ISS_ON);
-                }
-                else if ((i == 2 || i == 3) && !strcmp(res, "*U00NN"))
-                {
-                    PI::USBPortSP[i].setState(ISS_OFF);
-                }
-                else
-                {
-                    PI::USBPortSP[i].setState(ISS_OFF); // Default to OFF on unknown response
+                    ISState newState = (res[3] == '1') ? ISS_ON : ISS_OFF;
+                    if (PI::USBPortSP[i].getState() != newState)
+                    {
+                        PI::USBPortSP[i].setState(newState);
+                        usbChanged = true;
+                    }
                 }
             }
         }
     }
-    PI::USBPortSP.apply();
+    if (usbChanged)
+    {
+        PI::USBPortSP.apply();
+    }
 
     // Get State Save Switch
     if (sendCommand(">GS#", res))
     {
+        // Response format: *SS1NNN (save enabled), *SS0NNN (save disabled)
         if (!strcmp(res, "*SS1NNN"))
         {
-            StateSaveSP[0].setState(ISS_ON);
-            StateSaveSP[1].setState(ISS_OFF);
+            if (StateSaveSP[0].getState() != ISS_ON || StateSaveSP[1].getState() != ISS_OFF)
+            {
+                StateSaveSP[0].setState(ISS_ON);
+                StateSaveSP[1].setState(ISS_OFF);
+                stateSaveChanged = true;
+            }
         }
         else if (!strcmp(res, "*SS0NNN"))
         {
-            StateSaveSP[0].setState(ISS_OFF);
-            StateSaveSP[1].setState(ISS_ON);
-        }
-        else
-        {
-            StateSaveSP[0].setState(ISS_OFF);
-            StateSaveSP[1].setState(ISS_OFF);
+            if (StateSaveSP[0].getState() != ISS_OFF || StateSaveSP[1].getState() != ISS_ON)
+            {
+                StateSaveSP[0].setState(ISS_OFF);
+                StateSaveSP[1].setState(ISS_ON);
+                stateSaveChanged = true;
+            }
         }
     }
-    StateSaveSP.apply();
+    if (stateSaveChanged)
+    {
+        StateSaveSP.apply();
+    }
 
     // Get Input Voltage, Current, Power
+    double newVoltage = PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue();
+    double newCurrent = PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue();
+    double newPower = PI::PowerSensorsNP[PI::SENSOR_POWER].getValue();
+
     if (sendCommand(">GPA#", res))
     {
         ch1_bus = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
         ch1_bus = ch1_bus * 4 / 1000;
-        PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(ch1_bus);
+        newVoltage = ch1_bus;
     }
 
     if (sendCommand(">GPB#", res))
     {
         ch1_shuntv = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
         ch1_current = ch1_shuntv * 10 / 1000000 / 0.002;
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(ch1_current);
-        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(ch1_current * ch1_bus); // Calculate power
+        newCurrent = ch1_current;
+        newPower = ch1_current * ch1_bus; // Calculate power
     }
-    PI::PowerSensorsNP.setState(IPS_OK);
-    PI::PowerSensorsNP.apply();
+
+    if (PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue() != newVoltage ||
+            PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue() != newCurrent ||
+            PI::PowerSensorsNP[PI::SENSOR_POWER].getValue() != newPower)
+    {
+        PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(newVoltage);
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(newCurrent);
+        PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(newPower);
+        PI::PowerSensorsNP.setState(IPS_OK);
+        sensorsChanged = true;
+    }
+    if (sensorsChanged)
+    {
+        PI::PowerSensorsNP.apply();
+    }
 
     // Get MCU Temperature
     if (sendCommand(">GC#", res))
     {
+        double newMcuTemp = MCUTempNP[0].getValue();
         mcu_temp = (res[6] - 0x30) + ((res[5] - 0x30) * 10) + ((res[4] - 0x30) * 100) + ((res[3] - 0x30) * 1000);
         if (mcu_temp == 0)
         {
-            MCUTempNP[0].setValue(0);
+            newMcuTemp = 0;
         }
         else
         {
             if (res[2] == 'A')
             {
                 mcu_temp = mcu_temp / 100;
-                MCUTempNP[0].setValue(mcu_temp);
+                newMcuTemp = mcu_temp;
             }
             else if (res[2] == 'B')
             {
                 mcu_temp = mcu_temp / 100;
                 mcu_temp = mcu_temp * (-1);
-                MCUTempNP[0].setValue(mcu_temp);
+                newMcuTemp = mcu_temp;
             }
         }
-        MCUTempNP.setState(IPS_OK);
+
+        if (MCUTempNP[0].getValue() != newMcuTemp)
+        {
+            MCUTempNP[0].setValue(newMcuTemp);
+            MCUTempNP.setState(IPS_OK);
+            mcuTempChanged = true;
+        }
+    }
+    if (mcuTempChanged)
+    {
         MCUTempNP.apply();
     }
 
