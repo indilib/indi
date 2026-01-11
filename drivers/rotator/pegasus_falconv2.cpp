@@ -43,7 +43,7 @@ static std::unique_ptr<PegasusFalconV2> falconv2(new PegasusFalconV2());
 
 PegasusFalconV2::PegasusFalconV2()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     lastStatusData.reserve(7);
 }
 
@@ -71,6 +71,11 @@ bool PegasusFalconV2::initProperties()
     DerotateNP.fill(getDeviceName(), "ROTATOR_DEROTATE", "Derotation", MAIN_CONTROL_TAB, IP_RW,
                     60, IPS_IDLE);
 
+    // Rotator Speed
+    RotatorSpeedNP[0].fill("SPEED", "Speed (steps/sec)", "%.f", 10, 4500, 10, 500);
+    RotatorSpeedNP.fill(getDeviceName(), "ROTATOR_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW,
+                        60, IPS_IDLE);
+
     // Firmware
     FirmwareTP[0].fill("VERSION", "Version", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
@@ -87,6 +92,7 @@ bool PegasusFalconV2::updateProperties()
     {
         // Main Control
         defineProperty(DerotateNP);
+        defineProperty(RotatorSpeedNP);
         defineProperty(FirmwareTP);
         defineProperty(ReloadFirmwareSP);
 
@@ -95,6 +101,7 @@ bool PegasusFalconV2::updateProperties()
     {
         // Main Control
         deleteProperty(DerotateNP);
+        deleteProperty(RotatorSpeedNP);
         deleteProperty(FirmwareTP);
         deleteProperty(ReloadFirmwareSP);
     }
@@ -112,7 +119,14 @@ const char * PegasusFalconV2::getDefaultName()
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::Handshake()
 {
-    return getFirmware();
+    if (!getFirmware())
+        return false;
+
+    // Try to read the rotator speed, but don't fail if it doesn't work
+    if (!getRotatorSpeed())
+        LOG_WARN("Failed to read rotator speed during connection.");
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -138,6 +152,22 @@ bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double valu
             else
                 DerotateNP.setState(IPS_ALERT);
             DerotateNP.apply();
+            return true;
+        }
+
+        // Rotator Speed
+        if (RotatorSpeedNP.isNameMatch(name))
+        {
+            const uint32_t speed = static_cast<uint32_t>(values[0]);
+            if (setRotatorSpeed(speed))
+            {
+                RotatorSpeedNP[0].setValue(values[0]);
+                LOGF_INFO("Rotator speed set to %u steps/sec.", speed);
+                RotatorSpeedNP.setState(IPS_OK);
+            }
+            else
+                RotatorSpeedNP.setState(IPS_ALERT);
+            RotatorSpeedNP.apply();
             return true;
         }
     }
@@ -235,6 +265,58 @@ bool PegasusFalconV2::setDerotation(uint32_t ms)
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "DR:%d", ms);
     return sendCommand(cmd, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusFalconV2::getRotatorSpeed()
+{
+    char res[DRIVER_LEN] = {0};
+    if (sendCommand("FS", res))
+    {
+        // Response format: "FS:<value>"
+        std::vector<std::string> result = split(res, ":");
+        if (result.size() == 2 && result[0] == "FS")
+        {
+            try
+            {
+                const uint32_t speed = std::stoul(result[1]);
+                RotatorSpeedNP[0].setValue(speed);
+                RotatorSpeedNP.setState(IPS_OK);
+                LOGF_INFO("Rotator speed is %u steps/sec.", speed);
+                return true;
+            }
+            catch (...)
+            {
+                RotatorSpeedNP.setState(IPS_ALERT);
+                LOGF_ERROR("Failed to parse speed response: %s", res);
+                return false;
+            }
+        }
+        else
+        {
+            LOGF_ERROR("Invalid speed response format: %s", res);
+            RotatorSpeedNP.setState(IPS_ALERT);
+            return false;
+        }
+    }
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusFalconV2::setRotatorSpeed(uint32_t speed)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "FS:%u", speed);
+    if (sendCommand(cmd, res))
+    {
+        // Response should be "FS:" without the value
+        return (!strncmp(res, "FS:", 3));
+    }
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////

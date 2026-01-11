@@ -399,7 +399,7 @@
         </device>
         <device label="Pegasus FalconV2" manufacturer="Pegasus Astro">
             <driver name="Pegasus FalconV2">indi_falconv2_rotator</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Rotator Simulator" manufacturer="Simulator">
             <driver name="Rotator Simulator">indi_simulator_rotator</driver>
