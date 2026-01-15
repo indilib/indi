@@ -309,9 +309,11 @@ void PMC8::getStartupData()
     LOG_INFO("Be prepared to intervene if something unexpected occurs.");
 
 #if 0
-    // FIXME - Need to handle southern hemisphere for DEC?
+    // Park position initialization
+    // Southern Hemisphere support: Use get_pmc8_east_dir() to determine proper DEC park position
+    // In northern hemisphere, park at DEC +90; in southern hemisphere, park at DEC -90
     double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    double DEC = CurrentDEC;
+    double DEC = get_pmc8_east_dir() ? 90.0 : -90.0;  // +90 for north, -90 for south
 
     // currently only park at motor position (0, 0)
     if (InitPark())
@@ -863,11 +865,13 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
     if (longitude > 180)
         longitude -= 360;
 
-    // experimental support for Southern Hemisphere!
+    // Southern Hemisphere support
+    // As of 2024, southern hemisphere is now supported with proper coordinate
+    // transformations and motor direction handling via pmc8_east_dir variable.
+    // The low-level driver (pmc8driver.cpp) handles the coordinate math.
     if (latitude < 0)
     {
-        LOG_WARN("Southern Hemisphere support still experimental!");
-        //return false;
+        LOG_INFO("Southern Hemisphere detected - using inverted coordinate system.");
     }
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
@@ -1471,8 +1475,8 @@ void PMC8::mountSim()
     set_pmc8_sim_dec(currentDEC);
 }
 
-#if 0
-// PMC8 only parks to motor position (0, 0) currently
+// PMC8 parks to motor position (0, 0) which corresponds to HA=6h, DEC=+/-90
+// Southern Hemisphere support: Use get_pmc8_east_dir() to determine proper DEC park position
 bool PMC8::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
@@ -1483,28 +1487,17 @@ bool PMC8::SetCurrentPark()
 
 bool PMC8::SetDefaultPark()
 {
-    // By default set RA to HA
+    // By default set RA to HA (Hour Angle)
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    //    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
-    SetAxis2Park(90);
+    // get_pmc8_east_dir() returns 1 for northern hemisphere, 0 for southern
+    // In northern hemisphere, park pointing at north celestial pole (DEC +90)
+    // In southern hemisphere, park pointing at south celestial pole (DEC -90)
+    SetAxis2Park(get_pmc8_east_dir() ? 90.0 : -90.0);
 
     return true;
 }
-#else
-bool PMC8::SetCurrentPark()
-{
-    LOG_ERROR("PPMC8::SetCurrentPark() not implemented!");
-    return false;
-}
-
-bool PMC8::SetDefaultPark()
-{
-    LOG_ERROR("PMC8::SetDefaultPark() not implemented!");
-    return false;
-}
-#endif
 
 uint8_t PMC8::convertToPMC8TrackMode(uint8_t mode)
 {
