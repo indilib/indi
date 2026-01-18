@@ -1759,7 +1759,7 @@ bool SkywatcherAPIMount::trackUsingPID()
                        Direction == '0' ? "Forward" : "Backward");
 #ifdef DEBUG_PID
             LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
-                       m_Controllers[AXIS1]->propotionalTerm(),
+                       m_Controllers[AXIS1]->proportionalTerm(),
                        m_Controllers[AXIS1]->integralTerm(),
                        m_Controllers[AXIS1]->derivativeTerm());
 #endif
@@ -1816,7 +1816,7 @@ bool SkywatcherAPIMount::trackUsingPID()
                        Error[AXIS2] > 0 ? "Forward" : "Backward");
 #ifdef DEBUG_PID
             LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
-                       m_Controllers[AXIS2]->propotionalTerm(),
+                       m_Controllers[AXIS2]->proportionalTerm(),
                        m_Controllers[AXIS2]->integralTerm(),
                        m_Controllers[AXIS2]->derivativeTerm());
 #endif
@@ -1975,7 +1975,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
                    offsetSteps[AXIS_AZ], trackRates[AXIS_AZ]);
 #ifdef DEBUG_PID
         LOGF_DEBUG("Tracking AZ P: %8.1f I: %8.1f D: %8.1f O: %8.1f",
-                   m_Controllers[AXIS_AZ]->propotionalTerm(),
+                   m_Controllers[AXIS_AZ]->proportionalTerm(),
                    m_Controllers[AXIS_AZ]->integralTerm(),
                    m_Controllers[AXIS_AZ]->derivativeTerm(),
                    trackRates[AXIS_AZ] - predRate[AXIS_AZ]);
@@ -2006,7 +2006,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
                    offsetSteps[AXIS_ALT], trackRates[AXIS_ALT]);
 #ifdef DEBUG_PID
         LOGF_DEBUG("Tracking AL P: %8.1f I: %8.1f D: %8.1f O: %8.1f",
-                   m_Controllers[AXIS_ALT]->propotionalTerm(),
+                   m_Controllers[AXIS_ALT]->proportionalTerm(),
                    m_Controllers[AXIS_ALT]->integralTerm(),
                    m_Controllers[AXIS_ALT]->derivativeTerm(),
                    trackRates[AXIS_ALT] - predRate[AXIS_ALT]);
