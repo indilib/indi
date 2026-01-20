@@ -322,3 +322,11 @@ SET(pegasus_flatmaster_SRC
 add_executable(indi_pegasus_flatmaster ${pegasus_flatmaster_SRC})
 target_link_libraries(indi_pegasus_flatmaster indidriver)
 install(TARGETS indi_pegasus_flatmaster RUNTIME DESTINATION bin)
+
+# ########## StarTech 7-Port Managed USB Hub ###############
+SET(startech_hub_SRC
+    startech_hub.cpp)
+
+add_executable(indi_startech_hub ${startech_hub_SRC})
+target_link_libraries(indi_startech_hub indidriver)
+install(TARGETS indi_startech_hub RUNTIME DESTINATION bin)

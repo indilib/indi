@@ -907,6 +907,10 @@
             <driver name="UPS">indi_ups_safety</driver>
             <version>1.0</version>
         </device>
+        <device label="StarTech 7-Ports Managed USB Hub" manufacturer="StarTech">
+            <driver name="StarTech 7-Ports Managed USB Hub">indi_startech_hub</driver>
+        <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
