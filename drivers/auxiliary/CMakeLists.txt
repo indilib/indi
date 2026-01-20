@@ -314,3 +314,11 @@ SET(gemini_flatpanel_SRC
 add_executable(indi_gemini_flatpanel ${gemini_flatpanel_SRC})
 target_link_libraries(indi_gemini_flatpanel indidriver)
 install(TARGETS indi_gemini_flatpanel RUNTIME DESTINATION bin)
+
+# ########## Pegasus Flatmaster ###############
+SET(pegasus_flatmaster_SRC
+    pegasus_flatmaster.cpp)
+
+add_executable(indi_pegasus_flatmaster ${pegasus_flatmaster_SRC})
+target_link_libraries(indi_pegasus_flatmaster indidriver)
+install(TARGETS indi_pegasus_flatmaster RUNTIME DESTINATION bin)
