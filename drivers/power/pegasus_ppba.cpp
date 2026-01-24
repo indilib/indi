@@ -360,6 +360,19 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             AdjOutVoltSP.setState(IPS_ALERT);
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+            // if switching from off to some voltage, we first need to turn on the port
+            if (previous_index == ADJOUT_OFF)
+            {
+                snprintf(cmd, PEGASUS_LEN, "P2:%d", 1);
+                if (!sendCommand(cmd, res))
+                {
+                    AdjOutVoltSP.reset();
+                    AdjOutVoltSP[previous_index].setState(ISS_ON);
+                    AdjOutVoltSP.setState(IPS_ALERT);
+                    AdjOutVoltSP.apply();
+                    return true;
+                }
+            }
             snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
             if (sendCommand(cmd, res))
             {
