@@ -375,7 +375,7 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             }
 
             AdjOutVoltSP.apply();
-            LOGF_INFO("New adj. voltage level: %dV", adjv);
+            LOGF_INFO("New adj. voltage: %dV", adjv);
             return true;
         }
 
@@ -711,7 +711,7 @@ bool PegasusPPBA::getSensorData()
         }
         // Adjustable Power Status
         AdjOutVoltSP.reset();
-        if (std::stoi(result[PA_ADJ_STATUS]) == 0)
+        if (std::stoi(result[PA_PWRADJ]) == 0)
             AdjOutVoltSP[ADJOUT_OFF].setState(ISS_ON);
         else
         {
