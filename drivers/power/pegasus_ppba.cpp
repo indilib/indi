@@ -335,27 +335,21 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             {
                 case ADJOUT_OFF:
                     adjv = 0;
-                    LOG_INFO("New adj. voltage level: off");
                     break;
                 case ADJOUT_3V:
                     adjv = 3;
-                    LOG_INFO("New adj. voltage level: 3V");
                     break;
                 case ADJOUT_5V:
                     adjv = 5;
-                    LOG_INFO("New adj. voltage level: 5V");
                     break;
                 case ADJOUT_8V:
                     adjv = 8;
-                    LOG_INFO("New adj. voltage level: 8V");
                     break;
                 case ADJOUT_9V:
                     adjv = 9;
-                    LOG_INFO("New adj. voltage level: 9V");
                     break;
                 case ADJOUT_12V:
                     adjv = 12;
-                    LOG_INFO("New adj. voltage level: 12V");
                     break;
                 default:
                     AdjOutVoltSP.setState(IPS_ALERT);
@@ -369,6 +363,7 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
             if (sendCommand(cmd, res))
             {
+                AdjOutVoltSP[target_index].setState(ISS_ON);
                 AdjOutVoltSP.setState(IPS_OK);
                 saveConfig(AdjOutVoltSP);
             }
@@ -380,6 +375,7 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             }
 
             AdjOutVoltSP.apply();
+            LOGF_INFO("New adj. voltage level: %dV", adjv);
             return true;
         }
 
