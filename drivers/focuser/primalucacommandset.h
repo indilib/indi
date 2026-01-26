@@ -80,7 +80,8 @@ class Communication
 
         // Communication functions
         bool sendRequest(const json &command, json *response = nullptr);
-        template <typename T = int32_t> bool genericRequest(const std::string &node, const std::string &type, const json &command, T *response = nullptr);
+        template <typename T = int32_t> bool genericRequest(const std::string &node, const std::string &type, const json &command,
+                T *response = nullptr);
         /**
          * @brief Get parameter from device.
          * @param type motor type, if MOT_NONE, then it's a generic device-wide get.
@@ -193,28 +194,40 @@ class SestoSenso2 : public Focuser
         bool setMotorCurrents(const MotorCurrents &currents);
         bool setMotorHold(bool hold);
 
-        // Calibration
-        bool initCalibration(); // Manual calibration init
-        bool storeAsMaxPosition(); // Manual calibration store max
-        bool storeAsMinPosition(); // Manual calibration store min
-        bool goOutToFindMaxPos(); // Manual calibration go out to find max
+        // ===== SESTOSENSO 2 Calibration Methods =====
+        // SS2 uses: "Init", "StoreAsMinPos", "GoOutToFindMaxPos", "StoreAsMaxPos"
+        bool initCalibrationSS2();              // Sends: "Init"
+        bool goOutToFindMaxPosSS2();            // Sends: "GoOutToFindMaxPos"
+        bool storeAsMaxPositionSS2();           // Sends: "StoreAsMaxPos"
 
-        // SestoSenso3 Specific Calibration
-        bool initSemiAutoCalibration();
-        bool goInToFindMinPos();
-        bool stopMotor();
-        bool moveIn(uint32_t steps);
-        bool moveOut(uint32_t steps);
-        bool goOutToFindMaxPosSemiAuto();
-        bool storeAsMaxPosSemiAuto();
-        bool startAutoCalibration();
-        bool stopCalibration();
+        // ===== SESTOSENSO 3 Manual Calibration Methods =====
+        // SS3 Manual mode uses: "Init-Manual", "StoreAsMinPos", "StoreAsMaxPos-Manual"
+        bool initCalibrationSS3Manual();        // Sends: "Init-Manual"
+        bool storeAsMaxPositionSS3Manual();     // Sends: "StoreAsMaxPos-Manual"
+
+        // ===== SESTOSENSO 3 Semi-Automatic Calibration Methods =====
+        // SS3 Semi-Auto uses: "Init", "StoreAsMinPos", move commands, "GoOutToFindMaxPos", "StoreAsMaxPos"
+        bool initCalibrationSS3SemiAuto();      // Sends: "Init"
+        bool goInToFindMinPosSS3();             // Sends: "GoInToFindMinPos"
+        bool goOutToFindMaxPosSS3();            // Sends: "GoOutToFindMaxPos"
+        bool stopMotorSS3();                    // Sends: "StopMotor"
+        bool storeAsMaxPositionSS3SemiAuto();   // Sends: "StoreAsMaxPos"
+        bool moveInSS3(uint32_t steps);         // Sends: "MoveIn-<steps>"
+        bool moveOutSS3(uint32_t steps);        // Sends: "MoveOut-<steps>"
+
+        // ===== SESTOSENSO 3 SC Automatic Calibration Methods =====
+        // SS3 SC uses: "start_auto_cal" (fully automatic)
+        bool startAutoCalibrationSS3SC();       // Sends: "start_auto_cal"
+        bool stopCalibrationSS3();              // Sends: "stop_calib"
+
+        // ===== Shared Calibration Methods (All Models) =====
+        bool storeAsMinPosition();              // Sends: "StoreAsMinPos" (same for all models)
 
         // SestoSenso3 Recovery Delay
         bool setRecoveryDelay(int32_t delay);
         bool getRecoveryDelay(int32_t &delay);
         bool getModel(std::string &model); // Added to SestoSenso2
-        
+
         // SestoSenso3 Model Detection
         bool getSubModel(std::string &submodel);
 };
@@ -300,8 +313,8 @@ class GIOTTO
         bool getBrightness(uint16_t &value);
         bool getModel(std::string &model); // Added to GIOTTO
 
-private:
-    std::unique_ptr<Communication> m_Communication;
+    private:
+        std::unique_ptr<Communication> m_Communication;
 };
 
 /*****************************************************************************************
@@ -311,31 +324,31 @@ private:
 class ALTO
 {
 
-public:
-    explicit ALTO(const std::string &name, int port);
+    public:
+        explicit ALTO(const std::string &name, int port);
 
-    // Status
-    bool getStatus(json &status);
+        // Status
+        bool getStatus(json &status);
 
-    // Parking
-    bool Park();
-    bool UnPark();
+        // Parking
+        bool Park();
+        bool UnPark();
 
-    // Set position 0 to 100
-    bool setPosition(uint8_t value);
-    bool getPosition(uint8_t &value);
-    bool stop();
+        // Set position 0 to 100
+        bool setPosition(uint8_t value);
+        bool getPosition(uint8_t &value);
+        bool stop();
 
-    // Calibration
-    bool initCalibration();
-    bool close(bool fast = false);
-    bool open(bool fast = false);
+        // Calibration
+        bool initCalibration();
+        bool close(bool fast = false);
+        bool open(bool fast = false);
         bool storeClosedPosition();
         bool storeOpenPosition();
         bool getModel(std::string &model); // Added to ALTO
 
-private:
-    std::unique_ptr<Communication> m_Communication;
+    private:
+        std::unique_ptr<Communication> m_Communication;
 };
 
 }

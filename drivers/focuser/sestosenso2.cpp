@@ -4,7 +4,7 @@
     Copyright (C) 2020 Jasem Mutlaq (Added Esatto support)
 
     Jasem Mutlaq 2025: Added SestoSenso3 support.
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -119,15 +119,18 @@ bool SestoSenso2::initProperties()
     // Semi-automatic calibration move switches
     MoveInOut100SP[MOVE_IN_100].fill("MOVE_IN_100", "Move In 100", ISS_OFF);
     MoveInOut100SP[MOVE_OUT_100].fill("MOVE_OUT_100", "Move Out 100", ISS_OFF);
-    MoveInOut100SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_100", "Move 100 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    MoveInOut100SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_100", "Move 100 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                        IPS_IDLE);
 
     MoveInOut500SP[MOVE_IN_500].fill("MOVE_IN_500", "Move In 500", ISS_OFF);
     MoveInOut500SP[MOVE_OUT_500].fill("MOVE_OUT_500", "Move Out 500", ISS_OFF);
-    MoveInOut500SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_500", "Move 500 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    MoveInOut500SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_500", "Move 500 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                        IPS_IDLE);
 
     MoveInOut1000SP[MOVE_IN_1000].fill("MOVE_IN_1000", "Move In 1000", ISS_OFF);
     MoveInOut1000SP[MOVE_OUT_1000].fill("MOVE_OUT_1000", "Move Out 1000", ISS_OFF);
-    MoveInOut1000SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_1000", "Move 1000 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    MoveInOut1000SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_1000", "Move 1000 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                         IPS_IDLE);
 
     // Hold state
     MotorHoldSP[MOTOR_HOLD_ON].fill("HOLD_ON", "Hold On", ISS_OFF);
@@ -575,7 +578,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     if (m_SestoSensoModel == SESTOSENSO3_SC)
                     {
                         // SestoSenso3 SC: Automatic Calibration
-                        if (m_SestoSenso2->startAutoCalibration() == false)
+                        if (m_SestoSenso2->startAutoCalibrationSS3SC() == false)
                             return false;
                         CalibrationMessageTP[0].setText("Automatic Calibration Started. Please wait...");
                         CalibrationMessageTP.apply();
@@ -585,7 +588,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     else if (m_SestoSensoModel == SESTOSENSO3_STANDARD || m_SestoSensoModel == SESTOSENSO3_LS)
                     {
                         // SestoSenso3 (non-SC): Semi-Automatic Calibration
-                        if (m_SestoSenso2->initSemiAutoCalibration() == false)
+                        if (m_SestoSenso2->initCalibrationSS3SemiAuto() == false)
                             return false;
                         CalibrationMessageTP[0].setText("Semi-Automatic Calibration: Move focuser to MIN position and then press NEXT.");
                         CalibrationMessageTP.apply();
@@ -599,8 +602,8 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     }
                     else // SestoSenso2
                     {
-                        // Manual Calibration
-                        if (m_SestoSenso2->initCalibration() == false)
+                        // SestoSenso2: Manual Calibration (user moves by hand)
+                        if (m_SestoSenso2->initCalibrationSS2() == false)
                             return false;
                         CalibrationMessageTP[0].setText("Manual Calibration: Set focus in MIN position and then press NEXT.");
                         CalibrationMessageTP.apply();
@@ -653,15 +656,15 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 {
                     if (m_SestoSensoModel == SESTOSENSO3_STANDARD || m_SestoSensoModel == SESTOSENSO3_LS) // SestoSenso3 Semi-Automatic
                     {
-                        if (m_SestoSenso2->storeAsMaxPosition() == false)
+                        if (m_SestoSenso2->storeAsMaxPositionSS3SemiAuto() == false)
                             return false;
                         CalibrationMessageTP[0].setText("Semi-Automatic Calibration: Press NEXT to finish.");
                         CalibrationMessageTP.apply();
                         cStage = GoMaximum;
                     }
-                    else // SestoSenso2 Manual (and Esatto)
+                    else // SestoSenso2 Manual
                     {
-                        if (m_SestoSenso2->storeAsMaxPosition() == false)
+                        if (m_SestoSenso2->storeAsMaxPositionSS2() == false)
                             return false;
                         CalibrationMessageTP[0].setText("Manual Calibration: Press NEXT to finish.");
                         CalibrationMessageTP.apply();
@@ -748,7 +751,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     // Only use when calibration active?
                     if (m_SestoSensoModel == SESTOSENSO3_STANDARD || m_SestoSensoModel == SESTOSENSO3_LS) // SestoSenso3 Semi-Automatic
                     {
-                        if (m_SestoSenso2->goOutToFindMaxPosSemiAuto() == false)
+                        if (m_SestoSenso2->goOutToFindMaxPosSS3() == false)
                         {
                             return false;
                         }
@@ -757,7 +760,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     }
                     else if (m_SestoSensoModel == SESTOSENSO2) // SestoSenso2 Manual
                     {
-                        if (m_SestoSenso2->goOutToFindMaxPos() == false)
+                        if (m_SestoSenso2->goOutToFindMaxPosSS2() == false)
                         {
                             return false;
                         }
@@ -775,7 +778,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationMessageTP.apply();
                     break;
                 case FASTMOVE_STOP:
-                    if (m_SestoSenso2->stopMotor() == false) // Use generic stopMotor for SestoSenso3
+                    if (m_SestoSenso2->stopMotorSS3() == false) // SestoSenso3 specific stop command
                     {
                         return false;
                     }
@@ -799,11 +802,11 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 auto current_move_switch = MoveInOut100SP.findOnSwitchIndex();
                 if (current_move_switch == MOVE_IN_100)
                 {
-                    if (m_SestoSenso2->moveIn(100) == false) return false;
+                    if (m_SestoSenso2->moveInSS3(100) == false) return false;
                 }
                 else if (current_move_switch == MOVE_OUT_100)
                 {
-                    if (m_SestoSenso2->moveOut(100) == false) return false;
+                    if (m_SestoSenso2->moveOutSS3(100) == false) return false;
                 }
                 MoveInOut100SP.setState(IPS_IDLE);
                 MoveInOut100SP.apply();
@@ -815,11 +818,11 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 auto current_move_switch = MoveInOut500SP.findOnSwitchIndex();
                 if (current_move_switch == MOVE_IN_500)
                 {
-                    if (m_SestoSenso2->moveIn(500) == false) return false;
+                    if (m_SestoSenso2->moveInSS3(500) == false) return false;
                 }
                 else if (current_move_switch == MOVE_OUT_500)
                 {
-                    if (m_SestoSenso2->moveOut(500) == false) return false;
+                    if (m_SestoSenso2->moveOutSS3(500) == false) return false;
                 }
                 MoveInOut500SP.setState(IPS_IDLE);
                 MoveInOut500SP.apply();
@@ -831,11 +834,11 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 auto current_move_switch = MoveInOut1000SP.findOnSwitchIndex();
                 if (current_move_switch == MOVE_IN_1000)
                 {
-                    if (m_SestoSenso2->moveIn(1000) == false) return false;
+                    if (m_SestoSenso2->moveInSS3(1000) == false) return false;
                 }
                 else if (current_move_switch == MOVE_OUT_1000)
                 {
-                    if (m_SestoSenso2->moveOut(1000) == false) return false;
+                    if (m_SestoSenso2->moveOutSS3(1000) == false) return false;
                 }
                 MoveInOut1000SP.setState(IPS_IDLE);
                 MoveInOut1000SP.apply();
@@ -1246,7 +1249,7 @@ bool SestoSenso2::Ack()
         if (m_SestoSenso2->getModel(modelName))
         {
             LOGF_INFO("Model name: %s", modelName.c_str());
-            
+
             // Check if it's a SestoSenso3 variant (requires submodel query)
             if (modelName.find("SESTOSENSO3") != std::string::npos)
             {
@@ -1255,7 +1258,7 @@ bool SestoSenso2::Ack()
                 if (m_SestoSenso2->getSubModel(subModel))
                 {
                     LOGF_INFO("SubModel: %s", subModel.c_str());
-                    
+
                     if (subModel.find("SESTOSENSO3SC") != std::string::npos)
                     {
                         m_SestoSensoModel = SESTOSENSO3_SC;
