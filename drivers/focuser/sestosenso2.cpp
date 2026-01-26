@@ -45,7 +45,7 @@ const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(1, 0);
+    setVersion(1, 2);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
