@@ -52,7 +52,7 @@ void RTLSDR::Callback()
     LOG_INFO("Integration started...");
     b_read = 0;
     n_read = 0;
-    setBufferSize(getSampleRate() * IntegrationRequest * getBPS() / 8);
+    setBufferSize(getSampleRate() * IntegrationRequest * getBPS() / 16);
     setBufferSize(getBufferSize() + MAX_FRAME_SIZE - (getBufferSize() % MAX_FRAME_SIZE));
     to_read = getBufferSize();
     buffer = (unsigned char *)realloc(buffer, min(MAX_FRAME_SIZE, getBufferSize()));
@@ -62,22 +62,29 @@ void RTLSDR::Callback()
         tcflush(PortFD, TCIFLUSH);
     setIntegrationTime(IntegrationRequest);
     InIntegration = true;
-    continuum = getBuffer();
+    real = getReal();
+    imaginary = getImaginary();
     gettimeofday(&IntStart, nullptr);
     while (InIntegration)
     {
         if (to_read > 0)
         {
             if((getSensorConnection() & CONNECTION_TCP) == 0)
-                rtlsdr_read_sync(rtl_dev, continuum + b_read, min(MAX_FRAME_SIZE, to_read), &n_read);
+                rtlsdr_read_sync(rtl_dev, buffer + b_read, min(MAX_FRAME_SIZE, to_read), &n_read);
             else
-                n_read = read(PortFD, continuum + b_read, min(MAX_FRAME_SIZE, to_read));
+                n_read = read(PortFD, buffer + b_read, min(MAX_FRAME_SIZE, to_read));
 
             if (n_read > 0) {
                 b_read += n_read;
                 to_read -= n_read;
             }
         } else {
+            for(int x = 0; x < getBufferSize(); x++) {
+                real[x] = buffer[x*2];
+                imaginary[x] = buffer[x*2+1];
+            }
+            setReal(real);
+            setImaginary(imaginary);
             if(!streamPredicate)
             {
                 InIntegration = false;
