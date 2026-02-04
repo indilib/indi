@@ -52,7 +52,7 @@ void RTLSDR::Callback()
     LOG_INFO("Integration started...");
     b_read = 0;
     n_read = 0;
-    setBufferSize(getSampleRate() * IntegrationRequest * getBPS() / 16);
+    setBufferSize(getSampleRate() * IntegrationRequest * getBPS() / 8);
     setBufferSize(getBufferSize() + MAX_FRAME_SIZE - (getBufferSize() % MAX_FRAME_SIZE));
     to_read = getBufferSize();
     buffer = (unsigned char *)realloc(buffer, min(MAX_FRAME_SIZE, getBufferSize()));
@@ -79,7 +79,7 @@ void RTLSDR::Callback()
                 to_read -= n_read;
             }
         } else {
-            for(int x = 0; x < getBufferSize(); x++) {
+            for(int x = 0; x < getBufferSize() / 2; x++) {
                 real[x] = buffer[x*2];
                 imaginary[x] = buffer[x*2+1];
             }
