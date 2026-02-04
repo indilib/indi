@@ -67,7 +67,11 @@ SensorInterface::SensorInterface()
     Elevation              = -1000;
     primaryAperture = primaryFocalLength - 1;
 
-    Buffer     = static_cast<uint8_t *>(malloc(sizeof(uint8_t))); // Seed for realloc
+    Continuum     = static_cast<uint8_t *>(malloc(sizeof(uint8_t))); // Seed for realloc
+    Real = static_cast<uint8_t *>(malloc(sizeof(uint8_t)));
+    Imaginary = static_cast<uint8_t *>(malloc(sizeof(uint8_t)));
+    Magnitude = static_cast<uint8_t *>(malloc(sizeof(uint8_t)));
+    Phase = static_cast<uint8_t *>(malloc(sizeof(uint8_t)));
     BufferSize = 0;
     NAxis       = 2;
 
@@ -78,9 +82,17 @@ SensorInterface::SensorInterface()
 
 SensorInterface::~SensorInterface()
 {
-    free(Buffer);
+    free(Continuum);
+    free(Real);
+    free(Imaginary);
+    free(Magnitude);
+    free(Phase);
     BufferSize = 0;
-    Buffer = nullptr;
+    Continuum = nullptr;
+    Real = nullptr;
+    Imaginary = nullptr;
+    Magnitude = nullptr;
+    Phase = nullptr;
 }
 
 
@@ -409,9 +421,13 @@ bool SensorInterface::initProperties()
     /************** Upload Settings ***************/
     /**********************************************/
     // Upload Data
-    IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
+    IUFillBLOB(&FitsB[0], "Continuum", "Sensor Continuum Blob", "");
+    IUFillBLOB(&FitsB[1], "Real", "Sensor Data Real", "");
+    IUFillBLOB(&FitsB[2], "Imaginary", "Sensor Imaginary Blob", "");
+    IUFillBLOB(&FitsB[3], "Magnitude", "Sensor Magnitude Blob", "");
+    IUFillBLOB(&FitsB[4], "Phase", "Sensor Phase Blob", "");
 
-    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "SENSOR", "Integration Data", MAIN_CONTROL_TAB,
+    IUFillBLOBVector(&FitsBP, FitsB, 5, getDeviceName(), "SENSOR", "Integration Data", MAIN_CONTROL_TAB,
                      IP_RO, 60, IPS_IDLE);
 
     // Upload Mode
@@ -552,7 +568,11 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    Buffer = static_cast<uint8_t *>(realloc(Buffer, nbuf * sizeof(uint8_t)));
+    Continuum = static_cast<uint8_t *>(realloc(Continuum, nbuf * sizeof(uint8_t)));
+    Real = static_cast<uint8_t *>(realloc(Real, nbuf * sizeof(uint8_t)));
+    Imaginary = static_cast<uint8_t *>(realloc(Imaginary, nbuf * sizeof(uint8_t)));
+    Magnitude = static_cast<uint8_t *>(realloc(Magnitude, nbuf * sizeof(uint8_t)));
+    Phase = static_cast<uint8_t *>(realloc(Phase, nbuf * sizeof(uint8_t)));
 }
 
 bool SensorInterface::StartIntegration(double duration)
@@ -753,7 +773,7 @@ void SensorInterface::fits_update_key_s(fitsfile *fptr, int type, std::string na
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-void* SensorInterface::sendFITS(uint8_t *buf, int len)
+void* SensorInterface::sendFITS(uint8_t *buf, int len, IBLOB blob)
 {
     bool sendIntegration = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveIntegration = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -866,7 +886,7 @@ void* SensorInterface::sendFITS(uint8_t *buf, int len)
 
     fits_close_file(fptr, &status);
 
-    uploadFile(memptr, memsize, sendIntegration, saveIntegration);
+    uploadFile(memptr, memsize, blob, sendIntegration, saveIntegration);
 
     return memptr;
 }
@@ -898,13 +918,30 @@ bool SensorInterface::IntegrationCompletePrivate()
     if (sendIntegration || saveIntegration)
     {
         void* blob = nullptr;
+        void* magnitude = nullptr;
+        void* phase = nullptr;
+        void* real = nullptr;
+        void* imaginary = nullptr;
         if (!strcmp(getIntegrationFileExtension(), "fits"))
         {
-            blob = sendFITS(getBuffer(), getBufferSize() * 8 / abs(getBPS()));
+            blob = sendFITS(getBuffer(), getBufferSize() * 8 / abs(getBPS()), FitsB[0]);
+            magnitude = sendFITS(getMagnitude(), getBufferSize() * 8 / abs(getBPS()), FitsB[1]);
+            phase = sendFITS(getPhase(), getBufferSize() * 8 / abs(getBPS()), FitsB[2]);
+            real = sendFITS(getReal(), getBufferSize() * 8 / abs(getBPS()), FitsB[3]);
+            imaginary = sendFITS(getImaginary(), getBufferSize() * 8 / abs(getBPS()), FitsB[4]);
+            FitsBP.s   = IPS_OK;
         }
         else
         {
-            uploadFile(getBuffer(), getBufferSize(), sendIntegration,
+            uploadFile(getBuffer(), getBufferSize(), FitsB[0], sendIntegration,
+                       saveIntegration);
+            uploadFile(getBuffer(), getBufferSize(), FitsB[1], sendIntegration,
+                       saveIntegration);
+            uploadFile(getBuffer(), getBufferSize(), FitsB[2], sendIntegration,
+                       saveIntegration);
+            uploadFile(getBuffer(), getBufferSize(), FitsB[3], sendIntegration,
+                       saveIntegration);
+            uploadFile(getBuffer(), getBufferSize(), FitsB[4], sendIntegration,
                        saveIntegration);
         }
 
@@ -912,6 +949,14 @@ bool SensorInterface::IntegrationCompletePrivate()
             IDSetBLOB(&FitsBP, nullptr);
         if(blob != nullptr)
             free(blob);
+        if(blob != nullptr)
+            free(magnitude);
+        if(blob != nullptr)
+            free(phase);
+        if(blob != nullptr)
+            free(real);
+        if(blob != nullptr)
+            free(imaginary);
 
         DEBUG(Logger::DBG_DEBUG, "Upload complete");
     }
@@ -938,16 +983,16 @@ bool SensorInterface::IntegrationCompletePrivate()
     return true;
 }
 
-bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration,
+bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, IBLOB blob, bool sendIntegration,
                                  bool saveIntegration)
 {
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendIntegration? %s, saveIntegration? %s",
            getIntegrationFileExtension(), totalBytes, sendIntegration ? "Yes" : "No", saveIntegration ? "Yes" : "No");
 
-    FitsB.blob    = const_cast<void *>(fitsData);
-    FitsB.bloblen = totalBytes;
-    snprintf(FitsB.format, MAXINDIBLOBFMT, ".%s", getIntegrationFileExtension());
+    blob.blob    = const_cast<void *>(fitsData);
+    blob.bloblen = totalBytes;
+    snprintf(blob.format, MAXINDIBLOBFMT, ".%s", getIntegrationFileExtension());
     if (saveIntegration)
     {
 
@@ -956,7 +1001,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
 
         std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
         int maxIndex       = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text,
-                                          FitsB.format);
+                                          blob.format);
 
         if (maxIndex < 0)
         {
@@ -983,7 +1028,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(integrationFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), FitsB.format);
+        snprintf(integrationFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), blob.format);
 
         fp = fopen(integrationFileName, "w");
         if (fp == nullptr)
@@ -993,8 +1038,8 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
         }
 
         int n = 0;
-        for (int nr = 0; nr < static_cast<int>(FitsB.bloblen); nr += n)
-            n = fwrite((static_cast<char *>(FitsB.blob) + nr), 1, FitsB.bloblen - nr, fp);
+        for (int nr = 0; nr < static_cast<int>(blob.bloblen); nr += n)
+            n = fwrite((static_cast<char *>(blob.blob) + nr), 1, blob.bloblen - nr, fp);
 
         fclose(fp);
 
@@ -1006,8 +1051,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
         IDSetText(&FileNameTP, nullptr);
     }
 
-    FitsB.size = totalBytes;
-    FitsBP.s   = IPS_OK;
+    blob.size = totalBytes;
 
     DEBUG(Logger::DBG_DEBUG, "Upload complete");
 
