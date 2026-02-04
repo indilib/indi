@@ -44,11 +44,11 @@ bool Weather::initProperties()
     WI::initProperties(MAIN_CONTROL_TAB, PARAMETERS_TAB);
 
     // Location
-    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60,
-                       IPS_OK);
+    LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60, IPS_OK);
+    LocationNP.load();
 
     // Active Devices
     ActiveDeviceTP[0].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
@@ -96,15 +96,13 @@ bool Weather::updateProperties()
     {
         WI::updateProperties();
 
-        defineProperty(&LocationNP);
-
+        defineProperty(LocationNP);
         DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
     }
     else
     {
         WI::updateProperties();
-
-        deleteProperty(LocationNP.name);
+        deleteProperty(LocationNP);
     }
 
     return true;
@@ -126,7 +124,7 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+        if (LocationNP.isNameMatch(name))
         {
             int latindex       = IUFindIndex("LAT", names, n);
             int longindex      = IUFindIndex("LONG", names, n);
@@ -134,15 +132,16 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
 
             if (latindex == -1 || longindex == -1 || elevationindex == -1)
             {
-                LocationNP.s = IPS_ALERT;
-                IDSetNumber(&LocationNP, "Location data missing or corrupted.");
+                LocationNP.setState(IPS_ALERT);
+                LocationNP.apply("Location data missing or corrupted.");
+                return true;
             }
 
             double targetLat  = values[latindex];
             double targetLong = values[longindex];
             double targetElev = values[elevationindex];
-
-            return processLocationInfo(targetLat, targetLong, targetElev);
+            processLocationInfo(targetLat, targetLong, targetElev);
+            return true;
         }
 
         // Pass to weather interface
@@ -199,7 +198,8 @@ bool INDI::Weather::ISSnoopDevice(XMLEle *root)
                     elevation = atof(pcdataXMLEle(ep));
             }
 
-            return processLocationInfo(latitude, longitude, elevation);
+            processLocationInfo(latitude, longitude, elevation);
+            return true;
         }
     }
 
@@ -211,38 +211,32 @@ bool Weather::updateLocation(double latitude, double longitude, double elevation
     INDI_UNUSED(latitude);
     INDI_UNUSED(longitude);
     INDI_UNUSED(elevation);
-
     return true;
 }
 
-bool Weather::processLocationInfo(double latitude, double longitude, double elevation)
+void Weather::processLocationInfo(double latitude, double longitude, double elevation)
 {
     // Do not update if not necessary
-    if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value &&
-            elevation == LocationN[LOCATION_ELEVATION].value)
+    if (latitude == LocationNP[LOCATION_LATITUDE].getValue() && longitude == LocationNP[LOCATION_LONGITUDE].getValue() &&
+            elevation == LocationNP[LOCATION_ELEVATION].getValue())
     {
-        LocationNP.s = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
+        return;
     }
 
     if (updateLocation(latitude, longitude, elevation))
     {
-        LocationNP.s                        = IPS_OK;
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationN[LOCATION_ELEVATION].value = elevation;
-        //  Update client display
-        IDSetNumber(&LocationNP, nullptr);
-
-        return true;
+        LocationNP.setState(IPS_OK);
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP[LOCATION_ELEVATION].setValue(elevation);
+        saveConfig(LocationNP);
     }
     else
-    {
-        LocationNP.s = IPS_ALERT;
-        //  Update client display
-        IDSetNumber(&LocationNP, nullptr);
-        return false;
-    }
+        LocationNP.setState(IPS_ALERT);
+
+    LocationNP.apply();
 }
 
 
@@ -251,7 +245,7 @@ bool Weather::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
     WI::saveConfigItems(fp);
     ActiveDeviceTP.save(fp);
-    IUSaveConfigNumber(fp, &LocationNP);
+    LocationNP.save(fp);
     return true;
 }
 

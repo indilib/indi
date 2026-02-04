@@ -147,15 +147,7 @@ void LocalDvrInfo::start()
         }
         else
         {
-            if (name[0] == '.')
-            {
-                executable = userConfigurableArguments->binaryName + "/" + name;
-                execlp(executable.c_str(), name.c_str(), NULL);
-            }
-            else
-            {
-                execlp(name.c_str(), name.c_str(), NULL);
-            }
+            execlp(name.c_str(), name.c_str(), NULL);
         }
 
 #ifdef OSX_EMBEDED_MODE

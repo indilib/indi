@@ -48,6 +48,7 @@ class LX200_OpenAstroTech : public LX200GPS
         virtual bool AbortFocuser () override;
         virtual bool ReadScopeStatus() override;
         virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
 
         // Home
         virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;

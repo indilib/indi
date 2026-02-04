@@ -49,7 +49,12 @@ class PID
 
         // Returns the manipulated variable given a setpoint and current process value
         double calculate( double setpoint, double pv );
-        double propotionalTerm() const;
+
+        // Reset controller state (clears integral, previous error/measurement)
+        void reset();
+
+        // Individual term accessors
+        double proportionalTerm() const;
         double integralTerm() const;
         double derivativeTerm() const;
         ~PID();

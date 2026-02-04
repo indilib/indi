@@ -349,6 +349,7 @@ class SkywatcherAPI
             AZEQ6_PRO        = 0x22,
             EQ6_PRO          = 0x23,
             EQ5_PRO          = 0x31,
+            WAVE_150I        = 0x45,
             GT               = 0x80,
             MF               = 0x81,
             _114GT           = 0x82,
@@ -412,7 +413,7 @@ class SkywatcherAPI
         /// default timeout in synscan app os 200ms and 2 retransmissions, so put there little bit more
         static constexpr uint8_t SKYWATCHER_MAX_RETRTY {5};
         static constexpr uint8_t SKYWATCHER_TIMEOUT_S  {0};
-        static constexpr long    SKYWATCHER_TIMEOUT_US {300000}; 
+        static constexpr long    SKYWATCHER_TIMEOUT_US {300000};
         static constexpr uint8_t SKYWATCHER_MAX_CMD {16};
 
         static const std::map<int, std::string> errorCodes;

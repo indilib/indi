@@ -88,18 +88,6 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
         ISwitch ReverseS[2];
         ISwitchVectorProperty ReverseSP;
 
-        ISwitch MountTypeS[2];
-        ISwitchVectorProperty MountTypeSP;
-        enum
-        {
-            MOUNT_EQUATORIAL,
-            MOUNT_ALTAZ
-        };
-
-        //INumber EncoderOffsetN[6];
-        //INumberVectorProperty EncoderOffsetNP;
-        //enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
-
         // Simulation Only
         INumber SimEncoderN[2];
         INumberVectorProperty SimEncoderNP;

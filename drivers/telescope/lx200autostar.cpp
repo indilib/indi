@@ -59,6 +59,9 @@ bool LX200Autostar::initProperties()
     FocusSpeedNP[0].setMax(4);
     FocusSpeedNP[0].setValue(1);
 
+    MountTypeSP.reset();
+    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+
     return true;
 }
 

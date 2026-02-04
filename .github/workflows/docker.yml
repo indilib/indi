@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["debian", "debian-i386", "ubuntu", "fedora"]
+        container: ["debian", "ubuntu", "fedora", "archlinux"]
 
     steps:
       - name: Login to Registry

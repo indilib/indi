@@ -18,3 +18,10 @@ add_executable(indi_eval compiler.c evalINDI.c)
 target_link_libraries(indi_eval indicore eventloop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_eval RUNTIME DESTINATION bin)
+
+# ########## getINDIdevice ##############
+add_executable(indi_getdevice getINDIdevice.c)
+
+target_link_libraries(indi_getdevice indicore eventloop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+
+install(TARGETS indi_getdevice RUNTIME DESTINATION bin)

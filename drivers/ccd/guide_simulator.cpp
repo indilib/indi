@@ -78,13 +78,7 @@ bool GuideSim::SetupParms()
     int nbuf;
     SetCCDParams(SimulatorSettingsNP[SIM_XRES].getValue(), SimulatorSettingsNP[SIM_YRES].getValue(), 16,
                  SimulatorSettingsNP[SIM_XSIZE].getValue(),
-                 SimulatorSettingsNP[SIM_YSIZE].getValue());
-
-    if (HasCooler())
-    {
-        TemperatureNP[0].setValue(20);
-        TemperatureNP.apply();
-    }
+                 SimulatorSettingsNP[SIM_YSIZE].getValue());    
 
     //  Random number added to each pixel up to this value.
     m_MaxNoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
@@ -107,8 +101,6 @@ bool GuideSim::SetupParms()
     // up much in guiding error.
     m_PolarError = SimulatorSettingsNP[SIM_POLAR].getValue();
     m_PolarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
-    // Camera rotation
-    m_RotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
     //  Kwiq++
     m_KingGamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * DEGREES_TO_RADIANS;
     m_KingTheta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * DEGREES_TO_RADIANS;
@@ -116,7 +108,14 @@ bool GuideSim::SetupParms()
     // That is, we can say exposure duration = 10s, and m_TimeFactor = 0.05
     // and the system will simulate a 10s exposure, but it will only take 0.5 seconds.
     m_TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
-
+    // This is the rotation offset of the simulated camera respective to North.
+    // Because the simulated star field is calculated with their RA/DEC-coordinates
+    // (see DrawCcdFrame()) the origin angle of star field points north. So this value
+    // for EQ mounts normally simulate a certain camera offset and is a constant.
+    // For ALTAZ-mount this variable is altered consecutively by the value of the parallactic
+    // angle (transfered through a signal from KStars/skymapdrawabstract.cpp) and this way used
+    // to simulate the deviation of the camera orientation from N.
+    m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
     m_Seeing = SimulatorSettingsNP[SIM_SEEING].getValue();
     m_RaTimeDrift = SimulatorSettingsNP[SIM_RA_DRIFT].getValue();
     m_DecTimeDrift = SimulatorSettingsNP[SIM_DEC_DRIFT].getValue();
@@ -124,7 +123,8 @@ bool GuideSim::SetupParms()
     m_DecRand = SimulatorSettingsNP[SIM_DEC_RAND].getValue();
     m_PEPeriod = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
     m_PEMax = SimulatorSettingsNP[SIM_PE_MAX].getValue();
-
+    m_TemperatureRequest = SimulatorSettingsNP[SIM_TEMPERATURE].getValue();
+    TemperatureNP[0].setValue(m_TemperatureRequest);
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -184,7 +184,7 @@ bool GuideSim::initProperties()
     SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.3f", -600, 600, 0,
                                         0); /* PAE = Polar Alignment Error */
     SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.3f", 0, 6000, 0, 0);
-    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
+    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation Offset", "%4.1f", -360, 360, 0, 0);
     SimulatorSettingsNP[SIM_KING_GAMMA].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
     SimulatorSettingsNP[SIM_KING_THETA].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
@@ -197,21 +197,19 @@ bool GuideSim::initProperties()
                                            0.3);
     SimulatorSettingsNP[SIM_PE_PERIOD].fill("SIM_PE_PERIOD", "Periodic error period (secs)", "%4.1f", 0, 1000, 0, 120);
     SimulatorSettingsNP[SIM_PE_MAX].fill("SIM_PE_MAX", "Periodic error maxval (a-s)", "%4.1f", 0, 100, 0, 3);
+    SimulatorSettingsNP[SIM_TEMPERATURE].fill("SIM_TEMPERATURE", "Temperature (°C)", "%4.1f", -100, 100, 0, 25);
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
-
+    // load() is important to fill all editfields with saved values also, so ISNewNumber() of one field
+    // doesn't update the other fields of the group with the "old" contents.
+    SimulatorSettingsNP.load();
     // RGB Simulation
     SimulateRgbSP[SIMULATE_YES].fill("SIMULATE_YES", "Yes", ISS_OFF);
     SimulateRgbSP[SIMULATE_NO].fill("SIMULATE_NO", "No", ISS_ON);
     SimulateRgbSP.fill(getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
                        SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    CoolerSP[COOLER_ON].fill("COOLER_ON", "ON", ISS_OFF);
-    CoolerSP[COOLER_OFF].fill("COOLER_OFF", "OFF", ISS_ON);
-    CoolerSP.fill(getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
-                  ISR_1OFMANY, 0, IPS_IDLE);
-
+    
     // CCD Gain
     GainNP[0].fill("GAIN", "Gain", "%.f", 0, 100, 10, 50);
     GainNP.fill(getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -232,6 +230,9 @@ bool GuideSim::initProperties()
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
 
+    TemperatureNP.setPermission(IP_RO);
+    TemperatureNP[0].setValue(25);
+
     uint32_t cap = 0;
 
     cap |= CCD_CAN_ABORT;
@@ -240,8 +241,6 @@ bool GuideSim::initProperties()
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
-
-
 
     SetCCDCapability(cap);
 
@@ -287,9 +286,7 @@ bool GuideSim::updateProperties()
 
     if (isConnected())
     {
-        if (HasCooler())
-            defineProperty(CoolerSP);
-
+        defineProperty(TemperatureNP);
         defineProperty(GainNP);
 
         SetupParms();
@@ -302,29 +299,11 @@ bool GuideSim::updateProperties()
     }
     else
     {
-        if (HasCooler())
-            deleteProperty(CoolerSP);
-
+        deleteProperty(TemperatureNP);
         deleteProperty(GainNP);
     }
 
     return true;
-}
-
-int GuideSim::SetTemperature(double temperature)
-{
-    m_TemperatureRequest = temperature;
-    if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
-    {
-        TemperatureNP[0].setValue(temperature);
-        return 1;
-    }
-
-    CoolerSP[COOLER_ON].setState(ISS_ON);
-    CoolerSP[COOLER_OFF].setState(ISS_OFF);
-    CoolerSP.setState(IPS_BUSY);
-    CoolerSP.apply();
-    return 0;
 }
 
 bool GuideSim::StartExposure(float duration)
@@ -416,27 +395,6 @@ void GuideSim::TimerHit()
         }
     }
 
-    if (TemperatureNP.getState() == IPS_BUSY)
-    {
-        if (m_TemperatureRequest < TemperatureNP[0].getValue())
-            TemperatureNP[0].setValue(std::max(m_TemperatureRequest, TemperatureNP[0].getValue() - 0.5));
-        else
-            TemperatureNP[0].setValue(std::min(m_TemperatureRequest, TemperatureNP[0].getValue() + 0.5));
-
-
-        TemperatureNP.apply();
-
-        // Above 20, cooler is off
-        if (TemperatureNP[0].getValue() >= 20)
-        {
-            CoolerSP[COOLER_ON].setState(ISS_OFF);
-            CoolerSP[COOLER_OFF].setState(ISS_ON);
-            CoolerSP.setState(IPS_IDLE);
-            CoolerSP.apply();
-        }
-    }
-
-
     SetTimer(nextTimer);
 }
 
@@ -520,15 +478,18 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = m_RotationCW + 270;
-        if (theta > 360)
-            theta -= 360;
+        m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
+        double theta = m_RotationOffset;
+        if (!std::isnan(RotatorAngle))
+            theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
-        else if (theta < -360)
-            theta += 360;
+        theta = range360(theta);
+        LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, theta);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
+        // TS: 2025-06-09: Below we have "Invert horizontally" and in the end
+        // this produces a rotation CCW with origin N (TODO: adjust matrix?)
         pa = pprx * cos(theta * M_PI / 180.0);
         pb = ppry * sin(theta * M_PI / 180.0);
 
@@ -786,7 +747,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         ccdx = pa * sx + pb * sy + pc;
                         ccdy = pd * sx + pe * sy + pf;
 
-                        // Invert horizontally
+                        // Invert horizontally and transform CW to CCW (see above)
                         ccdx = ccdW - ccdx;
 
                         rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time, zeroPointK, zeroPointZ);
@@ -1059,7 +1020,7 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             GainNP.setState(IPS_OK);
             GainNP.apply();
             return true;
-        }
+        }        
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
@@ -1092,6 +1053,9 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             m_DecRand      = SimulatorSettingsNP[SIM_DEC_RAND].getValue();
             m_PEPeriod     = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
             m_PEMax        = SimulatorSettingsNP[SIM_PE_MAX].getValue();
+            m_TemperatureRequest = SimulatorSettingsNP[SIM_TEMPERATURE].getValue();
+            TemperatureNP[0].setValue(m_TemperatureRequest);
+            TemperatureNP.apply();
 
             return true;
         }
@@ -1142,25 +1106,7 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
             SimulateRgbSP.apply();
 
             return true;
-        }
-
-        if (CoolerSP.isNameMatch(name))
-        {
-            CoolerSP.update(states, names, n);
-
-            if (CoolerSP[COOLER_ON].getState() == ISS_ON)
-                CoolerSP.setState(IPS_BUSY);
-            else
-            {
-                CoolerSP.setState(IPS_IDLE);
-                m_TemperatureRequest = 20;
-                TemperatureNP.setState(IPS_BUSY);
-            }
-
-            CoolerSP.apply();
-
-            return true;
-        }
+        }        
 
         if (ToggleTimeoutSP.isNameMatch(name))
         {

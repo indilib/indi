@@ -61,6 +61,7 @@ class Interface
             CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
             CONNECTION_TCP    = 1 << 2,  /** For Wired and WiFI connections */
             CONNECTION_USB    = 1 << 3,  /** For USB-based connections */
+            CONNECTION_I2C    = 1 << 4,  /** For I2C-based connections (Linux Only) */
             CONNECTION_CUSTOM = 1 << 15, /** Custom connection */
         } Type;
 

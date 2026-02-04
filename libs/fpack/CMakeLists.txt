@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 project(fpack C)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
 
 add_library(${PROJECT_NAME} OBJECT "")
 

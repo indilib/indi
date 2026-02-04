@@ -35,7 +35,7 @@
 
 LX200AM5::LX200AM5()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -47,7 +47,6 @@ LX200AM5::LX200AM5()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
-                           TELESCOPE_CAN_HOME_SET |
                            TELESCOPE_CAN_HOME_GO,
                            SLEW_MODES
                           );
@@ -83,18 +82,19 @@ bool LX200AM5::initProperties()
 
     // Slew Rates
 
-    SlewRateSP[0].setLabel("0.5x");
-    SlewRateSP[1].setLabel("1x");
-    SlewRateSP[2].setLabel("2x");
-    SlewRateSP[3].setLabel("4x");
-    SlewRateSP[4].setLabel("8x");
-    SlewRateSP[5].setLabel("20x");
-    SlewRateSP[6].setLabel("60x");
-    SlewRateSP[7].setLabel("720x");
-    SlewRateSP[8].setLabel("1440x");
+    SlewRateSP[0].setLabel("0.25x");
+    SlewRateSP[1].setLabel("0.5x");
+    SlewRateSP[2].setLabel("1x");
+    SlewRateSP[3].setLabel("2x");
+    SlewRateSP[4].setLabel("4x");
+    SlewRateSP[5].setLabel("8x");
+    SlewRateSP[6].setLabel("20x");
+    SlewRateSP[7].setLabel("60x");
+    SlewRateSP[8].setLabel("720x");
+    SlewRateSP[9].setLabel("1440x");
     SlewRateSP.reset();
     // 1440x is the default
-    SlewRateSP[8].setState(ISS_ON);
+    SlewRateSP[9].setState(ISS_ON);
 
     // Home/Zero position
     // HomeSP[0].fill("GO", "Go", ISS_OFF);
@@ -103,6 +103,7 @@ bool LX200AM5::initProperties()
     // Guide Rate
     GuideRateNP[0].fill("RATE", "Rate", "%.2f", 0.1, 0.9, 0.1, 0.5);
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    GuideRateNP.load();
 
     // Buzzer
     BuzzerSP[Off].fill("OFF", "Off", ISS_OFF);
@@ -138,16 +139,77 @@ bool LX200AM5::initProperties()
     MeridianFlipSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     MeridianFlipSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     MeridianFlipSP.fill(getDeviceName(), "MERIDIAN_FLIP", "Meridian Flip", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    MeridianFlipSP.load();
 
     // Post Meridian Track
     PostMeridianTrackSP[TRACK].fill("TRACK", "Track", ISS_ON);
     PostMeridianTrackSP[STOP].fill("STOP", "Stop", ISS_OFF);
     PostMeridianTrackSP.fill(getDeviceName(), "POST_MERIDIAN_TRACK", "After Meridian", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY,
                              60, IPS_IDLE);
+    PostMeridianTrackSP.load();
 
     // Meridian Flip Limit
     MeridianLimitNP[0].fill("LIMIT", "Limit (deg)", "%.f", -15, 15, 1, 0);
     MeridianLimitNP.fill(getDeviceName(), "MERIDIAN_LIMIT", "Meridian Limit", MERIDIAN_FLIP_TAB, IP_RW, 60, IPS_IDLE);
+    MeridianLimitNP.load();
+
+    // Altitude Limits
+    AltitudeLimitSP[INDI_ENABLED].fill("ENABLE", "Enable", ISS_OFF);
+    AltitudeLimitSP[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
+    AltitudeLimitSP.fill(getDeviceName(), "ALTITUDE_LIMIT_CONTROL", "Altitude Limit Control", ALTITUDE_LIMIT_TAB, IP_RW,
+                         ISR_1OFMANY, 60, IPS_IDLE);
+    AltitudeLimitSP.onUpdate([this]
+    {
+        if (AltitudeLimitSP[INDI_ENABLED].getState() == ISS_ON)
+        {
+            AltitudeLimitSP.setState(setAltitudeLimitEnabled(true) ? IPS_OK : IPS_ALERT);
+        }
+        else if (AltitudeLimitSP[INDI_DISABLED].getState() == ISS_ON)
+        {
+            AltitudeLimitSP.setState(setAltitudeLimitEnabled(false) ? IPS_OK : IPS_ALERT);
+        }
+        AltitudeLimitSP.apply();
+    });
+
+    AltitudeLimitUpperNP[0].fill("UPPER_LIMIT", "Upper Limit (deg)", "%.f", 60, 90, 1, 90);
+    AltitudeLimitUpperNP.fill(getDeviceName(), "ALTITUDE_UPPER_LIMIT", "Altitude Upper Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60,
+                              IPS_IDLE);
+    AltitudeLimitUpperNP.onUpdate([this]
+    {
+        AltitudeLimitUpperNP.setState(setAltitudeLimitUpper(AltitudeLimitUpperNP[0].getValue()) ? IPS_OK : IPS_ALERT);
+        AltitudeLimitUpperNP.apply();
+    });
+
+    AltitudeLimitLowerNP[0].fill("LOWER_LIMIT", "Lower Limit (deg)", "%.f", 0, 30, 1, 0);
+    AltitudeLimitLowerNP.fill(getDeviceName(), "ALTITUDE_LOWER_LIMIT", "Altitude Lower Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60,
+                              IPS_IDLE);
+    AltitudeLimitLowerNP.onUpdate([this]
+    {
+        AltitudeLimitLowerNP.setState(setAltitudeLimitLower(AltitudeLimitLowerNP[0].getValue()) ? IPS_OK : IPS_ALERT);
+        AltitudeLimitLowerNP.apply();
+    });
+
+    // Multi-Star Alignment
+    MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].fill("CLEAR", "Clear Data", ISS_OFF);
+    MultiStarAlignSP.fill(getDeviceName(), "MULTI_STAR_ALIGNMENT", "Multi-Star Alignment", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1,
+                          60, IPS_IDLE);
+    MultiStarAlignSP.onUpdate([this]
+    {
+        if (MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].getState() == ISS_ON)
+        {
+            MultiStarAlignSP.setState(clearMultiStarAlignmentData() ? IPS_OK : IPS_ALERT);
+            MultiStarAlignSP.apply();
+        }
+    });
+
+    // Variable Slew Speed
+    VariableSlewRateNP[0].fill("RATE", "Rate (x Sidereal)", "%.2f", 0.00, 1440.00, 0.01, 1440.00);
+    VariableSlewRateNP.fill(getDeviceName(), "VARIABLE_SLEW_RATE", "Variable Slew Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    VariableSlewRateNP.onUpdate([this]
+    {
+        VariableSlewRateNP.setState(setVariableSlewRate(VariableSlewRateNP[0].getValue()) ? IPS_OK : IPS_ALERT);
+        VariableSlewRateNP.apply();
+    });
 
     return true;
 }
@@ -175,6 +237,17 @@ bool LX200AM5::updateProperties()
             defineProperty(PostMeridianTrackSP);
             defineProperty(MeridianLimitNP);
         }
+
+        // Altitude Limits
+        defineProperty(AltitudeLimitSP);
+        defineProperty(AltitudeLimitUpperNP);
+        defineProperty(AltitudeLimitLowerNP);
+
+        // Multi-Star Alignment
+        defineProperty(MultiStarAlignSP);
+
+        // Variable Slew Speed
+        defineProperty(VariableSlewRateNP);
     }
     else
     {
@@ -190,6 +263,17 @@ bool LX200AM5::updateProperties()
             deleteProperty(PostMeridianTrackSP);
             deleteProperty(MeridianLimitNP);
         }
+
+        // Altitude Limits
+        deleteProperty(AltitudeLimitSP);
+        deleteProperty(AltitudeLimitUpperNP);
+        deleteProperty(AltitudeLimitLowerNP);
+
+        // Multi-Star Alignment
+        deleteProperty(MultiStarAlignSP);
+
+        // Variable Slew Speed
+        deleteProperty(VariableSlewRateNP);
     }
 
     return true;
@@ -244,6 +328,10 @@ void LX200AM5::setup()
     if (MountTypeSP[Equatorial].getState() == ISS_ON)
         getMeridianFlipSettings();
 
+    // Get altitude limit settings
+    getAltitudeLimitStatus();
+    getAltitudeLimitUpper();
+    getAltitudeLimitLower();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -262,6 +350,7 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                                               MeridianLimitNP[0].getValue());
             MeridianFlipSP.setState(rc ? IPS_OK : IPS_ALERT);
             MeridianFlipSP.apply();
+            saveConfig(MeridianFlipSP);
             return true;
         }
 
@@ -274,6 +363,7 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                                               MeridianLimitNP[0].getValue());
             PostMeridianTrackSP.setState(rc ? IPS_OK : IPS_ALERT);
             PostMeridianTrackSP.apply();
+            saveConfig(PostMeridianTrackSP);
             return true;
         }
 
@@ -315,6 +405,7 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
                                               MeridianLimitNP[0].getValue());
             MeridianLimitNP.setState(rc ? IPS_OK : IPS_ALERT);
             MeridianLimitNP.apply();
+            saveConfig(MeridianLimitNP);
             return true;
         }
 
@@ -323,6 +414,7 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
             GuideRateNP.update(values, names, n);
             GuideRateNP.setState(setGuideRate(GuideRateNP[0].getValue()) ? IPS_OK : IPS_ALERT);
             GuideRateNP.apply();
+            saveConfig(GuideRateNP);
             return true;
         }
     }
@@ -365,7 +457,7 @@ bool LX200AM5::getMountType()
 bool LX200AM5::SetSlewRate(int index)
 {
     char command[DRIVER_LEN] = {0};
-    snprintf(command, DRIVER_LEN, ":R%d#", index + 1);
+    snprintf(command, DRIVER_LEN, ":R%d#", index);
     return sendCommand(command);
 }
 
@@ -413,8 +505,11 @@ bool LX200AM5::getTrackMode()
     {
         TrackModeSP.reset();
         auto onIndex = response[0] - 0x30;
-        TrackModeSP[onIndex].setState(ISS_ON);
-        return true;
+        if (onIndex >= 0 && onIndex < static_cast<int>(TrackModeSP.count()))
+        {
+            TrackModeSP[onIndex].setState(ISS_ON);
+            return true;
+        }
     }
 
     TrackModeSP.setState(IPS_ALERT);
@@ -442,15 +537,17 @@ bool LX200AM5::getBuzzer()
     {
         BuzzerSP.reset();
         auto onIndex = response[0] - 0x30;
-        BuzzerSP[onIndex].setState(ISS_ON);
-        BuzzerSP.setState(IPS_OK);
-        return true;
+        if (onIndex >= 0 && onIndex < static_cast<int>(BuzzerSP.count()))
+        {
+            BuzzerSP[onIndex].setState(ISS_ON);
+            BuzzerSP.setState(IPS_OK);
+            return true;
+        }
     }
-    else
-    {
-        BuzzerSP.setState(IPS_ALERT);
-        return true;
-    }
+
+    BuzzerSP.setState(IPS_ALERT);
+    return true;
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -544,6 +641,115 @@ bool LX200AM5::getMeridianFlipSettings()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Altitude Limits
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setAltitudeLimitEnabled(bool enable)
+{
+    return sendCommand(enable ? ":SLE#" : ":SLD#");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getAltitudeLimitStatus()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GLC#", response))
+    {
+        AltitudeLimitSP.reset();
+        AltitudeLimitSP[response[0] == '1' ? INDI_ENABLED : INDI_DISABLED].setState(ISS_ON);
+        AltitudeLimitSP.setState(IPS_OK);
+        return true;
+    }
+    AltitudeLimitSP.setState(IPS_ALERT);
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setAltitudeLimitUpper(double limit)
+{
+    char command[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, ":SLH%02d#", static_cast<int>(limit));
+    char response[2] = {0};
+    auto rc = sendCommand(command, response, -1, 1);
+    return rc && response[0] == '1';
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getAltitudeLimitUpper()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GLH#", response))
+    {
+        int limit = 0;
+        if (sscanf(response, "%d#", &limit) == 1)
+        {
+            AltitudeLimitUpperNP[0].setValue(limit);
+            AltitudeLimitUpperNP.setState(IPS_OK);
+            return true;
+        }
+    }
+    AltitudeLimitUpperNP.setState(IPS_ALERT);
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setAltitudeLimitLower(double limit)
+{
+    char command[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, ":SLL%02d#", static_cast<int>(limit));
+    char response[2] = {0};
+    auto rc = sendCommand(command, response, -1, 1);
+    return rc && response[0] == '1';
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getAltitudeLimitLower()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GLL#", response))
+    {
+        int limit = 0;
+        if (sscanf(response, "%d#", &limit) == 1)
+        {
+            AltitudeLimitLowerNP[0].setValue(limit);
+            AltitudeLimitLowerNP.setState(IPS_OK);
+            return true;
+        }
+    }
+    AltitudeLimitLowerNP.setState(IPS_ALERT);
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Multi-Star Alignment
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::clearMultiStarAlignmentData()
+{
+    char response[2] = {0};
+    auto rc = sendCommand(":NSC#", response, -1, 1);
+    return rc && response[0] == '1';
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Variable Slew Speed
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setVariableSlewRate(double rate)
+{
+    char command[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, ":Rv%.2f#", rate);
+    return sendCommand(command);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::setUTCOffset(double offset)
@@ -590,6 +796,20 @@ bool LX200AM5::isTracking()
 bool LX200AM5::goHome()
 {
     return sendCommand(":hC#");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::park()
+{
+    // JM 2025.11.08: Many users do not like default ZWO parking position
+    // which is horizontal and does not go back to expected home position
+    // with CW down and looking at celestial pole.
+    // For now this is reverted now back to go back to that position instead
+    // of parking until ZWO releases update for custom parking positions.
+    return goHome();
+    //return sendCommand(":hP#");
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -642,7 +862,7 @@ bool LX200AM5::updateLocation(double latitude, double longitude, double elevatio
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::Park()
 {
-    bool rc = goHome();
+    bool rc = park();
     if (rc)
         TrackState = SCOPE_PARKING;
     return rc;
@@ -802,6 +1022,36 @@ bool LX200AM5::sendCommand(const char * cmd, char * res, int cmd_len, int res_le
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+IPState LX200AM5::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    switch (action)
+    {
+        case HOME_GO:
+            if (goHome())
+                return IPS_BUSY;
+            else
+                return IPS_ALERT;
+
+        case HOME_SET:
+            // The ZWO AM5 protocol does not have a specific "set home" command.
+            // We can potentially use the current position as home, but for now,
+            // we'll mark it as unsupported.
+            LOG_WARN("Setting home position is not supported by the ZWO AM5 protocol.");
+            return IPS_ALERT;
+
+        case HOME_FIND:
+            // The ZWO AM5 protocol does not have a specific "find home" command.
+            LOG_WARN("Finding home position is not supported by the ZWO AM5 protocol.");
+            return IPS_ALERT;
+
+        default:
+            return IPS_ALERT;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 void LX200AM5::hexDump(char * buf, const char * data, int size)
 {
     for (int i = 0; i < size; i++)
@@ -822,29 +1072,4 @@ std::vector<std::string> LX200AM5::split(const std::string &input, const std::st
     first{input.begin(), input.end(), re, -1},
           last;
     return {first, last};
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-IPState LX200AM5::ExecuteHomeAction(TelescopeHomeAction action)
-{
-    switch (action)
-    {
-        case HOME_GO:
-            if (goHome())
-                return IPS_BUSY;
-            else
-                return IPS_ALERT;
-
-        case HOME_SET:
-            if (setHome())
-                return IPS_OK;
-            else
-                return IPS_ALERT;
-
-        default:
-            return IPS_ALERT;
-
-    }
 }

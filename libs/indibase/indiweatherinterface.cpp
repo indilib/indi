@@ -69,6 +69,11 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     // Weather Status
     // @INDI_STANDARD_PROPERTY@
     critialParametersLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", statusGroup, IPS_IDLE);
+
+    // Safety Status (standard property for safety monitoring)
+    // @INDI_STANDARD_PROPERTY@
+    SafetyStatusLP[0].fill("SAFETY", "Safety", IPS_IDLE);
+    SafetyStatusLP.fill(getDeviceName(), "SAFETY_STATUS", "Safety", statusGroup, IPS_IDLE);
 }
 
 bool WeatherInterface::updateProperties()
@@ -81,6 +86,8 @@ bool WeatherInterface::updateProperties()
 
         if (critialParametersLP.count() > 0)
             m_defaultDevice->defineProperty(critialParametersLP);
+
+        m_defaultDevice->defineProperty(SafetyStatusLP);
 
         if (ParametersNP.count() > 0)
             m_defaultDevice->defineProperty(ParametersNP);
@@ -98,6 +105,8 @@ bool WeatherInterface::updateProperties()
 
         if (critialParametersLP.count() > 0)
             m_defaultDevice->deleteProperty(critialParametersLP);
+
+        m_defaultDevice->deleteProperty(SafetyStatusLP);
 
         if (ParametersNP.count() > 0)
             m_defaultDevice->deleteProperty(ParametersNP);
@@ -128,7 +137,16 @@ void WeatherInterface::checkWeatherUpdate()
             {
                 // Override weather state if required
                 if (OverrideSP[0].getState() == ISS_ON)
+                {
                     critialParametersLP.setState(IPS_OK);
+
+                    // Update SafetyStatusLP to match override status (only if different)
+                    if (SafetyStatusLP.getState() != IPS_OK)
+                    {
+                        SafetyStatusLP.setState(IPS_OK);
+                        SafetyStatusLP.apply();
+                    }
+                }
 
                 critialParametersLP.apply();
             }
@@ -182,6 +200,13 @@ bool WeatherInterface::processSwitch(const char *dev, const char *name, ISState 
             OverrideSP.setState(IPS_BUSY);
             critialParametersLP.setState(IPS_OK);
             critialParametersLP.apply();
+
+            // Update SafetyStatusLP to match override status (only if different)
+            if (SafetyStatusLP.getState() != IPS_OK)
+            {
+                SafetyStatusLP.setState(IPS_OK);
+                SafetyStatusLP.apply();
+            }
         }
         else
         {
@@ -269,9 +294,11 @@ IPState WeatherInterface::updateWeather()
  * @param percWarning percentage for Warning.
  * @param flipWarning boolean indicating if range warning should be flipped to in-bounds, rather than out-of-bounds
  */
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk,
+                                    double percWarning, bool flipWarning)
 {
-    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f,%s) ", name.c_str(), numMinOk, numMaxOk, percWarning, (flipWarning ? "true" : "false"));
+    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f,%s) ", name.c_str(), numMinOk, numMaxOk, percWarning,
+               (flipWarning ? "true" : "false"));
 
     INDI::WidgetNumber oneParameter;
     oneParameter.fill(name.c_str(), label.c_str(), "%.2f", numMinOk, numMaxOk, 0, 0);
@@ -460,6 +487,13 @@ bool WeatherInterface::syncCriticalParameters()
             critialParametersLP.setState(oneCriticalParam.getState());
     }
 
+    // Update the SafetyStatusLP to mirror the overall critical parameters state (only if different)
+    if (SafetyStatusLP.getState() != critialParametersLP.getState())
+    {
+        SafetyStatusLP.setState(critialParametersLP.getState());
+        SafetyStatusLP.apply();
+    }
+
     // if Any state changed, return true.
     for (size_t i = 0; i < critialParametersLP.count(); i++)
     {
@@ -486,7 +520,8 @@ bool WeatherInterface::syncCriticalParameters()
  * @param percWarning Percentage for warning zone calculation
  * @param flipWarning Boolean indicating if range warning should be flipped
  */
-void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
+void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk,
+        double percWarning, bool flipWarning)
 {
     INDI::WidgetNumber minWidget, maxWidget, warnWidget, typeWidget;
     minWidget.fill("MIN_OK", "OK range min", "%.2f", -1e6, 1e6, 0, numMinOk);

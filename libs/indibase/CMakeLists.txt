@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 project(indidriver C CXX)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW)
+endif()
 
 include_directories(.)
 include_directories(timer)
@@ -8,6 +11,7 @@ include_directories(stream)
 
 # Dependency
 find_package(FFTW3 REQUIRED)
+find_package(UDEV)
 
 list(APPEND ${PROJECT_NAME}_LIBS
     indicore
@@ -15,7 +19,8 @@ list(APPEND ${PROJECT_NAME}_LIBS
     eventloop
     dsp
     fpack
-    hid
+    AlignmentDriver
+    ${HIDAPILIB}
     ${USB1_LIBRARIES}
     ${NOVA_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
@@ -26,6 +31,15 @@ list(APPEND ${PROJECT_NAME}_LIBS
     ${M_LIB}
     ${CURL}
 )
+
+if(UDEV_FOUND)
+    list(APPEND ${PROJECT_NAME}_LIBS ${UDEV_LIBRARIES})
+endif()
+
+# When bundled hid library is used
+if(NOT SYSTEM_HIDAPILIB)
+    list(APPEND ${PROJECT_NAME}_LIBS indi_hid)
+endif()
 
 # Add Iconv - FreeBSD/OpenBSD need to find the correct GNU iconv library.
 if(CYGWIN OR UNIX OR (CMAKE_SYSTEM_NAME MATCHES "FreeBSD|OpenBSD"))
@@ -125,6 +139,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indidriverio.c
     indidrivermain.c
     defaultdevice.cpp
+    hotplugmanager.cpp
     timer/inditimer.cpp
     timer/indielapsedtimer.cpp
     thread/indisinglethreadpool.cpp
@@ -140,6 +155,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indifocuserinterface.cpp
     indigpsinterface.cpp
     indiweatherinterface.cpp
+    indiimuinterface.cpp
     indifocuser.cpp
     indirotator.cpp
     indiusbdevice.cpp
@@ -148,8 +164,10 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indirotatorinterface.cpp
     indiinputinterface.cpp
     indioutputinterface.cpp
+    indipowerinterface.cpp
     indidome.cpp
     indigps.cpp
+    indiimu.cpp        
     indiweather.cpp
     indidustcapinterface.cpp
     indilightboxinterface.cpp
@@ -158,14 +176,13 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     connectionplugins/connectioninterface.cpp
     connectionplugins/connectionserial.cpp
     connectionplugins/connectiontcp.cpp
+    connectionplugins/connectioni2c.cpp
     dsp/manager.cpp
     dsp/dspinterface.cpp
     dsp/transforms.cpp
     dsp/convolution.cpp
     pid/pid.cpp
     fitskeyword.cpp
-
-    # connectionplugins/ttybase.cpp
 )
 
 # Headers
@@ -173,6 +190,8 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indidriver.h
     pid/pid.h
     defaultdevice.h
+    hotplugcapabledevice.h
+    hotplugmanager.h
     indiccd.h
     indiccdchip.h
     indisensorinterface.h
@@ -192,6 +211,7 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indirotatorinterface.h
     indiinputinterface.h
     indioutputinterface.h
+    indipowerinterface.h
     timer/inditimer.h
     timer/indielapsedtimer.h
     thread/indisinglethreadpool.h
@@ -202,15 +222,12 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indiweather.h
     indilogger.h
     indicontroller.h
+    indiimuinterface.h
+    indiimu.h
     indiusbdevice.h
     fitskeyword.h
 )
 
-# Private Headers
-list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
-
-    # TODO
-)
 
 # If we build a shared library, we link other build products to it
 # If we do not build a shared library, we link the static library
@@ -231,7 +248,10 @@ if(TRUE)
     add_library(${PROJECT_NAME}_OBJECT OBJECT)
     set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-    target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE "-DHAVE_LIBNOVA")
+    target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE
+        HAVE_LIBNOVA
+        $<$<BOOL:${UDEV_FOUND}>:HAVE_UDEV>
+    )
 
     target_sources(${PROJECT_NAME}_OBJECT
         PUBLIC
@@ -254,6 +274,7 @@ if(TRUE)
         connectionplugins/connectioninterface.h
         connectionplugins/connectionserial.h
         connectionplugins/connectiontcp.h
+        connectionplugins/connectioni2c.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins
         COMPONENT Devel
     )
@@ -273,13 +294,18 @@ if(INDI_BUILD_STATIC)
     add_library(${TARGET_STATIC} STATIC)
 
     target_link_libraries(${TARGET_STATIC} ${TARGET_OBJECT} ${${PROJECT_NAME}_LIBS})
-    target_include_directories(${TARGET_STATIC} PUBLIC .)
+    target_include_directories(${TARGET_STATIC} PUBLIC . timer thread stream alignment)
 
     set_target_properties(${TARGET_STATIC} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
         SOVERSION ${INDI_SOVERSION}
         OUTPUT_NAME ${PROJECT_NAME} # this same name like shared library - backwards compatibility
     )
+
+    # Propagate HAVE_UDEV to consumers of the static library
+    if(UDEV_FOUND)
+        target_compile_definitions(${TARGET_STATIC} INTERFACE HAVE_UDEV)
+    endif()
 
     install(TARGETS ${TARGET_STATIC}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -291,13 +317,18 @@ if(INDI_BUILD_SHARED)
     add_library(${TARGET_SHARED} SHARED)
 
     target_link_libraries(${TARGET_SHARED} PUBLIC ${TARGET_OBJECT} ${${PROJECT_NAME}_LIBS})
-    target_include_directories(${TARGET_SHARED} PUBLIC .)
+    target_include_directories(${TARGET_SHARED} PUBLIC . timer thread stream alignment)
 
     set_target_properties(${TARGET_SHARED} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
         SOVERSION ${INDI_SOVERSION}
         OUTPUT_NAME ${PROJECT_NAME}
     )
+
+    # Propagate HAVE_UDEV to consumers of the shared library
+    if(UDEV_FOUND)
+        target_compile_definitions(${TARGET_SHARED} INTERFACE HAVE_UDEV)
+    endif()
 
     install(TARGETS ${TARGET_SHARED}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -366,10 +366,11 @@ bool CCD::initProperties()
     WorldCoordSP.fill(getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW,
                       ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Camera Rotation E of N in degrees
+    // Camera Rotation E of N in degrees following Astrometry notation with row order Down - Top
+    // TS 06-2025: Has to be transformed accordingly for KSTARS Top - Down, see KSUtils::rotationToPositionAngle(orientation)
     // @INDI_STANDARD_PROPERTY@
-    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Rotation", "%g", -360, 360, 1, 0);
-    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
+    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Angle", "%.2f", -360, 360, 1, 0);
+    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "Orientation", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // Scope focal length and aperture
@@ -1503,7 +1504,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             CCDRotationNP.apply();
             m_ValidCCDRotation = true;
 
-            LOGF_INFO("CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
+            LOGF_INFO("Camera Orientation updated to %.2f degrees.", CCDRotationNP[0].getValue());
 
             return true;
         }

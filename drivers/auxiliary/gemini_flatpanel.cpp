@@ -1,12 +1,17 @@
+#include "config.h"
 #include "gemini_flatpanel.h"
 #include "indicom.h"
 #include <termios.h>
+#include <functional>
+#include <vector>
+#include <cstdlib>
+
 
 static std::unique_ptr<GeminiFlatpanel> mydriver(new GeminiFlatpanel());
 
 GeminiFlatpanel::GeminiFlatpanel() : LightBoxInterface(this), DustCapInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 2);
 }
 
 const char *GeminiFlatpanel::getDefaultName()
@@ -24,7 +29,26 @@ bool GeminiFlatpanel::initProperties()
     LI::initProperties(MAIN_CONTROL_TAB, LI::CAN_DIM);
     DI::initProperties(MAIN_CONTROL_TAB);
 
-    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+
+    // Driver interface will be set dynamically in Handshake() based on device capabilities
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
+
+    // Initialize device selection property
+    DeviceTypeSP.fill(
+        getDeviceName(),
+        "DEVICE_TYPE",
+        "Device Type",
+        CONNECTION_TAB,
+        IP_RW,
+        ISR_1OFMANY,
+        60,
+        IPS_IDLE
+    );
+    DeviceTypeSP[DEVICE_AUTO].fill("AUTO", "Auto-detect", ISS_ON);
+    DeviceTypeSP[DEVICE_REV1].fill("REV1", "Revision 1", ISS_OFF);
+    DeviceTypeSP[DEVICE_REV2].fill("REV2", "Revision 2", ISS_OFF);
+    DeviceTypeSP[DEVICE_LITE].fill("LITE", "Lite", ISS_OFF);
+    DeviceTypeSP.load();
 
     addAuxControls();
 
@@ -41,43 +65,73 @@ bool GeminiFlatpanel::initProperties()
 
 bool GeminiFlatpanel::updateProperties()
 {
+    INDI::DefaultDevice::updateProperties();
+
     if (isConnected())
     {
+        // Hide device selection when connected
+        deleteProperty(DeviceTypeSP);
+
         defineProperty(StatusTP);
         defineProperty(ConfigurationTP);
 
-        // Only register beep and brightness mode controls for revision 2 devices
-        if (deviceRevision == GEMINI_REVISION_2)
+        // Only register advanced features if supported by the current adapter
+        if (adapter && adapter->supportsBeep())
         {
             defineProperty(BeepSP);
+        }
+        if (adapter && adapter->supportsBrightnessMode())
+        {
             defineProperty(BrightnessModeSP);
         }
 
-        defineProperty(ConfigureSP);
-        defineProperty(ClosedPositionSP);
-        defineProperty(SetClosedSP);
-        defineProperty(OpenPositionSP);
-        defineProperty(SetOpenSP);
+        // Only register dust cap movement controls if supported
+        if (adapter && adapter->supportsDustCap())
+        {
+            defineProperty(ConfigureSP);
+            defineProperty(ClosedPositionSP);
+            defineProperty(SetClosedSP);
+            defineProperty(OpenPositionSP);
+            defineProperty(SetOpenSP);
+        }
     }
     else
     {
+        // Show device selection when disconnected
+        defineProperty(DeviceTypeSP);
+
         deleteProperty(StatusTP);
         deleteProperty(ConfigurationTP);
 
-        // Only delete beep and brightness mode controls if they were defined (revision 2)
-        if (deviceRevision == GEMINI_REVISION_2)
+        // Only delete properties that were defined
+        if (adapter && adapter->supportsBeep())
         {
             deleteProperty(BeepSP);
+        }
+        if (adapter && adapter->supportsBrightnessMode())
+        {
             deleteProperty(BrightnessModeSP);
         }
 
-        deleteProperty(ConfigureSP);
-        deleteProperty(ClosedPositionSP);
-        deleteProperty(SetClosedSP);
-        deleteProperty(OpenPositionSP);
-        deleteProperty(SetOpenSP);
+        // Only delete dust cap properties that were defined
+        if (adapter && adapter->supportsDustCap())
+        {
+            deleteProperty(ConfigureSP);
+            deleteProperty(ClosedPositionSP);
+            deleteProperty(SetClosedSP);
+            deleteProperty(OpenPositionSP);
+            deleteProperty(SetOpenSP);
+        }
     }
-    return LI::updateProperties() && DI::updateProperties() && INDI::DefaultDevice::updateProperties();
+    bool result = LI::updateProperties() && INDI::DefaultDevice::updateProperties();
+
+    // Only update dust cap properties if the device supports dust cap functionality
+    if (adapter && adapter->supportsDustCap())
+    {
+        result = result && DI::updateProperties();
+    }
+
+    return result;
 }
 
 void GeminiFlatpanel::ISGetProperties(const char *deviceName)
@@ -90,11 +144,21 @@ bool GeminiFlatpanel::ISNewSwitch(const char *dev, const char *name, ISState *st
 {
     if (dev != nullptr and strcmp(dev, getDeviceName()) == 0)
     {
+        // Handle device type selection
+        if (DeviceTypeSP.isNameMatch(name))
+        {
+            DeviceTypeSP.update(states, names, n);
+            DeviceTypeSP.setState(IPS_OK);
+            DeviceTypeSP.apply();
+            saveConfig(DeviceTypeSP);
+            return true;
+        }
+
         if (LI::processSwitch(dev, name, states, names, n))
         {
             return true;
         }
-        if (DI::processSwitch(dev, name, states, names, n))
+        if (adapter && adapter->supportsDustCap() && DI::processSwitch(dev, name, states, names, n))
         {
             return true;
         }
@@ -135,6 +199,10 @@ bool GeminiFlatpanel::ISSnoopDevice(XMLEle *root)
 bool GeminiFlatpanel::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+
+    // Save device type selection
+    DeviceTypeSP.save(fp);
+
     return LI::saveConfigItems(fp);
 }
 
@@ -200,6 +268,15 @@ void GeminiFlatpanel::initStatusProperties()
 void GeminiFlatpanel::onBeepChange()
 {
     bool enable = BeepSP[1].getState() == ISS_ON;
+
+    if (!adapter || !adapter->supportsBeep())
+    {
+        LOG_WARN("Beep functionality not supported by this device.");
+        BeepSP.setState(IPS_ALERT);
+        BeepSP.apply();
+        return;
+    }
+
     if (setBeep(enable))
     {
         BeepSP.setState(IPS_OK);
@@ -214,6 +291,15 @@ void GeminiFlatpanel::onBeepChange()
 void GeminiFlatpanel::onBrightnessModeChange()
 {
     int mode = BrightnessModeSP[1].getState() == ISS_ON ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
+
+    if (!adapter || !adapter->supportsBrightnessMode())
+    {
+        LOG_WARN("Brightness mode selection not supported by this device.");
+        BrightnessModeSP.setState(IPS_ALERT);
+        BrightnessModeSP.apply();
+        return;
+    }
+
     if (setBrightnessMode(mode))
     {
         BrightnessModeSP.setState(IPS_OK);
@@ -307,18 +393,9 @@ void GeminiFlatpanel::TimerHit()
     int coverStatus = 0, lightStatus = 0, motorStatus = 0, brightness = 0;
     bool error = false;
 
-    if (isSimulation())
-    {
-        coverStatus = simulationValues[SIMULATION_COVER];
-        lightStatus = simulationValues[SIMULATION_LIGHT];
-        motorStatus = simulationValues[SIMULATION_MOTOR];
-        brightness = simulationValues[SIMULATION_BRIGHTNESS];
-    }
-    else
-    {
-        error |= !getStatus(&coverStatus, &lightStatus, &motorStatus);
-        error |= !getBrightness(&brightness);
-    }
+    // Use adapter for both real hardware and simulation
+    error |= !getStatus(&coverStatus, &lightStatus, &motorStatus);
+    error |= !getBrightness(&brightness);
 
     if (error)
     {
@@ -360,12 +437,6 @@ bool GeminiFlatpanel::SetLightBoxBrightness(uint16_t value)
     {
         return false;
     }
-    if (isSimulation())
-    {
-        LOGF_INFO("Setting brightness to %d.", value);
-        simulationValues[SIMULATION_BRIGHTNESS] = (int)value;
-        return true;
-    }
     return setBrightness((int)value);
 }
 
@@ -374,12 +445,6 @@ bool GeminiFlatpanel::EnableLightBox(bool enable)
     if (!validateOperation())
     {
         return false;
-    }
-    if (isSimulation())
-    {
-        LOGF_INFO("Turning light %s.", enable ? "on" : "off");
-        simulationValues[SIMULATION_LIGHT] = enable ? GEMINI_LIGHT_STATUS_ON : GEMINI_LIGHT_STATUS_OFF;
-        return true;
     }
     return enable ? lightOn() : lightOff();
 }
@@ -390,12 +455,6 @@ IPState GeminiFlatpanel::ParkCap()
     if (!validateOperation())
     {
         return IPS_ALERT;
-    }
-    if (isSimulation())
-    {
-        LOG_INFO("Parking dust cap.");
-        simulationValues[SIMULATION_COVER] = GEMINI_COVER_STATUS_CLOSED;
-        return IPS_OK;
     }
     ParkCapSP.setState(IPS_BUSY);
     ParkCapSP.apply();
@@ -411,12 +470,6 @@ IPState GeminiFlatpanel::UnParkCap()
     if (!validateOperation())
     {
         return IPS_ALERT;
-    }
-    if (isSimulation())
-    {
-        LOG_INFO("Unparking dust cap.");
-        simulationValues[SIMULATION_COVER] = GEMINI_COVER_STATUS_OPEN;
-        return IPS_OK;
     }
     ParkCapSP.setState(IPS_BUSY);
     ParkCapSP.apply();
@@ -437,48 +490,121 @@ bool GeminiFlatpanel::Handshake()
 {
     if (isSimulation())
     {
-        LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
-        configStatus = GEMINI_CONFIG_READY;
-        updateConfigStatus();
+        // Use simulation adapter (can simulate both Rev1 and Rev2 features)
+        adapter = std::make_unique<GeminiFlatpanelSimulationAdapter>(true); // true = Rev2 features
+        deviceRevision = adapter->getRevision();
+        commandTerminator = adapter->getCommandTerminator();
+
+        // Set driver interface based on device capabilities
+        if (adapter && adapter->supportsDustCap())
+        {
+            setDriverInterface(getDriverInterface() | DUSTCAP_INTERFACE);
+            syncDriverInfo();
+        }
+
+        // Get config status from adapter
+        int adapterConfigStatus;
+        if (adapter->getConfigStatus(&adapterConfigStatus))
+        {
+            configStatus = adapterConfigStatus;
+            updateConfigStatus();
+        }
+
+        LOGF_INFO("Connected successfully to simulated %s.", getDeviceName());
         return true;
     }
 
     PortFD = serialConnection->getPortFD();
 
-    int firmwareVersion = 0;
-    deviceRevision = GEMINI_REVISION_UNKNOWN;
+    // Check if user has selected a specific device type
+    int selectedDeviceType = DeviceTypeSP.findOnSwitchIndex();
 
-    if (deviceRevision == GEMINI_REVISION_UNKNOWN)
+    // List of adapter types to try in order
+    struct AdapterInfo
     {
-        commandTerminator = '\n';
-        if (pingRevision1())
+        std::function<std::unique_ptr<GeminiFlatpanelAdapter>()> factory;
+        std::string name;
+        int deviceType;
+    };
+
+    std::vector<AdapterInfo> adapterTypes;
+
+    if (selectedDeviceType == DEVICE_AUTO)
+    {
+        // Auto-detect: try all adapters in order
+        adapterTypes =
         {
-            deviceRevision = GEMINI_REVISION_1;
-            LOGF_INFO("Connected successfully to %s.", getDeviceName());
-            LOGF_INFO("Device revision: %d", deviceRevision);
+            {[]() { return std::make_unique<GeminiFlatpanelRev1Adapter>(); }, "Rev1", DEVICE_REV1},
+            {[]() { return std::make_unique<GeminiFlatpanelRev2Adapter>(); }, "Rev2", DEVICE_REV2},
+            {[]() { return std::make_unique<GeminiFlatpanelLiteAdapter>(); }, "Lite", DEVICE_LITE}
+        };
+    }
+    else
+    {
+        // Use only the selected adapter type
+        switch (selectedDeviceType)
+        {
+            case DEVICE_REV1:
+                adapterTypes = {{[]() { return std::make_unique<GeminiFlatpanelRev1Adapter>(); }, "Rev1", DEVICE_REV1}};
+                break;
+            case DEVICE_REV2:
+                adapterTypes = {{[]() { return std::make_unique<GeminiFlatpanelRev2Adapter>(); }, "Rev2", DEVICE_REV2}};
+                break;
+            case DEVICE_LITE:
+                adapterTypes = {{[]() { return std::make_unique<GeminiFlatpanelLiteAdapter>(); }, "Lite", DEVICE_LITE}};
+                break;
         }
     }
 
-    if (deviceRevision == GEMINI_REVISION_UNKNOWN)
+    // Try each adapter type until one succeeds
+    bool connected = false;
+    for (const auto &adapterInfo : adapterTypes)
     {
-        commandTerminator = '#';
-        if (pingRevision2() && getFirmwareVersion(&firmwareVersion))
+        auto testAdapter = adapterInfo.factory();
+        testAdapter->setupCommunication(PortFD);
+
+        if (testAdapter->ping())
         {
-            deviceRevision = GEMINI_REVISION_2;
-            LOGF_INFO("Connected successfully to %s.", getDeviceName());
-            LOGF_INFO("Device revision: %d (Firmware v%d)", deviceRevision, firmwareVersion);
+            adapter = std::move(testAdapter);
+            deviceRevision = adapter->getRevision();
+            commandTerminator = adapter->getCommandTerminator();
+
+            // Log connection success with firmware version details
+            int firmwareVersion = 0;
+            if (adapter->getFirmwareVersion(&firmwareVersion))
+            {
+                LOGF_INFO("Connected successfully to %s.", getDeviceName());
+                LOGF_INFO("Device revision: %s (Firmware v%d)", adapterInfo.name.c_str(), firmwareVersion);
+            }
+            else
+            {
+                LOGF_INFO("Connected successfully to %s.", getDeviceName());
+                LOGF_INFO("Device revision: %s", adapterInfo.name.c_str());
+            }
+
+            connected = true;
+            break;
         }
     }
 
-    if (deviceRevision == GEMINI_REVISION_UNKNOWN)
+    if (!connected)
     {
         LOG_ERROR("Handshake failed. Unable to communicate with the device.");
-        LOG_ERROR("Unexpected device ID.");
         return false;
     }
 
-    if (getConfigStatus())
+    // Set driver interface based on device capabilities
+    if (adapter && adapter->supportsDustCap())
     {
+        setDriverInterface(getDriverInterface() | DUSTCAP_INTERFACE);
+        syncDriverInfo();
+    }
+
+    // Check config status using adapter
+    int adapterConfigStatus;
+    if (adapter->getConfigStatus(&adapterConfigStatus))
+    {
+        configStatus = adapterConfigStatus;
         updateConfigStatus();
         return true;
     }
@@ -486,550 +612,67 @@ bool GeminiFlatpanel::Handshake()
     return false;
 }
 
-// Commands
-bool GeminiFlatpanel::formatCommand(char commandLetter, char *commandString, int value)
-{
-    if (commandString == nullptr)
-    {
-        LOG_ERROR("Command string buffer is null");
-        return false;
-    }
+// Note: Protocol-specific methods moved to adapter classes
 
-    if (deviceRevision == GEMINI_REVISION_1)
-    {
-        // Rev1 format: >X000# (no value) or >XNNN# (with value) where X is command letter and NNN is 3-digit value
-        if (value == NO_VALUE)
-        {
-            // No value provided, pad with 000
-            snprintf(commandString, MAXRBUF, ">%c000#", commandLetter);
-        }
-        else
-        {
-            // Value provided, pad to 3 digits
-            snprintf(commandString, MAXRBUF, ">%c%03d#", commandLetter, value);
-        }
-    }
-    else if (deviceRevision == GEMINI_REVISION_2)
-    {
-        // Rev2 format: >X# (no value) or >Xnnn# (with value) where X is command letter and nnn is value
-        if (value == 0)
-        {
-            // No value provided, no padding
-            snprintf(commandString, MAXRBUF, ">%c#", commandLetter);
-        }
-        else
-        {
-            // Value provided, no padding
-            snprintf(commandString, MAXRBUF, ">%c%d#", commandLetter, value);
-        }
-    }
-    else
-    {
-        LOG_ERROR("Unknown device revision");
-        return false;
-    }
-
-    return true;
-}
-
-bool GeminiFlatpanel::extractIntValue(const char *response, int startPos, int *value)
-{
-    if (response == nullptr || value == nullptr)
-    {
-        LOG_ERROR("Invalid parameters for extractIntValue.");
-        return false;
-    }
-
-    // Revision 1 responses have a 3-digit numeric part 0 padded
-    int length = 3;
-    if (deviceRevision == GEMINI_REVISION_2)
-    {
-        const char *terminator = strchr(response, '#');
-        if (terminator == nullptr)
-        {
-            LOG_ERROR("Missing # terminator in response.");
-            return false;
-        }
-
-        // Calculate the length of the numeric part
-        length = terminator - (response + startPos);
-    }
-
-    if (length <= 0)
-    {
-        LOG_ERROR("Invalid numeric value length in response.");
-        return false;
-    }
-
-    // Extract the numeric part
-    char value_str[MAXRBUF] = {0};
-    strncpy(value_str, response + startPos, length);
-    *value = atoi(value_str);
-
-    return true;
-}
-
-bool GeminiFlatpanel::sendCommand(const char *command, char *response, int timeout)
-{
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-
-    char cmd_with_terminator[MAXRBUF];
-
-    snprintf(cmd_with_terminator, MAXRBUF, "%s\r", command);
-
-    LOGF_DEBUG("CMD <%s>", command);
-
-    tcflush(PortFD, TCIOFLUSH);
-    if ((rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
-        return false;
-    }
-
-    if (response == nullptr)
-        return true;
-
-    if ((rc = tty_nread_section(PortFD, response, MAXRBUF, commandTerminator, timeout, &nbytes_read)) != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
-        return false;
-    }
-
-    // Remove trailing newline character if present
-    if (nbytes_read > 0 && response[nbytes_read - 1] == '\n')
-    {
-        response[nbytes_read - 1] = '\0';
-    }
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("RES <%s>", response);
-
-    if (response[0] != '*' || response[1] != command[1])
-    {
-        LOG_ERROR("Invalid response.");
-        return false;
-    }
-
-    return true;
-}
-
-bool GeminiFlatpanel::pingRevision1()
-{
-    // This command is only supported by revision 1 devices
-    // It is used to check if the device is a revision 1 device
-    char response[MAXRBUF] = {0};
-
-    if (!sendCommand(">P000#", response))
-    {
-        return false;
-    }
-
-    if (strcmp(response, "*P99OOO") != 0)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool GeminiFlatpanel::pingRevision2()
-{
-    // This command is only supported by revision 2 devices
-    // It is used to check if the device is a revision 2 device
-    char response[MAXRBUF] = {0};
-
-    if (!sendCommand(">H#", response))
-    {
-        return false;
-    }
-
-    if (strcmp(response, "*HGeminiFlatPanel#") != 0)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool GeminiFlatpanel::getFirmwareVersion(int *version)
-{
-    // This command is only supported by revision 2 devices
-    // It is used to get the firmware version
-    char response[MAXRBUF] = {0};
-
-    // Initialize version to 0 in case of errors
-    *version = 0;
-
-    if (!sendCommand(">V#", response))
-    {
-        return false;
-    }
-
-    if (strlen(response) < 3)
-    {
-        LOG_ERROR("Invalid firmware version response.");
-        return false;
-    }
-
-    if (response[0] != '*' || response[1] != 'V')
-    {
-        LOG_ERROR("Invalid firmware version response.");
-        return false;
-    }
-
-    int firmwareVersion;
-    if (!extractIntValue(response, 2, &firmwareVersion))
-    {
-        return false;
-    }
-
-    if (firmwareVersion < 402)
-    {
-        LOG_ERROR("Firmware version too old. Please update to version 402 or later.");
-        return false;
-    }
-
-    *version = firmwareVersion;
-    return true;
-}
-
-bool GeminiFlatpanel::getConfigStatus()
-{
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('A', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    if (strlen(response) < 3)
-    {
-        LOG_ERROR("Invalid config status response.");
-        return false;
-    }
-
-    if (response[0] != '*' || response[1] != 'A')
-    {
-        LOG_ERROR("Invalid config status response.");
-        return false;
-    }
-
-    configStatus = response[2] - '0';
-    return true;
-}
-
+// Device command methods - now using adapter pattern
 bool GeminiFlatpanel::getBrightness(int *const brightness)
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('J', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    if (strlen(response) < 3)
-    {
-        LOG_ERROR("Invalid brightness response.");
-        return false;
-    }
-
-    if (response[0] != '*' || response[1] != 'J')
-    {
-        LOG_ERROR("Invalid brightness response.");
-        return false;
-    }
-
-    int index = deviceRevision == GEMINI_REVISION_1 ? 4 : 2;
-
-    return extractIntValue(response, index, brightness);
+    return adapter ? adapter->getBrightness(brightness) : false;
 }
 
 bool GeminiFlatpanel::setBrightness(int value)
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (value > GEMINI_MAX_BRIGHTNESS)
-    {
-        LOG_WARN("Brightness level out of range, setting it to 255.");
-        value = GEMINI_MAX_BRIGHTNESS;
-    }
-
-    if (value < GEMINI_MIN_BRIGHTNESS)
-    {
-        LOG_WARN("Brightness level out of range, setting it to 0.");
-        value = GEMINI_MIN_BRIGHTNESS;
-    }
-
-    if (!formatCommand('B', command, value))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    if (strlen(response) < 3)
-    {
-        LOG_ERROR("Invalid brightness response.");
-        return false;
-    }
-
-    if (response[0] != '*' || response[1] != 'B')
-    {
-        LOG_ERROR("Invalid brightness response.");
-        return false;
-    }
-
-    int response_value;
-    int index = deviceRevision == GEMINI_REVISION_1 ? 4 : 2;
-    if (!extractIntValue(response, index, &response_value))
-    {
-        return false;
-    }
-
-    return (response_value == value);
+    return adapter ? adapter->setBrightness(value) : false;
 }
 
 bool GeminiFlatpanel::lightOn()
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('L', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    return (strlen(response) >= 3 && response[0] == '*' && response[1] == 'L');
+    return adapter ? adapter->lightOn() : false;
 }
 
 bool GeminiFlatpanel::lightOff()
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('D', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    return (strlen(response) >= 3 && response[0] == '*' && response[1] == 'D');
+    return adapter ? adapter->lightOff() : false;
 }
 
 bool GeminiFlatpanel::openCover()
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('O', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response, 30))
-    {
-        return false;
-    }
-
-    if (deviceRevision == GEMINI_REVISION_1)
-    {
-        return (strcmp(response, "*O99OOO") == 0);
-    }
-    else
-    {
-        return (strcmp(response, "*OOpened#") == 0);
-    }
+    return adapter ? adapter->openCover() : false;
 }
 
 bool GeminiFlatpanel::closeCover()
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('C', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response, 30))
-    {
-        return false;
-    }
-
-    if (deviceRevision == GEMINI_REVISION_1)
-    {
-        return (strcmp(response, "*C99OOO") == 0);
-    }
-    else
-    {
-        return (strcmp(response, "*CClosed#") == 0);
-    }
+    return adapter ? adapter->closeCover() : false;
 }
 
 bool GeminiFlatpanel::setBeep(bool enable)
 {
-    char command[MAXRBUF] = {0};
-
-    if (!formatCommand('T', command, enable ? GEMINI_BEEP_ON : GEMINI_BEEP_OFF))
-    {
-        return false;
-    }
-
-    return sendCommand(command, nullptr);
+    return adapter ? adapter->setBeep(enable) : false;
 }
 
 bool GeminiFlatpanel::setBrightnessMode(int mode)
 {
-    if (mode != GEMINI_BRIGHTNESS_MODE_LOW && mode != GEMINI_BRIGHTNESS_MODE_HIGH)
-    {
-        LOG_ERROR("Invalid brightness mode.");
-        return false;
-    }
-
-    char command[MAXRBUF] = {0};
-
-    if (!formatCommand('Y', command, mode))
-    {
-        return false;
-    }
-
-    return sendCommand(command, nullptr);
+    return adapter ? adapter->setBrightnessMode(mode) : false;
 }
 
 bool GeminiFlatpanel::getStatus(int *const coverStatus, int *const lightStatus, int *const motorStatus)
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('S', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    if (strlen(response) < 7)
-    {
-        LOG_ERROR("Invalid status response.");
-        return false;
-    }
-
-    if (response[0] != '*' || response[1] != 'S')
-    {
-        LOG_ERROR("Invalid status response.");
-        return false;
-    }
-
-    // Check if device ID is valid (19 or 99)
-    char id_str[3] = {response[2], response[3], '\0'};
-    int id = atoi(id_str);
-    if (id != 19 && id != 99)
-    {
-        LOG_ERROR("Invalid device ID in status response.");
-        return false;
-    }
-
-    *motorStatus = response[4] - '0';
-    *lightStatus = response[5] - '0';
-    *coverStatus = response[6] - '0';
-
-    return true;
+    return adapter ? adapter->getStatus(coverStatus, lightStatus, motorStatus) : false;
 }
 
 bool GeminiFlatpanel::move(uint16_t value, int direction)
 {
-    char command[MAXRBUF] = {0};
-
-    if (direction == -1)
-    {
-        snprintf(command, sizeof(command), ">M-%02d#", value);
-    }
-    else
-    {
-        snprintf(command, sizeof(command), ">M%03d#", value);
-    }
-
-    char response[MAXRBUF] = {0};
-
-    if (!sendCommand(command, response, 30))
-    {
-        return false;
-    }
-
-    LOGF_INFO("Move response: %s", response);
-    return true;
+    return adapter ? adapter->move(value, direction) : false;
 }
 
 bool GeminiFlatpanel::setClosePosition()
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('F', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    LOGF_INFO("Close position: %s", response);
-
-    return true;
+    return adapter ? adapter->setClosePosition() : false;
 }
 
 bool GeminiFlatpanel::setOpenPosition()
 {
-    char command[MAXRBUF] = {0};
-    char response[MAXRBUF] = {0};
-
-    if (!formatCommand('E', command))
-    {
-        return false;
-    }
-
-    if (!sendCommand(command, response))
-    {
-        return false;
-    }
-
-    LOGF_INFO("Open position: %s", response);
-
-    return true;
+    return adapter ? adapter->setOpenPosition() : false;
 }
 
 // Status update and transitions
@@ -1186,14 +829,10 @@ void GeminiFlatpanel::startConfiguration()
 
 void GeminiFlatpanel::endConfiguration()
 {
-    if (isSimulation())
+    int adapterConfigStatus;
+    if (adapter && adapter->getConfigStatus(&adapterConfigStatus))
     {
-        LOG_INFO("Configuration completed successfully.");
-        configStatus = GEMINI_CONFIG_READY;
-    }
-    else
-    {
-        getConfigStatus();
+        configStatus = adapterConfigStatus;
         if (configStatus == GEMINI_CONFIG_READY)
         {
             LOG_INFO("Configuration completed successfully.");
@@ -1205,6 +844,12 @@ void GeminiFlatpanel::endConfiguration()
             configStatus = GEMINI_CONFIG_NOTREADY;
         }
     }
+    else
+    {
+        LOG_WARN("Failed to get configuration status.");
+        configStatus = GEMINI_CONFIG_NOTREADY;
+    }
+
     ConfigureSP.reset();
     ConfigureSP[0].setState(ISS_OFF);
     ConfigureSP.setState(IPS_IDLE);
@@ -1250,6 +895,13 @@ void GeminiFlatpanel::cleanupSwitch(INDI::PropertySwitch &currentSwitch, int swi
 
 void GeminiFlatpanel::onMove(int direction)
 {
+    // Check if dust cap functionality is supported
+    if (!adapter || !adapter->supportsDustCap())
+    {
+        LOG_WARN("Dust cap movement not supported by this device.");
+        return;
+    }
+
     // Determine the switch based solely on the direction.
     auto &currentSwitch = (direction == GEMINI_DIRECTION_CLOSE) ? ClosedPositionSP : OpenPositionSP;
     int switchIndex = currentSwitch.findOnSwitchIndex();
@@ -1275,20 +927,21 @@ void GeminiFlatpanel::onMove(int direction)
             break;
     }
 
-    if (isSimulation())
-    {
-        LOGF_INFO("Moving %d steps in %s direction.", steps, direction == GEMINI_DIRECTION_CLOSE ? "close" : "open");
-    }
-    else
-    {
-        move(steps, direction);
-    }
+    // Use adapter for both real hardware and simulation
+    move(steps, direction);
 
     cleanupSwitch(currentSwitch, switchIndex);
 }
 
 void GeminiFlatpanel::onSetPosition(int direction)
 {
+    // Check if dust cap functionality is supported
+    if (!adapter || !adapter->supportsDustCap())
+    {
+        LOG_WARN("Dust cap position setting not supported by this device.");
+        return;
+    }
+
     auto currentSwitch = (direction == GEMINI_DIRECTION_CLOSE) ? SetClosedSP : SetOpenSP;
     auto switchIndex = currentSwitch.findOnSwitchIndex();
 
@@ -1303,18 +956,12 @@ void GeminiFlatpanel::onSetPosition(int direction)
     {
         case GEMINI_DIRECTION_CLOSE:
             LOG_INFO("Close position set.");
-            if (!isSimulation())
-            {
-                setClosePosition();
-            }
+            setClosePosition();
             configStatus = GEMINI_CONFIG_OPEN;
             break;
         case GEMINI_DIRECTION_OPEN:
             LOG_INFO("Setting open position.");
-            if (!isSimulation())
-            {
-                setOpenPosition();
-            }
+            setOpenPosition();
             endConfiguration();
             break;
     }

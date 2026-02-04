@@ -1,6 +1,7 @@
 /*
     SkySensor2000PC
     Copyright (C) 2015 Camiel Severijns
+    Copyright (C) 2025 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -131,7 +132,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
                    ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
         JD = ln_get_julian_day(utc);
         LOGF_DEBUG("New JD is %f", JD);
-        if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5)) < 0)
+        if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5), true))
         {
             LOG_ERROR("Error setting local time.");
         }
@@ -439,6 +440,123 @@ bool LX200SS2000PC::SetDefaultPark()
     return true;
 }
 
+bool LX200SS2000PC::Goto(double ra, double dec)
+{
+    const struct timespec timeout = {0, 100000000L};
+
+    targetRA  = ra;
+    targetDEC = dec;
+    char RAStr[64] = {0}, DecStr[64] = {0};
+    int fracbase = 0;
+
+    switch (getLX200EquatorialFormat())
+    {
+        case LX200_EQ_LONGER_FORMAT:
+            fracbase = 360000;
+            break;
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
+        default:
+            fracbase = 3600;
+            break;
+    }
+
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
+
+    // If moving, let's stop it first.
+    if (EqNP.getState() == IPS_BUSY)
+    {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
+            AbortSP.setState(IPS_ALERT);
+            LOG_ERROR("Abort slew failed.");
+            AbortSP.apply();
+            return false;
+        }
+
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        LOG_ERROR("Slew aborted.");
+        AbortSP.apply();
+        EqNP.apply();
+
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
+        {
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
+        }
+
+        // sleep for 100 mseconds
+        nanosleep(&timeout, nullptr);
+    }
+
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
+        {
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(err);
+            return false;
+        }
+    }
+
+    TrackState = SCOPE_SLEWING;
+    //EqNP.s     = IPS_BUSY;
+
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+
+    return true;
+}
+
+bool LX200SS2000PC::Sync(double ra, double dec)
+{
+    char syncString[256] = {0};
+
+    if (!isSimulation() && (setObjectRA(PortFD, ra, true) < 0 || (setObjectDEC(PortFD, dec, true)) < 0))
+    {
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+        EqNP.apply();
+        return false;
+    }
+
+    if (!isSimulation() && ::Sync(PortFD, syncString) < 0)
+    {
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Synchronization failed.");
+        EqNP.apply();
+        return false;
+    }
+
+    currentRA  = ra;
+    currentDEC = dec;
+
+    LOG_INFO("Synchronization successful.");
+
+    EqNP.setState(IPS_OK);
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
 bool LX200SS2000PC::ReadScopeStatus()
 {
     if (!isConnected())
@@ -489,5 +607,3 @@ bool LX200SS2000PC::ReadScopeStatus()
 
     return true;
 }
-
-

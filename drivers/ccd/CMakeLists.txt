@@ -13,3 +13,11 @@ SET(guidesimulator_SRC
 add_executable(indi_simulator_guide ${guidesimulator_SRC})
 target_link_libraries(indi_simulator_guide indidriver)
 install(TARGETS indi_simulator_guide RUNTIME DESTINATION bin)
+
+# ########## Alpaca CCD ##############
+SET(alpacaccd_SRC
+    indi_alpaca_ccd.cpp)
+
+add_executable(indi_alpaca_ccd ${alpacaccd_SRC})
+target_link_libraries(indi_alpaca_ccd indidriver ${HTTPLIB_LIBRARY})
+install(TARGETS indi_alpaca_ccd RUNTIME DESTINATION bin)

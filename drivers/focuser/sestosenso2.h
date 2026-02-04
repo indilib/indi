@@ -113,6 +113,28 @@ class SestoSenso2 : public INDI::Focuser
             FASTMOVE_STOP
         };
 
+        // New switch properties for semi-automatic calibration
+        INDI::PropertySwitch MoveInOut100SP {2};
+        enum
+        {
+            MOVE_IN_100,
+            MOVE_OUT_100
+        };
+
+        INDI::PropertySwitch MoveInOut500SP {2};
+        enum
+        {
+            MOVE_IN_500,
+            MOVE_OUT_500
+        };
+
+        INDI::PropertySwitch MoveInOut1000SP {2};
+        enum
+        {
+            MOVE_IN_1000,
+            MOVE_OUT_1000
+        };
+
         enum
         {
             CMD_OK = true,
@@ -173,9 +195,24 @@ class SestoSenso2 : public INDI::Focuser
 
         INDI::Timer m_MotionProgressTimer;
         INDI::Timer m_HallSensorTimer;
-        bool m_IsSestoSenso2 { true };
 
-        std::unique_ptr<PrimalucaLabs::SestoSenso2> m_SestoSenso2;
+        enum SestoSensoModel
+        {
+            SESTOSENSO2,
+            SESTOSENSO3_STANDARD,
+            SESTOSENSO3_SC,
+            SESTOSENSO3_LS,
+        };
+        SestoSensoModel m_SestoSensoModel { SESTOSENSO2 };
+
+        std::unique_ptr<PrimalucaLabs::SestoSenso2> m_SestoSenso2; // This will be updated to a more generic type or a SestoSenso3 specific one later
+
+        INDI::PropertyNumber RecoveryDelayNP {1}; // New property for recovery delay
+        enum
+        {
+            RECOVERY_DELAY_VALUE,
+        };
+
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////

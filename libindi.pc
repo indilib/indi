@@ -1,0 +1,13 @@
+prefix=/usr
+exec_prefix=/usr
+libdir=/usr/lib
+includedir=/usr/include/
+
+Name: libindi
+Description: Instrument Neutral Distributed Interface
+URL: http://www.indilib.org/
+Version: 2.1.8
+Libs: -L${libdir} -lindiclient
+Libs.private: -lz -lcfitsio -lnova
+Cflags: -I${includedir}/libindi
+

@@ -28,8 +28,8 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define STEELDRIVE_MAX_RETRIES       1
-#define STEELDRIVE_TIMEOUT           1
+#define STEELDRIVE_MAX_RETRIES       3
+#define STEELDRIVE_TIMEOUT           2
 #define STEELDRIVE_MAXBUF            16
 #define STEELDRIVE_CMD               9
 #define STEELDRIVE_CMD_LONG          11
@@ -42,6 +42,7 @@ std::unique_ptr<SteelDrive> steelDrive(new SteelDrive());
 
 SteelDrive::SteelDrive()
 {
+    setVersion(1, 1);
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 }
@@ -119,8 +120,6 @@ bool SteelDrive::initProperties()
     updateFocusMaxRange(fSettings[4].maxTrip, fSettings[4].gearRatio);
 
     addAuxControls();
-
-    setDefaultPollingPeriod(500);
 
     return true;
 }
@@ -436,11 +435,11 @@ bool SteelDrive::updatePosition()
 
         if (sim)
         {
-            snprintf(resp, STEELDRIVE_CMD_LONG, ":F8%07u#", (int)simPosition);
+            snprintf(resp, STEELDRIVE_CMD_LONG + 1, ":F8%07u#", (int)simPosition);
             nbytes_read = STEELDRIVE_CMD_LONG;
             break;
         }
-        else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT - retries, &nbytes_read)) != TTY_OK)
+        else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             resp[nbytes_read] = '\0';
@@ -1322,6 +1321,12 @@ void SteelDrive::TimerHit()
             FocusAbsPosNP.apply();
             lastPos = FocusAbsPosNP[0].getValue();
         }
+    }
+    else if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
+    {
+        // During motion, hardware may be busy and timeout errors are expected
+        // Only log as debug/warning, don't treat as critical error
+        LOG_DEBUG("Position read timeout during motion (hardware busy) - will retry next cycle.");
     }
 
     if (temperatureUpdateCounter++ > STEELDRIVE_TEMPERATURE_FREQ)

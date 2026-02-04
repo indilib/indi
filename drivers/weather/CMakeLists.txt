@@ -81,3 +81,19 @@ SET(WeatherSafetyAlpaca_SRC
 add_executable(indi_weather_safety_alpaca ${WeatherSafetyAlpaca_SRC})
 target_link_libraries(indi_weather_safety_alpaca indidriver indiclient ${HTTPLIB_LIBRARY})
 install(TARGETS indi_weather_safety_alpaca RUNTIME DESTINATION bin)
+
+# ########## WeatherFlow Tempest ###############
+SET(WeatherFlow_SRC
+    weatherflow.cpp)
+
+add_executable(indi_weatherflow_weather ${WeatherFlow_SRC})
+target_link_libraries(indi_weatherflow_weather indidriver ${HTTPLIB_LIBRARY} ${JSONLIB})
+install(TARGETS indi_weatherflow_weather RUNTIME DESTINATION bin)
+
+# ########## HiTech Weather Driver ###############
+SET(hitechweather_SRC
+    hitechweather.cpp)
+
+add_executable(indi_hitech_weather ${hitechweather_SRC})
+target_link_libraries(indi_hitech_weather indidriver ${HIDAPILIB})
+install(TARGETS indi_hitech_weather RUNTIME DESTINATION bin)

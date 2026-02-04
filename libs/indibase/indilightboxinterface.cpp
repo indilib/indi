@@ -89,14 +89,16 @@ bool LightBoxInterface::updateProperties()
     if (m_DefaultDevice->isConnected())
     {
         m_DefaultDevice->defineProperty(LightSP);
-        m_DefaultDevice->defineProperty(LightIntensityNP);
+        if (m_Capabilities & CAN_DIM)
+            m_DefaultDevice->defineProperty(LightIntensityNP);
         if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->defineProperty(FilterIntensityNP);
     }
     else
     {
         m_DefaultDevice->deleteProperty(LightSP);
-        m_DefaultDevice->deleteProperty(LightIntensityNP);
+        if (m_Capabilities & CAN_DIM)
+            m_DefaultDevice->deleteProperty(LightIntensityNP);
 
         if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->deleteProperty(FilterIntensityNP);
@@ -158,6 +160,9 @@ bool LightBoxInterface::processNumber(const char *dev, const char *name, double 
         }
 
         LightIntensityNP.apply();
+        // If we have no filters, then save config
+        if (FilterIntensityNP.isEmpty())
+            m_DefaultDevice->saveConfig(LightIntensityNP);
         return true;
     }
 
@@ -364,7 +369,11 @@ void LightBoxInterface::addFilterDuration(const char *filterName, uint16_t filte
 bool LightBoxInterface::saveConfigItems(FILE *fp)
 {
     ActiveDeviceTP.save(fp);
-    if (!FilterIntensityNP.isEmpty())
+    // N.B. In case we do not have any filters defined, the light intensity is saved directly.
+    // Otherwise, we rely on filter settings to set the appropiate intensity for each filter.
+    if (FilterIntensityNP.isEmpty())
+        LightIntensityNP.save(fp);
+    else
         FilterIntensityNP.save(fp);
 
     return true;

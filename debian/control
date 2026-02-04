@@ -18,6 +18,7 @@ Build-Depends: debhelper (>= 9),
                libev-dev,
                librtlsdr-dev,
                libxisf-dev,
+               libudev-dev
 Standards-Version: 3.9.5
 Homepage: http://www.indilib.org/
 Vcs-Git: git://github.com/indilib/indi.git

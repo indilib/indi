@@ -101,7 +101,8 @@ class BaseDevice
             AUX_INTERFACE           = (1 << 15), /**< Auxiliary interface */
             OUTPUT_INTERFACE        = (1 << 16), /**< Digital Output (e.g. Relay) interface */
             INPUT_INTERFACE         = (1 << 17), /**< Digital/Analog Input (e.g. GPIO) interface */
-            POWER_INTERFACE         = (1 << 18), /**< Auxiliary interface */
+            POWER_INTERFACE         = (1 << 18), /**< Power Controller interface */
+            IMU_INTERFACE           = (1 << 19), /**< Intertial Measurement Unit interface */
 
             SENSOR_INTERFACE        = SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE | CORRELATOR_INTERFACE
         };

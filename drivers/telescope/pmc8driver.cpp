@@ -748,6 +748,10 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
 }
 
 // set move speed in terms of how many times sidereal
+// Southern Hemisphere support: In the southern hemisphere, the mount is oriented
+// differently relative to the celestial pole, so we need to invert the motor
+// directions for N/S movements. The pmc8_east_dir variable is 1 for northern
+// hemisphere and 0 for southern hemisphere.
 bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
 {
     int rate = reqrate;
@@ -760,9 +764,14 @@ bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
     switch (dir)
     {
         case PMC8_S:
-            rate = -rate;
-            [[fallthrough]];
+            // In northern hemisphere, South is negative direction
+            // In southern hemisphere, South is positive direction (mount is flipped)
+            rate = pmc8_east_dir ? -rate : rate;
+            return set_pmc8_custom_dec_move_rate(fd, rate);
         case PMC8_N:
+            // In northern hemisphere, North is positive direction
+            // In southern hemisphere, North is negative direction (mount is flipped)
+            rate = pmc8_east_dir ? rate : -rate;
             return set_pmc8_custom_dec_move_rate(fd, rate);
         case PMC8_E:
             rate = -rate;
@@ -1400,11 +1409,19 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
 
     }
     // DEC guiding routine needs to set a DEC move rate and possibly a new direction
+    // Southern Hemisphere support: In the southern hemisphere, the celestial pole
+    // is in the opposite direction, so guide pulses need to be inverted.
+    // pmc8_east_dir is 1 for northern hemisphere, 0 for southern hemisphere.
     else if ((gdir == PMC8_N) || (gdir == PMC8_S))
     {
         double guide_rate = pmc8_sidereal_rate_fraction_de * PMC8_RATE_SIDEREAL;
 
-        if (gdir == PMC8_S) new_rate -= guide_rate;
+        // Determine effective guide direction considering hemisphere
+        // In southern hemisphere, N/S guide commands need to be inverted
+        bool effectiveSouth = (gdir == PMC8_S);
+        if (!pmc8_east_dir) effectiveSouth = !effectiveSouth;  // flip for southern hemisphere
+
+        if (effectiveSouth) new_rate -= guide_rate;
         else new_rate += guide_rate;
 
         if (new_rate < 0) new_dir = 1;
@@ -2329,4 +2346,11 @@ bool get_pmc8_reconnect_flag()
 void set_pmc8_goto_resume(bool resume)
 {
     pmc8_goto_resume = resume;
+}
+
+// Helper to expose pmc8_east_dir to the high-level driver (pmc8.cpp)
+// Returns 1 for Northern Hemisphere, 0 for Southern Hemisphere
+int get_pmc8_east_dir()
+{
+    return pmc8_east_dir;
 }
