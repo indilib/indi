@@ -79,7 +79,7 @@ void RTLSDR::Callback()
                 to_read -= n_read;
             }
         } else {
-            for(int x = 0; x < getBufferSize(); x++) {
+            for(int x = 0; x < getBufferSize() / 2; x++) {
                 real[x] = buffer[x*2];
                 imaginary[x] = buffer[x*2+1];
             }
