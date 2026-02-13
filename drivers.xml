@@ -55,6 +55,10 @@
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
             <version>1.25</version>
         </device>
+        <device label="SAL-33" manufacturer="MLAstro">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.25</version>
+        </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
             <version>0.10</version>
