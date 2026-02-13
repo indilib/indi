@@ -1055,6 +1055,10 @@
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
             <version>1.6</version>
         </device>
+        <device label="Pegasus UPB3" manufacturer="Pegasus Astro">
+            <driver name="Pegasus UPB3">indi_pegasus_upb3</driver>
+            <version>1.0</version>
+        </device>
         <device label="Pegasus UCH" manufacturer="Pegasus Astro">
             <driver name="Pegasus UCH">indi_pegasus_uch</driver>
             <version>1.6</version>
