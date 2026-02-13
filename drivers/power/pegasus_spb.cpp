@@ -116,7 +116,7 @@ bool PegasusSPB::initProperties()
     PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO,60, IPS_IDLE);
+    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware Group
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
@@ -683,7 +683,7 @@ bool PegasusSPB::getSensorData()
         bool quadPowerEnabled = (std::stoi(result[PA_PORT_STATUS]) == 1);
         PI::PowerChannelsSP[0].setState(quadPowerEnabled ? ISS_ON : ISS_OFF);
         PI::PowerChannelsSP.setState(IPS_OK);
-        if (lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
+        if (lastSensorData.size() < PA_N || lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
             PI::PowerChannelsSP.apply();
 
         // Dew Channels (switchable ports)
@@ -693,14 +693,15 @@ bool PegasusSPB::getSensorData()
         PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
         PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
         PI::DewChannelDutyCycleNP.setState(IPS_OK);
-        if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
+        if (lastSensorData.size() < PA_N || lastSensorData[PA_DEW_1] != result[PA_DEW_1]
+                || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
             PI::DewChannelDutyCycleNP.apply();
 
         // Auto Dew
         bool autodew = std::stoi(result[PA_AUTO_DEW]);
         PI::AutoDewSP[0].setState(autodew ? ISS_ON : ISS_OFF);
         PI::AutoDewSP.setState(IPS_OK);
-        if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
+        if (lastSensorData.size() < PA_N || lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             PI::AutoDewSP.apply();
 
         // ensure that dew heater channels are on, since the PPBA auto dew control handles both ports automatically
@@ -724,7 +725,8 @@ bool PegasusSPB::getSensorData()
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
         setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
         setParameterValue("WEATHER_DEWPOINT", std::stod(result[PA_DEW_POINT]));
-        if (lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
                 lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
                 lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT])
         {
@@ -792,14 +794,14 @@ bool PegasusSPB::getMetricsData()
 
         // Power Sensors
         PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
-        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
+        if (lastMetricsData.size() < PC_N || lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
             PowerStatisticsNP.apply();
 
         // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
         {
             PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
-            if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+            if (lastMetricsData.size() < PC_N || lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
             {
                 PI::PowerChannelCurrentNP.setState(IPS_OK);
                 PI::PowerChannelCurrentNP.apply();
@@ -812,7 +814,8 @@ bool PegasusSPB::getMetricsData()
             PI::DewChannelCurrentNP[0].setValue(std::stod(result[PC_DEWA_CURRENT]));
             PI::DewChannelCurrentNP[1].setValue(std::stod(result[PC_DEWB_CURRENT]));
             PI::DewChannelCurrentNP.setState(IPS_OK);
-            if (lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
+            if (lastMetricsData.size() < PC_N ||
+                    lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
                     lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
                 PI::DewChannelCurrentNP.apply();
         }
