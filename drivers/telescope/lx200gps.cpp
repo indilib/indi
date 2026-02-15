@@ -86,6 +86,10 @@ bool LX200GPS::initProperties()
     IUFillNumber(&OTATempN[0], "Temp", "", "%03g", -200.0, 500.0, 0.0, 0);
     IUFillNumberVector(&OTATempNP, OTATempN, 1, getDeviceName(), "OTA Temp (C)", "", GPS_TAB, IP_RO, 0, IPS_IDLE);
 
+    GuideRateNP[0].fill("GUIDE_RATE_WE", "W/E Rate", "%g",  0, 2, 0.05, 0.5);
+    GuideRateNP[1].fill("GUIDE_RATE_NS", "N/S Rate", "%g", 0, 2, 0.05, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Custom Guide Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
     MountTypeSP.reset();
     MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
 
@@ -133,6 +137,7 @@ bool LX200GPS::updateProperties()
         defineProperty(&AzRaBacklashSP);
         defineProperty(&OTATempNP);
         defineProperty(&OTAUpdateSP);
+        defineProperty(GuideRateNP);
     }
     else
     {
@@ -146,6 +151,7 @@ bool LX200GPS::updateProperties()
         deleteProperty(AzRaBacklashSP.name);
         deleteProperty(OTATempNP.name);
         deleteProperty(OTAUpdateSP.name);
+        deleteProperty(GuideRateNP);
     }
 
     return true;
@@ -387,6 +393,27 @@ bool LX200GPS::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOG_INFO("Time updated, updating planetary data...");
+    return true;
+}
+
+bool LX200GPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+
+    if (strcmp(name, "GUIDE_RATE") == 0)
+    {
+        GuideRateNP[0].value = values[0];
+        GuideRateNP[1].value = values[1];
+        GuideRateNP.apply();
+        LOG_INFO("Guide rate set in INDI driver, please check mount is set to the same values");
+    }
+
+    return LX200Autostar::ISNewNumber(dev, name, values, names, n);
+}
+
+bool LX200GPS::saveConfigItems(FILE *fp)
+{
+    LX200Autostar::saveConfigItems(fp);
+    GuideRateNP.save(fp);
     return true;
 }
 
