@@ -7,9 +7,9 @@
         </device>
     </devGroup>
     <devGroup group="Telescopes">
-        <device label="Shelyak Usis" manufacturer="Shelyak">
-            <driver name="Shelyak Usis">shelyak_usis</driver>
-            <version>1.2</version>
+        <device label="Alpaca Telescope" manufacturer="Alpaca">
+            <driver name="Alpaca Telescope">indi_alpaca_telescope</driver>
+            <version>1.0</version>
         </device>
         <device label="LX200 10micron" manufacturer="10 Micron">
             <driver name="LX200 10micron">indi_lx200_10micron</driver>
@@ -431,6 +431,10 @@
         </device>
     </devGroup>
     <devGroup group="Focusers">
+        <device label="Alpaca Focuser" manufacturer="Alpaca">
+            <driver name="Alpaca Focuser">indi_alpaca_focuser</driver>
+            <version>1.0</version>
+        </device>
         <device label="Focuser Simulator" manufacturer="Simulator">
             <driver name="Focuser Simulator">indi_simulator_focus</driver>
             <version>1.0</version>
@@ -717,6 +721,10 @@
         </device>
     </devGroup>
     <devGroup group="Filter Wheels">
+        <device label="Alpaca FilterWheel" manufacturer="Alpaca">
+            <driver name="Alpaca FilterWheel">indi_alpaca_filterwheel</driver>
+            <version>1.0</version>
+        </device>
         <device label="XAGYL Wheel" manufacturer="XAGYL">
             <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
             <version>0.3</version>
