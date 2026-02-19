@@ -57,119 +57,125 @@ Updated driver to use INDI::Telescope (JM)
     ** device afterwards. If the binary name does not match any known devices,
     ** we simply create a generic device.
     */
+#ifdef __APPLE__
+#include <stdlib.h>
+#define PROGNAME getprogname()
+#else
     extern char *__progname;
+#define PROGNAME __progname
+#endif
 
 #define LX200_TRACK 0
 #define LX200_SYNC  1
 
-static class Loader
-{
-        std::unique_ptr<LX200Generic> telescope;
-    public:
-        Loader()
-        {
-            // Note: these if statements use strstr() which isn't a full string match, just a substring,
-            // so if one driver name is the start of another's name, it needs to be AFTER the longer one!
-            if (strstr(__progname, "indi_lx200classic"))
+    static class Loader
+    {
+            std::unique_ptr<LX200Generic> telescope;
+        public:
+            Loader()
             {
-                IDLog("initializing from LX200 classic device...\n");
-                telescope.reset(new LX200Classic());
+                // Note: these if statements use strstr() which isn't a full string match, just a substring,
+                // so if one driver name is the start of another's name, it needs to be AFTER the longer one!
+                if (strstr(PROGNAME, "indi_lx200classic"))
+                {
+                    IDLog("initializing from LX200 classic device...\n");
+                    telescope.reset(new LX200Classic());
+                }
+                else if (strstr(PROGNAME, "indi_lx200_OnStep"))
+                {
+                    IDLog("initializing from LX200 OnStep device...\n");
+                    telescope.reset(new LX200_OnStep());
+                }
+                else if (strstr(PROGNAME, "indi_lx200gps"))
+                {
+                    IDLog("initializing from LX200 GPS device...\n");
+                    telescope.reset(new LX200GPS());
+                }
+                else if (strstr(PROGNAME, "indi_lx200_16"))
+                {
+                    IDLog("Initializing from LX200 16 device...\n");
+                    telescope.reset(new LX200_16());
+                }
+                else if (strstr(PROGNAME, "indi_lx200autostar"))
+                {
+                    IDLog("initializing from Autostar device...\n");
+                    telescope.reset(new LX200Autostar());
+                }
+                else if (strstr(PROGNAME, "indi_lx200ap_v2"))
+                {
+                    IDLog("initializing from Astrophysics V2 device...\n");
+                    telescope.reset(new LX200AstroPhysicsV2());
+                }
+                else if (strstr(PROGNAME, "indi_lx200ap_legacy"))
+                {
+                    IDLog("initializing from Astrophysics GTOCP2 device...\n");
+                    telescope.reset(new LX200AstroPhysicsGTOCP2());
+                }
+                else if (strstr(PROGNAME, "indi_lx200gemini"))
+                {
+                    IDLog("initializing from Losmandy Gemini device...\n");
+                    telescope.reset(new LX200Gemini());
+                }
+                else if (strstr(PROGNAME, "indi_lx200zeq25"))
+                {
+                    IDLog("initializing from ZEQ25 device...\n");
+                    telescope.reset(new LX200ZEQ25());
+                }
+                else if (strstr(PROGNAME, "indi_lx200gotonova"))
+                {
+                    IDLog("initializing from GotoNova device...\n");
+                    telescope.reset(new LX200GotoNova());
+                }
+                else if (strstr(PROGNAME, "indi_ioptronHC8406"))
+                {
+                    IDLog("initializing from ioptron telescope Hand Controller HC8406 device...\n");
+                    telescope.reset(new ioptronHC8406());
+                }
+                else if (strstr(PROGNAME, "indi_lx200pulsar2"))
+                {
+                    IDLog("initializing from pulsar2 device...\n");
+                    telescope.reset(new LX200Pulsar2());
+                }
+                else if (strstr(PROGNAME, "indi_lx200ss2000pc"))
+                {
+                    IDLog("initializing from skysensor2000pc device...\n");
+                    telescope.reset(new LX200SS2000PC());
+                }
+                else if (strstr(PROGNAME, "indi_lx200fs2"))
+                {
+                    IDLog("initializing from Astro-Electronic FS-2...\n");
+                    telescope.reset(new LX200FS2());
+                }
+                else if (strstr(PROGNAME, "indi_lx200_10micron"))
+                {
+                    IDLog("initializing for 10Micron mount...\n");
+                    telescope.reset(new LX200_10MICRON());
+                }
+                else if (strstr(PROGNAME, "indi_eq500x"))
+                {
+                    IDLog("initializing for EQ500X mount...\n");
+                    telescope.reset(new EQ500X());
+                }
+                else if (strstr(PROGNAME, "indi_lx200am5"))
+                {
+                    IDLog("initializing for ZWO AM5 mount...\n");
+                    telescope.reset(new LX200AM5());
+                }
+                else if (strstr(PROGNAME, "indi_lx200_OpenAstroTech"))
+                {
+                    IDLog("initializing for OpenAstroTech mount...\n");
+                    telescope.reset(new LX200_OpenAstroTech());
+                }
+                else if (strstr(PROGNAME, "indi_lx200_pegasus_nyx101"))
+                {
+                    IDLog("initializing for Pegasus NYX-101 mount...\n");
+                    telescope.reset(new LX200NYX101());
+                }
+                // be nice and give them a generic device
+                else
+                    telescope.reset(new LX200Generic());
             }
-            else if (strstr(__progname, "indi_lx200_OnStep"))
-            {
-                IDLog("initializing from LX200 OnStep device...\n");
-                telescope.reset(new LX200_OnStep());
-            }
-            else if (strstr(__progname, "indi_lx200gps"))
-            {
-                IDLog("initializing from LX200 GPS device...\n");
-                telescope.reset(new LX200GPS());
-            }
-            else if (strstr(__progname, "indi_lx200_16"))
-            {
-                IDLog("Initializing from LX200 16 device...\n");
-                telescope.reset(new LX200_16());
-            }
-            else if (strstr(__progname, "indi_lx200autostar"))
-            {
-                IDLog("initializing from Autostar device...\n");
-                telescope.reset(new LX200Autostar());
-            }
-            else if (strstr(__progname, "indi_lx200ap_v2"))
-            {
-                IDLog("initializing from Astrophysics V2 device...\n");
-                telescope.reset(new LX200AstroPhysicsV2());
-            }
-            else if (strstr(__progname, "indi_lx200ap_legacy"))
-            {
-                IDLog("initializing from Astrophysics GTOCP2 device...\n");
-                telescope.reset(new LX200AstroPhysicsGTOCP2());
-            }
-            else if (strstr(__progname, "indi_lx200gemini"))
-            {
-                IDLog("initializing from Losmandy Gemini device...\n");
-                telescope.reset(new LX200Gemini());
-            }
-            else if (strstr(__progname, "indi_lx200zeq25"))
-            {
-                IDLog("initializing from ZEQ25 device...\n");
-                telescope.reset(new LX200ZEQ25());
-            }
-            else if (strstr(__progname, "indi_lx200gotonova"))
-            {
-                IDLog("initializing from GotoNova device...\n");
-                telescope.reset(new LX200GotoNova());
-            }
-            else if (strstr(__progname, "indi_ioptronHC8406"))
-            {
-                IDLog("initializing from ioptron telescope Hand Controller HC8406 device...\n");
-                telescope.reset(new ioptronHC8406());
-            }
-            else if (strstr(__progname, "indi_lx200pulsar2"))
-            {
-                IDLog("initializing from pulsar2 device...\n");
-                telescope.reset(new LX200Pulsar2());
-            }
-            else if (strstr(__progname, "indi_lx200ss2000pc"))
-            {
-                IDLog("initializing from skysensor2000pc device...\n");
-                telescope.reset(new LX200SS2000PC());
-            }
-            else if (strstr(__progname, "indi_lx200fs2"))
-            {
-                IDLog("initializing from Astro-Electronic FS-2...\n");
-                telescope.reset(new LX200FS2());
-            }
-            else if (strstr(__progname, "indi_lx200_10micron"))
-            {
-                IDLog("initializing for 10Micron mount...\n");
-                telescope.reset(new LX200_10MICRON());
-            }
-            else if (strstr(__progname, "indi_eq500x"))
-            {
-                IDLog("initializing for EQ500X mount...\n");
-                telescope.reset(new EQ500X());
-            }
-            else if (strstr(__progname, "indi_lx200am5"))
-            {
-                IDLog("initializing for ZWO AM5 mount...\n");
-                telescope.reset(new LX200AM5());
-            }
-            else if (strstr(__progname, "indi_lx200_OpenAstroTech"))
-            {
-                IDLog("initializing for OpenAstroTech mount...\n");
-                telescope.reset(new LX200_OpenAstroTech());
-            }
-            else if (strstr(__progname, "indi_lx200_pegasus_nyx101"))
-            {
-                IDLog("initializing for Pegasus NYX-101 mount...\n");
-                telescope.reset(new LX200NYX101());
-            }
-            // be nice and give them a generic device
-            else
-                telescope.reset(new LX200Generic());
-        }
-} loader;
+    } loader;
 
 /**************************************************
 *** LX200 Generic Implementation
