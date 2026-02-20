@@ -30,6 +30,7 @@
 #include "indipowerinterface.h"
 
 #include <vector>
+#include <string>
 #include <stdint.h>
 
 namespace Connection
@@ -239,12 +240,23 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         /// Firmware
         ////////////////////////////////////////////////////////////////////////////////////
 
-        INDI::PropertyText FirmwareTP {2};
+        INDI::PropertyText FirmwareTP {3};
         enum
         {
             FIRMWARE_VERSION,
             FIRMWARE_UPTIME,
+            FIRMWARE_DEVICE_TYPE,
         };
+
+        // Quad Output On/Off buttons (shown in Power tab — replaces PI's single checkbox)
+        INDI::PropertySwitch QuadOutputSP {2};
+        // Quad Output On/Off buttons duplicated in Main Control tab
+        INDI::PropertySwitch QuadOutputMainSP {2};
+        // Power sensors (Voltage / Current / Power) mirrored in Main Control tab
+        INDI::PropertyNumber MainSensorsNP {3};
+
+        // Device type string extracted from handshake response (e.g. "PPBA", "PPBM")
+        std::string m_DeviceType {"PPBA"};
 
         std::vector<std::string> lastSensorData;
         std::vector<std::string> lastConsumptionData;

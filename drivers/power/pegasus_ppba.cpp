@@ -147,8 +147,32 @@ bool PegasusPPBA::initProperties()
     ////////////////////////////////////////////////////////////////////////////
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
     FirmwareTP[FIRMWARE_UPTIME].fill("UPTIME", "Uptime (h)", "NA");
+    FirmwareTP[FIRMWARE_DEVICE_TYPE].fill("DEVICE", "Device Type", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
                     IPS_IDLE);
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// Quad Output On/Off buttons
+    ////////////////////////////////////////////////////////////////////////////
+
+    // On/Off pair in the Power tab — replaces PI's single checkbox
+    QuadOutputSP[0].fill("INDI_ENABLED",  "On",  ISS_OFF);
+    QuadOutputSP[1].fill("INDI_DISABLED", "Off", ISS_ON);
+    QuadOutputSP.fill(getDeviceName(), "QUAD_OUTPUT", "Quad Output",
+                      POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Identical On/Off pair mirrored in the Main Control tab
+    QuadOutputMainSP[0].fill("INDI_ENABLED",  "On",  ISS_OFF);
+    QuadOutputMainSP[1].fill("INDI_DISABLED", "Off", ISS_ON);
+    QuadOutputMainSP.fill(getDeviceName(), "QUAD_OUTPUT_MAIN", "Quad Output",
+                          MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Power sensors (Voltage / Current / Power) mirrored in Main Control tab
+    MainSensorsNP[0].fill("SENSOR_VOLTAGE", "Voltage (V)", "%.2f", 0, 999, 0, 0);
+    MainSensorsNP[1].fill("SENSOR_CURRENT", "Current (A)", "%.2f", 0, 999, 0, 0);
+    MainSensorsNP[2].fill("SENSOR_POWER",   "Power (W)",   "%.2f", 0, 999, 0, 0);
+    MainSensorsNP.fill(getDeviceName(), "MAIN_POWER_SENSORS", "Power",
+                       MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
@@ -213,8 +237,15 @@ bool PegasusPPBA::updateProperties()
 
         // Power Interface properties
         PI::updateProperties();
+        // Replace PI's single-toggle power channel checkbox with our On/Off button pair
+        deleteProperty(PI::PowerChannelsSP);
+        defineProperty(QuadOutputSP);
         defineProperty(AdjOutVoltSP);
         defineProperty(PowerStatisticsNP);
+
+        // Main Control tab: Quad Output On/Off buttons and power sensors
+        defineProperty(QuadOutputMainSP);
+        defineProperty(MainSensorsNP);
 
         // Focuser
         if (m_HasExternalMotor)
@@ -241,8 +272,13 @@ bool PegasusPPBA::updateProperties()
 
         deleteProperty(AutoDewSettingsNP);
 
+        // Remove Main Control tab additions
+        deleteProperty(QuadOutputMainSP);
+        deleteProperty(MainSensorsNP);
+
         // Power Interface properties
         PI::updateProperties();
+        deleteProperty(QuadOutputSP);
         deleteProperty(AdjOutVoltSP);
         deleteProperty(PowerStatisticsNP);
 
@@ -313,7 +349,19 @@ bool PegasusPPBA::Handshake()
 
     setupComplete = false;
 
-    return (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"));
+    bool accepted = (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"));
+    if (accepted)
+    {
+        // Extract device type from response (everything before "_OK")
+        // e.g. "PPBA_OK" → "PPBA",  "PPBM_OK" → "PPBM"
+        char typeBuffer[PEGASUS_LEN] = {0};
+        strncpy(typeBuffer, response, PEGASUS_LEN - 1);
+        char *okSuffix = strstr(typeBuffer, "_OK");
+        if (okSuffix)
+            *okSuffix = '\0';
+        m_DeviceType = typeBuffer;
+    }
+    return accepted;
 }
 
 bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -408,6 +456,54 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
             PowerOnBootSP.apply();
             saveConfig(true, PowerOnBootSP.getName());
+            return true;
+        }
+
+        // Quad Output On/Off — Power tab
+        if (QuadOutputSP.isNameMatch(name))
+        {
+            QuadOutputSP.update(states, names, n);
+            bool enable = (QuadOutputSP[0].getState() == ISS_ON);
+            if (setPowerEnabled(1, enable))
+            {
+                QuadOutputSP.setState(IPS_OK);
+                // Keep the Main Control tab version in sync
+                QuadOutputMainSP.reset();
+                QuadOutputMainSP[enable ? 0 : 1].setState(ISS_ON);
+                QuadOutputMainSP.setState(IPS_OK);
+                QuadOutputMainSP.apply();
+                // Keep PI's internal PowerChannelsSP in sync
+                PI::PowerChannelsSP[0].setState(enable ? ISS_ON : ISS_OFF);
+            }
+            else
+            {
+                QuadOutputSP.setState(IPS_ALERT);
+            }
+            QuadOutputSP.apply();
+            return true;
+        }
+
+        // Quad Output On/Off — Main Control tab
+        if (QuadOutputMainSP.isNameMatch(name))
+        {
+            QuadOutputMainSP.update(states, names, n);
+            bool enable = (QuadOutputMainSP[0].getState() == ISS_ON);
+            if (setPowerEnabled(1, enable))
+            {
+                QuadOutputMainSP.setState(IPS_OK);
+                // Keep the Power tab version in sync
+                QuadOutputSP.reset();
+                QuadOutputSP[enable ? 0 : 1].setState(ISS_ON);
+                QuadOutputSP.setState(IPS_OK);
+                QuadOutputSP.apply();
+                // Keep PI's internal PowerChannelsSP in sync
+                PI::PowerChannelsSP[0].setState(enable ? ISS_ON : ISS_OFF);
+            }
+            else
+            {
+                QuadOutputMainSP.setState(IPS_ALERT);
+            }
+            QuadOutputMainSP.apply();
             return true;
         }
 
@@ -665,8 +761,9 @@ bool PegasusPPBA::sendFirmware()
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("PV", res))
     {
-        LOGF_INFO("Detected firmware %s", res);
+        LOGF_INFO("Detected %s firmware %s", m_DeviceType.c_str(), res);
         FirmwareTP[FIRMWARE_VERSION].setText(res);
+        FirmwareTP[FIRMWARE_DEVICE_TYPE].setText(m_DeviceType.c_str());
         FirmwareTP.apply();
         return true;
     }
@@ -700,6 +797,15 @@ bool PegasusPPBA::getSensorData()
                 lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
             PI::PowerSensorsNP.apply();
 
+        // Mirror power sensors to the Main Control tab
+        MainSensorsNP[0].setValue(PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue());
+        MainSensorsNP[1].setValue(PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue());
+        MainSensorsNP[2].setValue(PI::PowerSensorsNP[PI::SENSOR_POWER].getValue());
+        MainSensorsNP.setState(IPS_OK);
+        if (lastSensorData.size() < PA_N ||
+                lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
+            MainSensorsNP.apply();
+
         // Environment Sensors
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
         setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
@@ -715,12 +821,27 @@ bool PegasusPPBA::getSensorData()
             ParametersNP.apply();
         }
 
-        // Power Status (DC Output)
+        // Power Status (DC Output) — keep PI's internal state in sync but do not apply()
+        // since PowerChannelsSP is suppressed from the UI (replaced by QuadOutputSP).
         if (PI::PowerChannelsSP.size() > 0)
         {
             PI::PowerChannelsSP[0].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF);
+        }
+
+        // Sync custom On/Off Quad Output buttons (both Power tab and Main Control tab)
+        {
+            bool quadOn = (std::stoi(result[PA_PORT_STATUS]) == 1);
+            QuadOutputSP.reset();
+            QuadOutputSP[quadOn ? 0 : 1].setState(ISS_ON);
+            QuadOutputMainSP.reset();
+            QuadOutputMainSP[quadOn ? 0 : 1].setState(ISS_ON);
             if (lastSensorData.size() < PA_N || lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
-                PI::PowerChannelsSP.apply();
+            {
+                QuadOutputSP.setState(IPS_OK);
+                QuadOutputSP.apply();
+                QuadOutputMainSP.setState(IPS_OK);
+                QuadOutputMainSP.apply();
+            }
         }
         // Adjustable Power Status
         AdjOutVoltSP.reset();
