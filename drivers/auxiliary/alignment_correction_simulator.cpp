@@ -1,7 +1,7 @@
 /*******************************************************************************
   Alignment Correction Simulator
 
-  SPDX-FileCopyrightText: 2026 Jasem Mutlaq
+  SPDX-FileCopyrightText: 2026 Joaquin Rodriguez
   SPDX-License-Identifier: LGPL-2.0-or-later
 *******************************************************************************/
 

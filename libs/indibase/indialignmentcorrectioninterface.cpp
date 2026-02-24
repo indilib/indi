@@ -1,6 +1,6 @@
 /*
     Alignment Correction Interface
-    Copyright (C) 2026 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2026 Joaquin Rodriguez (jrhuerta@gmail.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public

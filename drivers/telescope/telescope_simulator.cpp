@@ -20,6 +20,7 @@
 #include "scopesim_helper.h"
 
 #include "indicom.h"
+#include "lilxml.h"
 
 #include <cmath>
 #include <cstring>
@@ -115,6 +116,17 @@ bool ScopeSim::initProperties()
     decBacklashNP.fill(getDeviceName(), "DEC_BACKLASH", "DEC Backlash",
                        "Simulation", IP_RW, 0, IPS_IDLE);
 
+    PACDeviceTP[0].fill("PAC_DEVICE", "Alignment Corrector", "Alignment Correction Simulator");
+    PACDeviceTP.fill(getDeviceName(), "ACTIVE_PAC", "Polar Alignment Corrector", "Simulation", IP_RW, 60, IPS_IDLE);
+    PACDeviceTP.load();
+
+    const char *pacDevice = PACDeviceTP[0].getText();
+    if (pacDevice && strlen(pacDevice) > 0)
+    {
+        IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION_ERROR");
+        IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION");
+    }
+
 #endif
 
     /* How fast do we guide compared to sidereal rate */
@@ -168,6 +180,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     flipHourAngleNP.load();
     defineProperty(decBacklashNP);
     decBacklashNP.load();
+    defineProperty(PACDeviceTP);
+    PACDeviceTP.load();
 #endif
     double Latitude = LocationNP[LOCATION_LATITUDE].getValue();
     m_sinLat = std::sin(Latitude * 0.0174533);
@@ -215,6 +229,15 @@ bool ScopeSim::updateProperties()
         }
 
         sendTimeFromSystem();
+
+#ifdef USE_SIM_TAB
+        const char *pacDevice = PACDeviceTP[0].getText();
+        if (pacDevice && strlen(pacDevice) > 0)
+        {
+            IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION_ERROR");
+            IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION");
+        }
+#endif
     }
     else
     {
@@ -534,6 +557,84 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+#ifdef USE_SIM_TAB
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (PACDeviceTP.isNameMatch(name))
+        {
+            PACDeviceTP.setState(IPS_OK);
+            PACDeviceTP.update(texts, names, n);
+            PACDeviceTP.apply();
+
+            const char *pacDevice = PACDeviceTP[0].getText();
+            if (pacDevice && strlen(pacDevice) > 0)
+            {
+                IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION_ERROR");
+                IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION");
+            }
+
+            saveConfig(PACDeviceTP);
+            return true;
+        }
+    }
+#endif
+    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
+}
+
+bool ScopeSim::ISSnoopDevice(XMLEle *root)
+{
+#ifdef USE_SIM_TAB
+    const char *propName   = findXMLAttValu(root, "name");
+    const char *deviceName = findXMLAttValu(root, "device");
+    const char *pacDevice  = PACDeviceTP[0].getText();
+
+    if (pacDevice && strlen(pacDevice) > 0 && deviceName && strcmp(deviceName, pacDevice) == 0)
+    {
+        if (!strcmp(propName, "ALIGNMENT_CORRECTION_ERROR"))
+        {
+            XMLEle *ep = nullptr;
+            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            {
+                const char *elemName = findXMLAttValu(ep, "name");
+                if (!strcmp(elemName, "AZ_ERROR"))
+                    m_snoopedAzError = atof(pcdataXMLEle(ep));
+                else if (!strcmp(elemName, "ALT_ERROR"))
+                    m_snoopedAltError = atof(pcdataXMLEle(ep));
+            }
+            return true;
+        }
+
+        if (!strcmp(propName, "ALIGNMENT_CORRECTION"))
+        {
+            const char *stateStr = findXMLAttValu(root, "state");
+            if (!strcmp(stateStr, "Ok"))
+            {
+                double newMA = mountModelNP[MM_MA].getValue() - (m_snoopedAzError / 2.0);
+                double newME = mountModelNP[MM_ME].getValue() - (m_snoopedAltError / 2.0);
+
+                mountModelNP[MM_MA].setValue(newMA);
+                mountModelNP[MM_ME].setValue(newME);
+                alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
+                                       mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
+                                       newMA, newME);
+
+                mountModelNP.setState(IPS_OK);
+                mountModelNP.apply();
+                saveConfig(mountModelNP);
+
+                LOGF_INFO("Applied half correction from PAC: MA %.4f -> %.4f, ME %.4f -> %.4f",
+                          newMA + (m_snoopedAzError / 2.0), newMA,
+                          newME + (m_snoopedAltError / 2.0), newME);
+            }
+            return true;
+        }
+    }
+#endif
+    return INDI::Telescope::ISSnoopDevice(root);
+}
+
 bool ScopeSim::Abort()
 {
     axisPrimary.Abort();
@@ -729,6 +830,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     mountModelNP.save(fp);
     flipHourAngleNP.save(fp);
     decBacklashNP.save(fp);
+    PACDeviceTP.save(fp);
 
 #endif
     return true;
