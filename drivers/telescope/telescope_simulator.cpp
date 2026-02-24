@@ -611,8 +611,10 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
             const char *stateStr = findXMLAttValu(root, "state");
             if (!strcmp(stateStr, "Ok"))
             {
-                double newMA = mountModelNP[MM_MA].getValue() - (m_snoopedAzError / 2.0);
-                double newME = mountModelNP[MM_ME].getValue() - (m_snoopedAltError / 2.0);
+                double oldMA = mountModelNP[MM_MA].getValue();
+                double oldME = mountModelNP[MM_ME].getValue();
+                double newMA = oldMA - m_snoopedAzError;
+                double newME = oldME - m_snoopedAltError;
 
                 mountModelNP[MM_MA].setValue(newMA);
                 mountModelNP[MM_ME].setValue(newME);
@@ -624,9 +626,8 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                 mountModelNP.apply();
                 saveConfig(mountModelNP);
 
-                LOGF_INFO("Applied half correction from PAC: MA %.4f -> %.4f, ME %.4f -> %.4f",
-                          newMA + (m_snoopedAzError / 2.0), newMA,
-                          newME + (m_snoopedAltError / 2.0), newME);
+                LOGF_INFO("Applied correction from PAC: MA %.4f -> %.4f, ME %.4f -> %.4f",
+                          oldMA, newMA, oldME, newME);
             }
             return true;
         }

@@ -43,4 +43,5 @@ class AlignmentCorrectionSimulator : public INDI::DefaultDevice, public INDI::Al
 
     private:
         INDI::PropertyNumber OperationDurationNP {1};
+        INDI::PropertyNumber CorrectionGainNP {1};
 };
