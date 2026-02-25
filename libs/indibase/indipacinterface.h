@@ -1,6 +1,6 @@
 /*
-    Alignment Correction Interface
-    Copyright (C) 2026 Joaquin Rodriguez (jrhuerta@gmail.com)
+    PAC Interface (Polar Alignment Correction)
+Copyright (C) 2026 Joaquin Rodriguez (jrhuerta@gmail.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -28,8 +28,8 @@
 #include <cstdint>
 
 /**
- * \class AlignmentCorrectionInterface
- * \brief Provides interface to implement automated alignment correction (e.g. polar alignment).
+ * \class PACInterface
+ * \brief Provides interface to implement automated polar alignment correction.
  *
  * A client sets the measured alignment error via the ALIGNMENT_CORRECTION_ERROR number property
  * (azimuth and altitude offsets in degrees), then commands a correction through the
@@ -51,7 +51,7 @@
 namespace INDI
 {
 
-class AlignmentCorrectionInterface
+class PACInterface
 {
     public:
         enum
@@ -67,8 +67,8 @@ class AlignmentCorrectionInterface
         };
 
     protected:
-        explicit AlignmentCorrectionInterface(DefaultDevice *device);
-        virtual ~AlignmentCorrectionInterface() = default;
+        explicit PACInterface(DefaultDevice *device);
+        virtual ~PACInterface() = default;
 
         /**
          * @brief Start an alignment correction.  Must be implemented by the driver.
@@ -116,4 +116,4 @@ class AlignmentCorrectionInterface
 
 }
 
-using ACI = INDI::AlignmentCorrectionInterface;
+using PACI = INDI::PACInterface;

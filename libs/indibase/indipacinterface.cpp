@@ -1,5 +1,5 @@
 /*
-    Alignment Correction Interface
+    PAC Interface (Polar Alignment Correction)
     Copyright (C) 2026 Joaquin Rodriguez (jrhuerta@gmail.com)
 
     This library is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@
 
 */
 
-#include "indialignmentcorrectioninterface.h"
+#include "indipacinterface.h"
 #include "defaultdevice.h"
 
 #include <cstring>
@@ -26,12 +26,12 @@
 namespace INDI
 {
 
-AlignmentCorrectionInterface::AlignmentCorrectionInterface(DefaultDevice *defaultDevice)
+PACInterface::PACInterface(DefaultDevice *defaultDevice)
     : m_DefaultDevice(defaultDevice)
 {
 }
 
-void AlignmentCorrectionInterface::initProperties(const char *group)
+void PACInterface::initProperties(const char *group)
 {
     CorrectionSP[CORRECTION_START].fill("CORRECT", "Correct", ISS_OFF);
     CorrectionSP[CORRECTION_ABORT].fill("ABORT", "Abort", ISS_OFF);
@@ -48,7 +48,7 @@ void AlignmentCorrectionInterface::initProperties(const char *group)
                             group, IPS_IDLE);
 }
 
-bool AlignmentCorrectionInterface::updateProperties()
+bool PACInterface::updateProperties()
 {
     if (m_DefaultDevice->isConnected())
     {
@@ -66,7 +66,7 @@ bool AlignmentCorrectionInterface::updateProperties()
     return true;
 }
 
-bool AlignmentCorrectionInterface::processSwitch(const char *dev, const char *name,
+bool PACInterface::processSwitch(const char *dev, const char *name,
                                                   ISState *states, char *names[], int n)
 {
     INDI_UNUSED(dev);
@@ -118,7 +118,7 @@ bool AlignmentCorrectionInterface::processSwitch(const char *dev, const char *na
     return false;
 }
 
-bool AlignmentCorrectionInterface::processNumber(const char *dev, const char *name,
+bool PACInterface::processNumber(const char *dev, const char *name,
                                                   double values[], char *names[], int n)
 {
     INDI_UNUSED(dev);
@@ -134,14 +134,14 @@ bool AlignmentCorrectionInterface::processNumber(const char *dev, const char *na
     return false;
 }
 
-IPState AlignmentCorrectionInterface::StartCorrection(double azError, double altError)
+IPState PACInterface::StartCorrection(double azError, double altError)
 {
     INDI_UNUSED(azError);
     INDI_UNUSED(altError);
     return IPS_ALERT;
 }
 
-IPState AlignmentCorrectionInterface::AbortCorrection()
+IPState PACInterface::AbortCorrection()
 {
     return IPS_ALERT;
 }

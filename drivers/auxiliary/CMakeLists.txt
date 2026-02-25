@@ -143,13 +143,13 @@ add_executable(indi_simulator_dustcover ${dustcoversimulator_SRC})
 target_link_libraries(indi_simulator_dustcover indidriver)
 install(TARGETS indi_simulator_dustcover RUNTIME DESTINATION bin)
 
-# ########## Alignment Correction Simulator ###############
-SET(alignmentcorrectionsimulator_SRC
-    alignment_correction_simulator.cpp)
+# ########## PAC Simulator (Polar Alignment Correction) ###############
+SET(pacsimulator_SRC
+    pac_simulator.cpp)
 
-add_executable(indi_simulator_alignment_correction ${alignmentcorrectionsimulator_SRC})
-target_link_libraries(indi_simulator_alignment_correction indidriver)
-install(TARGETS indi_simulator_alignment_correction RUNTIME DESTINATION bin)
+add_executable(indi_simulator_pac ${pacsimulator_SRC})
+target_link_libraries(indi_simulator_pac indidriver)
+install(TARGETS indi_simulator_pac RUNTIME DESTINATION bin)
 
 
 # ########## RB Focus Excalibur ###############

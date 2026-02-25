@@ -1,30 +1,30 @@
 /*******************************************************************************
-  Alignment Correction Simulator
+  PAC Simulator (Polar Alignment Correction)
 
   SPDX-FileCopyrightText: 2026 Joaquin Rodriguez
   SPDX-License-Identifier: LGPL-2.0-or-later
 *******************************************************************************/
 
-#include "alignment_correction_simulator.h"
+#include "pac_simulator.h"
 #include "indibase/timer/inditimer.h"
 
 #include <memory>
 
-static std::unique_ptr<AlignmentCorrectionSimulator> simulator(new AlignmentCorrectionSimulator());
+static std::unique_ptr<PACSimulator> simulator(new PACSimulator());
 
-AlignmentCorrectionSimulator::AlignmentCorrectionSimulator()
-    : AlignmentCorrectionInterface(this)
+PACSimulator::PACSimulator()
+    : PACInterface(this)
 {
     setVersion(1, 0);
 }
 
-bool AlignmentCorrectionSimulator::initProperties()
+bool PACSimulator::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    ACI::initProperties(MAIN_CONTROL_TAB);
+    PACI::initProperties(MAIN_CONTROL_TAB);
 
-    setDriverInterface(AUX_INTERFACE | ALIGNMENT_CORRECTION_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | PAC_INTERFACE);
 
     OperationDurationNP[0].fill("DURATION", "Duration (s)", "%.1f", 1, 60, 1, 5);
     OperationDurationNP.fill(getDeviceName(), "OPERATION_DURATION", "Operation", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
@@ -38,7 +38,7 @@ bool AlignmentCorrectionSimulator::initProperties()
     return true;
 }
 
-bool AlignmentCorrectionSimulator::updateProperties()
+bool PACSimulator::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
@@ -53,12 +53,12 @@ bool AlignmentCorrectionSimulator::updateProperties()
         deleteProperty(CorrectionGainNP);
     }
 
-    ACI::updateProperties();
+    PACI::updateProperties();
 
     return true;
 }
 
-bool AlignmentCorrectionSimulator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool PACSimulator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -78,25 +78,25 @@ bool AlignmentCorrectionSimulator::ISNewNumber(const char *dev, const char *name
             return true;
         }
 
-        if (ACI::processNumber(dev, name, values, names, n))
+        if (PACI::processNumber(dev, name, values, names, n))
             return true;
     }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool AlignmentCorrectionSimulator::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool PACSimulator::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (ACI::processSwitch(dev, name, states, names, n))
+        if (PACI::processSwitch(dev, name, states, names, n))
             return true;
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool AlignmentCorrectionSimulator::saveConfigItems(FILE *fp)
+bool PACSimulator::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
@@ -106,7 +106,7 @@ bool AlignmentCorrectionSimulator::saveConfigItems(FILE *fp)
     return true;
 }
 
-IPState AlignmentCorrectionSimulator::StartCorrection(double azError, double altError)
+IPState PACSimulator::StartCorrection(double azError, double altError)
 {
     if (CorrectionSP.getState() == IPS_BUSY)
     {
@@ -141,7 +141,7 @@ IPState AlignmentCorrectionSimulator::StartCorrection(double azError, double alt
     return IPS_BUSY;
 }
 
-IPState AlignmentCorrectionSimulator::AbortCorrection()
+IPState PACSimulator::AbortCorrection()
 {
     LOG_INFO("Alignment correction aborted.");
     return IPS_OK;

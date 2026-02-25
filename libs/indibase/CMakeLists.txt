@@ -169,7 +169,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indigps.cpp
     indiimu.cpp        
     indiweather.cpp
-    indialignmentcorrectioninterface.cpp
+    indipacinterface.cpp
     indidustcapinterface.cpp
     indilightboxinterface.cpp
     indilogger.cpp
@@ -219,7 +219,7 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indidome.h
     indigps.h
     indilightboxinterface.h
-    indialignmentcorrectioninterface.h
+    indipacinterface.h
     indidustcapinterface.h
     indiweather.h
     indilogger.h

@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Alignment Correction Simulator
+  PAC Simulator (Polar Alignment Correction)
 
   SPDX-FileCopyrightText: 2026 Joaquin Rodriguez
   SPDX-License-Identifier: LGPL-2.0-or-later
@@ -8,13 +8,13 @@
 #pragma once
 
 #include "defaultdevice.h"
-#include "indialignmentcorrectioninterface.h"
+#include "indipacinterface.h"
 
-class AlignmentCorrectionSimulator : public INDI::DefaultDevice, public INDI::AlignmentCorrectionInterface
+class PACSimulator : public INDI::DefaultDevice, public INDI::PACInterface
 {
     public:
-        AlignmentCorrectionSimulator();
-        virtual ~AlignmentCorrectionSimulator() override = default;
+        PACSimulator();
+        virtual ~PACSimulator() override = default;
 
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -37,7 +37,7 @@ class AlignmentCorrectionSimulator : public INDI::DefaultDevice, public INDI::Al
             return "Alignment Correction Simulator";
         }
 
-        // From AlignmentCorrectionInterface
+        // From PACInterface
         virtual IPState StartCorrection(double azError, double altError) override;
         virtual IPState AbortCorrection() override;
 

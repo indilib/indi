@@ -832,7 +832,7 @@
             <version>1.0</version>
         </device>
         <device label="Alignment Correction Simulator" manufacturer="Simulator">
-            <driver name="Alignment Correction Simulator">indi_simulator_alignment_correction</driver>
+            <driver name="Alignment Correction Simulator">indi_simulator_pac</driver>
             <version>1.0</version>
         </device>
         <device label="Arduino ST4" manufacturer="DIY">
