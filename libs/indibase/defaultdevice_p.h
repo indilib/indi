@@ -25,6 +25,7 @@
 #include <cstring>
 #include <list>
 #include <mutex>
+#include <string>
 
 #include "indipropertyswitch.h"
 #include "indipropertynumber.h"
@@ -58,6 +59,7 @@ class DefaultDevicePrivate: public ParentDevicePrivate
         PropertyNumber PollPeriodNP     { 1 };
         PropertyText   DriverInfoTP     { 4 };
         PropertySwitch ConnectionModeSP { 0 }; // dynamic count of switches
+        PropertyText   NicknameTP       { 1 };
 
         std::vector<Connection::Interface *> connections;
         Connection::Interface *activeConnection = nullptr;
@@ -78,6 +80,13 @@ class DefaultDevicePrivate: public ParentDevicePrivate
         static std::recursive_mutex             devicesLock;
 
         WatchDeviceProperty watchDevice;
+
+        int loadINDINicknamesXML();
+        int saveINDINicknamesXML();
+
+        bool nicknamesLoaded{false};
+        std::string deviceNickname{};
+        std::map<std::string, std::string> nicknameMap{};
 };
 
 }
