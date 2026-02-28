@@ -55,17 +55,25 @@ bool AlpacaFocuser::initProperties()
     registerConnection(tcpConnection);
 
     // Device information
-    IUFillText(&DeviceInfoT[0], "DESCRIPTION", "Description", "");
-    IUFillText(&DeviceInfoT[1], "DRIVERINFO", "Driver Info", "");
-    IUFillText(&DeviceInfoT[2], "DRIVERVERSION", "Driver Version", "");
-    IUFillText(&DeviceInfoT[3], "INTERFACEVERSION", "Interface Version", "");
-    IUFillTextVector(&DeviceInfoTP, DeviceInfoT, 4, getDeviceName(), "DEVICE_INFO",
-                     "Device Info", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+    DeviceInfoTP.setDeviceName(getDeviceName());
+    DeviceInfoTP.setName("DEVICE_INFO");
+    DeviceInfoTP.setLabel("Device Info");
+    DeviceInfoTP.setGroupName(OPTIONS_TAB);
+    DeviceInfoTP.setPermission(IP_RO);
+    DeviceInfoTP.setTimeout(60);
+    DeviceInfoTP.add("DESCRIPTION", "Description", "");
+    DeviceInfoTP.add("DRIVERINFO", "Driver Info", "");
+    DeviceInfoTP.add("DRIVERVERSION", "Driver Version", "");
+    DeviceInfoTP.add("INTERFACEVERSION", "Interface Version", "");
 
     // Temperature monitoring (read-only)
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Temperature (°C)", "%.2f", -50, 100, 0, 0);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE",
-                       "Temperature", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    TemperatureNP.setDeviceName(getDeviceName());
+    TemperatureNP.setName("FOCUS_TEMPERATURE");
+    TemperatureNP.setLabel("Temperature");
+    TemperatureNP.setGroupName(MAIN_CONTROL_TAB);
+    TemperatureNP.setPermission(IP_RO);
+    TemperatureNP.setTimeout(60);
+    TemperatureNP.add("TEMPERATURE", "Temperature (°C)", "%.2f", -50, 100, 0, 0);
 
     addDebugControl();
     setDefaultPollingPeriod(500); // Poll every 500ms
@@ -79,13 +87,13 @@ bool AlpacaFocuser::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&DeviceInfoTP);
-        defineProperty(&TemperatureNP);
+        DeviceInfoTP.defineProperty();
+        TemperatureNP.defineProperty();
     }
     else
     {
-        deleteProperty(DeviceInfoTP.name);
-        deleteProperty(TemperatureNP.name);
+        DeviceInfoTP.deleteProperty();
+        TemperatureNP.deleteProperty();
     }
 
     return true;
@@ -139,28 +147,28 @@ bool AlpacaFocuser::Handshake()
     if (sendAlpacaGET("/description", response) && response.contains("Value"))
     {
         std::string desc = response["Value"].get<std::string>();
-        IUSaveText(&DeviceInfoT[0], desc.c_str());
+        DeviceInfoTP["DESCRIPTION"] = desc;
     }
 
     if (sendAlpacaGET("/driverinfo", response) && response.contains("Value"))
     {
         std::string info = response["Value"].get<std::string>();
-        IUSaveText(&DeviceInfoT[1], info.c_str());
+        DeviceInfoTP["DRIVERINFO"] = info;
     }
 
     if (sendAlpacaGET("/driverversion", response) && response.contains("Value"))
     {
         std::string ver = response["Value"].get<std::string>();
-        IUSaveText(&DeviceInfoT[2], ver.c_str());
+        DeviceInfoTP["DRIVERVERSION"] = ver;
     }
 
     if (sendAlpacaGET("/interfaceversion", response) && response.contains("Value"))
     {
         int ifver = response["Value"].get<int>();
-        IUSaveText(&DeviceInfoT[3], std::to_string(ifver).c_str());
+        DeviceInfoTP["INTERFACEVERSION"] = std::to_string(ifver);
     }
 
-    IDSetText(&DeviceInfoTP, nullptr);
+    DeviceInfoTP.apply();
 
     // Setup focuser
     if (!setupFocuser())
@@ -216,9 +224,9 @@ bool AlpacaFocuser::setupFocuser()
     if (sendAlpacaGET("/temperature", response) && response.contains("Value"))
     {
         double temp = response["Value"].get<double>();
-        TemperatureN[0].value = temp;
-        TemperatureNP.s = IPS_OK;
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP["TEMPERATURE"] = temp;
+        TemperatureNP.setState(IPS_OK);
+        TemperatureNP.apply();
         LOGF_INFO("Focuser temperature: %.2f°C", temp);
     }
 
@@ -309,11 +317,11 @@ void AlpacaFocuser::TimerHit()
     if (sendAlpacaGET("/temperature", response) && response.contains("Value"))
     {
         double temp = response["Value"].get<double>();
-        if (std::abs(temp - TemperatureN[0].value) > 0.1)
+        if (std::abs(temp - TemperatureNP["TEMPERATURE"].getValue()) > 0.1)
         {
-            TemperatureN[0].value = temp;
-            TemperatureNP.s = IPS_OK;
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP["TEMPERATURE"] = temp;
+            TemperatureNP.setState(IPS_OK);
+            TemperatureNP.apply();
         }
     }
 

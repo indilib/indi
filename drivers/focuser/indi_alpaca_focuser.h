@@ -58,12 +58,10 @@ protected:
 
 private:
     // Device info properties
-    ITextVectorProperty DeviceInfoTP;
-    IText DeviceInfoT[4] {};
+    INDI::PropertyText DeviceInfoTP;
 
     // Temperature property
-    INumberVectorProperty TemperatureNP;
-    INumber TemperatureN[1] {};
+    INDI::PropertyNumber TemperatureNP;
 
     // Alpaca communication
     std::unique_ptr<httplib::Client> m_AlpacaClient;

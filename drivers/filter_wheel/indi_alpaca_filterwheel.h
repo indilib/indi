@@ -55,16 +55,13 @@ protected:
 
 private:
     // Connection properties
-    ITextVectorProperty ServerAddressTP;
-    IText ServerAddressT[2] {};
+    INDI::PropertyText ServerAddressTP;
 
     // Device info properties
-    ITextVectorProperty DeviceInfoTP;
-    IText DeviceInfoT[4] {};
+    INDI::PropertyText DeviceInfoTP;
 
     // Filter properties
-    INumberVectorProperty FocusOffsetsNP;
-    INumber FocusOffsetsN[3] {};
+    INDI::PropertyNumber FocusOffsetsNP;
 
     // Alpaca communication
     std::unique_ptr<httplib::Client> m_AlpacaClient;
