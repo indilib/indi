@@ -400,3 +400,10 @@ add_executable(indi_activefocuser_focus ${activefocuser_SRC})
 
 target_link_libraries(indi_activefocuser_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_activefocuser_focus RUNTIME DESTINATION bin)
+# ############### Alpaca Focuser ################
+SET(alpaca_focuser_SRC
+    indi_alpaca_focuser.cpp)
+
+add_executable(indi_alpaca_focuser ${alpaca_focuser_SRC})
+target_link_libraries(indi_alpaca_focuser indidriver)
+install(TARGETS indi_alpaca_focuser RUNTIME DESTINATION bin)

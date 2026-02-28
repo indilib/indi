@@ -55,25 +55,15 @@ bool AlpacaFocuser::initProperties()
     registerConnection(tcpConnection);
 
     // Device information
-    DeviceInfoTP.setDeviceName(getDeviceName());
-    DeviceInfoTP.setName("DEVICE_INFO");
-    DeviceInfoTP.setLabel("Device Info");
-    DeviceInfoTP.setGroupName(OPTIONS_TAB);
-    DeviceInfoTP.setPermission(IP_RO);
-    DeviceInfoTP.setTimeout(60);
-    DeviceInfoTP.add("DESCRIPTION", "Description", "");
-    DeviceInfoTP.add("DRIVERINFO", "Driver Info", "");
-    DeviceInfoTP.add("DRIVERVERSION", "Driver Version", "");
-    DeviceInfoTP.add("INTERFACEVERSION", "Interface Version", "");
+    DeviceInfoTP[DESCRIPTION].fill("DESCRIPTION", "Description", "");
+    DeviceInfoTP[DRIVER_INFO].fill("DRIVER_INFO", "Driver Info", "");
+    DeviceInfoTP[DRIVER_VERSION].fill("DRIVER_VERSION", "Driver Version", "");
+    DeviceInfoTP[INTERFACE_VERSION].fill("INTERFACE_VERSION", "Interface Version", "");
+    DeviceInfoTP.fill(getDeviceName(), "DEVICE_INFO", "Device Info", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
     // Temperature monitoring (read-only)
-    TemperatureNP.setDeviceName(getDeviceName());
-    TemperatureNP.setName("FOCUS_TEMPERATURE");
-    TemperatureNP.setLabel("Temperature");
-    TemperatureNP.setGroupName(MAIN_CONTROL_TAB);
-    TemperatureNP.setPermission(IP_RO);
-    TemperatureNP.setTimeout(60);
-    TemperatureNP.add("TEMPERATURE", "Temperature (°C)", "%.2f", -50, 100, 0, 0);
+    TemperatureNP[0].fill("TEMPERATURE", "Temperature (°C)", "%.2f", -50, 100, 0, 0);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
     setDefaultPollingPeriod(500); // Poll every 500ms
@@ -87,13 +77,13 @@ bool AlpacaFocuser::updateProperties()
 
     if (isConnected())
     {
-        DeviceInfoTP.defineProperty();
-        TemperatureNP.defineProperty();
+        defineProperty(DeviceInfoTP);
+        defineProperty(TemperatureNP);
     }
     else
     {
-        DeviceInfoTP.deleteProperty();
-        TemperatureNP.deleteProperty();
+        deleteProperty(DeviceInfoTP);
+        deleteProperty(TemperatureNP);
     }
 
     return true;
@@ -147,25 +137,25 @@ bool AlpacaFocuser::Handshake()
     if (sendAlpacaGET("/description", response) && response.contains("Value"))
     {
         std::string desc = response["Value"].get<std::string>();
-        DeviceInfoTP["DESCRIPTION"] = desc;
+        DeviceInfoTP[DESCRIPTION].setText(desc.c_str());
     }
 
     if (sendAlpacaGET("/driverinfo", response) && response.contains("Value"))
     {
         std::string info = response["Value"].get<std::string>();
-        DeviceInfoTP["DRIVERINFO"] = info;
+        DeviceInfoTP[DRIVER_INFO].setText(info.c_str());
     }
 
     if (sendAlpacaGET("/driverversion", response) && response.contains("Value"))
     {
         std::string ver = response["Value"].get<std::string>();
-        DeviceInfoTP["DRIVERVERSION"] = ver;
+        DeviceInfoTP[DRIVER_VERSION].setText(ver.c_str());
     }
 
     if (sendAlpacaGET("/interfaceversion", response) && response.contains("Value"))
     {
         int ifver = response["Value"].get<int>();
-        DeviceInfoTP["INTERFACEVERSION"] = std::to_string(ifver);
+        DeviceInfoTP[INTERFACE_VERSION].setText(std::to_string(ifver).c_str());
     }
 
     DeviceInfoTP.apply();
@@ -224,8 +214,7 @@ bool AlpacaFocuser::setupFocuser()
     if (sendAlpacaGET("/temperature", response) && response.contains("Value"))
     {
         double temp = response["Value"].get<double>();
-        TemperatureNP["TEMPERATURE"] = temp;
-        TemperatureNP.setState(IPS_OK);
+        TemperatureNP[0].setValue(temp);
         TemperatureNP.apply();
         LOGF_INFO("Focuser temperature: %.2f°C", temp);
     }
@@ -317,10 +306,9 @@ void AlpacaFocuser::TimerHit()
     if (sendAlpacaGET("/temperature", response) && response.contains("Value"))
     {
         double temp = response["Value"].get<double>();
-        if (std::abs(temp - TemperatureNP["TEMPERATURE"].getValue()) > 0.1)
+        if (std::abs(temp - TemperatureNP[0].getValue()) > 0.1)
         {
-            TemperatureNP["TEMPERATURE"] = temp;
-            TemperatureNP.setState(IPS_OK);
+            TemperatureNP[0].setValue(temp);
             TemperatureNP.apply();
         }
     }

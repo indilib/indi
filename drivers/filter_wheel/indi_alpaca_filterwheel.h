@@ -55,13 +55,15 @@ protected:
 
 private:
     // Connection properties
-    INDI::PropertyText ServerAddressTP;
+    INDI::PropertyText ServerAddressTP {2};
+    enum { HOST_INDEX, PORT_INDEX };
 
     // Device info properties
-    INDI::PropertyText DeviceInfoTP;
+    INDI::PropertyText DeviceInfoTP {4};
+    enum { DESCRIPTION, DRIVER_INFO, DRIVER_VERSION, INTERFACE_VERSION };
 
     // Filter properties
-    INDI::PropertyNumber FocusOffsetsNP;
+    INDI::PropertyNumber FocusOffsetsNP {3};
 
     // Alpaca communication
     std::unique_ptr<httplib::Client> m_AlpacaClient;

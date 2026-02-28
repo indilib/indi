@@ -42,48 +42,36 @@ bool AlpacaFilterWheel::initProperties()
     setFilterConnection(CONNECTION_TCP);
 
     // Server address
-    ServerAddressTP.setDeviceName(getDeviceName());
-    ServerAddressTP.setName("SERVER_ADDRESS");
-    ServerAddressTP.setLabel("Server");
-    ServerAddressTP.setGroupName(CONNECTION_TAB);
-    ServerAddressTP.setPermission(IP_RW);
-    ServerAddressTP.setTimeout(60);
-    ServerAddressTP.add("HOST", "Host", m_Host.c_str());
-    ServerAddressTP.add("PORT", "Port", std::to_string(m_Port).c_str());
-    ServerAddressTP.load();
+    ServerAddressTP[HOST_INDEX].fill("HOST", "Host", m_Host.c_str());
+    ServerAddressTP[PORT_INDEX].fill("PORT", "Port", std::to_string(m_Port).c_str());
+    ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+    
+    // Load saved configuration
+    defineProperty(ServerAddressTP);
+    loadConfig(true, "SERVER_ADDRESS");
     
     // Update m_Host and m_Port from loaded config
-    if (!ServerAddressTP["HOST"].text.empty())
+    if (ServerAddressTP[HOST_INDEX].text != nullptr && strlen(ServerAddressTP[HOST_INDEX].text) > 0)
     {
-        m_Host = ServerAddressTP["HOST"].text;
+        m_Host = ServerAddressTP[HOST_INDEX].text;
     }
-    if (!ServerAddressTP["PORT"].text.empty())
+    if (ServerAddressTP[PORT_INDEX].text != nullptr && strlen(ServerAddressTP[PORT_INDEX].text) > 0)
     {
-        m_Port = std::stoi(ServerAddressTP["PORT"].text);
+        m_Port = std::stoi(ServerAddressTP[PORT_INDEX].text);
     }
 
     // Device information
-    DeviceInfoTP.setDeviceName(getDeviceName());
-    DeviceInfoTP.setName("DEVICE_INFO");
-    DeviceInfoTP.setLabel("Device Info");
-    DeviceInfoTP.setGroupName(INFO_TAB);
-    DeviceInfoTP.setPermission(IP_RO);
-    DeviceInfoTP.setTimeout(60);
-    DeviceInfoTP.add("DESCRIPTION", "Description", "");
-    DeviceInfoTP.add("DRIVERINFO", "Driver Info", "");
-    DeviceInfoTP.add("DRIVERVERSION", "Driver Version", "");
-    DeviceInfoTP.add("INTERFACEVERSION", "Interface Version", "");
+    DeviceInfoTP[DESCRIPTION].fill("DESCRIPTION", "Description", "");
+    DeviceInfoTP[DRIVER_INFO].fill("DRIVER_INFO", "Driver Info", "");
+    DeviceInfoTP[DRIVER_VERSION].fill("DRIVER_VERSION", "Driver Version", "");
+    DeviceInfoTP[INTERFACE_VERSION].fill("INTERFACE_VERSION", "Interface Version", "");
+    DeviceInfoTP.fill(getDeviceName(), "DEVICE_INFO", "Device Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     // Focus offsets for each filter
-    FocusOffsetsNP.setDeviceName(getDeviceName());
-    FocusOffsetsNP.setName("FOCUS_OFFSETS");
-    FocusOffsetsNP.setLabel("Focus Offsets");
-    FocusOffsetsNP.setGroupName(FILTER_TAB);
-    FocusOffsetsNP.setPermission(IP_RO);
-    FocusOffsetsNP.setTimeout(60);
-    FocusOffsetsNP.add("OFFSET_0", "Dark Offset", -1000, 1000, 1, 0);
-    FocusOffsetsNP.add("OFFSET_1", "IR Offset", -1000, 1000, 1, 0);
-    FocusOffsetsNP.add("OFFSET_2", "LP Offset", -1000, 1000, 1, 0);
+    FocusOffsetsNP[0].fill("OFFSET_0", "Dark Offset", "%.0f", -1000, 1000, 1, 0);
+    FocusOffsetsNP[1].fill("OFFSET_1", "IR Offset", "%.0f", -1000, 1000, 1, 0);
+    FocusOffsetsNP[2].fill("OFFSET_2", "LP Offset", "%.0f", -1000, 1000, 1, 0);
+    FocusOffsetsNP.fill(getDeviceName(), "FOCUS_OFFSETS", "Focus Offsets", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
 
@@ -96,13 +84,13 @@ bool AlpacaFilterWheel::updateProperties()
 
     if (isConnected())
     {
-        DeviceInfoTP.defineProperty();
-        FocusOffsetsNP.defineProperty();
+        defineProperty(DeviceInfoTP);
+        defineProperty(FocusOffsetsNP);
     }
     else
     {
-        DeviceInfoTP.deleteProperty();
-        FocusOffsetsNP.deleteProperty();
+        deleteProperty(DeviceInfoTP);
+        deleteProperty(FocusOffsetsNP);
     }
 
     return true;
@@ -144,25 +132,25 @@ bool AlpacaFilterWheel::Connect()
     if (sendAlpacaGET("/description", response) && response.contains("Value"))
     {
         std::string desc = response["Value"].get<std::string>();
-        DeviceInfoTP["DESCRIPTION"] = desc;
+        DeviceInfoTP[DESCRIPTION].setText(desc.c_str());
     }
 
     if (sendAlpacaGET("/driverinfo", response) && response.contains("Value"))
     {
         std::string info = response["Value"].get<std::string>();
-        DeviceInfoTP["DRIVERINFO"] = info;
+        DeviceInfoTP[DRIVER_INFO].setText(info.c_str());
     }
 
     if (sendAlpacaGET("/driverversion", response) && response.contains("Value"))
     {
         std::string ver = response["Value"].get<std::string>();
-        DeviceInfoTP["DRIVERVERSION"] = ver;
+        DeviceInfoTP[DRIVER_VERSION].setText(ver.c_str());
     }
 
     if (sendAlpacaGET("/interfaceversion", response) && response.contains("Value"))
     {
         int ifver = response["Value"].get<int>();
-        DeviceInfoTP["INTERFACEVERSION"] = std::to_string(ifver);
+        DeviceInfoTP[INTERFACE_VERSION].setText(std::to_string(ifver).c_str());
     }
 
     DeviceInfoTP.apply();
@@ -224,14 +212,12 @@ bool AlpacaFilterWheel::setupFilterWheel()
         auto offsets = response["Value"];
         if (offsets.is_array())
         {
-            std::string offset_keys[] = {"OFFSET_0", "OFFSET_1", "OFFSET_2"};
             for (size_t i = 0; i < offsets.size() && i < 3; i++)
             {
                 int offset = offsets[i].get<int>();
-                FocusOffsetsNP[offset_keys[i]] = offset;
+                FocusOffsetsNP[i].setValue(offset);
                 LOGF_INFO("Filter %zu focus offset: %d steps", i, offset);
             }
-            FocusOffsetsNP.setState(IPS_OK);
             FocusOffsetsNP.apply();
         }
     }
@@ -318,10 +304,9 @@ bool AlpacaFilterWheel::ISNewText(const char *dev, const char *name, char *texts
         {
             ServerAddressTP.update(texts, names, n);
             
-            m_Host = ServerAddressTP["HOST"].text;
-            m_Port = std::stoi(ServerAddressTP["PORT"].text);
+            m_Host = ServerAddressTP[HOST_INDEX].text;
+            m_Port = std::stoi(ServerAddressTP[PORT_INDEX].text);
             
-            ServerAddressTP.setState(IPS_OK);
             ServerAddressTP.apply();
             saveConfig(true, "SERVER_ADDRESS");
             

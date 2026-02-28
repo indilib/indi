@@ -58,10 +58,11 @@ protected:
 
 private:
     // Device info properties
-    INDI::PropertyText DeviceInfoTP;
+    INDI::PropertyText DeviceInfoTP {4};
+    enum { DESCRIPTION, DRIVER_INFO, DRIVER_VERSION, INTERFACE_VERSION };
 
     // Temperature property
-    INDI::PropertyNumber TemperatureNP;
+    INDI::PropertyNumber TemperatureNP {1};
 
     // Alpaca communication
     std::unique_ptr<httplib::Client> m_AlpacaClient;

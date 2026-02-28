@@ -86,3 +86,10 @@ SET(ioptron_wheel_SRC
 add_executable(indi_ioptron_wheel ${ioptron_wheel_SRC})
 target_link_libraries(indi_ioptron_wheel indidriver)
 install(TARGETS indi_ioptron_wheel RUNTIME DESTINATION bin)
+# ############### Alpaca Filter Wheel ################
+SET(alpaca_filterwheel_SRC
+    indi_alpaca_filterwheel.cpp)
+
+add_executable(indi_alpaca_filterwheel ${alpaca_filterwheel_SRC})
+target_link_libraries(indi_alpaca_filterwheel indidriver)
+install(TARGETS indi_alpaca_filterwheel RUNTIME DESTINATION bin)
