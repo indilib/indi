@@ -45,10 +45,7 @@ bool AlpacaFilterWheel::initProperties()
     ServerAddressTP[HOST_INDEX].fill("HOST", "Host", m_Host.c_str());
     ServerAddressTP[PORT_INDEX].fill("PORT", "Port", std::to_string(m_Port).c_str());
     ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
-    
-    // Load saved configuration
-    defineProperty(ServerAddressTP);
-    loadConfig(true, "SERVER_ADDRESS");
+    ServerAddressTP.load();
     
     // Update m_Host and m_Port from loaded config
     if (ServerAddressTP[HOST_INDEX].text != nullptr && strlen(ServerAddressTP[HOST_INDEX].text) > 0)
