@@ -1,10 +1,10 @@
 /*******************************************************************************
-  Copyright(c) 2025 Rick Bassham. All rights reserved.
+  Copyright(c) 2026 Gord Tulloch. All rights reserved.
 
-  Seestar S50 CCD INDI Driver
+  Seestar CCD INDI Driver
   
   This driver inherits from the generic ASCOM Alpaca CCD driver and applies
-  workarounds for Seestar S50's non-standard ImageBytes implementation.
+  workarounds for Seestar CCD's non-standard ImageBytes implementation.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -30,10 +30,10 @@
 #include "indi_alpaca_ccd.h"
 
 /**
- * @brief The SeestarCCD class provides Seestar S50-specific workarounds for
+ * @brief The SeestarCCD class provides Seestar specific workarounds for
  * the ASCOM Alpaca CCD driver.
  * 
- * The Seestar S50 has bugs in its ImageBytes protocol implementation:
+ * The Seestar CCD has bugs in its ImageBytes protocol implementation:
  * 1. Rank is stored in Dimension1 field instead of Rank field
  * 2. Width is stored in Dimension3 field instead of Dimension1
  * 3. Height is correct in Dimension2
