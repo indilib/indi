@@ -116,42 +116,6 @@ bool alpacaTelescopeDriver::updateProperties()
     return true;
 }
 
-bool alpacaTelescopeDriver::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
-}
-
-void alpacaTelescopeDriver::ISGetProperties(const char *dev)
-{
-    INDI::Telescope::ISGetProperties(dev);
-}
-
-bool alpacaTelescopeDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool alpacaTelescopeDriver::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
-}
-
-void alpacaTelescopeDriver::TimerHit()
-{
-    if (!isConnected())
-    {
-        return;
-    }
-    
-    ReadScopeStatus();
-    
-    // Schedule next timer hit
-    SetTimer(POLLMS);
-    
-    // Call parent timer to handle any other periodic tasks
-    INDI::Telescope::TimerHit();
-}
-
 bool alpacaTelescopeDriver::Connect()
 {
     std::string host = tcpConnection->host();
