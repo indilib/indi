@@ -148,7 +148,7 @@ bool alpacaTelescopeDriver::Connect()
     }
     
     // Start the timer
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     
     LOG_INFO("Successfully connected to alpaca");
     return true;
