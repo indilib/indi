@@ -236,7 +236,7 @@ bool AlpacaFilterWheel::SelectFilter(int position)
     // Convert from INDI 1-based to ASCOM 0-based
     int targetPos = position - 1;
 
-    const char *filterName = (targetPos < FilterNameTP.size()) ? FilterNameTP[targetPos].getText() : "Unknown";
+    const char *filterName = (static_cast<size_t>(targetPos) < FilterNameTP.size()) ? FilterNameTP[targetPos].getText() : "Unknown";
     LOGF_INFO("Selecting filter position %d (%s)", targetPos, filterName);
 
     // Check if already at position to avoid error 1279
