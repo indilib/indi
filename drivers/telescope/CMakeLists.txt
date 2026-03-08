@@ -267,3 +267,10 @@ add_executable(indi_planewave_telescope
 target_link_libraries(indi_planewave_telescope indidriver ${HTTPLIB_LIBRARY})
 
 install(TARGETS indi_planewave_telescope RUNTIME DESTINATION bin)
+# ########## Alpaca Telescope ##############
+add_executable(indi_alpaca_telescope
+    indi_alpaca_telescope.cpp)
+
+target_link_libraries(indi_alpaca_telescope indidriver ${HTTPLIB_LIBRARY})
+
+install(TARGETS indi_alpaca_telescope RUNTIME DESTINATION bin)
