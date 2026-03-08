@@ -30,6 +30,9 @@
 LX200GPS::LX200GPS() : LX200Autostar()
 {
     MaxReticleFlashRate = 9;
+    SetTelescopeCapability(GetTelescopeCapability() |
+                           TELESCOPE_CAN_CONTROL_TRACK |
+                           TELESCOPE_CAN_HOME_GO , 4);
 }
 
 const char *LX200GPS::getDefaultName()
