@@ -901,6 +901,11 @@ void DefaultDevice::simulationTriggered(bool enable)
     INDI_UNUSED(enable);
 }
 
+void DefaultDevice::nicknameSet(const char *nickname)
+{
+    INDI_UNUSED(nickname);
+}
+
 void DefaultDevice::ISGetProperties(const char *dev)
 {
     D_PTR(DefaultDevice);
@@ -1236,6 +1241,7 @@ bool DefaultDevice::initProperties()
         d->NicknameTP[0].setText(d->deviceNickname);
         d->NicknameTP.setState(IPS_OK);
         d->NicknameTP.apply();
+        nicknameSet(d->deviceNickname.c_str());
     });
 
     INDI::Logger::initProperties(this);
@@ -1523,11 +1529,16 @@ void DefaultDevice::setDeviceNickname(const char *nick)
     trim(n);
     d->deviceNickname = n;
 
-    if (d->deviceNickname.empty())
-        full = def;
-    else
-        full = def + " " + d->deviceNickname;
-    setDeviceName(full.c_str());
+    // setDeviceName can only be set during initialization. The Nickname can be
+    // set in NicknameTP and will take affect when restarted.
+    if (!d->isInit)
+    {
+        if (d->deviceNickname.empty())
+            full = def;
+        else
+            full = def + " " + d->deviceNickname;
+        setDeviceName(full.c_str());
+    }
 }
 
 const char *DefaultDevice::getDeviceNickname()
@@ -1575,6 +1586,7 @@ void DefaultDevice::saveNicknameId(const char *nickname, const char *identifier)
         return;
 
     std::string id{identifier};
+    trim(id);
     std::string nick = (nickname) ? nickname : d->deviceNickname;
     if (nick.empty() || id.empty())
         return;

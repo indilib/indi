@@ -667,6 +667,15 @@ class DefaultDevice : public ParentDevice
 
         void saveNicknameId(const char *nickname, const char *identifier);
 
+        /**
+         * \brief Inform driver that the nickname has been set.
+         *
+         * Reimplement this function to get notified on nickname update to save with saveNicknameId().
+         * To just read the nickname if already set, use getDeviceNickname();
+         * \param nickname The nickname. Emptystring or nullptr means no nickname set.
+         */
+        virtual void nicknameSet(const char *nickname);
+
     private:
         // Connection Plugins
         friend class Connection::Serial;
