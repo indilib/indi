@@ -594,6 +594,12 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
     {
         if (!strcmp(propName, "ALIGNMENT_CORRECTION_ERROR"))
         {
+            // Store the measured error values for use when the correction completes.
+            // Do NOT update the mount model here: ALIGNMENT_CORRECTION_ERROR carries
+            // the polar alignment error measured by the client (Ekos) and must be
+            // treated as read-only by the driver while a correction is in progress.
+            // Applying it immediately would change the telescope's apparent pointing
+            // before any physical correction has taken place.
             XMLEle *ep = nullptr;
             for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             {
@@ -602,15 +608,6 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                     m_snoopedAzError = atof(pcdataXMLEle(ep));
                 else if (!strcmp(elemName, "ALT_ERROR"))
                     m_snoopedAltError = atof(pcdataXMLEle(ep));
-
-                mountModelNP[MM_MA].setValue(m_snoopedAzError);
-                mountModelNP[MM_ME].setValue(m_snoopedAltError);
-                alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
-                                         mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
-                                         mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
-
-                mountModelNP.setState(IPS_OK);
-                mountModelNP.apply();
             }
             return true;
         }
@@ -620,10 +617,17 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
             const char *stateStr = findXMLAttValu(root, "state");
             if (!strcmp(stateStr, "Ok"))
             {
+                // The PAA's azError and MM_MA use opposite sign conventions:
+                //   azError > 0 (pole displaced East) ↔ MM_MA < 0 in the model
+                //   azError < 0 (pole displaced West) ↔ MM_MA > 0 in the model
+                // Adding m_snoopedAzError to the current MM_MA correctly simulates
+                // the physical delta correction applied to the mount.
+                // Example: MM_MA = +1.0°, azError = -1.12° → newMA = +1.0 + (-1.12) = -0.12°
+                // (slight overshoot; next iteration converges to 0).
                 double oldMA = mountModelNP[MM_MA].getValue();
                 double oldME = mountModelNP[MM_ME].getValue();
-                double newMA = oldMA - m_snoopedAzError;
-                double newME = oldME - m_snoopedAltError;
+                double newMA = oldMA + m_snoopedAzError;
+                double newME = oldME + m_snoopedAltError;
 
                 mountModelNP[MM_MA].setValue(newMA);
                 mountModelNP[MM_ME].setValue(newME);

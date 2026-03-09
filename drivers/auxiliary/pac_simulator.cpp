@@ -162,13 +162,6 @@ IPState PACSimulator::MoveAZ(double degrees)
     {
         LOGF_INFO("Azimuth move complete: %.4f deg %s.", std::abs(degrees), (degrees >= 0) ? "East" : "West");
 
-        // Update the stored AZ error to reflect the applied correction.
-        // A westward move (degrees < 0) reduces a positive (eastward) azimuth error.
-        const double newAzError = CorrectionErrorNP[ERROR_AZ].getValue() + degrees;
-        CorrectionErrorNP[ERROR_AZ].setValue(newAzError);
-        CorrectionErrorNP.setState(IPS_OK);
-        CorrectionErrorNP.apply();
-
         ManualAdjustmentNP.setState(IPS_OK);
         ManualAdjustmentNP.apply();
 
@@ -197,13 +190,6 @@ IPState PACSimulator::MoveALT(double degrees)
     INDI::Timer::singleShot(static_cast<int>(duration * 1000), [this, degrees]()
     {
         LOGF_INFO("Altitude move complete: %.4f deg %s.", std::abs(degrees), (degrees >= 0) ? "North" : "South");
-
-        // Update the stored ALT error to reflect the applied correction.
-        // A southward move (degrees < 0) reduces a positive (too-high) altitude error.
-        const double newAltError = CorrectionErrorNP[ERROR_ALT].getValue() + degrees;
-        CorrectionErrorNP[ERROR_ALT].setValue(newAltError);
-        CorrectionErrorNP.setState(IPS_OK);
-        CorrectionErrorNP.apply();
 
         ManualAdjustmentNP.setState(IPS_OK);
         ManualAdjustmentNP.apply();

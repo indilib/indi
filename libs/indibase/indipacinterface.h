@@ -168,6 +168,19 @@ class PACInterface
         bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
         INDI::PropertySwitch CorrectionSP {2};
+
+        /**
+         * Alignment correction error set by the client (e.g. Ekos) with the measured
+         * azimuth and altitude polar alignment errors before triggering ALIGNMENT_CORRECTION.
+         *
+         * \b Important: Drivers MUST NOT update or re-broadcast this property while a
+         * correction is in progress.  It is read by the driver exactly once — at correction
+         * start — and must remain stable until the client sets it again for the next cycle.
+         * Broadcasting intermediate "remaining correction" values through this property
+         * confuses any device that snoops on it (e.g. a telescope simulator) because those
+         * devices cannot distinguish a new client-commanded error from an internal progress
+         * update.
+         */
         INDI::PropertyNumber CorrectionErrorNP {2};
         INDI::PropertyLight  CorrectionStatusLP {1};
 
