@@ -19,6 +19,7 @@
 */
 
 #include "indi_alpaca_filterwheel.h"
+#include <connectionplugins/connectiontcp.h>
 #include <cstring>
 #include <memory>
 
@@ -27,6 +28,7 @@ static std::unique_ptr<AlpacaFilterWheel> alpacaFilterWheel(new AlpacaFilterWhee
 AlpacaFilterWheel::AlpacaFilterWheel()
 {
     setVersion(1, 0);
+    setFilterConnection(CONNECTION_TCP);
 }
 
 const char *AlpacaFilterWheel::getDefaultName()
@@ -38,24 +40,9 @@ bool AlpacaFilterWheel::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
-    // Set connection mode to TCP only
-    setFilterConnection(CONNECTION_TCP);
-
-    // Server address
-    ServerAddressTP[HOST_INDEX].fill("HOST", "Host", m_Host.c_str());
-    ServerAddressTP[PORT_INDEX].fill("PORT", "Port", std::to_string(m_Port).c_str());
-    ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
-    ServerAddressTP.load();
-    
-    // Update m_Host and m_Port from loaded config
-    if (ServerAddressTP[HOST_INDEX].text != nullptr && strlen(ServerAddressTP[HOST_INDEX].text) > 0)
-    {
-        m_Host = ServerAddressTP[HOST_INDEX].text;
-    }
-    if (ServerAddressTP[PORT_INDEX].text != nullptr && strlen(ServerAddressTP[PORT_INDEX].text) > 0)
-    {
-        m_Port = std::stoi(ServerAddressTP[PORT_INDEX].text);
-    }
+    // Use built-in TCP connection with default alpaca.local:32323
+    tcpConnection->setDefaultHost("alpaca.local");
+    tcpConnection->setDefaultPort(32323);
 
     // Device information
     DeviceInfoTP[DESCRIPTION].fill("DESCRIPTION", "Description", "");
@@ -71,6 +58,7 @@ bool AlpacaFilterWheel::initProperties()
     FocusOffsetsNP.fill(getDeviceName(), "FOCUS_OFFSETS", "Focus Offsets", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
+    setDefaultPollingPeriod(500); // Poll every 500ms
 
     return true;
 }
@@ -95,7 +83,19 @@ bool AlpacaFilterWheel::updateProperties()
 
 bool AlpacaFilterWheel::Connect()
 {
-    LOG_INFO("Connecting to alpaca FilterWheel...");
+    return INDI::FilterWheel::Connect();
+}
+
+bool AlpacaFilterWheel::Handshake()
+{
+    LOG_INFO("Connecting to Alpaca FilterWheel...");
+
+    // Get host and port from TCP connection
+    if (tcpConnection)
+    {
+        m_Host = tcpConnection->host();
+        m_Port = tcpConnection->port();
+    }
 
     // Create HTTP client
     m_AlpacaClient.reset(new httplib::Client(m_Host, m_Port));
@@ -290,29 +290,6 @@ int AlpacaFilterWheel::QueryFilter()
     }
 
     return -1;
-}
-
-bool AlpacaFilterWheel::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // Server address
-        if (ServerAddressTP.isNameMatch(name))
-        {
-            ServerAddressTP.update(texts, names, n);
-            
-            m_Host = ServerAddressTP[HOST_INDEX].text;
-            m_Port = std::stoi(ServerAddressTP[PORT_INDEX].text);
-            
-            ServerAddressTP.apply();
-            saveConfig(true, "SERVER_ADDRESS");
-            
-            LOGF_INFO("Server address updated: %s:%d", m_Host.c_str(), m_Port);
-            return true;
-        }
-    }
-
-    return INDI::FilterWheel::ISNewText(dev, name, texts, names, n);
 }
 
 bool AlpacaFilterWheel::sendAlpacaGET(const std::string &endpoint, nlohmann::json &response)

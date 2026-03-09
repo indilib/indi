@@ -45,8 +45,7 @@ public:
 
     virtual bool Connect() override;
     virtual bool Disconnect() override;
-
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool Handshake() override;
 
 protected:
     // FilterWheel interface
@@ -54,10 +53,6 @@ protected:
     virtual int QueryFilter() override;
 
 private:
-    // Connection properties
-    INDI::PropertyText ServerAddressTP {2};
-    enum { HOST_INDEX, PORT_INDEX };
-
     // Device info properties
     INDI::PropertyText DeviceInfoTP {4};
     enum { DESCRIPTION, DRIVER_INFO, DRIVER_VERSION, INTERFACE_VERSION };
