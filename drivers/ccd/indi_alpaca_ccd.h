@@ -80,6 +80,28 @@ class AlpacaCCD : public INDI::CCD
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
 
+        // ImageBytes metadata structure (44 bytes) as per ASCOM Alpaca API v10 section 8.7.1
+        struct ImageBytesMetadata
+        {
+            int32_t MetadataVersion;        // Bytes 0-3: Should be 1
+            int32_t ErrorNumber;            // Bytes 4-7: 0 for success
+            uint32_t ClientTransactionID;   // Bytes 8-11
+            uint32_t ServerTransactionID;   // Bytes 12-15
+            int32_t DataStart;              // Bytes 16-19: Offset to image data
+            int32_t ImageElementType;       // Bytes 20-23: Source array element type
+            int32_t TransmissionElementType;// Bytes 24-27: Network transmission type
+            int32_t Rank;                   // Bytes 28-31: 2 or 3 dimensions
+            int32_t Dimension1;             // Bytes 32-35: Width
+            int32_t Dimension2;             // Bytes 36-39: Height
+            int32_t Dimension3;             // Bytes 40-43: Planes (0 for 2D)
+        } __attribute__((packed));
+
+        // Alpaca customization hooks for derived drivers.
+        virtual std::string buildAlpacaFormData(const nlohmann::json &request);
+        virtual bool parseImageBytesMetadata(ImageBytesMetadata *metadata, size_t body_size);
+        uint32_t getTransactionId();
+        void setDefaultServerAddress(const char *host, const char *port, bool force = false);
+
     private:
         // Internal state variables
         bool m_ExposureInProgress {false};
@@ -98,27 +120,7 @@ class AlpacaCCD : public INDI::CCD
         bool sendAlpacaGET(const std::string &endpoint, nlohmann::json &response);
         bool sendAlpacaPUT(const std::string &endpoint, const nlohmann::json &request, nlohmann::json &response);
         std::string getAlpacaURL(const std::string &endpoint);
-        uint32_t getTransactionId()
-        {
-            return ++m_ClientTransactionID;
-        }
         uint32_t m_ClientTransactionID {1};
-
-        // ImageBytes metadata structure (44 bytes) as per ASCOM Alpaca API v10 section 8.7.1
-        struct ImageBytesMetadata
-        {
-            int32_t MetadataVersion;        // Bytes 0-3: Should be 1
-            int32_t ErrorNumber;            // Bytes 4-7: 0 for success
-            uint32_t ClientTransactionID;   // Bytes 8-11
-            uint32_t ServerTransactionID;   // Bytes 12-15
-            int32_t DataStart;              // Bytes 16-19: Offset to image data
-            int32_t ImageElementType;       // Bytes 20-23: Source array element type
-            int32_t TransmissionElementType;// Bytes 24-27: Network transmission type
-            int32_t Rank;                   // Bytes 28-31: 2 or 3 dimensions
-            int32_t Dimension1;             // Bytes 32-35: Width
-            int32_t Dimension2;             // Bytes 36-39: Height
-            int32_t Dimension3;             // Bytes 40-43: Planes (0 for 2D)
-        } __attribute__((packed));
 
         // Extended image metadata for FITS headers
         struct ImageMetadata
