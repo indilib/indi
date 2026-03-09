@@ -276,7 +276,7 @@ bool ScopeSim::ReadScopeStatus()
         double sinAlt = std::sin(DEG_TO_RAD(m_currentAlt));
         double cosAlt = std::cos(DEG_TO_RAD(m_currentAlt));
         SetTrackRate((m_sinLat - ((cosAz * sinAlt * m_cosLat) / cosAlt)) * TRACKRATE_SIDEREAL,
-                      m_cosLat * sinAz * TRACKRATE_SIDEREAL);
+                     m_cosLat * sinAz * TRACKRATE_SIDEREAL);
     }
 
     // SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
@@ -602,6 +602,15 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                     m_snoopedAzError = atof(pcdataXMLEle(ep));
                 else if (!strcmp(elemName, "ALT_ERROR"))
                     m_snoopedAltError = atof(pcdataXMLEle(ep));
+
+                mountModelNP[MM_MA].setValue(m_snoopedAzError);
+                mountModelNP[MM_ME].setValue(m_snoopedAltError);
+                alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
+                                         mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
+                                         mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
+
+                mountModelNP.setState(IPS_OK);
+                mountModelNP.apply();
             }
             return true;
         }
@@ -619,12 +628,11 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                 mountModelNP[MM_MA].setValue(newMA);
                 mountModelNP[MM_ME].setValue(newME);
                 alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
-                                       mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
-                                       newMA, newME);
+                                         mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
+                                         mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
 
                 mountModelNP.setState(IPS_OK);
                 mountModelNP.apply();
-                saveConfig(mountModelNP);
 
                 LOGF_INFO("Applied correction from PAC: MA %.4f -> %.4f, ME %.4f -> %.4f",
                           oldMA, newMA, oldME, newME);
