@@ -151,6 +151,14 @@ add_executable(indi_simulator_pac ${pacsimulator_SRC})
 target_link_libraries(indi_simulator_pac indidriver)
 install(TARGETS indi_simulator_pac RUNTIME DESTINATION bin)
 
+# ########## Avalon UPAS (Universal Polar Alignment System) ###############
+SET(avalon_upas_SRC
+    avalon_upas.cpp)
+
+add_executable(indi_avalon_upas ${avalon_upas_SRC})
+target_link_libraries(indi_avalon_upas indidriver)
+install(TARGETS indi_avalon_upas RUNTIME DESTINATION bin)
+
 
 # ########## RB Focus Excalibur ###############
 SET(Excalibur_SRC

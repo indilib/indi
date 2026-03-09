@@ -855,6 +855,10 @@
             <driver name="Alignment Correction Simulator">indi_simulator_pac</driver>
             <version>1.0</version>
         </device>
+        <device label="Avalon UPAS" manufacturer="Avalon Instruments">
+            <driver name="Avalon UPAS">indi_avalon_upas</driver>
+            <version>1.0</version>
+        </device>
         <device label="Arduino ST4" manufacturer="DIY">
             <driver name="Arduino ST4">indi_arduinost4</driver>
             <version>1.0</version>

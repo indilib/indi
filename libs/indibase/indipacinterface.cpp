@@ -21,6 +21,7 @@
 
 #include "indipacinterface.h"
 #include "defaultdevice.h"
+#include "indilogger.h"
 
 #include <cstring>
 
@@ -34,44 +35,71 @@ PACInterface::PACInterface(DefaultDevice *defaultDevice)
 
 void PACInterface::initProperties(const char *group)
 {
-    CorrectionSP[CORRECTION_START].fill("CORRECT", "Correct", ISS_OFF);
-    CorrectionSP[CORRECTION_ABORT].fill("ABORT", "Abort", ISS_OFF);
-    CorrectionSP.fill(m_DefaultDevice->getDeviceName(), "ALIGNMENT_CORRECTION", "Alignment Correction",
-                      group, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    CorrectionErrorNP[ERROR_AZ].fill("AZ_ERROR", "Azimuth Error (deg)", "%.4f", -10, 10, 0, 0);
-    CorrectionErrorNP[ERROR_ALT].fill("ALT_ERROR", "Altitude Error (deg)", "%.4f", -10, 10, 0, 0);
-    CorrectionErrorNP.fill(m_DefaultDevice->getDeviceName(), "ALIGNMENT_CORRECTION_ERROR", "Correction Error",
-                           group, IP_RW, 0, IPS_IDLE);
-
-    CorrectionStatusLP[0].fill("STATUS", "Status", IPS_IDLE);
-    CorrectionStatusLP.fill(m_DefaultDevice->getDeviceName(), "ALIGNMENT_CORRECTION_STATUS", "Correction Status",
-                            group, IPS_IDLE);
-
-    // Manual adjustment property.
+    // Manual adjustment: write non-zero value to move that axis immediately.
     // AZ step: positive = East, negative = West.
     // ALT step: positive = North (increase altitude), negative = South (decrease altitude).
     ManualAdjustmentNP[MANUAL_AZ].fill("MANUAL_AZ_STEP", "Azimuth Step (deg)", "%.4f", -10, 10, 0.1, 0);
     ManualAdjustmentNP[MANUAL_ALT].fill("MANUAL_ALT_STEP", "Altitude Step (deg)", "%.4f", -10, 10, 0.1, 0);
     ManualAdjustmentNP.fill(m_DefaultDevice->getDeviceName(), "PAC_MANUAL_ADJUSTMENT", "Manual Adjustment",
-                            group, IP_RW, 0, IPS_IDLE);
+                            group, IP_WO, 0, IPS_IDLE);
+
+    // Abort motion
+    AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
+    AbortSP.fill(m_DefaultDevice->getDeviceName(), "PAC_ABORT_MOTION", "Abort Motion",
+                 group, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Current position (only shown when PAC_HAS_POSITION is set)
+    PositionNP[POSITION_AZ].fill("POSITION_AZ", "Azimuth (deg)", "%.4f", -360, 360, 0, 0);
+    PositionNP[POSITION_ALT].fill("POSITION_ALT", "Altitude (deg)", "%.4f", -90, 90, 0, 0);
+    PositionNP.fill(m_DefaultDevice->getDeviceName(), "PAC_POSITION", "Position",
+                    group, IP_RO, 0, IPS_IDLE);
+
+    // Motor speed (only shown when PAC_HAS_SPEED is set)
+    SpeedNP[0].fill("PAC_SPEED_VALUE", "Speed", "%.0f", 1, 10, 1, 1);
+    SpeedNP.fill(m_DefaultDevice->getDeviceName(), "PAC_SPEED", "Speed", group, IP_RW, 60, IPS_OK);
+
+    // Azimuth reverse (only shown when PAC_CAN_REVERSE is set)
+    AZReverseSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    AZReverseSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    AZReverseSP.fill(m_DefaultDevice->getDeviceName(), "PAC_AZ_REVERSE", "Azimuth Reverse", group, IP_RW,
+                     ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Altitude reverse (only shown when PAC_CAN_REVERSE is set)
+    ALTReverseSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    ALTReverseSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    ALTReverseSP.fill(m_DefaultDevice->getDeviceName(), "PAC_ALT_REVERSE", "Altitude Reverse", group, IP_RW,
+                      ISR_1OFMANY, 60, IPS_IDLE);
 }
 
 bool PACInterface::updateProperties()
 {
     if (m_DefaultDevice->isConnected())
     {
-        m_DefaultDevice->defineProperty(CorrectionErrorNP);
-        m_DefaultDevice->defineProperty(CorrectionSP);
-        m_DefaultDevice->defineProperty(CorrectionStatusLP);
         m_DefaultDevice->defineProperty(ManualAdjustmentNP);
+        m_DefaultDevice->defineProperty(AbortSP);
+        if (HasPosition())
+            m_DefaultDevice->defineProperty(PositionNP);
+        if (HasSpeed())
+            m_DefaultDevice->defineProperty(SpeedNP);
+        if (CanReverse())
+        {
+            m_DefaultDevice->defineProperty(AZReverseSP);
+            m_DefaultDevice->defineProperty(ALTReverseSP);
+        }
     }
     else
     {
-        m_DefaultDevice->deleteProperty(CorrectionErrorNP);
-        m_DefaultDevice->deleteProperty(CorrectionSP);
-        m_DefaultDevice->deleteProperty(CorrectionStatusLP);
         m_DefaultDevice->deleteProperty(ManualAdjustmentNP);
+        m_DefaultDevice->deleteProperty(AbortSP);
+        if (HasPosition())
+            m_DefaultDevice->deleteProperty(PositionNP);
+        if (HasSpeed())
+            m_DefaultDevice->deleteProperty(SpeedNP);
+        if (CanReverse())
+        {
+            m_DefaultDevice->deleteProperty(AZReverseSP);
+            m_DefaultDevice->deleteProperty(ALTReverseSP);
+        }
     }
 
     return true;
@@ -81,48 +109,72 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
                                  ISState *states, char *names[], int n)
 {
     INDI_UNUSED(dev);
+    INDI_UNUSED(states);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 
-    if (CorrectionSP.isNameMatch(name))
+    if (AbortSP.isNameMatch(name))
     {
-        CorrectionSP.update(states, names, n);
-
-        if (CorrectionSP[CORRECTION_START].getState() == ISS_ON)
+        AbortSP.reset();
+        if (AbortMotion())
         {
-            double azError  = CorrectionErrorNP[ERROR_AZ].getValue();
-            double altError = CorrectionErrorNP[ERROR_ALT].getValue();
-
-            auto state = StartCorrection(azError, altError);
-            CorrectionSP.setState(state);
-
-            if (state == IPS_BUSY)
+            AbortSP.setState(IPS_OK);
+            if (ManualAdjustmentNP.getState() == IPS_BUSY)
             {
-                CorrectionStatusLP[0].setState(IPS_BUSY);
+                ManualAdjustmentNP.setState(IPS_IDLE);
+                ManualAdjustmentNP.apply();
             }
-            else if (state == IPS_OK)
+            if (HasPosition() && PositionNP.getState() == IPS_BUSY)
             {
-                CorrectionStatusLP[0].setState(IPS_OK);
-                CorrectionSP.reset();
-            }
-            else
-            {
-                CorrectionStatusLP[0].setState(IPS_ALERT);
-                CorrectionSP.reset();
+                PositionNP.setState(IPS_IDLE);
+                PositionNP.apply();
             }
         }
-        else if (CorrectionSP[CORRECTION_ABORT].getState() == ISS_ON)
+        else
         {
-            auto state = AbortCorrection();
-            CorrectionSP.setState(state);
-            CorrectionSP.reset();
-
-            if (state == IPS_OK)
-                CorrectionStatusLP[0].setState(IPS_IDLE);
-            else
-                CorrectionStatusLP[0].setState(IPS_ALERT);
+            AbortSP.setState(IPS_ALERT);
         }
+        AbortSP.apply();
+        return true;
+    }
 
-        CorrectionSP.apply();
-        CorrectionStatusLP.apply();
+    if (AZReverseSP.isNameMatch(name))
+    {
+        int prevIndex = AZReverseSP.findOnSwitchIndex();
+        AZReverseSP.update(states, names, n);
+
+        if (ReverseAZ(AZReverseSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED))
+        {
+            AZReverseSP.setState(IPS_OK);
+            m_DefaultDevice->saveConfig(AZReverseSP);
+        }
+        else
+        {
+            AZReverseSP.reset();
+            AZReverseSP[prevIndex].setState(ISS_ON);
+            AZReverseSP.setState(IPS_ALERT);
+        }
+        AZReverseSP.apply();
+        return true;
+    }
+
+    if (ALTReverseSP.isNameMatch(name))
+    {
+        int prevIndex = ALTReverseSP.findOnSwitchIndex();
+        ALTReverseSP.update(states, names, n);
+
+        if (ReverseALT(ALTReverseSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED))
+        {
+            ALTReverseSP.setState(IPS_OK);
+            m_DefaultDevice->saveConfig(ALTReverseSP);
+        }
+        else
+        {
+            ALTReverseSP.reset();
+            ALTReverseSP[prevIndex].setState(ISS_ON);
+            ALTReverseSP.setState(IPS_ALERT);
+        }
+        ALTReverseSP.apply();
         return true;
     }
 
@@ -134,11 +186,22 @@ bool PACInterface::processNumber(const char *dev, const char *name,
 {
     INDI_UNUSED(dev);
 
-    if (CorrectionErrorNP.isNameMatch(name))
+    if (SpeedNP.isNameMatch(name))
     {
-        CorrectionErrorNP.update(values, names, n);
-        CorrectionErrorNP.setState(IPS_OK);
-        CorrectionErrorNP.apply();
+        uint16_t currentSpeed = static_cast<uint16_t>(SpeedNP[0].getValue());
+        SpeedNP.update(values, names, n);
+
+        if (SetPACSpeed(static_cast<uint16_t>(SpeedNP[0].getValue())))
+        {
+            SpeedNP.setState(IPS_OK);
+            m_DefaultDevice->saveConfig(SpeedNP);
+        }
+        else
+        {
+            SpeedNP[0].setValue(currentSpeed);
+            SpeedNP.setState(IPS_ALERT);
+        }
+        SpeedNP.apply();
         return true;
     }
 
@@ -158,7 +221,7 @@ bool PACInterface::processNumber(const char *dev, const char *name,
         if (altStep != 0.0)
             altState = MoveALT(altStep);
 
-        // Report the worst state of the two axes.
+        // Overall state: worst of the two axes.
         if (azState == IPS_ALERT || altState == IPS_ALERT)
             ManualAdjustmentNP.setState(IPS_ALERT);
         else if (azState == IPS_BUSY || altState == IPS_BUSY)
@@ -173,36 +236,21 @@ bool PACInterface::processNumber(const char *dev, const char *name,
     return false;
 }
 
+bool PACInterface::saveConfigItems(FILE *fp)
+{
+    if (HasSpeed())
+        SpeedNP.save(fp);
+    if (CanReverse())
+    {
+        AZReverseSP.save(fp);
+        ALTReverseSP.save(fp);
+    }
+    return true;
+}
+
 // ---------------------------------------------------------------------------
 // Default virtual implementations
 // ---------------------------------------------------------------------------
-
-IPState PACInterface::StartCorrection(double azError, double altError)
-{
-    // Translate polar-alignment errors into physical movement commands.
-    //
-    // Sign convention for errors (matches KStars PAA convention):
-    //   azError  > 0 → polar axis displaced East  → correct by moving West → MoveAZ(-azError)
-    //   azError  < 0 → polar axis displaced West  → correct by moving East → MoveAZ(-azError)
-    //   altError > 0 → polar axis too high         → correct by moving South → MoveALT(-altError)
-    //   altError < 0 → polar axis too low          → correct by moving North → MoveALT(-altError)
-    //
-    // Drivers may override this method for a single combined hardware command.
-
-    const IPState azState  = MoveAZ(-azError);
-    const IPState altState = MoveALT(-altError);
-
-    if (azState == IPS_ALERT || altState == IPS_ALERT)
-        return IPS_ALERT;
-    if (azState == IPS_BUSY || altState == IPS_BUSY)
-        return IPS_BUSY;
-    return IPS_OK;
-}
-
-IPState PACInterface::AbortCorrection()
-{
-    return IPS_ALERT;
-}
 
 IPState PACInterface::MoveAZ(double degrees)
 {
@@ -214,6 +262,37 @@ IPState PACInterface::MoveALT(double degrees)
 {
     INDI_UNUSED(degrees);
     return IPS_ALERT;
+}
+
+bool PACInterface::AbortMotion()
+{
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support aborting motion.");
+    return false;
+}
+
+bool PACInterface::SetPACSpeed(uint16_t speed)
+{
+    INDI_UNUSED(speed);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support variable speed.");
+    return false;
+}
+
+bool PACInterface::ReverseAZ(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support reversing azimuth direction.");
+    return false;
+}
+
+bool PACInterface::ReverseALT(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support reversing altitude direction.");
+    return false;
 }
 
 }

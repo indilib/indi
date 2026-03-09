@@ -25,45 +25,35 @@
 #include "indidriver.h"
 #include "indipropertyswitch.h"
 #include "indipropertynumber.h"
-#include "indipropertylight.h"
 #include <cstdint>
 
 /**
  * \class PACInterface
- * \brief Provides interface to implement automated polar alignment correction.
+ * \brief Provides interface to implement automated polar alignment correction (PAC).
  *
- * A client sets the measured alignment error via the ALIGNMENT_CORRECTION_ERROR number property
- * (azimuth and altitude offsets in degrees), then commands a correction through the
- * ALIGNMENT_CORRECTION switch property.  The device applies the mechanical correction and
- * reports progress through the ALIGNMENT_CORRECTION_STATUS light property.
- *
- * In addition to fully-automated correction, the interface exposes manual step controls via the
- * PAC_MANUAL_ADJUSTMENT number property.  A client can nudge the mount by a signed number of
- * degrees on either axis independently:
+ * The interface exposes manual step controls via the PAC_MANUAL_ADJUSTMENT number property.
+ * A client (e.g. Ekos) can nudge the mount by a signed number of degrees on either axis:
  *
  * \b Sign convention for manual adjustments:
- *   - Azimuth (PAC_MANUAL_AZ_STEP):  positive value → East,  negative value → West
- *   - Altitude (PAC_MANUAL_ALT_STEP): positive value → North, negative value → South
+ *   - Azimuth  (MANUAL_AZ_STEP):  positive value → East,  negative value → West
+ *   - Altitude (MANUAL_ALT_STEP): positive value → North, negative value → South
  *
- * \b Relationship between errors and corrections:
- *   - A positive azimuth error means the polar axis is displaced to the East, so the correction
- *     moves the mount West: MoveAZ(−azError).
- *   - A positive altitude error means the polar axis is too high, so the correction moves the
- *     mount South: MoveALT(−altError).
+ * The ManualAdjustmentNP property state reflects the overall motion status:
+ *   - IPS_BUSY  – either axis is still moving
+ *   - IPS_ALERT – either axis returned an error
+ *   - IPS_OK    – both axes finished successfully
  *
- * The default implementation of StartCorrection() uses MoveAZ() and MoveALT() so that any
- * driver implementing those two primitives automatically gains automated correction.
+ * Optional capability-gated properties:
+ *   - PAC_HAS_POSITION : PositionNP reports the current AZ/ALT offset in degrees (read-only)
+ *   - PAC_HAS_SPEED    : SpeedNP controls the motor speed
+ *   - PAC_CAN_REVERSE  : AZReverseSP / ALTReverseSP reverse individual axis direction
  *
- * The interface can be embedded in any device (typically a mount) via multiple inheritance,
- * or used as the basis of a standalone alignment-correction device.
- *
- * \e IMPORTANT: initProperties() must be called before any other function to initialize the
- *               alignment correction properties.
+ * \e IMPORTANT: initProperties() must be called before any other function.
  * \e IMPORTANT: updateProperties() must be called in your driver's updateProperties().
  * \e IMPORTANT: processSwitch() must be called in your driver's ISNewSwitch().
  * \e IMPORTANT: processNumber() must be called in your driver's ISNewNumber().
  *
- * \author Joaquin Rodriguez
+ * \author Joaquin Rodriguez, Jasem Mutlaq
  */
 
 namespace INDI
@@ -72,62 +62,74 @@ namespace INDI
 class PACInterface
 {
     public:
-        /** Indices for the CorrectionSP switch property. */
-        enum
-        {
-            CORRECTION_START,
-            CORRECTION_ABORT
-        };
-
-        /** Indices for the CorrectionErrorNP number property. */
-        enum
-        {
-            ERROR_AZ,
-            ERROR_ALT
-        };
-
         /** Indices for the ManualAdjustmentNP number property. */
         enum
         {
-            MANUAL_AZ,   ///< Azimuth step in degrees: positive = East, negative = West
+            MANUAL_AZ,   ///< Azimuth step in degrees:  positive = East,  negative = West
             MANUAL_ALT   ///< Altitude step in degrees: positive = North, negative = South
         };
+
+        /** Indices for the PositionNP number property. */
+        enum
+        {
+            POSITION_AZ,   ///< Current azimuth position in degrees
+            POSITION_ALT   ///< Current altitude position in degrees
+        };
+
+        /**
+         * @brief PAC capability flags passed to SetCapability().
+         */
+        enum
+        {
+            PAC_HAS_SPEED    = 1 << 0,  /*!< Device supports variable motor speed. */
+            PAC_CAN_REVERSE  = 1 << 1,  /*!< Device supports reversing axis direction. */
+            PAC_HAS_POSITION = 1 << 2,  /*!< Device can report current axis position. */
+        } PACCapability;
+
+        /** @return Current capability bitmask. */
+        uint32_t GetCapability() const
+        {
+            return m_Capability;
+        }
+
+        /**
+         * @brief SetCapability sets the PAC device capabilities. Call this in the driver constructor.
+         * @param cap Bitmask of PAC_HAS_SPEED, PAC_CAN_REVERSE, and/or PAC_HAS_POSITION.
+         */
+        void SetCapability(uint32_t cap)
+        {
+            m_Capability = cap;
+        }
+
+        /** @return True if the device supports variable speed. */
+        bool HasSpeed()
+        {
+            return m_Capability & PAC_HAS_SPEED;
+        }
+
+        /** @return True if the device supports reversing axis direction. */
+        bool CanReverse()
+        {
+            return m_Capability & PAC_CAN_REVERSE;
+        }
+
+        /** @return True if the device can report its current axis position. */
+        bool HasPosition()
+        {
+            return m_Capability & PAC_HAS_POSITION;
+        }
 
     protected:
         explicit PACInterface(DefaultDevice *device);
         virtual ~PACInterface() = default;
 
         /**
-         * @brief Start an automated alignment correction.
-         *
-         * The default implementation translates the errors into movement commands:
-         *   - Calls MoveAZ(−azError)  (positive azError = eastward polar-axis error → West correction)
-         *   - Calls MoveALT(−altError) (positive altError = altitude too high → South correction)
-         *
-         * Drivers may override this method to perform the correction in a single hardware command
-         * rather than relying on the individual MoveAZ / MoveALT primitives.
-         *
-         * @param azError  Azimuth error in degrees (positive = polar axis displaced East).
-         * @param altError Altitude error in degrees (positive = polar axis too high).
-         * @return IPS_OK if the correction completed immediately,
-         *         IPS_BUSY if it is in progress (driver must update CorrectionStatusLP when done),
-         *         IPS_ALERT on error.
-         */
-        virtual IPState StartCorrection(double azError, double altError);
-
-        /**
-         * @brief Abort a correction that is in progress.  Must be implemented by the driver.
-         * @return IPS_OK if aborted successfully, IPS_ALERT on error.
-         */
-        virtual IPState AbortCorrection();
-
-        /**
          * @brief Move the azimuth axis by the given number of degrees.
          *
          * Sign convention: positive = East, negative = West.
          *
-         * The default implementation returns IPS_ALERT.  Drivers that support motorised
-         * azimuth adjustment should override this method.
+         * The default implementation returns IPS_ALERT. Drivers with motorised
+         * azimuth adjustment must override this method.
          *
          * @param degrees Signed step size in degrees.
          * @return IPS_OK if completed immediately, IPS_BUSY if in progress, IPS_ALERT on error.
@@ -137,10 +139,10 @@ class PACInterface
         /**
          * @brief Move the altitude axis by the given number of degrees.
          *
-         * Sign convention: positive = North (increase altitude), negative = South (decrease altitude).
+         * Sign convention: positive = North (increase altitude), negative = South.
          *
-         * The default implementation returns IPS_ALERT.  Drivers that support motorised
-         * altitude adjustment should override this method.
+         * The default implementation returns IPS_ALERT. Drivers with motorised
+         * altitude adjustment must override this method.
          *
          * @param degrees Signed step size in degrees.
          * @return IPS_OK if completed immediately, IPS_BUSY if in progress, IPS_ALERT on error.
@@ -148,52 +150,119 @@ class PACInterface
         virtual IPState MoveALT(double degrees);
 
         /**
-         * @brief Initialize alignment correction properties.
+         * @brief AbortMotion Abort all axis motion immediately.
+         *
+         * The default implementation logs an error and returns false. Drivers that support
+         * hardware abort should override this method.
+         *
+         * @return True if motion was successfully aborted, false otherwise.
+         */
+        virtual bool AbortMotion();
+
+        /**
+         * @brief SetPACSpeed Set the motor speed used for axis movements.
+         *
+         * Only called when PAC_HAS_SPEED capability is set. The default implementation
+         * logs an error and returns false; drivers with variable-speed hardware must override.
+         *
+         * @param speed Speed value (range defined by the driver, default 1–10).
+         * @return True if the speed was applied successfully, false otherwise.
+         */
+        virtual bool SetPACSpeed(uint16_t speed);
+
+        /**
+         * @brief ReverseAZ Reverse the direction of azimuth axis movement.
+         *
+         * Only called when PAC_CAN_REVERSE capability is set.
+         *
+         * @param enabled True to reverse, false to restore normal direction.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool ReverseAZ(bool enabled);
+
+        /**
+         * @brief ReverseALT Reverse the direction of altitude axis movement.
+         *
+         * Only called when PAC_CAN_REVERSE capability is set.
+         *
+         * @param enabled True to reverse, false to restore normal direction.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool ReverseALT(bool enabled);
+
+        /**
+         * @brief initProperties Initialize PAC properties.
          *        Call this from your driver's initProperties().
          * @param group Group or tab name for the properties.
          */
         void initProperties(const char *group);
 
         /**
-         * @brief Define or delete properties based on connection state.
+         * @brief updateProperties Define or delete properties based on connection state.
          *        Call this from your driver's updateProperties().
          * @return true on success.
          */
         bool updateProperties();
 
-        /** @brief Process alignment correction switch properties. */
+        /** @brief Process PAC switch properties. */
         bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-        /** @brief Process alignment correction number properties. */
+        /** @brief Process PAC number properties. */
         bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        INDI::PropertySwitch CorrectionSP {2};
-
         /**
-         * Alignment correction error set by the client (e.g. Ekos) with the measured
-         * azimuth and altitude polar alignment errors before triggering ALIGNMENT_CORRECTION.
-         *
-         * \b Important: Drivers MUST NOT update or re-broadcast this property while a
-         * correction is in progress.  It is read by the driver exactly once — at correction
-         * start — and must remain stable until the client sets it again for the next cycle.
-         * Broadcasting intermediate "remaining correction" values through this property
-         * confuses any device that snoops on it (e.g. a telescope simulator) because those
-         * devices cannot distinguish a new client-commanded error from an internal progress
-         * update.
+         * @brief saveConfigItems Save PAC interface properties to config file.
+         *        Call this from your driver's saveConfigItems().
+         * @param fp Pointer to the open config file.
+         * @return True on success.
          */
-        INDI::PropertyNumber CorrectionErrorNP {2};
-        INDI::PropertyLight  CorrectionStatusLP {1};
+        bool saveConfigItems(FILE *fp);
 
         /**
          * Manual adjustment property.
          * Element [MANUAL_AZ]  : azimuth step in degrees  (+East / −West).
          * Element [MANUAL_ALT] : altitude step in degrees (+North / −South).
          * Writing a non-zero value to either element immediately triggers the corresponding move.
+         *
+         * State reflects overall motion:
+         *   IPS_BUSY  – one or both axes still moving
+         *   IPS_ALERT – one or both axes encountered an error
+         *   IPS_OK    – both axes completed successfully
          */
         INDI::PropertyNumber ManualAdjustmentNP {2};
 
+        /**
+         * Abort motion property. Pressing Abort calls AbortMotion() and resets
+         * ManualAdjustmentNP and PositionNP to IPS_IDLE.
+         */
+        INDI::PropertySwitch AbortSP {1};
+
+        /**
+         * Current axis position in degrees. Only defined when PAC_HAS_POSITION is set.
+         * Drivers should update this property periodically (e.g. from TimerHit).
+         */
+        INDI::PropertyNumber PositionNP {2};
+
+        /**
+         * Motor speed. Only defined when PAC_HAS_SPEED capability is set.
+         * Default range 1–10; drivers may adjust min/max/step in their initProperties()
+         * after calling PACI::initProperties().
+         */
+        INDI::PropertyNumber SpeedNP {1};
+
+        /**
+         * Azimuth axis reverse switch. Only defined when PAC_CAN_REVERSE is set.
+         */
+        INDI::PropertySwitch AZReverseSP {2};
+
+        /**
+         * Altitude axis reverse switch. Only defined when PAC_CAN_REVERSE is set.
+         */
+        INDI::PropertySwitch ALTReverseSP {2};
+
     private:
-        DefaultDevice *m_DefaultDevice { nullptr };
+        DefaultDevice *m_DefaultDevice {nullptr};
+        uint32_t m_Capability {0};
 };
 
 }

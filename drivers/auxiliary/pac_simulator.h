@@ -37,17 +37,21 @@ class PACSimulator : public INDI::DefaultDevice, public INDI::PACInterface
             return "Alignment Correction Simulator";
         }
 
-        // From PACInterface – automated correction
-        virtual IPState StartCorrection(double azError, double altError) override;
-        virtual IPState AbortCorrection() override;
-
-        // From PACInterface – manual single-axis movement
+        // From PACInterface – single-axis movement
         // MoveAZ: positive = East, negative = West
         virtual IPState MoveAZ(double degrees) override;
         // MoveALT: positive = North, negative = South
         virtual IPState MoveALT(double degrees) override;
 
+        // From PACInterface – abort, speed and reverse
+        virtual bool AbortMotion() override;
+        virtual bool SetPACSpeed(uint16_t speed) override;
+        virtual bool ReverseAZ(bool enabled) override;
+        virtual bool ReverseALT(bool enabled) override;
+
     private:
-        INDI::PropertyNumber OperationDurationNP {1};
         INDI::PropertyNumber CorrectionGainNP {1};
+
+        // Track how many axes are still moving so we can set the final state correctly.
+        int m_MovingAxes {0};
 };

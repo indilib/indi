@@ -122,10 +122,7 @@ bool ScopeSim::initProperties()
 
     const char *pacDevice = PACDeviceTP[0].getText();
     if (pacDevice && strlen(pacDevice) > 0)
-    {
-        IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION_ERROR");
-        IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION");
-    }
+        IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
 
 #endif
 
@@ -233,10 +230,7 @@ bool ScopeSim::updateProperties()
 #ifdef USE_SIM_TAB
         const char *pacDevice = PACDeviceTP[0].getText();
         if (pacDevice && strlen(pacDevice) > 0)
-        {
-            IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION_ERROR");
-            IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION");
-        }
+            IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
 #endif
     }
     else
@@ -570,10 +564,7 @@ bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char 
 
             const char *pacDevice = PACDeviceTP[0].getText();
             if (pacDevice && strlen(pacDevice) > 0)
-            {
-                IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION_ERROR");
-                IDSnoopDevice(pacDevice, "ALIGNMENT_CORRECTION");
-            }
+                IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
 
             saveConfig(PACDeviceTP);
             return true;
@@ -592,38 +583,29 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
 
     if (pacDevice && strlen(pacDevice) > 0 && deviceName && strcmp(deviceName, pacDevice) == 0)
     {
-        if (!strcmp(propName, "ALIGNMENT_CORRECTION_ERROR"))
+        if (!strcmp(propName, "PAC_MANUAL_ADJUSTMENT"))
         {
-            // Store the measured error values for use when the correction completes.
-            // Do NOT update the mount model here: ALIGNMENT_CORRECTION_ERROR carries
-            // the polar alignment error measured by the client (Ekos) and must be
-            // treated as read-only by the driver while a correction is in progress.
-            // Applying it immediately would change the telescope's apparent pointing
-            // before any physical correction has taken place.
+            // Capture the step values (AZ and ALT) whenever the property is updated.
+            // PAC_MANUAL_ADJUSTMENT[MANUAL_AZ_STEP]  > 0 → East,  < 0 → West
+            // PAC_MANUAL_ADJUSTMENT[MANUAL_ALT_STEP] > 0 → North, < 0 → South
             XMLEle *ep = nullptr;
             for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             {
                 const char *elemName = findXMLAttValu(ep, "name");
-                if (!strcmp(elemName, "AZ_ERROR"))
+                if (!strcmp(elemName, "MANUAL_AZ_STEP"))
                     m_snoopedAzError = atof(pcdataXMLEle(ep));
-                else if (!strcmp(elemName, "ALT_ERROR"))
+                else if (!strcmp(elemName, "MANUAL_ALT_STEP"))
                     m_snoopedAltError = atof(pcdataXMLEle(ep));
             }
-            return true;
-        }
 
-        if (!strcmp(propName, "ALIGNMENT_CORRECTION"))
-        {
+            // Only update the mount model once the physical move has completed (state = Ok).
             const char *stateStr = findXMLAttValu(root, "state");
             if (!strcmp(stateStr, "Ok"))
             {
-                // The PAA's azError and MM_MA use opposite sign conventions:
-                //   azError > 0 (pole displaced East) ↔ MM_MA < 0 in the model
-                //   azError < 0 (pole displaced West) ↔ MM_MA > 0 in the model
+                // The PAA's azStep and MM_MA use opposite sign conventions:
+                //   azStep > 0 (correction East) ↔ MM_MA decreases in the model
                 // Adding m_snoopedAzError to the current MM_MA correctly simulates
                 // the physical delta correction applied to the mount.
-                // Example: MM_MA = +1.0°, azError = -1.12° → newMA = +1.0 + (-1.12) = -0.12°
-                // (slight overshoot; next iteration converges to 0).
                 double oldMA = mountModelNP[MM_MA].getValue();
                 double oldME = mountModelNP[MM_ME].getValue();
                 double newMA = oldMA + m_snoopedAzError;
@@ -638,8 +620,18 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                 mountModelNP.setState(IPS_OK);
                 mountModelNP.apply();
 
-                LOGF_INFO("Applied correction from PAC: MA %.4f -> %.4f, ME %.4f -> %.4f",
+                LOGF_INFO("Applied PAC correction: MA %.4f -> %.4f, ME %.4f -> %.4f",
                           oldMA, newMA, oldME, newME);
+
+                // Force an immediate coordinate update so that the next CCD capture
+                // uses the corrected pointing rather than waiting up to one full
+                // polling cycle (default 500 ms) for ReadScopeStatus to run.
+                Angle immediateRa, immediateDec;
+                alignment.mountToApparentRaDec(axisPrimary.position, axisSecondary.position,
+                                               &immediateRa, &immediateDec);
+                m_currentRA  = immediateRa.Hours();
+                m_currentDEC = immediateDec.Degrees();
+                NewRaDec(m_currentRA, m_currentDEC);
             }
             return true;
         }
