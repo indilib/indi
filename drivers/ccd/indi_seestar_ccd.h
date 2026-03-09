@@ -77,5 +77,5 @@ class SeestarCCD : public AlpacaCCD
          * @param body_size Total size of HTTP response body
          * @return true if metadata is valid after corrections
          */
-        virtual bool parseImageBytesMetadata(ImageBytesMetadata* metadata, size_t body_size);
+        virtual bool parseImageBytesMetadata(ImageBytesMetadata* metadata, size_t body_size) override;
 };
