@@ -81,8 +81,8 @@ class DefaultDevicePrivate: public ParentDevicePrivate
 
         WatchDeviceProperty watchDevice;
 
-        int loadINDINicknamesXML();
-        int saveINDINicknamesXML();
+        int loadINDINicknamesXML(const char *devicename);
+        int saveINDINicknamesXML(const char *devicename);
 
         bool nicknamesLoaded{false};
         std::string deviceNickname{};

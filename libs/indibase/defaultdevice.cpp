@@ -230,25 +230,32 @@ static std::string GetHomeDirectory()
  * The NicknameTP should be added with addNicknameControl().
  *
  * <INDINicknames>
- *  <nickname driver="AcmeFocusers" identifier="SN123">MainScope</nickname>
- *  <nickname driver="AcmeFocusers" identifier="SN456">GuideScope</nickname>
- *  <nickname driver="AcmeDustCap" identifier="CAP-1-2-3">MainScope</nickname>
+ *   <device name="AcmeFocuser">
+ *     <nickname identifier="SN123">MainScope</nickname>
+ *     <nickname identifier="SN456">GuideScope</nickname>
+ *   </device>
+ *   <device name="AcmeDustCap">
+ *     <nickname identifier="CAP-1-2-3">MainScope</nickname>
+ *   </device>
  * </INDINicknames>
  */
 
 #define NICKNAME_FILE "/.indi/Nicknames.xml"
-#define NICK_ROOT "INDINicknames"
-#define NICK_ENTRY "nickname"
-#define NICK_ATTR_DRV "driver"
+#define NICK_TAG_ROOT "INDINicknames"
+#define NICK_TAG_DEVICE "device"
+#define NICK_ATTR_NAME "name"
+#define NICK_TAG_ENTRY "nickname"
 #define NICK_ATTR_ID "identifier"
 
-int DefaultDevicePrivate::loadINDINicknamesXML()
+int DefaultDevicePrivate::loadINDINicknamesXML(const char *devicename)
 {
     const std::string filename = GetHomeDirectory() + NICKNAME_FILE;
     nicknameMap.clear();
 
     LilXML *lp = newLilXML();
     XMLEle *NickXmlRoot = nullptr;
+    XMLEle *devicexml = nullptr;
+    XMLEle *nickxml = nullptr;
     static char errmsg[512];
     memset(errmsg, 0, sizeof(errmsg)); // Clear anything from prior run
     FILE *fp = fopen(filename.c_str(), "r");
@@ -259,33 +266,50 @@ int DefaultDevicePrivate::loadINDINicknamesXML()
     }
     delLilXML(lp);
 
+    // NickXmlRoot is the root root tag, it's name is INDINickname
+    // iterating that one gives the other tags
     if (!NickXmlRoot || errmsg[0])
         return 1;
 
-    if (strcmp(tagXMLEle(NickXmlRoot), NICK_ROOT) != 0)
+    if (strcmp(tagXMLEle(NickXmlRoot), NICK_TAG_ROOT) != 0)
     {
-        // Root is not <INDINicknames>, invalid file
         delXMLEle(NickXmlRoot);
         return 1;
     }
 
-    XMLEle *nickxml = nextXMLEle(NickXmlRoot, 1);
-    for (; nickxml != NULL; nickxml = nextXMLEle(NickXmlRoot, 0))
+    // children of top level INDINicknames
+    // This should be <device>
+    devicexml = nextXMLEle(NickXmlRoot, 1);
+    // find <device name= matching this driver
+    for (; devicexml != NULL; devicexml = nextXMLEle(NickXmlRoot, 0))
+    {
+        // Skip non <device> tags
+        if (strcmp(tagXMLEle(devicexml), NICK_TAG_DEVICE))
+        {
+            printf("Skipping XML Non-Device: %s\n", tagXMLEle(devicexml));
+            continue;
+        }
+
+        // find name= attr
+        const char *devname = findXMLAttValu(devicexml, NICK_ATTR_NAME);
+        // skip other drivers
+        if (devname && strcmp(devname, devicename) == 0)
+        {
+            // Found <device name= matching the current driver
+            nickxml = nextXMLEle(devicexml, 1);
+            break;
+        }
+    }
+
+    for (; nickxml != NULL; nickxml = nextXMLEle(devicexml, 0))
     {
         // Skip non <nickname> tags
-        if (strcmp(tagXMLEle(nickxml), NICK_ENTRY))
-            continue;
-
-        // find driver= attr
-        const char *drv = findXMLAttValu(nickxml, NICK_ATTR_DRV);
-        // skip other drivers
-        if (!drv || strcmp(drv, defaultDevice->getDefaultName()))
+        if (strcmp(tagXMLEle(nickxml), NICK_TAG_ENTRY))
             continue;
 
         // find identifier= attr
         const char *pId = findXMLAttValu(nickxml, NICK_ATTR_ID);
         const char *pVal = pcdataXMLEle(nickxml);
-
         if (pId && pVal)
         {
             std::string sId{pId}, sVal{pVal}; // deep copy
@@ -297,8 +321,8 @@ int DefaultDevicePrivate::loadINDINicknamesXML()
     }
 
     delXMLEle(nickxml);
+    delXMLEle(devicexml);
     delXMLEle(NickXmlRoot);
-
     nicknamesLoaded = true;
 
     return 0;
@@ -311,63 +335,82 @@ int DefaultDevicePrivate::loadINDINicknamesXML()
  * First read the whole file, find entry for this driver (if exists), create if not.
  * Clear old and add new entries for nicknames from mNickname map.
  */
-int DefaultDevicePrivate::saveINDINicknamesXML()
+int DefaultDevicePrivate::saveINDINicknamesXML(const char *devicename)
 {
     const std::string filename = GetHomeDirectory() + NICKNAME_FILE;
 
     LilXML *lp = newLilXML();
     XMLEle *NickXmlRoot = nullptr;
+    XMLEle *devicexml = nullptr;
     XMLEle *nickxml = nullptr;
-    char errmsg[512] = {0};
+    static char errmsg[512];
+    memset(errmsg, 0, sizeof(errmsg)); // Clear anything from prior run
     FILE *fp = fopen(filename.c_str(), "r+");
     if (fp)
     {
         NickXmlRoot = readXMLFile(fp, lp, errmsg);
     }
 
+    // NickXmlRoot is the root <INDINickname> tag
     if (!NickXmlRoot) // empty file, make new root node
-        NickXmlRoot = addXMLEle(nullptr, NICK_ROOT);
+        NickXmlRoot = addXMLEle(nullptr, NICK_TAG_ROOT);
 
-    const std::string drvname{defaultDevice->getDefaultName()};
+    if (strcmp(tagXMLEle(NickXmlRoot), NICK_TAG_ROOT) != 0) {
+        // Unexpected tag, clear and make new
+        delXMLEle(NickXmlRoot);
+        NickXmlRoot = addXMLEle(nullptr, NICK_TAG_ROOT);
+    }
 
-    // Remove all elements matching current driver
-    nickxml = nextXMLEle(NickXmlRoot, 1);
-    int idx = 0;
-    // If deleting an element, the pointer will still be non-null, so check
-    // number of elements too
-    while (nickxml != nullptr && idx < nXMLEle(NickXmlRoot))
+    // children of top level INDINicknames
+    // This should be <device>
+    devicexml = nextXMLEle(NickXmlRoot, 1);
+    for (; devicexml != NULL; devicexml = nextXMLEle(NickXmlRoot, 0))
     {
-        // find driver= attr
-        const char *drv = findXMLAttValu(nickxml, NICK_ATTR_DRV);
-        if (!strcmp(tagXMLEle(nickxml), NICK_ENTRY)
-         && drv != nullptr && drvname == drv)
+        // Skip non <device> tags
+        if (strcmp(tagXMLEle(devicexml), NICK_TAG_DEVICE))
+            continue;
+
+        // find name= attr
+        const char *devname = findXMLAttValu(devicexml, NICK_ATTR_NAME);
+        // skip other drivers
+        if (devname && strcmp(devname, devicename) == 0)
         {
-            // Remove all entries matching this driver
-            delXMLEle(nickxml);
-            nickxml = nextXMLEle(NickXmlRoot, 1);
-            idx = 0;
+            // Found <device name= matching the current driver
+            nickxml = nextXMLEle(devicexml, 1);
+            break;
         }
-        else
-        {
-            nickxml = nextXMLEle(NickXmlRoot, 0);
-            idx++;
-        }
+    }
+
+    if (!devicexml)
+    {
+        // No entry found for current driver, add empty
+        devicexml = addXMLEle(NickXmlRoot, NICK_TAG_DEVICE);
+        addXMLAtt(devicexml, NICK_ATTR_NAME, devicename);
+    }
+
+    // Remove all nicknames in current driver section
+    while ((nickxml = nextXMLEle(devicexml, 1)) != 0)
+    {
+        delXMLEle(nickxml);
+        nickxml = nullptr;
     }
 
     for (const auto &kv : nicknameMap)
     {
-        nickxml = addXMLEle(NickXmlRoot, NICK_ENTRY);
-        addXMLAtt(nickxml, NICK_ATTR_DRV, drvname.c_str());
+        nickxml = addXMLEle(devicexml, NICK_TAG_ENTRY);
         addXMLAtt(nickxml, NICK_ATTR_ID, kv.first.c_str());
         editXMLEle(nickxml, kv.second.c_str());
     }
 
     // Reopen for writng and truncate file
     fp = freopen(filename.c_str(), "w", fp);
-    prXMLEle(fp, NickXmlRoot, 0);
-    fclose(fp);
-    delXMLEle(NickXmlRoot);
+    if (fp)
+    {
+        prXMLEle(fp, NickXmlRoot, 0);
+        fclose(fp);
+    }
 
+    delXMLEle(NickXmlRoot);
     delLilXML(lp);
     return 0;
 }
@@ -1564,7 +1607,7 @@ const char *DefaultDevice::lookupDeviceNicknameFromId(const char *identifier, co
     std::string id{identifier};
 
     if (!d->nicknamesLoaded)
-        d->loadINDINicknamesXML();
+        d->loadINDINicknamesXML(getDefaultName());
 
     auto search = d->nicknameMap.find(id);
     if (search != d->nicknameMap.end())
@@ -1592,10 +1635,10 @@ void DefaultDevice::saveNicknameId(const char *nickname, const char *identifier)
         return;
 
     if (!d->nicknamesLoaded)
-        d->loadINDINicknamesXML();
+        d->loadINDINicknamesXML(getDefaultName());
 
     d->nicknameMap[id] = nick;
-    d->saveINDINicknamesXML();
+    d->saveINDINicknamesXML(getDefaultName());
 }
 
 void DefaultDevice::setVersion(uint16_t vMajor, uint16_t vMinor)
