@@ -30,10 +30,11 @@
 #include "indipropertynumber.h"
 #include "indipropertyblob.h"
 
+#include <algorithm>
+#include <assert.h>
 #include <cstdlib>
 #include <cstring>
-#include <assert.h>
-#include <algorithm>
+#include <pwd.h>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -161,6 +162,258 @@ void timerfunc(void *t)
 
 namespace INDI
 {
+
+namespace
+{
+
+// trim from start (in place)
+static inline void ltrim(std::string &s)
+{
+    if (s.empty())
+        return;
+
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch)
+    {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s)
+{
+    if (s.empty())
+        return;
+
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch)
+    {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static void trim(std::string &s)
+{
+    ltrim(s);
+    rtrim(s);
+}
+
+static std::string GetHomeDirectory()
+{
+    // Check first the HOME environmental variable
+    const char *HomeDir = getenv("HOME");
+
+    // ...otherwise get the home directory of the current user.
+    if (!HomeDir)
+    {
+        HomeDir = getpwuid(getuid())->pw_dir;
+    }
+    return (HomeDir ? std::string(HomeDir) : "");
+}
+
+} // namespace
+
+/**
+ * Nicknames are stored in an xml-format NICKNAME_FILE in a format like the below.
+ * Nicknames are assoicated with a driver and stable device identifier.
+ *
+ * The device identifier must be stable across boots and not dependent on which
+ * port the device is plugged into. Usually this will be some form of serial
+ * number of the device, but specifics are left up to each driver.
+ *
+ * Since each identifier is per-driver, devices from different drivers can
+ * share the same nickname. The INDI framework must not try to interpret the
+ * identifier, only compare for equality.
+ *
+ * Since the device-name can't be changed once the driver is running, changes
+ * to nicknames can only take effect at the next INDI startup.
+ *
+ * The NicknameTP should be added with addNicknameControl().
+ *
+ * <INDINicknames>
+ *   <device name="AcmeFocuser">
+ *     <nickname identifier="SN123">MainScope</nickname>
+ *     <nickname identifier="SN456">GuideScope</nickname>
+ *   </device>
+ *   <device name="AcmeDustCap">
+ *     <nickname identifier="CAP-1-2-3">MainScope</nickname>
+ *   </device>
+ * </INDINicknames>
+ */
+
+#define NICKNAME_FILE "/.indi/Nicknames.xml"
+#define NICK_TAG_ROOT "INDINicknames"
+#define NICK_TAG_DEVICE "device"
+#define NICK_ATTR_NAME "name"
+#define NICK_TAG_ENTRY "nickname"
+#define NICK_ATTR_ID "identifier"
+
+int DefaultDevicePrivate::loadINDINicknamesXML(const char *devicename)
+{
+    const std::string filename = GetHomeDirectory() + NICKNAME_FILE;
+    nicknameMap.clear();
+
+    LilXML *lp = newLilXML();
+    XMLEle *NickXmlRoot = nullptr;
+    XMLEle *devicexml = nullptr;
+    XMLEle *nickxml = nullptr;
+    static char errmsg[512];
+    memset(errmsg, 0, sizeof(errmsg)); // Clear anything from prior run
+    FILE *fp = fopen(filename.c_str(), "r");
+    if (fp)
+    {
+        NickXmlRoot = readXMLFile(fp, lp, errmsg);
+        fclose(fp);
+    }
+    delLilXML(lp);
+
+    // NickXmlRoot is the root root tag, it's name is INDINickname
+    // iterating that one gives the other tags
+    if (!NickXmlRoot || errmsg[0])
+        return 1;
+
+    if (strcmp(tagXMLEle(NickXmlRoot), NICK_TAG_ROOT) != 0)
+    {
+        delXMLEle(NickXmlRoot);
+        return 1;
+    }
+
+    // children of top level INDINicknames
+    // This should be <device>
+    devicexml = nextXMLEle(NickXmlRoot, 1);
+    // find <device name= matching this driver
+    for (; devicexml != NULL; devicexml = nextXMLEle(NickXmlRoot, 0))
+    {
+        // Skip non <device> tags
+        if (strcmp(tagXMLEle(devicexml), NICK_TAG_DEVICE))
+        {
+            printf("Skipping XML Non-Device: %s\n", tagXMLEle(devicexml));
+            continue;
+        }
+
+        // find name= attr
+        const char *devname = findXMLAttValu(devicexml, NICK_ATTR_NAME);
+        // skip other drivers
+        if (devname && strcmp(devname, devicename) == 0)
+        {
+            // Found <device name= matching the current driver
+            nickxml = nextXMLEle(devicexml, 1);
+            break;
+        }
+    }
+
+    for (; nickxml != NULL; nickxml = nextXMLEle(devicexml, 0))
+    {
+        // Skip non <nickname> tags
+        if (strcmp(tagXMLEle(nickxml), NICK_TAG_ENTRY))
+            continue;
+
+        // find identifier= attr
+        const char *pId = findXMLAttValu(nickxml, NICK_ATTR_ID);
+        const char *pVal = pcdataXMLEle(nickxml);
+        if (pId && pVal)
+        {
+            std::string sId{pId}, sVal{pVal}; // deep copy
+            trim(sId);
+            trim(sVal);
+            if (!sId.empty() && !sVal.empty())
+                nicknameMap[sId] = sVal;
+        }
+    }
+
+    delXMLEle(nickxml);
+    delXMLEle(devicexml);
+    delXMLEle(NickXmlRoot);
+    nicknamesLoaded = true;
+
+    return 0;
+}
+
+/**
+ * @brief Save Nickname data to XML.
+ *
+ * This needs to re-read the XML file in case other devices wrote data since it was last read.
+ * First read the whole file, find entry for this driver (if exists), create if not.
+ * Clear old and add new entries for nicknames from mNickname map.
+ */
+int DefaultDevicePrivate::saveINDINicknamesXML(const char *devicename)
+{
+    const std::string filename = GetHomeDirectory() + NICKNAME_FILE;
+
+    LilXML *lp = newLilXML();
+    XMLEle *NickXmlRoot = nullptr;
+    XMLEle *devicexml = nullptr;
+    XMLEle *nickxml = nullptr;
+    static char errmsg[512];
+    memset(errmsg, 0, sizeof(errmsg)); // Clear anything from prior run
+    FILE *fp = fopen(filename.c_str(), "r+");
+    if (fp)
+    {
+        NickXmlRoot = readXMLFile(fp, lp, errmsg);
+    }
+
+    // NickXmlRoot is the root <INDINickname> tag
+    if (!NickXmlRoot) // empty file, make new root node
+        NickXmlRoot = addXMLEle(nullptr, NICK_TAG_ROOT);
+
+    if (strcmp(tagXMLEle(NickXmlRoot), NICK_TAG_ROOT) != 0) {
+        // Unexpected tag, clear and make new
+        delXMLEle(NickXmlRoot);
+        NickXmlRoot = addXMLEle(nullptr, NICK_TAG_ROOT);
+    }
+
+    // children of top level INDINicknames
+    // This should be <device>
+    devicexml = nextXMLEle(NickXmlRoot, 1);
+    for (; devicexml != NULL; devicexml = nextXMLEle(NickXmlRoot, 0))
+    {
+        // Skip non <device> tags
+        if (strcmp(tagXMLEle(devicexml), NICK_TAG_DEVICE))
+            continue;
+
+        // find name= attr
+        const char *devname = findXMLAttValu(devicexml, NICK_ATTR_NAME);
+        // skip other drivers
+        if (devname && strcmp(devname, devicename) == 0)
+        {
+            // Found <device name= matching the current driver
+            nickxml = nextXMLEle(devicexml, 1);
+            break;
+        }
+    }
+
+    if (!devicexml)
+    {
+        // No entry found for current driver, add empty
+        devicexml = addXMLEle(NickXmlRoot, NICK_TAG_DEVICE);
+        addXMLAtt(devicexml, NICK_ATTR_NAME, devicename);
+    }
+
+    // Remove all nicknames in current driver section
+    while ((nickxml = nextXMLEle(devicexml, 1)) != 0)
+    {
+        delXMLEle(nickxml);
+        nickxml = nullptr;
+    }
+
+    for (const auto &kv : nicknameMap)
+    {
+        nickxml = addXMLEle(devicexml, NICK_TAG_ENTRY);
+        addXMLAtt(nickxml, NICK_ATTR_ID, kv.first.c_str());
+        editXMLEle(nickxml, kv.second.c_str());
+    }
+
+    // Reopen for writng and truncate file
+    fp = freopen(filename.c_str(), "w", fp);
+    if (fp)
+    {
+        prXMLEle(fp, NickXmlRoot, 0);
+        fclose(fp);
+    }
+
+    delXMLEle(NickXmlRoot);
+    delLilXML(lp);
+    return 0;
+}
 
 DefaultDevicePrivate::DefaultDevicePrivate(DefaultDevice *defaultDevice)
     : defaultDevice(defaultDevice)
@@ -600,6 +853,12 @@ void DefaultDevice::addPollPeriodControl()
     registerProperty(d->PollPeriodNP);
 }
 
+void DefaultDevice::addNicknameControl()
+{
+    D_PTR(DefaultDevice);
+    registerProperty(d->NicknameTP);
+}
+
 void DefaultDevice::addAuxControls()
 {
     addDebugControl();
@@ -683,6 +942,11 @@ void DefaultDevice::debugTriggered(bool enable)
 void DefaultDevice::simulationTriggered(bool enable)
 {
     INDI_UNUSED(enable);
+}
+
+void DefaultDevice::nicknameSet(const char *nickname)
+{
+    INDI_UNUSED(nickname);
 }
 
 void DefaultDevice::ISGetProperties(const char *dev)
@@ -1012,6 +1276,17 @@ bool DefaultDevice::initProperties()
         d->PollPeriodNP.apply();
     });
 
+    d->NicknameTP[0].fill("nickname", "nickname", d->deviceNickname.c_str());
+    d->NicknameTP.fill(getDeviceName(), "NICKNAME", "Nickname", INFO_TAB, IP_RW, 60, IPS_IDLE);
+    d->NicknameTP.onUpdate([d, this]()
+    {
+        setDeviceNickname(d->NicknameTP[0].getText());
+        d->NicknameTP[0].setText(d->deviceNickname);
+        d->NicknameTP.setState(IPS_OK);
+        d->NicknameTP.apply();
+        nicknameSet(d->deviceNickname.c_str());
+    });
+
     INDI::Logger::initProperties(this);
 
     // Ready the logger
@@ -1279,6 +1554,91 @@ const char *DefaultDevice::getDriverExec()
 const char *DefaultDevice::getDriverName()
 {
     return getDefaultName();
+}
+
+void DefaultDevice::setDeviceNickname(const char *nick)
+{
+    D_PTR(DefaultDevice);
+    std::string def{getDefaultName()};
+
+    std::string n, full;
+    if (nick)
+        n = nick;
+
+    if (n.rfind(def, 0) == 0) { // Remove prefix if nick is full name
+        n = n.substr(def.length());
+    }
+    // If prefix was removed, remove the space left over
+    trim(n);
+    d->deviceNickname = n;
+
+    // setDeviceName can only be set during initialization. The Nickname can be
+    // set in NicknameTP and will take affect when restarted.
+    if (!d->isInit)
+    {
+        if (d->deviceNickname.empty())
+            full = def;
+        else
+            full = def + " " + d->deviceNickname;
+        setDeviceName(full.c_str());
+    }
+}
+
+const char *DefaultDevice::getDeviceNickname()
+{
+    D_PTR(const DefaultDevice);
+    return d->deviceNickname.c_str();
+}
+
+const char *DefaultDevice::lookupDeviceNicknameFromId(const char *identifier, const char *device)
+{
+    D_PTR(DefaultDevice);
+    if (!identifier)
+        return nullptr;
+
+    if (device)
+    {
+        // NOT IMPLEMENTED
+        // Any need to lookup nicknames for other devices? (maybe to help
+        // migration?)
+        return "";
+    }
+
+    std::string id{identifier};
+
+    if (!d->nicknamesLoaded)
+        d->loadINDINicknamesXML(getDefaultName());
+
+    auto search = d->nicknameMap.find(id);
+    if (search != d->nicknameMap.end())
+        return search->second.c_str();
+
+    return "";
+}
+
+void DefaultDevice::setDeviceNicknameFromId(const char *identifier)
+{
+    // Set nickname even if null, to set the default name
+    setDeviceNickname(lookupDeviceNicknameFromId(identifier));
+}
+
+void DefaultDevice::saveNicknameId(const char *nickname, const char *identifier)
+{
+    D_PTR(DefaultDevice);
+    if (!identifier)
+        return;
+
+    std::string id{identifier};
+    trim(id);
+    std::string nick = (nickname) ? nickname : d->deviceNickname;
+    if (nick.empty() || id.empty())
+        return;
+
+    if (!d->nicknamesLoaded)
+        d->loadINDINicknamesXML(getDefaultName());
+
+    d->nicknameMap[id] = nick;
+    d->saveINDINicknamesXML(getDefaultName());
 }
 
 void DefaultDevice::setVersion(uint16_t vMajor, uint16_t vMinor)
