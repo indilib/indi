@@ -33,7 +33,7 @@ class HakosRoof : public INDI::Dome
     virtual bool initProperties() override;
     bool updateProperties() override;
 
-    virtual void ISGetProperties(const char *dev);
+    virtual void ISGetProperties(const char *dev) override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
@@ -60,25 +60,20 @@ class HakosRoof : public INDI::Dome
     double MotionRequest { 0 };
     struct timeval MotionStart { 0, 0 };
 
-    //Source file/url
-    IText jsonDataT[1] {};
-    ITextVectorProperty jsonDataTP;
+    // Source file/url
+    INDI::PropertyText DataSourceTP {1};
 
-    //Roof token
-    IText roofTokenT[1] {};
-    ITextVectorProperty roofTokenTP;
+    // Roof token
+    INDI::PropertyText RoofTokenTP {1};
 
-    //Roof status
-    IText roofDataT[5] {};
-    ITextVectorProperty roofDataTP;
+    // Roof status (5 text elements)
+    INDI::PropertyText RoofDataTP {5};
     
     // Encoder Max Ticks
-    INumber EncoderTicksN[1] {};
-    INumberVectorProperty EncoderTicksNP;
+    INDI::PropertyNumber EncoderTicksNP {1};
     
     // Simulation Mode
-    ISwitch SimulationS[1] {};
-    ISwitchVectorProperty SimulationSP;
+    INDI::PropertySwitch SimulationSP {1};
     
     bool sendRoofCommand(const char *action);
     bool simulateRoofCommand(const char *action);

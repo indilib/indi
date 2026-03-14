@@ -49,6 +49,9 @@ HakosRoof::HakosRoof()
     // Hakos Roof doesn't rely on the base dome class for connection
     setDomeConnection(CONNECTION_NONE);
 
+    // Set driver version
+    setVersion(1, 3);
+
     //Hakos Roof is a Roll Off Roof. We implement only basic Dome functions to open / close the roof
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
 }
@@ -70,34 +73,29 @@ bool HakosRoof::initProperties()
 
     addAuxControls();
   
-    //Roof data
-    IUFillText(&roofDataT[0], "MSG", "Last Command", nullptr);
-    IUFillText(&roofDataT[1], "STAT", "Stat", nullptr);
-    IUFillText(&roofDataT[2], "STEXT", "Status", nullptr);
-    IUFillText(&roofDataT[3], "POS", "Position", nullptr);
-    IUFillText(&roofDataT[4], "REL_POSITION", "Current Position %", "");
-    IUFillTextVector(&roofDataTP, roofDataT, 5, getDeviceName(), "ROOF_DATA", "Roof Data", MAIN_CONTROL_TAB, IP_RO,
-                     60, IPS_IDLE);
+    // Roof data
+    RoofDataTP[0].fill("MSG", "Last Command", "");
+    RoofDataTP[1].fill("STAT", "Stat", "");
+    RoofDataTP[2].fill("STEXT", "Status", "");
+    RoofDataTP[3].fill("POS", "Position", "");
+    RoofDataTP[4].fill("REL_POSITION", "Current Position %", "");
+    RoofDataTP.fill(getDeviceName(), "ROOF_DATA", "Roof Data", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
     
-    //Source File
-    IUFillText(&jsonDataT[0], "URL", "URL", nullptr);
-    IUFillTextVector(&jsonDataTP, jsonDataT, 1, getDeviceName(), "DATA_SOURCE", "Data Source", OPTIONS_TAB, IP_RW,
-                     60, IPS_IDLE);
+    // Source File
+    DataSourceTP[0].fill("URL", "URL", "");
+    DataSourceTP.fill(getDeviceName(), "DATA_SOURCE", "Data Source", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     
-    //Roof Token
-    IUFillText(&roofTokenT[0], "TOKEN", "Token", nullptr);
-    IUFillTextVector(&roofTokenTP, roofTokenT, 1, getDeviceName(), "ROOF_TOKEN", "Roof Token", OPTIONS_TAB, IP_RW,
-                     60, IPS_IDLE);
+    // Roof Token
+    RoofTokenTP[0].fill("TOKEN", "Token", "");
+    RoofTokenTP.fill(getDeviceName(), "ROOF_TOKEN", "Roof Token", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Encoder Ticks
-    IUFillNumber(&EncoderTicksN[0], "ENCODER_TICKS", "Encoder Ticks", "%6.0f", 0, 100000, 1, 0);
-    IUFillNumberVector(&EncoderTicksNP, EncoderTicksN, 1, getDeviceName(), "ENCODER_TICKS", "Max Roof Travel", OPTIONS_TAB,
-                       IP_RW, 60, IPS_IDLE);
+    EncoderTicksNP[0].fill("ENCODER_TICKS", "Encoder Ticks", "%6.0f", 0, 100000, 1, 0);
+    EncoderTicksNP.fill(getDeviceName(), "ENCODER_TICKS", "Max Roof Travel", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     
     // Simulation Mode
-    IUFillSwitch(&SimulationS[0], "SIMULATE", "Simulate Device", ISS_OFF);
-    IUFillSwitchVector(&SimulationSP, SimulationS, 1, getDeviceName(), "SIMULATION", "Simulation", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+    SimulationSP[0].fill("SIMULATE", "Simulate Device", ISS_OFF);
+    SimulationSP.fill(getDeviceName(), "SIMULATION", "Simulation", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   
     return true;
 }
@@ -105,7 +103,7 @@ bool HakosRoof::initProperties()
 
 bool HakosRoof::Connect()
 {
-    if (jsonDataT[0].text == nullptr || jsonDataT[0].text[0] == '\0')
+    if (DataSourceTP[0].getText() == nullptr || DataSourceTP[0].getText()[0] == '\0')
     {
         //LOG_ERROR("A source file or url must be specified in options tab.");
         return true;
@@ -127,21 +125,21 @@ bool HakosRoof::updateProperties()
     {
         SetTimer(getCurrentPollingPeriod());
         SetupParms();
-        defineProperty(&jsonDataTP);
-        defineProperty(&roofDataTP);
-        defineProperty(&roofTokenTP);
-        defineProperty(&EncoderTicksNP);
-        defineProperty(&SimulationSP);
+        defineProperty(DataSourceTP);
+        defineProperty(RoofDataTP);
+        defineProperty(RoofTokenTP);
+        defineProperty(EncoderTicksNP);
+        defineProperty(SimulationSP);
 
      
     }
     else
     {
-        deleteProperty(jsonDataTP.name);
-        deleteProperty(roofDataTP.name);
-        deleteProperty(roofTokenTP.name);
-        deleteProperty(EncoderTicksNP.name);
-        deleteProperty(SimulationSP.name);
+        deleteProperty(DataSourceTP);
+        deleteProperty(RoofDataTP);
+        deleteProperty(RoofTokenTP);
+        deleteProperty(EncoderTicksNP);
+        deleteProperty(SimulationSP);
 
     }
 
@@ -158,28 +156,27 @@ void HakosRoof::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
 
-    defineProperty(&jsonDataTP);
-    defineProperty(&roofDataTP);
-    defineProperty(&roofTokenTP);
-    defineProperty(&EncoderTicksNP);
-    defineProperty(&SimulationSP);
+    defineProperty(DataSourceTP);
+    defineProperty(RoofDataTP);
+    defineProperty(RoofTokenTP);
+    defineProperty(EncoderTicksNP);
+    defineProperty(SimulationSP);
 
-    
-    loadConfig(true, jsonDataTP.name);
-    loadConfig(true, roofTokenTP.name);
-    loadConfig(true, EncoderTicksNP.name);
-    loadConfig(true, SimulationSP.name);
+    DataSourceTP.load();
+    RoofTokenTP.load();
+    EncoderTicksNP.load();
+    SimulationSP.load();
 }
 bool HakosRoof::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     // Make sure it is for us.
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-         if (!strcmp(EncoderTicksNP.name, name))
+        if (EncoderTicksNP.isNameMatch(name))
         {
-            IUUpdateNumber(&EncoderTicksNP, values, names, n);
-            EncoderTicksNP.s = IPS_OK;
-            IDSetNumber(&EncoderTicksNP, nullptr);
+            EncoderTicksNP.update(values, names, n);
+            EncoderTicksNP.setState(IPS_OK);
+            EncoderTicksNP.apply();
             return true;
         }
    }
@@ -193,12 +190,12 @@ bool HakosRoof::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     // Make sure it is for us.
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(SimulationSP.name, name))
+        if (SimulationSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SimulationSP, states, names, n);
-            isSimulated = (SimulationS[0].s == ISS_ON);
-            SimulationSP.s = IPS_OK;
-            IDSetSwitch(&SimulationSP, nullptr);
+            SimulationSP.update(states, names, n);
+            isSimulated = (SimulationSP[0].getState() == ISS_ON);
+            SimulationSP.setState(IPS_OK);
+            SimulationSP.apply();
             
             if (isSimulated)
             {
@@ -222,31 +219,31 @@ bool HakosRoof::ISNewText(const char *dev, const char *name, char *texts[], char
     // Make sure it is for us.
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(jsonDataTP.name, name))
+        if (DataSourceTP.isNameMatch(name))
         {
-            IUUpdateText(&jsonDataTP, texts, names, n);
-            jsonDataTP.s = IPS_OK;
-            IDSetText(&jsonDataTP, nullptr);
+            DataSourceTP.update(texts, names, n);
+            DataSourceTP.setState(IPS_OK);
+            DataSourceTP.apply();
             
-            LOGF_INFO("Data source URL: %s.", jsonDataT[0].text);
+            LOGF_INFO("Data source URL: %s.", DataSourceTP[0].getText());
             return true;
         }
         
-        if (!strcmp(roofTokenTP.name, name))
+        if (RoofTokenTP.isNameMatch(name))
         {
-            IUUpdateText(&roofTokenTP, texts, names, n);
-            roofTokenTP.s = IPS_OK;
-            IDSetText(&roofTokenTP, nullptr);
+            RoofTokenTP.update(texts, names, n);
+            RoofTokenTP.setState(IPS_OK);
+            RoofTokenTP.apply();
             
-            LOGF_INFO("Roof Token: %s.", roofTokenT[0].text);
+            LOGF_INFO("Roof Token: %s.", RoofTokenTP[0].getText());
             return true;
         }
 
-        if (!strcmp(roofDataTP.name, name))
+        if (RoofDataTP.isNameMatch(name))
         {
-            IUUpdateText(&roofDataTP, texts, names, n);
-            roofDataTP.s = IPS_OK;
-            IDSetText(&roofDataTP, nullptr);
+            RoofDataTP.update(texts, names, n);
+            RoofDataTP.setState(IPS_OK);
+            RoofDataTP.apply();
             
 
             return true;
@@ -311,7 +308,7 @@ void HakosRoof::TimerHit()
 
     // If the roof was in mount 'not parked' status but the mount
     //is now parked, the roof has to be closed.
-    if (strcmp(roofDataT[2].text ,"not parked") == 0 )
+    if (strcmp(RoofDataTP[2].getText() ,"not parked") == 0 )
     {
 
         setDomeState(DOME_IDLE);
@@ -328,7 +325,7 @@ void HakosRoof::TimerHit()
 
     }
 
-    if (strcmp(roofDataT[2].text ,"open") == 0)
+    if (strcmp(RoofDataTP[2].getText() ,"open") == 0)
     {
         LOG_INFO("Roof is open.");
         setDomeState(DOME_UNPARKED);
@@ -337,7 +334,7 @@ void HakosRoof::TimerHit()
 
         return;
     }
-    if (strcmp(roofDataT[2].text ,"closed") == 0)
+    if (strcmp(RoofDataTP[2].getText() ,"closed") == 0)
     {
         LOG_INFO("Roof is closed.");
         setDomeState(DOME_UNPARKED);
@@ -346,12 +343,12 @@ void HakosRoof::TimerHit()
         return;
     }
 
-    if (strcmp(roofDataT[2].text ,"opening") == 0)
+    if (strcmp(RoofDataTP[2].getText() ,"opening") == 0)
     {
         setDomeState(DOME_UNPARKING);
         SetParked(false);
     }
-    if (strcmp(roofDataT[2].text ,"closing") == 0)
+    if (strcmp(RoofDataTP[2].getText() ,"closing") == 0)
     {
         setDomeState(DOME_PARKING);
         SetParked(false);
@@ -359,7 +356,7 @@ void HakosRoof::TimerHit()
 
 
     // Abort called
-    if (strcmp(roofDataT[2].text ,"idle") == 0)
+    if (strcmp(RoofDataTP[2].getText() ,"idle") == 0)
     {
         LOG_INFO("Roof motion is stopped.");
         setDomeState(DOME_IDLE);
@@ -384,9 +381,9 @@ bool HakosRoof::saveConfigItems(FILE *fp)
 
     INDI::Dome::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &roofTokenTP);
-    IUSaveConfigText(fp, &jsonDataTP);
-    IUSaveConfigNumber(fp, &EncoderTicksNP);
+    RoofTokenTP.save(fp);
+    DataSourceTP.save(fp);
+    EncoderTicksNP.save(fp);
 
     return true;
     
@@ -400,12 +397,12 @@ IPState HakosRoof::Move(DomeDirection dir, DomeMotionCommand operation)
     {
         // DOME_CW --> OPEN. If can we are ask to "open" while we are fully opened as the limit switch indicates, then we simply return false.
   
-        if (dir == DOME_CW && strcmp(roofDataT[2].text ,"open") == 0)
+        if (dir == DOME_CW && strcmp(RoofDataTP[2].getText() ,"open") == 0)
         {
             LOG_WARN("Roof is already fully opened.");
             return IPS_ALERT;
         }
-        else if (dir == DOME_CCW && strcmp(roofDataT[2].text ,"closed") == 0)
+        else if (dir == DOME_CCW && strcmp(RoofDataTP[2].getText() ,"closed") == 0)
         {
             LOG_WARN("Roof is already fully closed.");
             return IPS_ALERT;
@@ -475,13 +472,13 @@ bool HakosRoof::sendRoofCommand(const char *action)
     //LOGF_INFO("Sending command:  %s", action);
 
     // Check if required data is available
-    if (jsonDataT[0].text == nullptr || jsonDataT[0].text[0] == '\0')
+    if (DataSourceTP[0].getText() == nullptr || DataSourceTP[0].getText()[0] == '\0')
     {
         LOG_WARN("Data source URL not configured. Falling back to simulation mode.");
         return simulateRoofCommand(action);
     }
     
-    if (roofTokenT[0].text == nullptr || roofTokenT[0].text[0] == '\0')
+    if (RoofTokenTP[0].getText() == nullptr || RoofTokenTP[0].getText()[0] == '\0')
     {
         LOG_WARN("Roof token not configured. Falling back to simulation mode.");
         return simulateRoofCommand(action);
@@ -493,9 +490,9 @@ bool HakosRoof::sendRoofCommand(const char *action)
     CURL* easyhandle = curl_easy_init();
     CURLcode res = CURLE_OK;
 
-    std::string reqCommand = jsonDataT[0].text;
+    std::string reqCommand = DataSourceTP[0].getText();
     reqCommand += "/remobs?key=";
-    reqCommand += roofTokenT[0].text;
+    reqCommand += RoofTokenTP[0].getText();
     reqCommand += "&action=";
     reqCommand += action;
 
@@ -526,12 +523,12 @@ bool HakosRoof::sendRoofCommand(const char *action)
             int i = j["pos"];
             std::string  pos = std::to_string(i);
 
-            IUSaveText(&roofDataT[0], msg.c_str());
-            IUSaveText(&roofDataT[1], stat.c_str());
-            IUSaveText(&roofDataT[2], stext.c_str());
-            IUSaveText(&roofDataT[3], pos.c_str());
+            RoofDataTP[0].setText(msg.c_str());
+            RoofDataTP[1].setText(stat.c_str());
+            RoofDataTP[2].setText(stext.c_str());
+            RoofDataTP[3].setText(pos.c_str());
 
-            IDSetText(&roofDataTP, NULL);
+            RoofDataTP.apply();
 
            
         }    
@@ -542,7 +539,7 @@ bool HakosRoof::sendRoofCommand(const char *action)
 
 bool HakosRoof::getMountSensorSwitch()
 {
-    std::string statString = roofDataT[1].text;
+    std::string statString = RoofDataTP[1].getText();
     std::vector<std::string> statVector{};
     std::stringstream sstream(statString);
     std::string statElement;
@@ -623,13 +620,13 @@ bool HakosRoof::simulateRoofCommand(const char *action)
 
         const char *stat = "0,0,0,0,0,0,0,0,0,1";  // Mount sensor at position 9
 
-        IUSaveText(&roofDataT[0], status_msg);
-        IUSaveText(&roofDataT[1], stat);
-        IUSaveText(&roofDataT[2], stext);
-        IUSaveText(&roofDataT[3], pos_str);
-        IUSaveText(&roofDataT[4], pos_str);
+        RoofDataTP[0].setText(status_msg);
+        RoofDataTP[1].setText(stat);
+        RoofDataTP[2].setText(stext);
+        RoofDataTP[3].setText(pos_str);
+        RoofDataTP[4].setText(pos_str);
 
-        IDSetText(&roofDataTP, NULL);
+        RoofDataTP.apply();
         
         if (isMoving)
         {
