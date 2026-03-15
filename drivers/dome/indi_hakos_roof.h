@@ -37,12 +37,10 @@ class HakosRoof : public INDI::Dome
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
     virtual bool saveConfigItems(FILE *fp) override;
     
   protected:
     bool Connect() override;
-    bool Disconnect() override;
     void TimerHit() override;
 
     virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
@@ -54,7 +52,6 @@ class HakosRoof : public INDI::Dome
     bool AbortDriver();
 
   private:
-    bool SetupParms();
     float CalcTimeLeft(timeval);
 
     double MotionRequest { 0 };
