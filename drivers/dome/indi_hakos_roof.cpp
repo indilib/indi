@@ -165,7 +165,7 @@ bool HakosRoof::ISNewNumber(const char *dev, const char *name, double values[], 
             EncoderTicksNP.update(values, names, n);
             EncoderTicksNP.setState(IPS_OK);
             EncoderTicksNP.apply();
-            saveConfig(EncoderTicksTP);
+            saveConfig(EncoderTicksNP);
             return true;
         }
    }
