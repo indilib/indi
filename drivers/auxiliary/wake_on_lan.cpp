@@ -168,7 +168,7 @@ bool WakeOnLAN::Connect()
 {
     LOG_INFO("Wake On Lan driver connected.");
     m_stopPing = false;
-    SetTimer(100);
+    SetTimer(100);  // fire first ping immediately
     return true;
 }
 
@@ -195,7 +195,7 @@ void WakeOnLAN::TimerHit()
     checkPingStatus(2, Device3TP, Send3SP);
     checkPingStatus(3, Device4TP, Send4SP);
 
-    SetTimer(getCurrentPollingPeriod());
+    SetTimer(5000);  
 }
 
 bool WakeOnLAN::pingDevice(const char *ip)
