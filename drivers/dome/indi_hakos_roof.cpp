@@ -84,18 +84,22 @@ bool HakosRoof::initProperties()
     // Source File
     DataSourceTP[0].fill("URL", "URL", "");
     DataSourceTP.fill(getDeviceName(), "DATA_SOURCE", "Data Source", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    DataSourceTP.load();
     
     // Roof Token
     RoofTokenTP[0].fill("TOKEN", "Token", "");
     RoofTokenTP.fill(getDeviceName(), "ROOF_TOKEN", "Roof Token", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    RoofTokenTP.load();
 
     // Encoder Ticks
     EncoderTicksNP[0].fill("ENCODER_TICKS", "Encoder Ticks", "%6.0f", 0, 100000, 1, 0);
     EncoderTicksNP.fill(getDeviceName(), "ENCODER_TICKS", "Max Roof Travel", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    EncoderTickNP.load();
     
     // Simulation Mode
     SimulationSP[0].fill("SIMULATE", "Simulate Device", ISS_OFF);
     SimulationSP.fill(getDeviceName(), "SIMULATION", "Simulation", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    SimulationSP.load();
   
     return true;
 }
@@ -111,11 +115,6 @@ bool HakosRoof::Connect()
 
     return true;
 }
-bool HakosRoof::Disconnect()
-{
-    INDI::Dome::Disconnect();
-    return true;
-}
 
 bool HakosRoof::updateProperties()
 {
@@ -124,7 +123,6 @@ bool HakosRoof::updateProperties()
     if (isConnected())
     {
         SetTimer(getCurrentPollingPeriod());
-        SetupParms();
         defineProperty(DataSourceTP);
         defineProperty(RoofDataTP);
         defineProperty(RoofTokenTP);
@@ -146,12 +144,6 @@ bool HakosRoof::updateProperties()
     return true;
 }
 
-bool HakosRoof::SetupParms()
-{
-
-    return true;
-}
-
 void HakosRoof::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
@@ -161,12 +153,8 @@ void HakosRoof::ISGetProperties(const char *dev)
     defineProperty(RoofTokenTP);
     defineProperty(EncoderTicksNP);
     defineProperty(SimulationSP);
-
-    DataSourceTP.load();
-    RoofTokenTP.load();
-    EncoderTicksNP.load();
-    SimulationSP.load();
 }
+
 bool HakosRoof::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     // Make sure it is for us.
@@ -177,6 +165,7 @@ bool HakosRoof::ISNewNumber(const char *dev, const char *name, double values[], 
             EncoderTicksNP.update(values, names, n);
             EncoderTicksNP.setState(IPS_OK);
             EncoderTicksNP.apply();
+            saveConfig(EncoderTicksTP);
             return true;
         }
    }
@@ -224,6 +213,7 @@ bool HakosRoof::ISNewText(const char *dev, const char *name, char *texts[], char
             DataSourceTP.update(texts, names, n);
             DataSourceTP.setState(IPS_OK);
             DataSourceTP.apply();
+            saveConfig(DataSourceTP);
             
             LOGF_INFO("Data source URL: %s.", DataSourceTP[0].getText());
             return true;
@@ -234,6 +224,7 @@ bool HakosRoof::ISNewText(const char *dev, const char *name, char *texts[], char
             RoofTokenTP.update(texts, names, n);
             RoofTokenTP.setState(IPS_OK);
             RoofTokenTP.apply();
+            saveConfig(RoofTokenTP);
             
             LOGF_INFO("Roof Token: %s.", RoofTokenTP[0].getText());
             return true;
@@ -251,11 +242,6 @@ bool HakosRoof::ISNewText(const char *dev, const char *name, char *texts[], char
     }
 
     return INDI::Dome::ISNewText(dev, name, texts, names, n);
-}
-
-bool HakosRoof::ISSnoopDevice(XMLEle *root)
-{
-    return INDI::Dome::ISSnoopDevice(root);
 }
 
 void HakosRoof::TimerHit()
