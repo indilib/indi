@@ -346,3 +346,11 @@ SET(startech_hub_SRC
 add_executable(indi_startech_hub ${startech_hub_SRC})
 target_link_libraries(indi_startech_hub indidriver)
 install(TARGETS indi_startech_hub RUNTIME DESTINATION bin)
+
+# ########## Wake-on-LAN ###############
+SET(wake_on_lan_SRC
+    wake_on_lan.cpp)
+
+add_executable(indi_wake_on_lan ${wake_on_lan_SRC})
+target_link_libraries(indi_wake_on_lan indidriver)
+install(TARGETS indi_wake_on_lan RUNTIME DESTINATION bin)
