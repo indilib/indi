@@ -94,7 +94,7 @@ bool HakosRoof::initProperties()
     // Encoder Ticks
     EncoderTicksNP[0].fill("ENCODER_TICKS", "Encoder Ticks", "%6.0f", 0, 100000, 1, 0);
     EncoderTicksNP.fill(getDeviceName(), "ENCODER_TICKS", "Max Roof Travel", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-    EncoderTickNPs.load();
+    EncoderTicksNP.load();
     
     // Simulation Mode
     SimulationSP[0].fill("SIMULATE", "Simulate Device", ISS_OFF);
