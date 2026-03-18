@@ -141,15 +141,28 @@ int main(int ac, char *av[])
 #ifdef OSX_EMBEDED_MODE
 
     char logname[128];
-    snprintf(logname, 128, logNamePattern, getlogin());
+    // logNamePattern is std::string_view, use .data() for the printf format arg
+    snprintf(logname, 128, logNamePattern.data(), getlogin());
     fprintf(stderr, "switching stderr to %s", logname);
     freopen(logname, "w", stderr);
 
-    fifoHandleOwner = std::make_unique<Fifo>();
+    // Compute the FIFO path from TMPDIR so that on a sandboxed macOS build the
+    // file is created inside the app-container private temp directory instead of
+    // /private/tmp/. Falls back to /tmp on non-sandboxed / Linux builds.
+    {
+        const char *tmpDir = getenv("TMPDIR");
+        if (!tmpDir || tmpDir[0] == '\0')
+            tmpDir = "/tmp";
+        std::string fifoPath = tmpDir;
+        if (fifoPath.back() != '/')
+            fifoPath += '/';
+        fifoPath += "indiserverFIFO";
+        fifoHandleOwner = std::make_unique<Fifo>(fifoPath);
+    }
     fifoHandle = fifoHandleOwner.get();
-    updatedArgs->fifoHandle->name = fifoName;
-    updatedArgs->verbosity   = 1;
-    ac        = 0;
+    // Preserve original behaviour: verbose mode and no command-line drivers
+    userConfigurableArguments->verbosity = 1;
+    ac = 0;
 
 #else
 
