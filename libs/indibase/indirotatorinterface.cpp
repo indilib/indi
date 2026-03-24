@@ -176,14 +176,13 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 }
                 else
                 {
-                    double startAngle = GotoRotatorNP[0].getValue();
+                    double startAngle = m_RotatorOffset;
                     double endAngle   = startAngle + values[0];
                     if (endAngle >= 360) endAngle -= 360;
                     DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
                                  "Rotator limits set to %.f degrees. Safe range: %.2f to %.2f degrees.",
                                  values[0], startAngle, endAngle);
                 }
-                m_RotatorOffset = GotoRotatorNP[0].getValue();
                 return true;
             }, true);
             return true;
