@@ -103,7 +103,7 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             // If value is outside safe zone, then prevent motion
             if (RotatorLimitsNP[0].getValue() > 0 && ((values[0] < 180
                     && (std::abs(values[0] - m_RotatorOffset)) > RotatorLimitsNP[0].getValue()) ||
-                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) < (360 - RotatorLimitsNP[0].getValue()))))
+                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) > (360 - RotatorLimitsNP[0].getValue()))))
             {
                 GotoRotatorNP.setState(IPS_ALERT);
                 DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
@@ -171,7 +171,18 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             m_defaultDevice->updateProperty(RotatorLimitsNP, values, names, n, [this, values, dev]()
             {
                 if (values[0] == 0)
+                {
                     DEBUGDEVICE(dev, Logger::DBG_SESSION, "Rotator limits are disabled.");
+                }
+                else
+                {
+                    double startAngle = GotoRotatorNP[0].getValue();
+                    double endAngle   = startAngle + values[0];
+                    if (endAngle >= 360) endAngle -= 360;
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                                 "Rotator limits set to %.f degrees. Safe range: %.2f to %.2f degrees.",
+                                 values[0], startAngle, endAngle);
+                }
                 m_RotatorOffset = GotoRotatorNP[0].getValue();
                 return true;
             }, true);
