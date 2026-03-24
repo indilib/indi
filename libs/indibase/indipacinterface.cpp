@@ -180,41 +180,19 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
 
     if (AZReverseSP.isNameMatch(name))
     {
-        int prevIndex = AZReverseSP.findOnSwitchIndex();
-        AZReverseSP.update(states, names, n);
-
-        if (ReverseAZ(AZReverseSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED))
+        m_DefaultDevice->updateProperty(AZReverseSP, states, names, n, [this, states]()
         {
-            AZReverseSP.setState(IPS_OK);
-            m_DefaultDevice->saveConfig(AZReverseSP);
-        }
-        else
-        {
-            AZReverseSP.reset();
-            AZReverseSP[prevIndex].setState(ISS_ON);
-            AZReverseSP.setState(IPS_ALERT);
-        }
-        AZReverseSP.apply();
+            return ReverseAZ(states[0] == ISS_ON);
+        }, true);
         return true;
     }
 
     if (ALTReverseSP.isNameMatch(name))
     {
-        int prevIndex = ALTReverseSP.findOnSwitchIndex();
-        ALTReverseSP.update(states, names, n);
-
-        if (ReverseALT(ALTReverseSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED))
+        m_DefaultDevice->updateProperty(ALTReverseSP, states, names, n, [this, states]()
         {
-            ALTReverseSP.setState(IPS_OK);
-            m_DefaultDevice->saveConfig(ALTReverseSP);
-        }
-        else
-        {
-            ALTReverseSP.reset();
-            ALTReverseSP[prevIndex].setState(ISS_ON);
-            ALTReverseSP.setState(IPS_ALERT);
-        }
-        ALTReverseSP.apply();
+            return ReverseALT(states[0] == ISS_ON);
+        }, true);
         return true;
     }
 
@@ -268,21 +246,10 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
 
     if (HasBacklash() && BacklashSP.isNameMatch(name))
     {
-        int prevIndex = BacklashSP.findOnSwitchIndex();
-        BacklashSP.update(states, names, n);
-
-        if (SetBacklashEnabled(BacklashSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED))
+        m_DefaultDevice->updateProperty(BacklashSP, states, names, n, [this, states]()
         {
-            BacklashSP.setState(IPS_OK);
-            m_DefaultDevice->saveConfig(BacklashSP);
-        }
-        else
-        {
-            BacklashSP.reset();
-            BacklashSP[prevIndex].setState(ISS_ON);
-            BacklashSP.setState(IPS_ALERT);
-        }
-        BacklashSP.apply();
+            return SetBacklashEnabled(states[0] == ISS_ON);
+        }, true);
         return true;
     }
 
@@ -296,20 +263,10 @@ bool PACInterface::processNumber(const char *dev, const char *name,
 
     if (SpeedNP.isNameMatch(name))
     {
-        uint16_t currentSpeed = static_cast<uint16_t>(SpeedNP[0].getValue());
-        SpeedNP.update(values, names, n);
-
-        if (SetPACSpeed(static_cast<uint16_t>(SpeedNP[0].getValue())))
+        m_DefaultDevice->updateProperty(SpeedNP, values, names, n, [this, values]()
         {
-            SpeedNP.setState(IPS_OK);
-            m_DefaultDevice->saveConfig(SpeedNP);
-        }
-        else
-        {
-            SpeedNP[0].setValue(currentSpeed);
-            SpeedNP.setState(IPS_ALERT);
-        }
-        SpeedNP.apply();
+            return SetPACSpeed(static_cast<uint16_t>(values[0]));
+        }, true);
         return true;
     }
 
@@ -343,41 +300,25 @@ bool PACInterface::processNumber(const char *dev, const char *name,
 
     if (CanSync() && SyncNP.isNameMatch(name))
     {
-        SyncNP.update(values, names, n);
-
-        bool azOk  = SyncAZ(SyncNP[SYNC_AZ].getValue());
-        bool altOk = SyncALT(SyncNP[SYNC_ALT].getValue());
-
-        if (azOk && altOk)
+        m_DefaultDevice->updateProperty(SyncNP, values, names, n, [this, values, names, n]()
         {
-            SyncNP.setState(IPS_OK);
-            m_DefaultDevice->saveConfig(SyncNP);
-        }
-        else
-        {
-            SyncNP.setState(IPS_ALERT);
-        }
-        SyncNP.apply();
+            SyncNP.update(values, names, n);
+            bool azOk  = SyncAZ(SyncNP[SYNC_AZ].getValue());
+            bool altOk = SyncALT(SyncNP[SYNC_ALT].getValue());
+            return (azOk && altOk);
+        }, true);
         return true;
     }
 
     if (HasBacklash() && BacklashNP.isNameMatch(name))
     {
-        BacklashNP.update(values, names, n);
-
-        bool azOk  = SetBacklashAZ(static_cast<int32_t>(BacklashNP[BACKLASH_AZ].getValue()));
-        bool altOk = SetBacklashALT(static_cast<int32_t>(BacklashNP[BACKLASH_ALT].getValue()));
-
-        if (azOk && altOk)
+        m_DefaultDevice->updateProperty(BacklashNP, values, names, n, [this, values, names, n]()
         {
-            BacklashNP.setState(IPS_OK);
-            m_DefaultDevice->saveConfig(BacklashNP);
-        }
-        else
-        {
-            BacklashNP.setState(IPS_ALERT);
-        }
-        BacklashNP.apply();
+            BacklashNP.update(values, names, n);
+            bool azOk  = SetBacklashAZ(static_cast<int32_t>(BacklashNP[BACKLASH_AZ].getValue()));
+            bool altOk = SetBacklashALT(static_cast<int32_t>(BacklashNP[BACKLASH_ALT].getValue()));
+            return (azOk && altOk);
+        }, true);
         return true;
     }
 
