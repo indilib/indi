@@ -84,6 +84,9 @@ class PACInterface
             PAC_HAS_SPEED    = 1 << 0,  /*!< Device supports variable motor speed. */
             PAC_CAN_REVERSE  = 1 << 1,  /*!< Device supports reversing axis direction. */
             PAC_HAS_POSITION = 1 << 2,  /*!< Device can report current axis position. */
+            PAC_CAN_HOME     = 1 << 3,  /*!< Device supports Set/Return/Reset home. */
+            PAC_HAS_BACKLASH = 1 << 4,  /*!< Device supports backlash compensation. */
+            PAC_CAN_SYNC     = 1 << 5,  /*!< Device can sync AZ/ALT position reference. */
         } PACCapability;
 
         /** @return Current capability bitmask. */
@@ -117,6 +120,24 @@ class PACInterface
         bool HasPosition()
         {
             return m_Capability & PAC_HAS_POSITION;
+        }
+
+        /** @return True if the device supports Set/Return/Reset home. */
+        bool CanHome()
+        {
+            return m_Capability & PAC_CAN_HOME;
+        }
+
+        /** @return True if the device supports backlash compensation. */
+        bool HasBacklash()
+        {
+            return m_Capability & PAC_HAS_BACKLASH;
+        }
+
+        /** @return True if the device can sync AZ/ALT position reference. */
+        bool CanSync()
+        {
+            return m_Capability & PAC_CAN_SYNC;
         }
 
     protected:
@@ -190,6 +211,95 @@ class PACInterface
          */
         virtual bool ReverseALT(bool enabled);
 
+        // ──────────────────────────────────────────────────────────────────
+        // PAC_CAN_HOME
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * @brief SetHome Mark the current position as the home (zero) reference.
+         *
+         * Only called when PAC_CAN_HOME is set. Default implementation returns false.
+         *
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetHome();
+
+        /**
+         * @brief GoHome Slew both axes back to the home (0, 0) position.
+         *
+         * Only called when PAC_CAN_HOME is set. Default returns IPS_ALERT.
+         *
+         * @return IPS_OK if completed immediately, IPS_BUSY if in progress, IPS_ALERT on error.
+         */
+        virtual IPState GoHome();
+
+        /**
+         * @brief ResetHome Clear the stored home reference without moving.
+         *
+         * Only called when PAC_CAN_HOME is set. Default implementation returns false.
+         *
+         * @return True if successful, false otherwise.
+         */
+        virtual bool ResetHome();
+
+        // ──────────────────────────────────────────────────────────────────
+        // PAC_CAN_SYNC
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * @brief SyncAZ Sync the azimuth position reference to the given value without moving.
+         *
+         * Only called when PAC_CAN_SYNC is set. Default returns false.
+         *
+         * @param degrees Desired current azimuth reading in degrees.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SyncAZ(double degrees);
+
+        /**
+         * @brief SyncALT Sync the altitude position reference to the given value without moving.
+         *
+         * Only called when PAC_CAN_SYNC is set. Default returns false.
+         *
+         * @param degrees Desired current altitude reading in degrees.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SyncALT(double degrees);
+
+        // ──────────────────────────────────────────────────────────────────
+        // PAC_HAS_BACKLASH
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * @brief SetBacklashEnabled Enable or disable hardware backlash compensation.
+         *
+         * Only called when PAC_HAS_BACKLASH is set. Default returns false.
+         *
+         * @param enabled True to enable backlash compensation, false to disable.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetBacklashEnabled(bool enabled);
+
+        /**
+         * @brief SetBacklashAZ Set the azimuth axis backlash compensation value in steps.
+         *
+         * Only called when PAC_HAS_BACKLASH is set. Default returns false.
+         *
+         * @param steps Number of motor steps used to compensate azimuth backlash.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetBacklashAZ(int32_t steps);
+
+        /**
+         * @brief SetBacklashALT Set the altitude axis backlash compensation value in steps.
+         *
+         * Only called when PAC_HAS_BACKLASH is set. Default returns false.
+         *
+         * @param steps Number of motor steps used to compensate altitude backlash.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetBacklashALT(int32_t steps);
+
         /**
          * @brief initProperties Initialize PAC properties.
          *        Call this from your driver's initProperties().
@@ -259,6 +369,35 @@ class PACInterface
          * Altitude axis reverse switch. Only defined when PAC_CAN_REVERSE is set.
          */
         INDI::PropertySwitch ALTReverseSP {2};
+
+        /**
+         * Home management switch. Only defined when PAC_CAN_HOME is set.
+         * Elements: [HOME_SET] Set home, [HOME_GO] Return to home, [HOME_RESET] Reset home.
+         */
+        INDI::PropertySwitch HomeSP {3};
+        enum { HOME_SET, HOME_GO, HOME_RESET };
+
+        /**
+         * Sync position numbers. Only defined when PAC_CAN_SYNC is set.
+         * Writing a value syncs that axis position reference without moving.
+         * Element [SYNC_AZ] : new azimuth reference in degrees.
+         * Element [SYNC_ALT]: new altitude reference in degrees.
+         */
+        INDI::PropertyNumber SyncNP {2};
+        enum { SYNC_AZ, SYNC_ALT };
+
+        /**
+         * Backlash enable/disable switch. Only defined when PAC_HAS_BACKLASH is set.
+         */
+        INDI::PropertySwitch BacklashSP {2};
+
+        /**
+         * Backlash compensation steps per axis. Only defined when PAC_HAS_BACKLASH is set.
+         * Element [BACKLASH_AZ] : azimuth backlash in motor steps.
+         * Element [BACKLASH_ALT]: altitude backlash in motor steps.
+         */
+        INDI::PropertyNumber BacklashNP {2};
+        enum { BACKLASH_AZ, BACKLASH_ALT };
 
     private:
         DefaultDevice *m_DefaultDevice {nullptr};

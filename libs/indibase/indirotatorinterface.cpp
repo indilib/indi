@@ -42,7 +42,8 @@ void RotatorInterface::initProperties(const char *groupName)
     // Abort Rotator
     // @INDI_STANDARD_PROPERTY@
     AbortRotatorSP[0].fill("ABORT", "Abort", ISS_OFF);
-    AbortRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    AbortRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1,
+                        0, IPS_IDLE);
 
     // Rotator Sync
     // @INDI_STANDARD_PROPERTY@
@@ -58,23 +59,27 @@ void RotatorInterface::initProperties(const char *groupName)
     // @INDI_STANDARD_PROPERTY@
     ReverseRotatorSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     ReverseRotatorSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    ReverseRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ReverseRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY, 0,
+                          IPS_IDLE);
 
     // Backlash Compensation
     // @INDI_STANDARD_PROPERTY@
     RotatorBacklashSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     RotatorBacklashSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    RotatorBacklashSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    RotatorBacklashSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
+                           ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation Value
     // @INDI_STANDARD_PROPERTY@
     RotatorBacklashNP[0].fill("ROTATOR_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
-    RotatorBacklashNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS", "Backlash", groupName, IP_RW, 60, IPS_OK);
+    RotatorBacklashNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS", "Backlash", groupName, IP_RW, 60,
+                           IPS_OK);
 
     // Rotator Limits
     // @INDI_STANDARD_PROPERTY@
     RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Max Range (degrees)", "%.f", 0, 360, 30, 0);
     RotatorLimitsNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_LIMITS", "Limits", groupName, IP_RW, 60, IPS_IDLE);
+    RotatorLimitsNP.load();
 }
 
 bool RotatorInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)

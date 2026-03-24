@@ -159,6 +159,14 @@ add_executable(indi_avalon_upas ${avalon_upas_SRC})
 target_link_libraries(indi_avalon_upas indidriver)
 install(TARGETS indi_avalon_upas RUNTIME DESTINATION bin)
 
+# ########## MLAstro RPA (Robotic Polar Alignment) ###############
+SET(mlastro_rpa_SRC
+    mlastro_rpa.cpp)
+
+add_executable(indi_mlastro_rpa ${mlastro_rpa_SRC})
+target_link_libraries(indi_mlastro_rpa indidriver)
+install(TARGETS indi_mlastro_rpa RUNTIME DESTINATION bin)
+
 
 # ########## RB Focus Excalibur ###############
 SET(Excalibur_SRC

@@ -69,6 +69,31 @@ void PACInterface::initProperties(const char *group)
     ALTReverseSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     ALTReverseSP.fill(m_DefaultDevice->getDeviceName(), "PAC_ALT_REVERSE", "Altitude Reverse", group, IP_RW,
                       ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Home management (only shown when PAC_CAN_HOME is set)
+    HomeSP[HOME_SET].fill("HOME_SET", "Set Home", ISS_OFF);
+    HomeSP[HOME_GO].fill("HOME_GO", "Return Home", ISS_OFF);
+    HomeSP[HOME_RESET].fill("HOME_RESET", "Reset Home", ISS_OFF);
+    HomeSP.fill(m_DefaultDevice->getDeviceName(), "PAC_HOME", "Home", group, IP_RW,
+                ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Sync position (only shown when PAC_CAN_SYNC is set)
+    SyncNP[SYNC_AZ].fill("SYNC_AZ", "Azimuth (deg)", "%.4f", -360, 360, 0, 0);
+    SyncNP[SYNC_ALT].fill("SYNC_ALT", "Altitude (deg)", "%.4f", -90, 90, 0, 0);
+    SyncNP.fill(m_DefaultDevice->getDeviceName(), "PAC_SYNC", "Sync Position",
+                group, IP_RW, 60, IPS_IDLE);
+
+    // Backlash enable/disable (only shown when PAC_HAS_BACKLASH is set)
+    BacklashSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    BacklashSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    BacklashSP.fill(m_DefaultDevice->getDeviceName(), "PAC_BACKLASH_ENABLED", "Backlash", group, IP_RW,
+                    ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Backlash steps (only shown when PAC_HAS_BACKLASH is set)
+    BacklashNP[BACKLASH_AZ].fill("BACKLASH_AZ", "Azimuth (steps)", "%.0f", 0, 10000, 1, 0);
+    BacklashNP[BACKLASH_ALT].fill("BACKLASH_ALT", "Altitude (steps)", "%.0f", 0, 10000, 1, 0);
+    BacklashNP.fill(m_DefaultDevice->getDeviceName(), "PAC_BACKLASH_STEPS", "Backlash Steps",
+                    group, IP_RW, 60, IPS_IDLE);
 }
 
 bool PACInterface::updateProperties()
@@ -86,6 +111,15 @@ bool PACInterface::updateProperties()
             m_DefaultDevice->defineProperty(AZReverseSP);
             m_DefaultDevice->defineProperty(ALTReverseSP);
         }
+        if (CanHome())
+            m_DefaultDevice->defineProperty(HomeSP);
+        if (CanSync())
+            m_DefaultDevice->defineProperty(SyncNP);
+        if (HasBacklash())
+        {
+            m_DefaultDevice->defineProperty(BacklashSP);
+            m_DefaultDevice->defineProperty(BacklashNP);
+        }
     }
     else
     {
@@ -100,6 +134,15 @@ bool PACInterface::updateProperties()
             m_DefaultDevice->deleteProperty(AZReverseSP);
             m_DefaultDevice->deleteProperty(ALTReverseSP);
         }
+        if (CanHome())
+            m_DefaultDevice->deleteProperty(HomeSP);
+        if (CanSync())
+            m_DefaultDevice->deleteProperty(SyncNP);
+        if (HasBacklash())
+        {
+            m_DefaultDevice->deleteProperty(BacklashSP);
+            m_DefaultDevice->deleteProperty(BacklashNP);
+        }
     }
 
     return true;
@@ -109,9 +152,6 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
                                  ISState *states, char *names[], int n)
 {
     INDI_UNUSED(dev);
-    INDI_UNUSED(states);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
 
     if (AbortSP.isNameMatch(name))
     {
@@ -178,6 +218,74 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
         return true;
     }
 
+    if (CanHome() && HomeSP.isNameMatch(name))
+    {
+        HomeSP.update(states, names, n);
+        int cmd = HomeSP.findOnSwitchIndex();
+        HomeSP.reset();
+
+        if (cmd == HOME_SET)
+        {
+            if (SetHome())
+            {
+                HomeSP.setState(IPS_OK);
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Home position set.");
+            }
+            else
+            {
+                HomeSP.setState(IPS_ALERT);
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to set home position.");
+            }
+        }
+        else if (cmd == HOME_GO)
+        {
+            IPState rc = GoHome();
+            HomeSP.setState(rc);
+            if (rc == IPS_BUSY)
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Returning to home position...");
+            else if (rc == IPS_OK)
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Returned to home position.");
+            else
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to return to home position.");
+        }
+        else if (cmd == HOME_RESET)
+        {
+            if (ResetHome())
+            {
+                HomeSP.setState(IPS_OK);
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Home position reset.");
+            }
+            else
+            {
+                HomeSP.setState(IPS_ALERT);
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to reset home position.");
+            }
+        }
+
+        HomeSP.apply();
+        return true;
+    }
+
+    if (HasBacklash() && BacklashSP.isNameMatch(name))
+    {
+        int prevIndex = BacklashSP.findOnSwitchIndex();
+        BacklashSP.update(states, names, n);
+
+        if (SetBacklashEnabled(BacklashSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED))
+        {
+            BacklashSP.setState(IPS_OK);
+            m_DefaultDevice->saveConfig(BacklashSP);
+        }
+        else
+        {
+            BacklashSP.reset();
+            BacklashSP[prevIndex].setState(ISS_ON);
+            BacklashSP.setState(IPS_ALERT);
+        }
+        BacklashSP.apply();
+        return true;
+    }
+
     return false;
 }
 
@@ -233,6 +341,46 @@ bool PACInterface::processNumber(const char *dev, const char *name,
         return true;
     }
 
+    if (CanSync() && SyncNP.isNameMatch(name))
+    {
+        SyncNP.update(values, names, n);
+
+        bool azOk  = SyncAZ(SyncNP[SYNC_AZ].getValue());
+        bool altOk = SyncALT(SyncNP[SYNC_ALT].getValue());
+
+        if (azOk && altOk)
+        {
+            SyncNP.setState(IPS_OK);
+            m_DefaultDevice->saveConfig(SyncNP);
+        }
+        else
+        {
+            SyncNP.setState(IPS_ALERT);
+        }
+        SyncNP.apply();
+        return true;
+    }
+
+    if (HasBacklash() && BacklashNP.isNameMatch(name))
+    {
+        BacklashNP.update(values, names, n);
+
+        bool azOk  = SetBacklashAZ(static_cast<int32_t>(BacklashNP[BACKLASH_AZ].getValue()));
+        bool altOk = SetBacklashALT(static_cast<int32_t>(BacklashNP[BACKLASH_ALT].getValue()));
+
+        if (azOk && altOk)
+        {
+            BacklashNP.setState(IPS_OK);
+            m_DefaultDevice->saveConfig(BacklashNP);
+        }
+        else
+        {
+            BacklashNP.setState(IPS_ALERT);
+        }
+        BacklashNP.apply();
+        return true;
+    }
+
     return false;
 }
 
@@ -244,6 +392,15 @@ bool PACInterface::saveConfigItems(FILE *fp)
     {
         AZReverseSP.save(fp);
         ALTReverseSP.save(fp);
+    }
+    if (CanHome())
+        HomeSP.save(fp);
+    if (CanSync())
+        SyncNP.save(fp);
+    if (HasBacklash())
+    {
+        BacklashSP.save(fp);
+        BacklashNP.save(fp);
     }
     return true;
 }
@@ -292,6 +449,67 @@ bool PACInterface::ReverseALT(bool enabled)
     INDI_UNUSED(enabled);
     DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
                 "PAC device does not support reversing altitude direction.");
+    return false;
+}
+
+bool PACInterface::SetHome()
+{
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support setting home.");
+    return false;
+}
+
+IPState PACInterface::GoHome()
+{
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support returning to home.");
+    return IPS_ALERT;
+}
+
+bool PACInterface::ResetHome()
+{
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support resetting home.");
+    return false;
+}
+
+bool PACInterface::SyncAZ(double degrees)
+{
+    INDI_UNUSED(degrees);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support syncing azimuth position.");
+    return false;
+}
+
+bool PACInterface::SyncALT(double degrees)
+{
+    INDI_UNUSED(degrees);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support syncing altitude position.");
+    return false;
+}
+
+bool PACInterface::SetBacklashEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support backlash compensation.");
+    return false;
+}
+
+bool PACInterface::SetBacklashAZ(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support setting azimuth backlash.");
+    return false;
+}
+
+bool PACInterface::SetBacklashALT(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR,
+                "PAC device does not support setting altitude backlash.");
     return false;
 }
 
