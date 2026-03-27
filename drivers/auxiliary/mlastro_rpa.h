@@ -222,7 +222,7 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         /// Constants
         ///////////////////////////////////////////////////////////////////////////////
         static constexpr uint8_t  DRIVER_TIMEOUT   {5};     ///< Serial timeout in seconds.
-        static constexpr uint16_t DRIVER_LEN        {512};   ///< Max response buffer size.
+        static constexpr uint16_t DRIVER_LEN        {2048};  ///< Max response buffer size.
         static constexpr char     DRIVER_STOP_CHAR  {'\n'};  ///< Response terminator.
         static constexpr const char *MOTOR_CONFIG_TAB {"Motor Config"};
         static constexpr const char *INFO_TAB         {"Info"};
