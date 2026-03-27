@@ -403,7 +403,7 @@ int DefaultDevicePrivate::saveINDINicknamesXML(const char *devicename)
     }
 
     // Reopen for writng and truncate file
-    fp = freopen(filename.c_str(), "w", fp);
+    fp = freopen(filename.c_str(), "w+", fp);
     if (fp)
     {
         prXMLEle(fp, NickXmlRoot, 0);
