@@ -241,6 +241,13 @@ void InMemoryDatabase::SetDatabaseReferencePosition(double Latitude, double Long
 {
     DatabaseReferencePosition.latitude    = Latitude;
     DatabaseReferencePosition.longitude    = Longitude;
+    DatabaseReferencePosition.elevation    = 0;
+    DatabaseReferencePositionIsValid = true;
+}
+
+void InMemoryDatabase::SetDatabaseReferencePosition(const IGeographicCoordinates &Position)
+{
+    DatabaseReferencePosition        = Position;
     DatabaseReferencePositionIsValid = true;
 }
 
