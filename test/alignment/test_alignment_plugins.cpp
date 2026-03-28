@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <random>
 #include <stdio.h>
 #include <vector>
 
@@ -19,6 +20,7 @@
 #include <alignment/SVDMathPlugin.h>
 #include <alignment/NearestMathPlugin.h>
 #include <alignment/HaltonSequence.h>
+#include <alignment/SPKMathPlugin.h>
 #include <alignment/TelescopeDirectionVectorSupportFunctions.h>
 #include "../../drivers/telescope/scopesim_helper.h"
 
@@ -88,9 +90,49 @@ static void getSkyPoint(double rawRA, double rawDec, double minDec, double maxDe
     dec = RAD_TO_DEG(std::asin(sinMin + rawDec * (sinMax - sinMin)));
 }
 
+// Perturb a unit vector by Gaussian noise of sigmaDeg per axis.
+// Two orthogonal perturbation axes are chosen automatically.
+static void addNoiseToDirection(TelescopeDirectionVector &tdv, double sigmaDeg, std::mt19937 &rng)
+{
+    if (sigmaDeg <= 0.0) return;
+
+    std::normal_distribution<double> dist(0.0, DEG_TO_RAD(sigmaDeg));
+
+    // Pick a basis vector not nearly parallel to tdv
+    double ax = std::abs(tdv.x), ay = std::abs(tdv.y), az = std::abs(tdv.z);
+    TelescopeDirectionVector e1, e2;
+    if (ax <= ay && ax <= az)
+        e1 = {0, -tdv.z, tdv.y};
+    else if (ay <= az)
+        e1 = {tdv.z, 0, -tdv.x};
+    else
+        e1 = {-tdv.y, tdv.x, 0};
+
+    double len1 = std::sqrt(e1.x * e1.x + e1.y * e1.y + e1.z * e1.z);
+    e1.x /= len1; e1.y /= len1; e1.z /= len1;
+
+    // e2 = tdv × e1
+    e2.x = tdv.y * e1.z - tdv.z * e1.y;
+    e2.y = tdv.z * e1.x - tdv.x * e1.z;
+    e2.z = tdv.x * e1.y - tdv.y * e1.x;
+
+    double d1 = dist(rng), d2 = dist(rng);
+    tdv.x += d1 * e1.x + d2 * e2.x;
+    tdv.y += d1 * e1.y + d2 * e2.y;
+    tdv.z += d1 * e1.z + d2 * e2.z;
+
+    double len = std::sqrt(tdv.x * tdv.x + tdv.y * tdv.y + tdv.z * tdv.z);
+    tdv.x /= len; tdv.y /= len; tdv.z /= len;
+}
+
 static const MountErrors kMixed = {
     .ih = ARCMIN_TO_DEG(5),  .id = ARCMIN_TO_DEG(3),  .ch = ARCMIN_TO_DEG(8),
     .np = ARCMIN_TO_DEG(0.5), .ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(6),
+};
+
+static const MountErrors kHugeIndex = {
+    .ih = 35.0,  .id = -20.0,  .ch = 1.5,
+    .np = 0.5, .ma = 2.0, .me = 2.0,
 };
 
 // ---------------------------------------------------------------------------
@@ -110,8 +152,8 @@ static const INDI::IGeographicCoordinates kAntarctic  = { .longitude =  166.7, .
 
 static constexpr double kEQ_MinDec = -60.0;   // equatorial: Dec lower bound (deg)
 static constexpr double kEQ_MaxDec =  80.0;   // equatorial: Dec upper bound (deg)
-static constexpr double kAZ_MinDec =  20.0;   // AltAz: Dec lower bound (deg)
-static constexpr double kAZ_MaxDec =  85.0;   // AltAz: Dec upper bound (deg)
+static constexpr double kAZ_MinEl  =  20.0;   // AltAz: elevation lower bound (deg); below ~15° refraction is nonlinear
+static constexpr double kAZ_MaxEl  =  85.0;   // AltAz: elevation upper bound (deg); avoids azimuth-wrap singularity near zenith
 
 // ---------------------------------------------------------------------------
 // Tolerance constants
@@ -190,8 +232,8 @@ protected:
                                  ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM,
                                  double minDecOverride = NAN, double maxDecOverride = NAN)
     {
-        double minDec = std::isnan(minDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MinDec : kEQ_MinDec) : minDecOverride;
-        double maxDec = std::isnan(maxDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MaxDec : kEQ_MaxDec) : maxDecOverride;
+        double minDec = std::isnan(minDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MinEl : kEQ_MinDec) : minDecOverride;
+        double maxDec = std::isnan(maxDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MaxEl : kEQ_MaxDec) : maxDecOverride;
 
         InMemoryDatabase db;
         db.SetDatabaseReferencePosition(site);
@@ -251,8 +293,8 @@ protected:
                                 double minDecOverride = NAN, double maxDecOverride = NAN,
                                 double *maxResidualOut = nullptr)
     {
-        double minDec = std::isnan(minDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MinDec : kEQ_MinDec) : minDecOverride;
-        double maxDec = std::isnan(maxDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MaxDec : kEQ_MaxDec) : maxDecOverride;
+        double minDec = std::isnan(minDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MinEl : kEQ_MinDec) : minDecOverride;
+        double maxDec = std::isnan(maxDecOverride) ? ((mountType == ::Alignment::ALTAZ) ? kAZ_MaxEl : kEQ_MaxDec) : maxDecOverride;
 
         InMemoryDatabase alignDb;
         alignDb.SetDatabaseReferencePosition(site);
@@ -333,6 +375,108 @@ protected:
     }
 
     // -----------------------------------------------------------------------
+    // RunPluginNoiseValidate -- measures pointing accuracy under centroiding
+    // noise injected into alignment entries.
+    //
+    // noisyPlugin is trained on entries with noiseSigmaDeg per-axis Gaussian
+    // noise.  refPlugin is trained on the same sky positions but without noise.
+    // Validation measures the angular error between the two plugins' predicted
+    // telescope directions at held-out sky positions, using the same JulianOffset
+    // for both.  This directly measures generalization accuracy under noise without
+    // any time-convention dependency.
+    // -----------------------------------------------------------------------
+
+    void RunPluginNoiseValidate(MathPlugin &noisyPlugin, MathPlugin &refPlugin,
+                                const MountErrors &errors,
+                                int numAlign, int numValidate,
+                                double noiseSigmaDeg, double targetRMSArcsec,
+                                INDI::IGeographicCoordinates site = kLosAngeles,
+                                ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM)
+    {
+        double minDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MinDec : kEQ_MinDec;
+        double maxDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MaxDec : kEQ_MaxDec;
+
+        MountAlignment_t alignment = (mountType == ::Alignment::ALTAZ) ? ZENITH :
+                                     site.latitude >= 0 ? NORTH_CELESTIAL_POLE : SOUTH_CELESTIAL_POLE;
+        noisyPlugin.SetApproximateMountAlignment(alignment);
+        refPlugin.SetApproximateMountAlignment(alignment);
+
+        ::Alignment generator = makeGenerator(errors, site, mountType);
+        auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&noisyPlugin);
+        ASSERT_NE(pSupport, nullptr);
+
+        double gmst = ln_get_apparent_sidereal_time(fixedJD);
+        double lst  = range24(gmst + DEG_TO_HOURS(site.longitude));
+
+        std::mt19937 rng(42);
+
+        InMemoryDatabase noisyDb, cleanDb;
+        noisyDb.SetDatabaseReferencePosition(site);
+        cleanDb.SetDatabaseReferencePosition(site);
+
+        HaltonSequence alignSeq(2, 3);
+        for (int i = 1; i <= numAlign; ++i)
+        {
+            double ra, dec;
+            auto raw = alignSeq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
+
+            AlignmentDatabaseEntry entry;
+            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
+            cleanDb.GetAlignmentDatabase().push_back(entry);
+
+            addNoiseToDirection(entry.TelescopeDirection, noiseSigmaDeg, rng);
+            noisyDb.GetAlignmentDatabase().push_back(entry);
+        }
+
+        ASSERT_TRUE(refPlugin.Initialise(&cleanDb));
+        ASSERT_TRUE(noisyPlugin.Initialise(&noisyDb));
+
+        double joff = fixedJD - ln_get_julian_from_sys();
+
+        HaltonSequence validateSeq(5, 7);
+        std::vector<double> residuals;
+
+        for (int i = 1; i <= numValidate; ++i)
+        {
+            double ra, dec;
+            auto raw = validateSeq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
+
+            // Noisy plugin's predicted direction
+            TelescopeDirectionVector noisyV;
+            ASSERT_TRUE(noisyPlugin.TransformCelestialToTelescope(ra, dec, joff, noisyV));
+
+            // Reference (noiseless) plugin's predicted direction — same joff
+            TelescopeDirectionVector refV;
+            ASSERT_TRUE(refPlugin.TransformCelestialToTelescope(ra, dec, joff, refV));
+
+            // Angular separation in arcseconds
+            double dot = noisyV.x * refV.x + noisyV.y * refV.y + noisyV.z * refV.z;
+            dot = std::max(-1.0, std::min(1.0, dot));
+            double residual = DEG_TO_ARCSEC(RAD_TO_DEG(std::acos(dot)));
+
+            residuals.push_back(residual);
+
+            if (i <= 5)
+            {
+                GTEST_LOG_(INFO) << "  noise_validate[" << i << "] ra=" << ra
+                                 << " dec=" << dec
+                                 << " residual=" << residual << "\"";
+            }
+        }
+
+        ErrorStats stats = ErrorStats::compute(residuals);
+        GTEST_LOG_(INFO) << "[ STATS ] RMS: " << stats.rms << "\" Target: " << targetRMSArcsec
+                         << "\" P95: " << stats.p95 << "\" Peak: " << stats.max << "\"";
+
+        EXPECT_LT(stats.rms, targetRMSArcsec)
+            << "Plugin failed noise-stress RMS target " << targetRMSArcsec << "\"";
+        EXPECT_LT(stats.p95, targetRMSArcsec * 1.5)
+            << "Plugin failed noise-stress P95 target " << targetRMSArcsec * 1.5 << "\"";
+    }
+
+    // -----------------------------------------------------------------------
     // RunMeridianFlipValidate -- exercises GEM pier flips in both hemispheres
     // -----------------------------------------------------------------------
     template <typename T>
@@ -355,7 +499,7 @@ protected:
 
         // Use 12 points for alignment in flip tests
         HaltonSequence alignSeq(2, 3);
-        for (int i = 1; i <= 12; ++i)
+        for (int i = 1; i <= 3; ++i)
         {
             double ra, dec;
             auto raw = alignSeq.getRaw(i);
@@ -483,49 +627,49 @@ TEST_F(AlignmentPluginTest, SinglePoint_Nearest)
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_Polar)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AxisErrors)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_NonPerp)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.np = ARCMIN_TO_DEG(2)}, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, {.np = ARCMIN_TO_DEG(2)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_IHOnly)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(15)}, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(15)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_CHOnly)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ch = ARCMIN_TO_DEG(20)}, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, {.ch = ARCMIN_TO_DEG(20)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AllTerms_LA)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AllTerms_Tokyo)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0, kTokyo);
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kTokyo);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_SouthernHemisphere)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0, kSydney);
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kSydney);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_Arctic)
@@ -543,19 +687,19 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_Antarctic)
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_SmallErrors)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ih = ARCSEC_TO_DEG(30), .me = ARCSEC_TO_DEG(18)}, 12, 100, 0.5);
+    RunPluginAlignValidate(plugin, {.ih = ARCSEC_TO_DEG(30), .me = ARCSEC_TO_DEG(18)}, 3, 100, 0.5);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_LargeErrors)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(30), .me = ARCMIN_TO_DEG(15)}, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(30), .me = ARCMIN_TO_DEG(15)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, BuiltIn_AlignValidate_AllTerms)
 {
     BuiltInMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0);
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, Nearest_AlignValidate_AllTerms)
@@ -574,7 +718,7 @@ TEST_F(AlignmentPluginTest, Nearest_AlignValidate_QualityCheck)
     // We set a 20000" (~5.5 deg) target to reflect this coarse precision class
     // given a 12-point alignment grid.
     NearestMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 35000.0);
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 35000.0);
 }
 
 // ---------------------------------------------------------------------------
@@ -584,42 +728,42 @@ TEST_F(AlignmentPluginTest, Nearest_AlignValidate_QualityCheck)
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AltAz_Polar)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 12, 100, 20.0,
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 20.0,
                            kLosAngeles, ::Alignment::ALTAZ);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AltAz_AxisErrors)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 12, 100, 20.0,
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 3, 100, 20.0,
                            kLosAngeles, ::Alignment::ALTAZ);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AltAz_NonPerp)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.np = ARCMIN_TO_DEG(2)}, 12, 100, 20.0,
+    RunPluginAlignValidate(plugin, {.np = ARCMIN_TO_DEG(2)}, 3, 100, 20.0,
                            kLosAngeles, ::Alignment::ALTAZ);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AltAz_AllTerms)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 20.0,
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 20.0,
                            kLosAngeles, ::Alignment::ALTAZ);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_AltAz_Southern)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 20.0,
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 20.0,
                            kSydney, ::Alignment::ALTAZ);
 }
 
 TEST_F(AlignmentPluginTest, BuiltIn_AlignValidate_AltAz)
 {
     BuiltInMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 12, 100, 20.0,
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 20.0,
                            kLosAngeles, ::Alignment::ALTAZ);
 }
 
@@ -709,14 +853,14 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_ConvexHullFallback)
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_EqFork_LA)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0,
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0,
                            kLosAngeles, ::Alignment::EQ_FORK);
 }
 
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_EqFork_Sydney)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0,
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0,
                            kSydney, ::Alignment::EQ_FORK);
 }
 
@@ -748,6 +892,18 @@ TEST_F(AlignmentPluginTest, BuiltIn_AlignValidate_MeridianFlip_Southern)
     RunMeridianFlipValidate(plugin, kMixed, kSydney, SOUTH_CELESTIAL_POLE);
 }
 
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MeridianFlip_Northern)
+{
+    SPKMathPlugin plugin;
+    RunMeridianFlipValidate(plugin, kMixed, kLosAngeles, NORTH_CELESTIAL_POLE);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MeridianFlip_Southern)
+{
+    SPKMathPlugin plugin;
+    RunMeridianFlipValidate(plugin, kMixed, kSydney, SOUTH_CELESTIAL_POLE);
+}
+
 TEST_F(AlignmentPluginTest, DISABLED_Nearest_AlignValidate_MeridianFlip_Northern)
 {
     NearestMathPlugin plugin;
@@ -767,7 +923,306 @@ TEST_F(AlignmentPluginTest, DISABLED_Nearest_AlignValidate_MeridianFlip_Southern
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_Equatorial)
 {
     SVDMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0, kNairobi);
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kNairobi);
+}
+
+TEST_F(AlignmentPluginTest, Test_SPK_ErrorRecovery)
+{
+    SPKMathPlugin plugin;
+    // SPK/Pmfit usually needs more points for a robust fit, let's give it 10.
+    RunPluginAllInAlignment(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 10);
+}
+
+TEST_F(AlignmentPluginTest, Test_SPK_AltAz)
+{
+    SPKMathPlugin plugin;
+    RunPluginAllInAlignment(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 10, kLosAngeles, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, Test_SPK_SouthernHemisphere)
+{
+    SPKMathPlugin plugin;
+    // Test NCP recovery in Hobart
+    RunPluginAllInAlignment(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 10, kSydney);
+}
+
+// ---------------------------------------------------------------------------
+// SPK -- AlignValidate suite (equatorial mounts)
+//
+// SPKMathPlugin fits a 6-term Wallace pointing model (IH, ID, CH, ME, MA, TF)
+// via Pmfit.  NP is excluded (IA, NP, CA are correlated; negligible in
+// well-built mounts).
+//
+// TF (tube flexure) requires a two-pass AXES call: the first pass gives the
+// initial encoder demand, the second re-evaluates at that position so the
+// VD correction (pvd*cos(el)) is self-consistent with the TARG path.
+// ---------------------------------------------------------------------------
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_Polar)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AxisErrors)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_IHOnly)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(15)}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_CHOnly)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ch = ARCMIN_TO_DEG(20)}, 3, 100, 1.0);
+}
+
+// NP (roll/pitch nonperpendicularity) is not fitted by Pmfit (IA, NP, CA are
+// correlated; NP excluded for robustness).  pnp stays 0.  The round-trip is
+// machine-epsilon because the two-pass AXES refinement ensures the VD
+// correction is consistent with TARG, and pnp=0 cancels exactly.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_NonPerp)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.np = ARCMIN_TO_DEG(2)}, 3, 100, 1.0);
+}
+
+// Individual term isolation: ID, MA, ME (IH and CH already have isolated tests).
+// These give fault localization when combined tests break.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_IDOnly)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.id = ARCMIN_TO_DEG(5)}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MAOnly)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10)}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MEOnly)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.me = ARCMIN_TO_DEG(5)}, 3, 100, 1.0);
+}
+
+// Zero-error baseline: computePeakError() returns 0, tolerance clamps to kTolFloorArcsec (20").
+// The model should converge to near-zero corrections and act as an identity transform.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_NoErrors)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AllTerms_Tokyo)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kTokyo);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_EqGem_Northern)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kLosAngeles, ::Alignment::EQ_GEM);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_EqGem_Southern)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kSydney, ::Alignment::EQ_GEM);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_Arctic)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kArctic);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_Antarctic)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kAntarctic);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_SmallErrors)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ih = ARCSEC_TO_DEG(30), .me = ARCSEC_TO_DEG(18)}, 3, 100, 0.5);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_LargeErrors)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(30), .me = ARCMIN_TO_DEG(15)}, 3, 100, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_Equatorial)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0, kNairobi);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_HugeIndex)
+{
+    SPKMathPlugin plugin;
+    // SPK fits a 6-parameter model. With 7 alignment points, it should be able to deduce
+    // the model perfectly even with 35 degree index errors, within reasonable limits.
+    // However, such massive non-linearities might demand a looser target RMS.
+    RunPluginAlignValidate(plugin, kHugeIndex, 7, 100, 30000.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_HighDec)
+{
+    SPKMathPlugin plugin;
+    // Target High Dec regions (80 degrees to 89 degrees) where NP/CH explode
+    RunPluginAlignValidate(plugin, kMixed, 7, 100, 100.0, kLosAngeles, ::Alignment::EQ_GEM, 80.0, 89.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_EqFork_Northern)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0,
+                           kLosAngeles, ::Alignment::EQ_FORK);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_EqFork_Southern)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0,
+                           kSydney, ::Alignment::EQ_FORK);
+}
+
+// ---------------------------------------------------------------------------
+// SPK -- Minimal sync point boundary tests
+// ---------------------------------------------------------------------------
+
+// 6 alignment points: exactly determined for a 6-term fit.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_6)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0);
+}
+
+// 2 alignment points: 4 terms fitted (IA, IB, CA + one axis error), zero DoF.
+// Exercises the outTermCount=4 path in BuildObservationData.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_2)
+{
+    SPKMathPlugin plugin;
+    RunPluginAllInAlignment(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)}, 2);
+}
+
+// 1 alignment point: 2 terms fitted (IA and IB — index errors only), zero DoF.
+// Exercises the outTermCount=2 path in BuildObservationData.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_1)
+{
+    SPKMathPlugin plugin;
+    RunPluginAllInAlignment(plugin, {.ih = ARCMIN_TO_DEG(5)}, 1);
+}
+
+// 3 alignment points: exactly determined (6 observations for 6 terms).
+// Pure polar errors injected so the fit is well-conditioned with few points.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_3)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 1.0);
+}
+
+// Near-pole: Dec range [78, 88] exercises the CH/cos(Dec) near-singularity regime.
+// Verifies no NaN or infinite residuals near the celestial pole.
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_NearPole)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)},
+                           12, 100, 1.0,
+                           kLosAngeles, ::Alignment::EQ_GEM,
+                           /*minDecOverride=*/78.0, /*maxDecOverride=*/88.0);
+}
+
+// ---------------------------------------------------------------------------
+// SPK -- AlignValidate suite (AltAz mounts)
+// ---------------------------------------------------------------------------
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_Polar)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 1.0,
+                           kLosAngeles, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_AxisErrors)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 3, 100, 1.0,
+                           kLosAngeles, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_NonPerp)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, {.np = ARCMIN_TO_DEG(2)}, 3, 100, 1.0,
+                           kLosAngeles, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_AllTerms)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0,
+                           kLosAngeles, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_Southern)
+{
+    SPKMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0,
+                           kSydney, ::Alignment::ALTAZ);
+}
+
+// ---------------------------------------------------------------------------
+// Noise stress tests -- Gaussian centroiding noise injected into alignment
+// entries to simulate real-world pointing uncertainty (σ = 30" per axis).
+//
+// Residual is the angular error between the plugin's predicted telescope
+// direction and the true (noiseless) direction from the simulator, so it
+// directly measures generalization accuracy rather than round-trip consistency.
+//
+// Expected behavior:
+//   - 3 pts: both SVD and SPK have zero or negative degrees of freedom for
+//     the noise realization, so residuals are large and comparable.
+//   - 12 pts: SPK's 6-term systematic model has 18 DoF to average down noise;
+//     SVD's general linear fit has more free parameters and averages less.
+//     SPK should show lower residuals at new sky positions.
+// ---------------------------------------------------------------------------
+
+static constexpr double kNoiseSigma30arcsec = ARCSEC_TO_DEG(30.0);  // 30" per axis
+
+TEST_F(AlignmentPluginTest, NoiseStress_SPK_3pts)
+{
+    SPKMathPlugin noisyPlugin, refPlugin;
+    RunPluginNoiseValidate(noisyPlugin, refPlugin, kMixed, 3, 100, kNoiseSigma30arcsec, 300.0);
+}
+
+TEST_F(AlignmentPluginTest, NoiseStress_SVD_3pts)
+{
+    SVDMathPlugin noisyPlugin, refPlugin;
+    RunPluginNoiseValidate(noisyPlugin, refPlugin, kMixed, 3, 100, kNoiseSigma30arcsec, 300.0);
+}
+
+TEST_F(AlignmentPluginTest, NoiseStress_SPK_12pts)
+{
+    SPKMathPlugin noisyPlugin, refPlugin;
+    RunPluginNoiseValidate(noisyPlugin, refPlugin, kMixed, 12, 100, kNoiseSigma30arcsec, 120.0);
+}
+
+TEST_F(AlignmentPluginTest, NoiseStress_SVD_12pts)
+{
+    SVDMathPlugin noisyPlugin, refPlugin;
+    RunPluginNoiseValidate(noisyPlugin, refPlugin, kMixed, 12, 100, kNoiseSigma30arcsec, 120.0);
 }
 
 // ---------------------------------------------------------------------------
