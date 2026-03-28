@@ -251,17 +251,13 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
             break;
         case MOUNT_TYPE::EQ_GEM:
             seco = (latitude >= 0) ? secondary : -secondary; // northern : southern hemisphere
+            prio = primary;
             if (seco > 90 || seco < -90) // pierside west/looking east (cf. apparentHaDecToMount())
             {
                 // Primary instrument axis: Negative PA-system looking down from NCP:SCP, origin opposite HA-like
                 // Secondary instrument axis: Negative PA-system looking at E, origin opposite DEC-like
                 prio = primary + Angle(180.0); // Primary to Ha transformation to get negative PA-system with origin HA-like
                 seco = Angle(180.0) - seco;    // Secondary to Dec transformation to get positive PA-system origin DEC-like
-            }
-            else
-            {
-                prio = primary;    // Primary already rotated by 180, so no transformation to get origin HA-like
-                seco = secondary;  // Secondary already rotated by 180, so no transformation to get origin DEC-like
             }
             break;
     }
@@ -301,14 +297,13 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         // rotate the apparent HaDec vector to the vertical
         // TODO sort out Southern Hemisphere
         Vector altAzm = Vector(apparentHa, apparentDec).rotateY(Angle(90) - latitude);
-        // for now we are making no mount corrections
-        // this all leaves me wondering if the GEM corrections should be done before the mount model
-        // Ha axis: Negative PA-system looking down from Zenith:Nadir, origin "HA-like" ...
-        *primary = altAzm.primary(); // ... so there is no tranformation needed!
-        // Dec axis: Positive PA-system looking at east, origin "DEC-like" ...
-        *secondary = altAzm.secondary(); // ... so there is no tranformation needed!
+        // azimuth in scopesim convention is 0° = South, increasing clockwise West→North→East
+        // INDI's IHorizontalCoordinates uses 0° = North.
+        *primary = altAzm.primary() + Angle(180.0);
+        *secondary = altAzm.secondary();
         LOGF_EXTRA1("apparent HaDec to ALTAZ: ha %f, dec %f  to pri %f, sec %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
                     secondary->Degrees() );
+        return; // Prevent fallthrough to equatorial override
     }
     // Ha is negative PA-system looking down to NCP:SCP
     // Dec is positive PA-system looking E
