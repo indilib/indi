@@ -302,8 +302,14 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         Vector altAzm = Vector(apparentHa, apparentDec).rotateY(Angle(90) - latitude);
         // azimuth in scopesim convention is 0° = South, increasing clockwise West→North→East
         // INDI's IHorizontalCoordinates uses 0° = North.
-        *primary = altAzm.primary() + Angle(180.0);
-        *secondary = altAzm.secondary();
+        Angle apparentAz = altAzm.primary() + Angle(180.0);
+        Angle apparentAlt = altAzm.secondary();
+
+        Angle instrumentAz, instrumentAlt;
+        observedToInstrument(apparentAz, apparentAlt, &instrumentAz, &instrumentAlt);
+
+        *primary = instrumentAz;
+        *secondary = instrumentAlt;
         LOGF_EXTRA1("apparent HaDec to ALTAZ: ha %f, dec %f  to pri %f, sec %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
                     secondary->Degrees() );
         return; // Prevent fallthrough to equatorial override
