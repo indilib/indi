@@ -105,6 +105,30 @@
 #ifndef RAD_AS
 #define RAD_AS (CIRCLE_AS/(M_PI*2))
 #endif
+#ifndef HOURS_TO_DEG
+#define HOURS_TO_DEG(h)    ((h) * 15.0)
+#endif
+#ifndef DEG_TO_HOURS
+#define DEG_TO_HOURS(d)    ((d) / 15.0)
+#endif
+#ifndef ARCMIN_TO_DEG
+#define ARCMIN_TO_DEG(am)  ((am) / 60.0)
+#endif
+#ifndef DEG_TO_ARCMIN
+#define DEG_TO_ARCMIN(d)   ((d) * 60.0)
+#endif
+#ifndef ARCSEC_TO_DEG
+#define ARCSEC_TO_DEG(as)  ((as) / 3600.0)
+#endif
+#ifndef DEG_TO_ARCSEC
+#define DEG_TO_ARCSEC(d)   ((d) * 3600.0)
+#endif
+#ifndef HOURS_TO_RAD
+#define HOURS_TO_RAD(h)    ((h) * M_PI / 12.0)
+#endif
+#ifndef RAD_TO_HOURS
+#define RAD_TO_HOURS(r)    ((r) * 12.0 / M_PI)
+#endif
 #ifndef ASTRONOMICALUNIT
 #define ASTRONOMICALUNIT 1.495978707E+11
 #endif

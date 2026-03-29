@@ -63,6 +63,9 @@ class MathPlugin
         /// \param[in] JulianOffset to be applied to the current julian date.
         /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
         /// \return True if successful
+        /// \note TODO: Currently, JulianOffset is added to the system time (ln_get_julian_from_sys()) internally.
+        /// In a future release, this should be refactored to take an absolute fixed Julian Date to support
+        /// deterministic, clock-injected testing and avoid reliance on the system clock.
         virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
                 double JulianOffset,
                 TelescopeDirectionVector &ApparentTelescopeDirectionVector) = 0;
@@ -71,9 +74,13 @@ class MathPlugin
         /// \param[in] ApparentTelescopeDirectionVector the telescope direction
         /// \param[out] RightAscension Parameter to receive the Right Ascension (Decimal Hours).
         /// \param[out] Declination Parameter to receive the Declination (Decimal Degrees).
+        /// \param[in] JulianOffset to be applied to the current julian date (default 0).
         /// \return True if successful
+        /// \note TODO: Currently, JulianOffset is added to the system time (ln_get_julian_from_sys()) internally.
+        /// In a future release, this should be refactored to take an absolute fixed Julian Date to support
+        /// deterministic, clock-injected testing and avoid reliance on the system clock.
         virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                double &RightAscension, double &Declination) = 0;
+                double &RightAscension, double &Declination, double JulianOffset = 0) = 0;
 
     protected:
         // Protected properties

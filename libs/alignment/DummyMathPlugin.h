@@ -21,7 +21,7 @@ class DummyMathPlugin : public AlignmentSubsystemForMathPlugins
                 TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
         virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                double &RightAscension, double &Declination);
+                double &RightAscension, double &Declination, double JulianOffset = 0);
 };
 
 } // namespace AlignmentSubsystem
