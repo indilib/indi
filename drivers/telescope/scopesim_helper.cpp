@@ -267,7 +267,10 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
     if (mountType == MOUNT_TYPE::ALTAZ)
     {
         Angle rot = latitude - Angle(90);
-        Vector haDec = Vector(prio, seco).rotateY(rot);
+        // apparentHa and apparentDec hold corrected Azimuth and Altitude.
+        // Convert Azimuth (0=North) back to scopesim convention (0=South) before forming Vector
+        Vector trueAzAlt(*apparentHa - Angle(180.0), *apparentDec);
+        Vector haDec = trueAzAlt.rotateY(rot);
         // Primary instrument axis: Negative PA-system looking down from Zenith:Nadir, origin "HA-like" ...
         *apparentHa = haDec.primary(); // ... so there is no transformation needed!
         // Secondary instrument axis: Positive PA-system looking east, origin "DEC-like" ...
