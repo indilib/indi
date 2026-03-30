@@ -101,7 +101,6 @@ static const INDI::IGeographicCoordinates kLosAngeles = { .longitude = -118.2, .
 static const INDI::IGeographicCoordinates kSydney     = { .longitude =  151.2, .latitude = -33.9, .elevation = 0 };
 static const INDI::IGeographicCoordinates kTokyo      = { .longitude =  139.7, .latitude = 35.7, .elevation = 0 };
 static const INDI::IGeographicCoordinates kNairobi    = { .longitude =   36.8, .latitude = 0.0, .elevation = 0 };
-static const INDI::IGeographicCoordinates kLondon     = { .longitude =   -0.1, .latitude = 51.5, .elevation = 0 };
 static const INDI::IGeographicCoordinates kArctic     = { .longitude =   15.6, .latitude = 78.2, .elevation = 0 };
 static const INDI::IGeographicCoordinates kAntarctic  = { .longitude =  166.7, .latitude = -77.8, .elevation = 0 };
 
@@ -157,7 +156,6 @@ protected:
                            TelescopeDirectionVectorSupportFunctions *pSupport,
                            double ra, double dec, double lst_hrs,
                            ::Alignment::MOUNT_TYPE mountType,
-                           INDI::IGeographicCoordinates site,
                            AlignmentDatabaseEntry &entry)
     {
         Angle ha(get_local_hour_angle(lst_hrs, ra), Angle::HOURS), adec(dec);
@@ -219,7 +217,7 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, mountType, site, entry);
+            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
             db.GetAlignmentDatabase().push_back(entry);
         }
 
@@ -281,7 +279,7 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, mountType, site, entry);
+            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
             alignDb.GetAlignmentDatabase().push_back(entry);
         }
 
@@ -364,7 +362,7 @@ protected:
             getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, location, entry);
+            buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
             alignDb.GetAlignmentDatabase().push_back(entry);
         }
 
@@ -495,6 +493,18 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_SouthernHemisphere)
     RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0, kSydney);
 }
 
+TEST_F(AlignmentPluginTest, SVD_AlignValidate_Arctic)
+{
+    SVDMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0, kArctic);
+}
+
+TEST_F(AlignmentPluginTest, SVD_AlignValidate_Antarctic)
+{
+    SVDMathPlugin plugin;
+    RunPluginAlignValidate(plugin, kMixed, 12, 100, 1.0, kAntarctic);
+}
+
 TEST_F(AlignmentPluginTest, SVD_AlignValidate_SmallErrors)
 {
     SVDMathPlugin plugin;
@@ -619,7 +629,7 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_ConvexHullFallback)
         if (ra >= 6.0 && ra < 18.0)
             continue;
         AlignmentDatabaseEntry entry;
-        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, kLosAngeles, entry);
+        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
         alignDb.GetAlignmentDatabase().push_back(entry);
         ++alignCount;
     }
