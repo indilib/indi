@@ -158,7 +158,7 @@ class PACInterface
         virtual IPState MoveAZ(double degrees);
 
         /**
-         * @brief Move the altitude axis by the given number of degrees.
+         * @brief MoveALT Move the altitude axis by the given number of degrees.
          *
          * Sign convention: positive = North (increase altitude), negative = South.
          *
@@ -169,6 +169,27 @@ class PACInterface
          * @return IPS_OK if completed immediately, IPS_BUSY if in progress, IPS_ALERT on error.
          */
         virtual IPState MoveALT(double degrees);
+
+        /**
+         * @brief MoveBoth Move both axes in a single coordinated operation.
+         *
+         * Called by processNumber() when both azStep and altStep are non-zero.
+         * The default implementation calls MoveAZ() followed by MoveALT(),
+         * preserving backward-compatible behaviour for any driver that does not
+         * override this method.
+         *
+         * Drivers that can do better should override this:
+         *   - Hardware with native dual-axis commands (e.g. GRBL) can pack both
+         *     axes into a single serial command for truly simultaneous motion.
+         *   - Hardware with shared angle registers that must sequence internally
+         *     (e.g. MLAstro RPA) can send one chained command and let the device
+         *     handle the AZ→ALT sequence on its own.
+         *
+         * @param azDegrees  Signed azimuth step in degrees  (+East / −West).
+         * @param altDegrees Signed altitude step in degrees (+North / −South).
+         * @return IPS_OK if completed immediately, IPS_BUSY if in progress, IPS_ALERT on error.
+         */
+        virtual IPState MoveBoth(double azDegrees, double altDegrees);
 
         /**
          * @brief AbortMotion Abort all axis motion immediately.

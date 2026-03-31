@@ -280,11 +280,17 @@ bool PACInterface::processNumber(const char *dev, const char *name,
         IPState azState  = IPS_OK;
         IPState altState = IPS_OK;
 
-        if (azStep != 0.0)
-            azState = MoveAZ(azStep);
-
-        if (altStep != 0.0)
-            altState = MoveALT(altStep);
+        if (azStep != 0.0 && altStep != 0.0)
+        {
+            // Both axes requested — delegate to the driver's coordinated move
+            IPState state = MoveBoth(azStep, altStep);
+            azState = altState = state;
+        }
+        else
+        {
+            if (azStep  != 0.0) azState  = MoveAZ(azStep);
+            if (altStep != 0.0) altState = MoveALT(altStep);
+        }
 
         // Overall state: worst of the two axes.
         if (azState == IPS_ALERT || altState == IPS_ALERT)
@@ -360,6 +366,17 @@ IPState PACInterface::MoveALT(double degrees)
 {
     INDI_UNUSED(degrees);
     return IPS_ALERT;
+}
+
+IPState PACInterface::MoveBoth(double azDegrees, double altDegrees)
+{
+    // Default: call individual axis moves in sequence.
+    // Drivers that support a single combined command should override this.
+    IPState azState  = MoveAZ(azDegrees);
+    IPState altState = MoveALT(altDegrees);
+    if (azState == IPS_ALERT || altState == IPS_ALERT) return IPS_ALERT;
+    if (azState == IPS_BUSY  || altState == IPS_BUSY)  return IPS_BUSY;
+    return IPS_OK;
 }
 
 bool PACInterface::AbortMotion()

@@ -61,6 +61,7 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         // PACInterface – axis movement
         IPState MoveAZ(double degrees) override;
         IPState MoveALT(double degrees) override;
+        IPState MoveBoth(double azDegrees, double altDegrees) override;
 
         // PACInterface – abort, speed and reverse
         bool AbortMotion() override;

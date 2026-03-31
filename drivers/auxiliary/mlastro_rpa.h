@@ -71,6 +71,7 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         ///////////////////////////////////////////////////////////////////////////////
         IPState MoveAZ(double degrees) override;
         IPState MoveALT(double degrees) override;
+        IPState MoveBoth(double azDegrees, double altDegrees) override;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// PACInterface – abort, speed and reverse

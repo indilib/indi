@@ -198,10 +198,6 @@ bool MLAstroRPA::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     PACI::saveConfigItems(fp);
-    AzSoftLimitsNP.save(fp);
-    AltSoftLimitsNP.save(fp);
-    AzMotorNP.save(fp);
-    AltMotorNP.save(fp);
     return true;
 }
 
@@ -651,6 +647,57 @@ IPState MLAstroRPA::MoveALT(double degrees)
 {
     // positive = Up → MAlU, negative = Down → MAlD
     return sendRelativeMove(degrees, "MAlU:1", "MAlD:1");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// MoveBoth
+/// Uses the MLAstro alignment chained command to move both axes with a single
+/// serial command.  The device handles the AZ→ALT sequencing internally and
+/// the completion is detected via telemetry (STATUS transitions from ALIGNING
+/// to ALIGN_COMPLETED / READY), exactly like single-axis alignment moves.
+/////////////////////////////////////////////////////////////////////////////
+IPState MLAstroRPA::MoveBoth(double azDegrees, double altDegrees)
+{
+    int azD, azM, azS;
+    bool azPos;
+    degreesToDMS(azDegrees, azD, azM, azS, azPos);
+
+    int altD, altM, altS;
+    bool altPos;
+    degreesToDMS(altDegrees, altD, altM, altS, altPos);
+
+    // Chain all error params + execute command in one line.
+    // AzDi: 1 = Right/Positive, 0 = Left/Negative
+    // AlDi: 1 = Up/Positive,    0 = Down/Negative
+    char cmd[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN,
+             "AzED:%d,AzEM:%d,AzES:%d,AzDi:%d,AlED:%d,AlEM:%d,AlES:%d,AlDi:%d,AAll:1",
+             azD, azM, azS, azPos ? 1 : 0,
+             altD, altM, altS, altPos ? 1 : 0);
+
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand(cmd, res))
+        return IPS_ALERT;
+
+    if (strncmp(res, "ok", 2) != 0)
+    {
+        LOGF_ERROR("MoveBoth: unexpected response: %s", res);
+        if (strstr(res, "Soft Limit"))
+            LOG_ERROR("Motion rejected: soft limit reached.");
+        else if (strstr(res, "Hard Limit"))
+            LOG_ERROR("Motion rejected: hard limit triggered.");
+        else if (strstr(res, "Not homed"))
+            LOG_ERROR("Motion rejected: device is not homed.");
+        else if (strstr(res, "System Locked"))
+            LOG_ERROR("Motion rejected: system is locked (error state).");
+        return IPS_ALERT;
+    }
+
+    m_IsMoving = true;
+    LOGF_INFO("MoveBoth: AZ %.4f° (D=%d M=%d S=%d %s), ALT %.4f° (D=%d M=%d S=%d %s) — device sequencing internally.",
+              azDegrees, azD, azM, azS, azPos ? "R" : "L",
+              altDegrees, altD, altM, altS, altPos ? "U" : "D");
+    return IPS_BUSY;
 }
 
 /////////////////////////////////////////////////////////////////////////////

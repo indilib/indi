@@ -256,6 +256,34 @@ IPState AvalonUPAS::MoveALT(double degrees)
     return IPS_BUSY;
 }
 
+IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
+{
+    // GRBL supports multi-axis jog in a single command: X (AZ) and Y (ALT) together.
+    // This moves both axes simultaneously, which is more efficient and accurate than
+    // two separate jog commands.
+    const double mmAZ    = azDegrees  * GearRatioNP[GEAR_AZ].getValue();
+    const double mmALT   = altDegrees * GearRatioNP[GEAR_ALT].getValue();
+    const double feedRate = SpeedNP[0].getValue();
+
+    char cmd[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4fY%.4f F%.0f", mmAZ, mmALT, feedRate);
+
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand(cmd, res))
+        return IPS_ALERT;
+
+    if (strncmp(res, "ok", 2) != 0)
+    {
+        LOGF_ERROR("MoveBoth GRBL response: %s", res);
+        return IPS_ALERT;
+    }
+
+    m_IsMoving = true;
+    LOGF_INFO("MoveBoth: AZ %.4f° (%.4f mm), ALT %.4f° (%.4f mm) @ %.0f mm/min.",
+              azDegrees, mmAZ, altDegrees, mmALT, feedRate);
+    return IPS_BUSY;
+}
+
 bool AvalonUPAS::AbortMotion()
 {
     // GRBL real-time jog cancel command (single byte 0x85, no newline needed).
