@@ -42,6 +42,10 @@ ELSE()
 ENDIF()
 
 target_link_libraries(AlignmentDriver indidevice indiclient)
+target_include_directories(AlignmentDriver
+    PUBLIC
+        ${libindi_SOURCE_DIR}/libs/indicore
+)
 
 if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
@@ -57,6 +61,7 @@ install(FILES
     AlignmentSubsystemForDrivers.h
     BasicMathPlugin.h
     BuiltInMathPlugin.h
+    HaltonSequence.h
     NearestMathPlugin.h
     ClientAPIForAlignmentDatabase.h
     ClientAPIForMathPluginManagement.h

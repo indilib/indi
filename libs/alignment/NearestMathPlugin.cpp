@@ -26,6 +26,7 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
+#ifndef NO_PLUGIN_HOOKS
 // Standard functions required for all plugins
 extern "C" {
 
@@ -53,6 +54,7 @@ extern "C" {
         return "Nearest Math Plugin";
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -213,13 +215,13 @@ bool NearestMathPlugin::TransformCelestialToTelescope(const double RightAscensio
 ///
 //////////////////////////////////////////////////////////////////////////////////////
 bool NearestMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-        double &RightAscension, double &Declination)
+        double &RightAscension, double &Declination, double JulianOffset)
 {
     IGeographicCoordinates Position;
     if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
-    double JDD = ln_get_julian_from_sys();
+    double JDD = ln_get_julian_from_sys() + JulianOffset;
 
     // Telescope Equatorial Coordinates
     INDI::IEquatorialCoordinates TelescopeRADE;

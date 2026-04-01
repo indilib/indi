@@ -12,6 +12,7 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
+#ifndef NO_PLUGIN_HOOKS
 // Standard functions required for all plugins
 extern "C" {
     SVDMathPlugin *Create()
@@ -29,6 +30,7 @@ extern "C" {
         return "SVD Math Plugin";
     }
 }
+#endif
 void SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1,
         const TelescopeDirectionVector &Alpha2,
         const TelescopeDirectionVector &Alpha3,
