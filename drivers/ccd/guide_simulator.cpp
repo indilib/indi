@@ -519,6 +519,12 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         }
         else
         {
+            static bool s_warnedNoSnoop = false;
+            if (!s_warnedNoSnoop)
+            {
+                LOG_WARN("EQUATORIAL_PE not yet snooped — rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
+                s_warnedNoSnoop = true;
+            }
 #endif
             m_CurrentRA  = RA;
             m_CurrentDEC = Dec;
@@ -1168,7 +1174,15 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
             raPE  = J2000Pos.rightascension;
             decPE = J2000Pos.declination;
-            m_UsePE = true;
+
+            // Only activate PE rendering once the telescope reports a valid (Ok) state.
+            // The initial defNumberVector arrives with state Idle and values 0/0.
+            const char * state = findXMLAttValu(root, "state");
+            if (!m_UsePE && strcmp(state, "Ok") == 0)
+            {
+                LOGF_INFO("EQUATORIAL_PE snoop active: JNow RA %.4f Dec %.4f -> J2000 RA %.4f Dec %.4f", newra, newdec, raPE, decPE);
+                m_UsePE = true;
+            }
 
             EqPENP[AXIS_RA].setValue(newra);
             EqPENP[AXIS_DE].setValue(newdec);

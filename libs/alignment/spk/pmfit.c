@@ -323,11 +323,15 @@ int Bfun ( int nt, double phi, char mount, double rdem, double pdem,
 **
 **         IA        -bf[0]          bf[0]
 **         IB         bf[1]          bf[1]
-**         VD         bf[5]*sin(z)   bf[5]*sin(z)    z = zenith angle
-**         CA        -bf[2]          bf[2]
-**         NP          0              0
 **         AW        -bf[3]          bf[3]
-**         AN         bf[4]          bf[4]
+**         AN         bf[2]          bf[2]
+**         CA        -bf[4]         -bf[4]
+**         VD         bf[5]*sin(z)   bf[5]*sin(z)    z = zenith angle
+**         NP          0              0
+**
+**     Note: polar-axis/axis-tilt terms (AW/AN) are fitted before the
+**     collimation term (CA) so that a 4-term fit on 3 sync points is
+**     well-conditioned for polar-alignment use cases.
 **
 **  5) The omission of the roll/pitch nonperpendicularity term NP from
 **     the default model is because (i) the three terms IA, NP and CA
@@ -412,26 +416,30 @@ int Bfun ( int nt, double phi, char mount, double rdem, double pdem,
 
    case 'E':
 
-   /* Equatorial  */
+   /* Equatorial: IH, ID, ME, MA, CH, TF */
+   /* Polar-axis terms (ME, MA) precede collimation (CH) so that a    */
+   /* 4-term fit on 3 points is well-conditioned for polar alignment.  */
 
       if (nt > 0) { BF(0,0) = cd;      BF(0,1) = 0.0; }               /* IH */
       if (nt > 1) { BF(1,0) = 0.0;     BF(1,1) = 1.0; }               /* ID */
-      if (nt > 2) { BF(2,0) = 1.0;     BF(2,1) = 0.0; }               /* CH */
-      if (nt > 3) { BF(3,0) = sh*sd;   BF(3,1) = ch;  }               /* ME */
-      if (nt > 4) { BF(4,0) = -ch*sd;  BF(4,1) = sh;  }               /* MA */
+      if (nt > 2) { BF(2,0) = sh*sd;   BF(2,1) = ch;  }               /* ME */
+      if (nt > 3) { BF(3,0) = -ch*sd;  BF(3,1) = sh;  }               /* MA */
+      if (nt > 4) { BF(4,0) = 1.0;     BF(4,1) = 0.0; }               /* CH */
       if (nt > 5) { BF(5,0) = cp*sh;   BF(5,1) = cp*ch*sd-sp*cd; }    /* TF */
 
       break;
 
    default:
 
-   /* Altazimuth */
+   /* Altazimuth: IA, IE, AN, AW, CA, TF */
+   /* Axis-tilt terms (AN, AW) precede collimation (CA) for the same  */
+   /* reason as the equatorial reordering above.                       */
 
       if (nt > 0) { BF(0,0) = -ce;     BF(0,1) = 0.0; }               /* IA */
       if (nt > 1) { BF(1,0) = 0.0;     BF(1,1) = 1.0; }               /* IE */
-      if (nt > 2) { BF(2,0) = -1.0;    BF(2,1) = 0.0; }               /* CA */
-      if (nt > 3) { BF(3,0) = -sa*se;  BF(3,1) = -ca; }               /* AN */
-      if (nt > 4) { BF(4,0) = -ca*se;  BF(4,1) = sa;  }               /* AW */
+      if (nt > 2) { BF(2,0) = -sa*se;  BF(2,1) = -ca; }               /* AN */
+      if (nt > 3) { BF(3,0) = -ca*se;  BF(3,1) = sa;  }               /* AW */
+      if (nt > 4) { BF(4,0) = -1.0;    BF(4,1) = 0.0; }               /* CA */
       if (nt > 5) { BF(5,0) = 0.0;     BF(5,1) = -ce; }               /* TF */
 
    }

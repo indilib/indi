@@ -65,6 +65,12 @@ SPKMathPlugin::SPKMathPlugin()
     
     m_Opt.fl = 1000.0; // Default fl
     m_Opt.wl = 0.55;   // Default wavelength
+
+    memset(m_NE_A, 0, sizeof(m_NE_A));
+    memset(m_NE_v, 0, sizeof(m_NE_v));
+    m_NE_n         = 0;
+    m_NE_mountChar = 0;
+    m_NE_valid     = false;
 }
 
 SPKMathPlugin::~SPKMathPlugin()
@@ -74,40 +80,91 @@ SPKMathPlugin::~SPKMathPlugin()
 bool SPKMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     if (!pInMemoryDatabase) return false;
-    this->pInMemoryDatabase = pInMemoryDatabase;
+    MathPlugin::Initialise(pInMemoryDatabase);
 
     UpdateObsConfig();
 
-    // Collect sync points from database
     InMemoryDatabase::AlignmentDatabaseType &syncPoints = pInMemoryDatabase->GetAlignmentDatabase();
+    int  n         = static_cast<int>(syncPoints.size());
+    char mountChar = (m_Obs.mount == ALTAZ) ? 'A' : 'E';
 
-    if (syncPoints.size() < 1)
+    if (n < 1) return true;  // No sync points yet — not an error, model is simply unconstrained.
+
+    ASSDEBUGF("SPK Initialise: n=%d mount=%c NE_valid=%d NE_n=%d",
+              n, mountChar, m_NE_valid, m_NE_n);
+
+    // Hot path: full 6-term model already fitted, exactly one new point added,
+    // same mount type.
+    if (m_NE_valid &&
+        n         == m_NE_n + 1 &&
+        mountChar == m_NE_mountChar)
     {
-        return false;
+        ASSDEBUGF("SPK Initialise: hot path — incremental NE update for point %d", n);
+        double oblon, oblat, rdem, pdem;
+        if (ExtractObsRow(syncPoints.back(), oblon, oblat, rdem, pdem) &&
+            AccumulateObsRow(oblon, oblat, rdem, pdem))
+        {
+            double pmv[6];
+            if (SolveNormalEquations(pmv))
+            {
+                m_NE_n = n;
+                ParsePmfitCoefficients(pmv, 6);
+                return true;
+            }
+        }
+        // Fall through to cold path on any failure.
+        ASSDEBUG("SPK hot path failed - falling through to cold path");
     }
 
-    // Build observation data and determine the number of terms
+    // Cold path: full Pmfit rebuild.
     int nt = 0;
     std::vector<double> obsData = BuildObservationData(syncPoints, nt);
 
-    double pmv[6], pms[6], skysig;
-    char mountChar = (m_Obs.mount == ALTAZ) ? 'A' : 'E';
-    int js = Pmfit(m_Obs.slat, mountChar, syncPoints.size(), obsData.data(), nt, pmv, pms, &skysig);
-
-    if (js == 0)
+    double pmv[6] = {}, pms[6] = {}, skysig = 0;
+    int js = Pmfit(m_Obs.slat, mountChar, n, obsData.data(), nt, pmv, pms, &skysig);
+    if (js != 0)
     {
-        ParsePmfitCoefficients(pmv, nt);
-        return true;
+        ASSDEBUGF("SPK Pmfit failed: js=%d", js);
+        m_NE_valid = false;
+        return false;
     }
 
-    return false;
+    ParsePmfitCoefficients(pmv, nt);
+
+    // If we have a full 6-term model, build the NE accumulator so subsequent
+    // single-point additions can use the hot path.
+    if (nt == 6)
+    {
+        m_NE_mountChar = mountChar;
+        memset(m_NE_A, 0, sizeof(m_NE_A));
+        memset(m_NE_v, 0, sizeof(m_NE_v));
+        m_NE_valid = true;
+
+        for (const auto &point : syncPoints)
+        {
+            double oblon, oblat, rdem, pdem;
+            if (!ExtractObsRow(point, oblon, oblat, rdem, pdem) ||
+                !AccumulateObsRow(oblon, oblat, rdem, pdem))
+            {
+                m_NE_valid = false;
+                break;
+            }
+        }
+        m_NE_n = m_NE_valid ? n : 0;
+    }
+    else
+    {
+        m_NE_valid = false;
+    }
+
+    return true;
 }
 
 bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
         double JulianOffset,
         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
-    UpdateAstrometry(JulianOffset);
+    UpdateAstrometry(ln_get_julian_from_sys() + JulianOffset);
 
     spkTAR tar;
     // Input RA/Dec is in INDI's "observed" (= SOFA's "apparent") form: precession,
@@ -120,19 +177,12 @@ bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, c
     tar.a = HOURS_TO_RAD(RightAscension);
     tar.b = DEG_TO_RAD(Declination);
 
-    // In Wallace's reference implementation (s2e.c), spkVtel(AXES) is called
-    // with the actual current mount position in ax3.  The VD correction in
-    // spk_vtel.c (pvd*cos(el)) is then evaluated at the current elevation,
-    // which is already a close estimate of the demanded elevation because the
-    // mount is tracking.  One call is sufficient in that workflow.
-    //
-    // This plugin does not have access to the current mount position, so ax3
-    // is initialised to {0,0,0}.  A second pass with ax3 set to the first
-    // solution makes the VD correction self-consistent with spkVtel(TARG),
-    // which always receives the demanded roll/pitch as ax3.  One refinement
-    // step suffices; the residual is O(pvd^2).
-    spkAX3 ax3 = {0, 0, 0};
     double tara, tare, tarr, tarp, soln[5];
+
+    // Two-pass: first AXES call with ax3={0,0,0} gives an initial encoder
+    // demand; second pass re-evaluates the VD correction at the correct
+    // elevation.  One refinement suffices; residual is O(pvd^2).
+    spkAX3 ax3 = {0, 0, 0};
     int status = spkVtel(AXES, &m_Obs, &m_Opt, &m_PM, &m_Ast, &ax3, &tar, &m_PO,
                          &tara, &tare, &tarr, &tarp, soln);
 
@@ -151,13 +201,14 @@ bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, c
         ApparentTelescopeDirectionVector = RollPitchToDirectionVector(roll, pitch);
         return true;
     }
+    ASSDEBUGF("SPK C->T failed: RA=%.4fh Dec=%.4fdeg status=%d", RightAscension, Declination, status);
     return false;
 }
 
 bool SPKMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
         double &RightAscension, double &Declination, double JulianOffset)
 {
-    UpdateAstrometry(JulianOffset);
+    UpdateAstrometry(ln_get_julian_from_sys() + JulianOffset);
 
     spkAX3 ax3;
     double roll, pitch;
@@ -179,9 +230,12 @@ bool SPKMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector
         // soln[0] is RA in radians
         RightAscension = RAD_TO_HOURS(iauAnp(soln[0]));
         Declination = RAD_TO_DEG(soln[1]);
+        ASSDEBUGF("SPK T->C: roll=%.4fdeg pitch=%.4fdeg => RA=%.4fh Dec=%.4fdeg",
+                  RAD_TO_DEG(roll), RAD_TO_DEG(pitch), RightAscension, Declination);
         return true;
     }
-
+    ASSDEBUGF("SPK T->C failed: roll=%.4fdeg pitch=%.4fdeg status=%d",
+              RAD_TO_DEG(roll), RAD_TO_DEG(pitch), status);
     return false;
 }
 
@@ -199,13 +253,11 @@ void SPKMathPlugin::UpdateObsConfig()
     m_Obs.mount = (ApproximateMountAlignment == ZENITH) ? ALTAZ : EQUAT;
 }
 
-void SPKMathPlugin::UpdateAstrometry(double JulianOffset)
+void SPKMathPlugin::UpdateAstrometry(double JD)
 {
-    double jd = ln_get_julian_from_sys() + JulianOffset;
-
     // Use libnova for JD to calendar conversion
     ln_date date;
-    ln_get_date(jd, &date);
+    ln_get_date(JD, &date);
 
     spkUTC utc;
     utc.iy = date.years;
@@ -226,25 +278,112 @@ void SPKMathPlugin::UpdateAstrometry(double JulianOffset)
 
     // Synchronize SOFA internal "clock" (ERA) with libnova LST
     // This ensures consistency with the simulator's view of HA/Az.
-    double gmst_hrs = ln_get_apparent_sidereal_time(jd);
+    double gmst_hrs = ln_get_apparent_sidereal_time(JD);
     double lst_rad  = HOURS_TO_RAD(range24(gmst_hrs + RAD_TO_HOURS(m_Obs.slon)));
+    m_LST_rad = lst_rad;
     // eral = ERA + Longitude = LST + EO
     m_Ast.astrom.eral = iauAnp(lst_rad + m_Ast.eo);
 }
 
+
+bool SPKMathPlugin::ExtractObsRow(const AlignmentDatabaseEntry &point,
+                                   double &oblon, double &oblat,
+                                   double &rdem,  double &pdem)
+{
+    UpdateAstrometry(point.ObservationJulianDate);
+
+    double gmst_hrs  = ln_get_apparent_sidereal_time(point.ObservationJulianDate);
+    double lst_hrs   = range24(gmst_hrs + RAD_TO_HOURS(m_Obs.slon));
+    double obslon_ha = HOURS_TO_RAD(get_local_hour_angle(lst_hrs, point.RightAscension));
+    double obslat_   = DEG_TO_RAD(point.Declination);
+
+    double roll, pitch;
+    DirectionVectorToRollPitch(point.TelescopeDirection, roll, pitch);
+
+    if (m_Obs.mount == ALTAZ)
+    {
+        // SPK altaz roll convention: roll = pi - Az_NE (vtel.c Note 7).
+        // Bfun('A') expects rdem in SOFA convention (0=N, East+), so recover
+        // the SOFA azimuth via pi - roll.
+        double az_cel, el_cel;
+        iauHd2ae(obslon_ha, obslat_, m_Obs.slat, &az_cel, &el_cel);
+        oblon = az_cel;
+        oblat = el_cel;
+        rdem  = iauAnp(M_PI - roll);
+    }
+    else
+    {
+        oblon = obslon_ha;
+        oblat = obslat_;
+        rdem  = -roll;
+    }
+    pdem = pitch;
+    ASSDEBUGF("SPK ExtractObsRow: RA=%.4fh Dec=%.4fdeg oblon=%.4fdeg oblat=%.4fdeg rdem=%.4fdeg pdem=%.4fdeg residual=(%.1f\" %.1f\")",
+              point.RightAscension, point.Declination,
+              RAD_TO_DEG(oblon), RAD_TO_DEG(oblat),
+              RAD_TO_DEG(rdem),  RAD_TO_DEG(pdem),
+              RAD_TO_DEG(iauAnpm(oblon - rdem)) * cos(oblat) * 3600.0,
+              RAD_TO_DEG(iauAnpm(oblat - pdem)) * 3600.0);
+    return true;
+}
+
+bool SPKMathPlugin::AccumulateObsRow(double oblon, double oblat,
+                                      double rdem,  double pdem)
+{
+    // Bfun is evaluated at the celestial (observed) coordinates, matching
+    // Pmfit's accumulation pass.  xi/eta are the residuals with pm=0
+    // (encoder demand = rdem/pdem), which is Pmfit iteration-0.
+    double bf[12]; // 2 * 6 terms
+    char mountChar = (m_Obs.mount == ALTAZ) ? 'A' : 'E';
+    if (Bfun(6, m_Obs.slat, mountChar, oblon, oblat, bf) != 0)
+        return false;
+
+    double xi  = iauAnpm(oblon - rdem) * cos(oblat);
+    double eta = iauAnpm(oblat - pdem);
+
+    for (int i = 0; i < 6; i++)
+    {
+        double bfi0 = bf[i*2 + 0];
+        double bfi1 = bf[i*2 + 1];
+        m_NE_v[i] += bfi0 * xi + bfi1 * eta;
+        for (int j = 0; j < 6; j++)
+            m_NE_A[i*6 + j] += bfi0 * bf[j*2 + 0] + bfi1 * bf[j*2 + 1];
+    }
+    return true;
+}
+
+bool SPKMathPlugin::SolveNormalEquations(double pmv[6])
+{
+    // Copy both arrays: Simeqn overwrites in-place, but we need to keep the
+    // accumulators intact for future incremental additions.
+    double Acopy[36];
+    double vcopy[6];
+    memcpy(Acopy, m_NE_A, sizeof(m_NE_A));
+    memcpy(vcopy, m_NE_v, sizeof(m_NE_v));
+
+    if (Simeqn(6, Acopy, vcopy) != 0)
+        return false;
+
+    memcpy(pmv, vcopy, 6 * sizeof(double));
+    return true;
+}
+
 std::vector<double> SPKMathPlugin::BuildObservationData(const InMemoryDatabase::AlignmentDatabaseType &syncPoints, int &outTermCount)
 {
-    // The SPK model evaluates terms rigidly: IH, ID, CH, ME, MA, TF.
-    // "Aggressive" progression attempts early polar correction by fitting 
-    // up through MA, but risks virtual collimation hallucination on small sets.
+    // Pmfit term order: IH, ID, ME, MA, CH, TF  (equatorial)
+    //                   IA, IE, AN, AW, CA, TF  (altazimuth)
+    // Polar/axis-tilt terms come before collimation so that a 4-term fit on
+    // 3 points (6 measurements, 4 unknowns) is well-conditioned.
     outTermCount = 6;
-    if (syncPoints.size() < 3) outTermCount = 2; // 1-2 points: Fit IH, ID (Offset only)
-    else if (syncPoints.size() < 6) outTermCount = 5; // 3-5 points: Fit IH, ID, CH, ME, MA (Aggressive Polar)
+    if      (syncPoints.size() < 3) outTermCount = 2; // 1-2 pts: IH, ID
+    else if (syncPoints.size() < 5) outTermCount = 4; // 3-4 pts: IH, ID, ME, MA
+    else if (syncPoints.size() < 6) outTermCount = 5; // 5 pts:   IH, ID, ME, MA, CH
+    // 6+ pts: full model
 
     std::vector<double> obsData;
     for (const auto &point : syncPoints)
     {
-        UpdateAstrometry(point.ObservationJulianDate - ln_get_julian_from_sys());
+        UpdateAstrometry(point.ObservationJulianDate);
         
         double gmst_hrs = ln_get_apparent_sidereal_time(point.ObservationJulianDate);
         double lst_hrs  = range24(gmst_hrs + RAD_TO_HOURS(m_Obs.slon));
@@ -261,7 +400,8 @@ std::vector<double> SPKMathPlugin::BuildObservationData(const InMemoryDatabase::
             iauHd2ae(obslon_ha, obslat, m_Obs.slat, &az_cel, &el_cel);
             obsData.push_back(az_cel);
             obsData.push_back(el_cel);
-            obsData.push_back(iauAnp(-roll)); // roll = -Az
+            // SPK altaz roll = pi - Az_NE, so rdem (SOFA Az) = pi - roll.
+            obsData.push_back(iauAnp(M_PI - roll));
         }
         else
         {
@@ -280,22 +420,24 @@ void SPKMathPlugin::ParsePmfitCoefficients(const double pmv[6], int terms)
 
     if (m_Obs.mount == ALTAZ)
     {
-        // ALTAZ: IA -> bf[0], IB -> bf[1], CA -> bf[2], AN -> bf[3], AW -> bf[4], VD -> bf[5]
+        // Pmfit order: IA, IE, AN, AW, CA, TF
+        // Wallace (2002) Note 4 (altaz): IA=bf[0], IB=bf[1], AN=bf[2], AW=bf[3], CA=bf[4], VD=bf[5]
         if (terms >= 1) m_PM.pia = pmv[0];
         if (terms >= 2) m_PM.pib = pmv[1];
-        if (terms >= 3) m_PM.pca = pmv[2];
-        if (terms >= 4) m_PM.pan = pmv[3];
-        if (terms >= 5) m_PM.paw = pmv[4];
+        if (terms >= 3) m_PM.pan = pmv[2];
+        if (terms >= 4) m_PM.paw = pmv[3];
+        if (terms >= 5) m_PM.pca = pmv[4];
         if (terms >= 6) m_PM.pvd = pmv[5];
     }
     else // EQUATORIAL
     {
-        // Wallace (2002) Note 4: IA -> -bf[0], IB -> bf[1], CA -> -bf[2], AW -> -bf[3], AN -> bf[4], VD -> bf[5]
+        // Pmfit order: IH, ID, ME, MA, CH, TF
+        // Wallace (2002) Note 4 (equat): IA=-bf[0], IB=bf[1], AW=-bf[3], AN=bf[2], CA=-bf[4], VD=bf[5]
         if (terms >= 1) m_PM.pia = -pmv[0];
         if (terms >= 2) m_PM.pib = pmv[1];
-        if (terms >= 3) m_PM.pca = -pmv[2];
-        if (terms >= 4) m_PM.paw = -pmv[3];
-        if (terms >= 5) m_PM.pan = pmv[4];
+        if (terms >= 3) m_PM.paw = -pmv[3];
+        if (terms >= 4) m_PM.pan = pmv[2];
+        if (terms >= 5) m_PM.pca = -pmv[4];
         if (terms >= 6) m_PM.pvd = pmv[5];
     }
 }
@@ -304,31 +446,39 @@ TelescopeDirectionVector SPKMathPlugin::RollPitchToDirectionVector(double roll, 
 {
     if (m_Obs.mount == ALTAZ)
     {
+        // SPK altaz roll = pi - Az_NE (vtel.c Note 7), so Az_NE = pi - roll.
         INDI::IHorizontalCoordinates hor;
-        hor.azimuth = RAD_TO_DEG(iauAnp(-roll));
+        hor.azimuth = RAD_TO_DEG(iauAnp(M_PI - roll));
         hor.altitude = RAD_TO_DEG(pitch);
         return TelescopeDirectionVectorFromAltitudeAzimuth(hor);
     }
-    else
+    else // EQ: roll = -HA, convert to RA = LST - HA = LST + roll
     {
         INDI::IEquatorialCoordinates eq;
-        eq.rightascension = RAD_TO_HOURS(iauAnp(-roll));
+        eq.rightascension = range24(RAD_TO_HOURS(iauAnp(m_LST_rad + roll)));
         eq.declination = RAD_TO_DEG(pitch);
-        return TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+        return TelescopeDirectionVectorFromEquatorialCoordinates(eq);
     }
 }
 
 void SPKMathPlugin::DirectionVectorToRollPitch(const TelescopeDirectionVector &v, double &roll, double &pitch)
 {
-    double az, dec;
-    SphericalCoordinateFromTelescopeDirectionVector(v, az, CLOCKWISE, dec, FROM_AZIMUTHAL_PLANE);
-    
     if (m_Obs.mount == ALTAZ)
-        roll = iauAnp(-az);
-    else
-        roll = -az;
-        
-    pitch = dec;
+    {
+        // SPK altaz roll = pi - Az_NE (vtel.c Note 7).
+        INDI::IHorizontalCoordinates hor;
+        AltitudeAzimuthFromTelescopeDirectionVector(v, hor);
+        roll  = iauAnp(M_PI - DEG_TO_RAD(hor.azimuth));
+        pitch = DEG_TO_RAD(hor.altitude);
+    }
+    else // EQ: decode RA-based TDV, convert RA to HA, roll = -HA
+    {
+        INDI::IEquatorialCoordinates eq;
+        EquatorialCoordinatesFromTelescopeDirectionVector(v, eq);
+        double ha_rad = iauAnpm(m_LST_rad - HOURS_TO_RAD(eq.rightascension));
+        roll  = -ha_rad;
+        pitch = DEG_TO_RAD(eq.declination);
+    }
 }
 
 } // namespace AlignmentSubsystem

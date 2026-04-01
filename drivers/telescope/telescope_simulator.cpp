@@ -579,6 +579,12 @@ bool ScopeSim::Goto(double r, double d)
             EquatorialCoordinatesFromTelescopeDirectionVector(tdv, raCoords);
             targetRA  = raCoords.rightascension;
             targetDec = raCoords.declination;
+            LOGF_INFO("EQ Goto: alignment corrected RA %.4fh Dec %.4f -> RA %.4fh Dec %.4f",
+                      r, d, targetRA, targetDec);
+        }
+        else
+        {
+            LOG_WARN("EQ Goto: TransformCelestialToTelescope FAILED, using raw coordinates");
         }
     }
 

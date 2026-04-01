@@ -152,7 +152,7 @@ static const INDI::IGeographicCoordinates kAntarctic  = { .longitude =  166.7, .
 
 static constexpr double kEQ_MinDec = -60.0;   // equatorial: Dec lower bound (deg)
 static constexpr double kEQ_MaxDec =  80.0;   // equatorial: Dec upper bound (deg)
-static constexpr double kAZ_MinEl  =  20.0;   // AltAz: elevation lower bound (deg); below ~15° refraction is nonlinear
+static constexpr double kAZ_MinEl  =  20.0;   // AltAz: elevation lower bound (deg); below ~15 deg refraction is nonlinear
 static constexpr double kAZ_MaxEl  =  85.0;   // AltAz: elevation upper bound (deg); avoids azimuth-wrap singularity near zenith
 
 // ---------------------------------------------------------------------------
@@ -217,8 +217,9 @@ protected:
         {
             Angle mha, mdec;
             gen.observedToInstrument(ha, adec, &mha, &mdec);
-            INDI::IEquatorialCoordinates haCoords = { DEG_TO_HOURS(mha.Degrees()), mdec.Degrees() };
-            entry.TelescopeDirection = pSupport->TelescopeDirectionVectorFromLocalHourAngleDeclination(haCoords);
+            double instRA = range24(lst_hrs - mha.Hours());
+            INDI::IEquatorialCoordinates raCoords = { instRA, mdec.Degrees() };
+            entry.TelescopeDirection = pSupport->TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
         }
     }
 
@@ -393,8 +394,8 @@ protected:
                                 INDI::IGeographicCoordinates site = kLosAngeles,
                                 ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM)
     {
-        double minDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MinDec : kEQ_MinDec;
-        double maxDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MaxDec : kEQ_MaxDec;
+        double minDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MinEl : kEQ_MinDec;
+        double maxDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MaxEl : kEQ_MaxDec;
 
         MountAlignment_t alignment = (mountType == ::Alignment::ALTAZ) ? ZENITH :
                                      site.latitude >= 0 ? NORTH_CELESTIAL_POLE : SOUTH_CELESTIAL_POLE;
@@ -477,6 +478,138 @@ protected:
     }
 
     // -----------------------------------------------------------------------
+    // RunGotoConventionRegression -- AltAz C->T convention check.
+    //
+    // Trains the plugin on numAlign points, then calls C->T on a held-out
+    // sky position and decodes the returned TDV directly to Az/Alt without
+    // doing T->C.  Compares against the scopesim ground-truth encoder.
+    //
+    // This breaks the round-trip symmetry that allows a 180deg Az convention
+    // bug to pass AlignValidate tests undetected.  azTolDeg should be much
+    // less than 180 but generous enough for the plugin's interpolation error.
+    // -----------------------------------------------------------------------
+    void RunGotoConventionRegression(MathPlugin &plugin,
+                                     const MountErrors &errors,
+                                     int numAlign,
+                                     double valRA, double valDec,
+                                     double azTolDeg,
+                                     INDI::IGeographicCoordinates site = kLosAngeles)
+    {
+        plugin.SetApproximateMountAlignment(ZENITH);
+
+        InMemoryDatabase db;
+        db.SetDatabaseReferencePosition(site);
+
+        ::Alignment gen = makeGenerator(errors, site, ::Alignment::ALTAZ);
+        auto *pSupport  = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+        ASSERT_NE(pSupport, nullptr);
+
+        double gmst = ln_get_apparent_sidereal_time(fixedJD);
+        double lst  = range24(gmst + DEG_TO_HOURS(site.longitude));
+
+        HaltonSequence seq(2, 3);
+        for (int i = 1; i <= numAlign; ++i)
+        {
+            double ra, dec;
+            auto raw = seq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
+            AlignmentDatabaseEntry entry;
+            buildEntry(gen, pSupport, ra, dec, lst, ::Alignment::ALTAZ, entry);
+            db.GetAlignmentDatabase().push_back(entry);
+        }
+        ASSERT_TRUE(plugin.Initialise(&db));
+
+        double joff = fixedJD - ln_get_julian_from_sys();
+
+        // Ground truth encoder position
+        Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
+        Angle adec(valDec);
+        Angle encAz, encAlt;
+        gen.apparentHaDecToMount(ha, adec, &encAz, &encAlt);
+
+        // Plugin C->T prediction, decoded to Az/Alt without T->C
+        TelescopeDirectionVector tdv;
+        ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+        INDI::IHorizontalCoordinates hor;
+        pSupport->AltitudeAzimuthFromTelescopeDirectionVector(tdv, hor);
+
+        double azDiff  = std::fmod(hor.azimuth - encAz.Degrees() + 540.0, 360.0) - 180.0;
+        azDiff  = std::abs(azDiff);
+        double altDiff = std::abs(hor.altitude - encAlt.Degrees());
+
+        GTEST_LOG_(INFO) << "  encAz=" << encAz.Degrees() << " pluginAz=" << hor.azimuth
+                         << " azDiff=" << azDiff * 3600.0 << "\"";
+        GTEST_LOG_(INFO) << "  encAlt=" << encAlt.Degrees() << " pluginAlt=" << hor.altitude
+                         << " altDiff=" << altDiff * 3600.0 << "\"";
+
+        EXPECT_LT(azDiff,  azTolDeg) << "Az differs by " << azDiff << "deg — likely Az convention bug";
+        EXPECT_LT(altDiff, azTolDeg) << "Alt differs by " << altDiff << "deg";
+    }
+
+    void RunEqPolarRegression(SPKMathPlugin &plugin,
+                              const MountErrors &errors,
+                              int numAlign,
+                              double valRA, double valDec,
+                              double tolArcsec,
+                              INDI::IGeographicCoordinates site = kLosAngeles)
+    {
+        plugin.SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
+
+        InMemoryDatabase db;
+        db.SetDatabaseReferencePosition(site);
+
+        ::Alignment gen = makeGenerator(errors, site, ::Alignment::EQ_GEM);
+        auto *pSupport  = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+        ASSERT_NE(pSupport, nullptr);
+
+        double gmst = ln_get_apparent_sidereal_time(fixedJD);
+        double lst  = range24(gmst + DEG_TO_HOURS(site.longitude));
+
+        HaltonSequence seq(2, 3);
+        for (int i = 1; i <= numAlign; ++i)
+        {
+            double ra, dec;
+            auto raw = seq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
+            AlignmentDatabaseEntry entry;
+            buildEntry(gen, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+            db.GetAlignmentDatabase().push_back(entry);
+        }
+        ASSERT_TRUE(plugin.Initialise(&db));
+
+        double joff = fixedJD - ln_get_julian_from_sys();
+
+        // Ground truth encoder position (RA/Dec) from scopesim
+        Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
+        Angle adec(valDec);
+        Angle encHA, encDec;
+        gen.observedToInstrument(ha, adec, &encHA, &encDec);
+        double instRA = range24(lst - encHA.Hours());
+
+        // Plugin C->T prediction, decoded to RA/Dec without T->C
+        TelescopeDirectionVector tdv;
+        ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+        INDI::IEquatorialCoordinates raCoords;
+        pSupport->EquatorialCoordinatesFromTelescopeDirectionVector(tdv, raCoords);
+
+        double rawRaDiff = rangeHA(instRA - raCoords.rightascension);
+        // Handle possible meridian flip between simulator and plugin solution
+        if (std::abs(rawRaDiff) > 6.0)
+            rawRaDiff = rangeHA(rawRaDiff - 12.0);
+
+        double raDiff  = DEG_TO_ARCSEC(rawRaDiff * 15.0) * std::cos(DEG_TO_RAD(valDec));
+        double decDiff = DEG_TO_ARCSEC(encDec.Degrees() - raCoords.declination);
+        double totalDiff = std::sqrt(raDiff * raDiff + decDiff * decDiff);
+
+        GTEST_LOG_(INFO) << "  encRA=" << instRA << " pluginRA=" << raCoords.rightascension
+                         << " raDiff=" << raDiff << "\"";
+        GTEST_LOG_(INFO) << "  encDec=" << encDec.Degrees() << " pluginDec=" << raCoords.declination
+                         << " decDiff=" << decDiff << "\"";
+
+        EXPECT_LT(totalDiff, tolArcsec) << "Encoder position differs by " << totalDiff << "\" — likely ME/MA mapping bug";
+    }
+
+    // -----------------------------------------------------------------------
     // RunMeridianFlipValidate -- exercises GEM pier flips in both hemispheres
     // -----------------------------------------------------------------------
     template <typename T>
@@ -497,7 +630,7 @@ protected:
         double gmst = ln_get_apparent_sidereal_time(fixedJD);
         double lst  = range24(gmst + DEG_TO_HOURS(location.longitude));
 
-        // Use 12 points for alignment in flip tests
+        // Use 3 points for alignment in flip tests
         HaltonSequence alignSeq(2, 3);
         for (int i = 1; i <= 3; ++i)
         {
@@ -554,6 +687,75 @@ protected:
         
         EXPECT_LT(stats.p95, targetRMSArcsec * 1.5)
             << "Plugin failed meridian flip P95 quality target " << targetRMSArcsec * 1.5 << "\"";
+    }
+
+    // -----------------------------------------------------------------------
+    // Incremental hot-path helpers
+    // -----------------------------------------------------------------------
+
+    // Build a database of n sync points, initialise plugin, and return the
+    // generator so the caller can add more points with the same sequence.
+    ::Alignment buildIncrementalDb(SPKMathPlugin &plugin,
+                                   const MountErrors &errors,
+                                   int n,
+                                   InMemoryDatabase &db,
+                                   ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM,
+                                   INDI::IGeographicCoordinates site = kLosAngeles)
+    {
+        db.SetDatabaseReferencePosition(site);
+        MountAlignment_t alignment = (mountType == ::Alignment::ALTAZ) ? ZENITH :
+                                     site.latitude >= 0 ? NORTH_CELESTIAL_POLE
+                                                        : SOUTH_CELESTIAL_POLE;
+        plugin.SetApproximateMountAlignment(alignment);
+
+        ::Alignment generator = makeGenerator(errors, site, mountType);
+        auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+
+        double gmst  = ln_get_apparent_sidereal_time(fixedJD);
+        double lst   = range24(gmst + DEG_TO_HOURS(site.longitude));
+        double minDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MinEl : kEQ_MinDec;
+        double maxDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MaxEl : kEQ_MaxDec;
+
+        HaltonSequence seq(2, 3);
+        for (int i = 1; i <= n; i++)
+        {
+            double ra, dec;
+            auto raw = seq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
+            AlignmentDatabaseEntry entry;
+            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
+            db.GetAlignmentDatabase().push_back(entry);
+        }
+        EXPECT_TRUE(plugin.Initialise(&db));
+        return generator;
+    }
+
+    // Verify hot-path result matches a cold-initialised reference plugin.
+    void verifyHotMatchesCold(SPKMathPlugin &hotPlugin, SPKMathPlugin &coldPlugin,
+                               ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM)
+    {
+        double joff = fixedJD - ln_get_julian_from_sys();
+        // Hot path uses pm=0 as the linearization point (Pmfit iteration-0);
+        // Pmfit iterates to convergence.  With arcminute-level mount errors
+        // the difference is a few arcseconds in angle space (~5e-5 in
+        // direction vector units), well below observational noise.
+        const double tol = 5e-5;
+        for (double testRA : {3.0, 8.0, 15.0, 21.0})
+        {
+            // Clamp to physical range: equatorial [-60, 70], AltAz [20, 85]
+            std::vector<double> decs = (mountType == ::Alignment::ALTAZ)
+                ? std::vector<double>{25.0, 40.0, 60.0, 80.0}
+                : std::vector<double>{-30.0, 0.0, 30.0, 60.0};
+            for (double testDec : decs)
+            {
+                TelescopeDirectionVector hotV, coldV;
+                ASSERT_TRUE(hotPlugin.TransformCelestialToTelescope(testRA, testDec, joff, hotV));
+                ASSERT_TRUE(coldPlugin.TransformCelestialToTelescope(testRA, testDec, joff, coldV));
+                EXPECT_NEAR(hotV.x, coldV.x, tol) << "RA=" << testRA << " Dec/El=" << testDec;
+                EXPECT_NEAR(hotV.y, coldV.y, tol) << "RA=" << testRA << " Dec/El=" << testDec;
+                EXPECT_NEAR(hotV.z, coldV.z, tol) << "RA=" << testRA << " Dec/El=" << testDec;
+            }
+        }
     }
 };
 
@@ -760,11 +962,31 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_AltAz_Southern)
                            kSydney, ::Alignment::ALTAZ);
 }
 
+// Tolerance 2deg: SVD's Kabsch rotation on 3 points absorbs errors as a
+// rigid rotation, so a held-out point carries some interpolation residual.
+// Still far from a 180deg convention failure.
+TEST_F(AlignmentPluginTest, SVD_AltAz_Goto_Convention_Regression)
+{
+    SVDMathPlugin plugin;
+    RunGotoConventionRegression(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)},
+                                3, 12.0, 50.0, 2.0);
+}
+
 TEST_F(AlignmentPluginTest, BuiltIn_AlignValidate_AltAz)
 {
     BuiltInMathPlugin plugin;
     RunPluginAlignValidate(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 3, 100, 20.0,
                            kLosAngeles, ::Alignment::ALTAZ);
+}
+
+// Tolerance 2deg: BuiltIn uses a raw 3x3 matrix inversion on 3 points which
+// does not explicitly fit Wallace errors, so interpolation at a held-out point
+// carries more residual than SPK.  Still far from a 180deg convention failure.
+TEST_F(AlignmentPluginTest, BuiltIn_AltAz_Goto_Convention_Regression)
+{
+    BuiltInMathPlugin plugin;
+    RunGotoConventionRegression(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)},
+                                3, 12.0, 50.0, 2.0);
 }
 
 TEST_F(AlignmentPluginTest, Nearest_AlignValidate_AltAz)
@@ -774,6 +996,67 @@ TEST_F(AlignmentPluginTest, Nearest_AlignValidate_AltAz)
     // points rather than an align/validate split.
     NearestMathPlugin plugin;
     RunPluginAllInAlignment(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 20, kLosAngeles, ::Alignment::ALTAZ);
+}
+
+// Tolerance 1deg: Nearest returns the stored TDV of the closest alignment
+// point, so accuracy at the exact alignment position is limited only by the
+// encoder ground truth, not by interpolation.  We use the first Halton point
+// as the validation target to guarantee the nearest neighbour is that entry.
+// A 180deg convention bug would produce azDiff ~180deg.
+TEST_F(AlignmentPluginTest, Nearest_AltAz_Goto_Convention_Regression)
+{
+    NearestMathPlugin plugin;
+    plugin.SetApproximateMountAlignment(ZENITH);
+
+    MountErrors errors = {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)};
+    ::Alignment gen = makeGenerator(errors, kLosAngeles, ::Alignment::ALTAZ);
+    auto *pSupport  = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+    ASSERT_NE(pSupport, nullptr);
+
+    double gmst = ln_get_apparent_sidereal_time(fixedJD);
+    double lst  = range24(gmst + DEG_TO_HOURS(kLosAngeles.longitude));
+
+    InMemoryDatabase db;
+    db.SetDatabaseReferencePosition(kLosAngeles);
+
+    // Build 5 alignment entries; record the first point for validation.
+    double valRA = 0, valDec = 0;
+    HaltonSequence seq(2, 3);
+    for (int i = 1; i <= 5; ++i)
+    {
+        double ra, dec;
+        auto raw = seq.getRaw(i);
+        getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
+        if (i == 1) { valRA = ra; valDec = dec; }
+        AlignmentDatabaseEntry entry;
+        buildEntry(gen, pSupport, ra, dec, lst, ::Alignment::ALTAZ, entry);
+        db.GetAlignmentDatabase().push_back(entry);
+    }
+    ASSERT_TRUE(plugin.Initialise(&db));
+
+    double joff = fixedJD - ln_get_julian_from_sys();
+
+    Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
+    Angle adec(valDec);
+    Angle encAz, encAlt;
+    gen.apparentHaDecToMount(ha, adec, &encAz, &encAlt);
+
+    TelescopeDirectionVector tdv;
+    ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+    INDI::IHorizontalCoordinates hor;
+    pSupport->AltitudeAzimuthFromTelescopeDirectionVector(tdv, hor);
+
+    double azDiff  = std::fmod(hor.azimuth - encAz.Degrees() + 540.0, 360.0) - 180.0;
+    azDiff  = std::abs(azDiff);
+    double altDiff = std::abs(hor.altitude - encAlt.Degrees());
+
+    GTEST_LOG_(INFO) << "  encAz=" << encAz.Degrees() << " pluginAz=" << hor.azimuth
+                     << " azDiff=" << azDiff * 3600.0 << "\"";
+    GTEST_LOG_(INFO) << "  encAlt=" << encAlt.Degrees() << " pluginAlt=" << hor.altitude
+                     << " altDiff=" << altDiff * 3600.0 << "\"";
+
+    EXPECT_LT(azDiff,  1.0) << "Az differs by " << azDiff << "deg — likely Az convention bug";
+    EXPECT_LT(altDiff, 1.0) << "Alt differs by " << altDiff << "deg";
 }
 
 // ---------------------------------------------------------------------------
@@ -929,7 +1212,7 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_Equatorial)
 TEST_F(AlignmentPluginTest, Test_SPK_ErrorRecovery)
 {
     SPKMathPlugin plugin;
-    // SPK/Pmfit usually needs more points for a robust fit, let's give it 10.
+    // 10 points gives Pmfit a well-conditioned full 6-term fit (nt=6, 14 DoF).
     RunPluginAllInAlignment(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 10);
 }
 
@@ -942,16 +1225,16 @@ TEST_F(AlignmentPluginTest, Test_SPK_AltAz)
 TEST_F(AlignmentPluginTest, Test_SPK_SouthernHemisphere)
 {
     SPKMathPlugin plugin;
-    // Test NCP recovery in Hobart
     RunPluginAllInAlignment(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)}, 10, kSydney);
 }
 
 // ---------------------------------------------------------------------------
 // SPK -- AlignValidate suite (equatorial mounts)
 //
-// SPKMathPlugin fits a 6-term Wallace pointing model (IH, ID, CH, ME, MA, TF)
+// SPKMathPlugin fits a 6-term Wallace pointing model (IH, ID, ME, MA, CH, TF)
 // via Pmfit.  NP is excluded (IA, NP, CA are correlated; negligible in
-// well-built mounts).
+// well-built mounts).  Polar-axis terms (ME, MA) precede collimation (CH) so
+// that a 3-point fit yields a well-conditioned 4-term polar solution.
 //
 // TF (tube flexure) requires a two-pass AXES call: the first pass gives the
 // initial encoder demand, the second re-evaluates at that position so the
@@ -967,7 +1250,9 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_Polar)
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_AxisErrors)
 {
     SPKMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 3, 100, 1.0);
+    // IH and ID are terms 0-1 and are fitted even at 3 points.  CH is term 4
+    // and requires 5+ points; it is tested separately in SPK_AlignValidate_CHOnly.
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)}, 3, 100, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_IHOnly)
@@ -979,13 +1264,17 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_IHOnly)
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_CHOnly)
 {
     SPKMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ch = ARCMIN_TO_DEG(20)}, 3, 100, 1.0);
+    // CH is term 4 (IH, ID, ME, MA, CH, TF); Pmfit fits terms 0..nt-1 where 5+ points yields nt=5.
+    RunPluginAlignValidate(plugin, {.ch = ARCMIN_TO_DEG(20)}, 5, 100, 1.0);
 }
 
-// NP (roll/pitch nonperpendicularity) is not fitted by Pmfit (IA, NP, CA are
-// correlated; NP excluded for robustness).  pnp stays 0.  The round-trip is
-// machine-epsilon because the two-pass AXES refinement ensures the VD
-// correction is consistent with TARG, and pnp=0 cancels exactly.
+// NP (non-perpendicularity of the RA and Dec axes) is not fitted by Pmfit,
+// but the pure-NP pointing offset is mathematically near-degenerate with the
+// (IH, CH) pair: a 12-point fit with 12' NP yields IH=+318", CH=-311" and
+// sub-arcsecond residuals. This means residual magnitude is NOT a useful
+// signal for detecting accidental NP fitting -- the two cases are
+// indistinguishable to validation. Keep the test as a regression guard on
+// the residual ceiling only.
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_NonPerp)
 {
     SPKMathPlugin plugin;
@@ -1012,8 +1301,8 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_MEOnly)
     RunPluginAlignValidate(plugin, {.me = ARCMIN_TO_DEG(5)}, 3, 100, 1.0);
 }
 
-// Zero-error baseline: computePeakError() returns 0, tolerance clamps to kTolFloorArcsec (20").
-// The model should converge to near-zero corrections and act as an identity transform.
+// Zero-error baseline: with no mount errors injected, the model should produce
+// near-zero corrections and behave as an identity transform.
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_NoErrors)
 {
     SPKMathPlugin plugin;
@@ -1102,15 +1391,15 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_EqFork_Southern)
 // SPK -- Minimal sync point boundary tests
 // ---------------------------------------------------------------------------
 
-// 6 alignment points: exactly determined for a 6-term fit.
+// 6 alignment points: full 6-term fit with 6 DoF.  Tests the 6+ sync-point path.
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_6)
 {
     SPKMathPlugin plugin;
-    RunPluginAlignValidate(plugin, kMixed, 3, 100, 1.0);
+    RunPluginAlignValidate(plugin, kMixed, 6, 100, 1.0);
 }
 
-// 2 alignment points: 4 terms fitted (IA, IB, CA + one axis error), zero DoF.
-// Exercises the outTermCount=4 path in BuildObservationData.
+// 2 alignment points: 2 terms fitted (IH, ID — index errors only), zero DoF.
+// Exercises the outTermCount=2 path in BuildObservationData.
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_2)
 {
     SPKMathPlugin plugin;
@@ -1125,8 +1414,8 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_1)
     RunPluginAllInAlignment(plugin, {.ih = ARCMIN_TO_DEG(5)}, 1);
 }
 
-// 3 alignment points: exactly determined (6 observations for 6 terms).
-// Pure polar errors injected so the fit is well-conditioned with few points.
+// 3 alignment points: 4 terms fitted (IH, ID, ME, MA), 2 DoF.
+// Pure polar errors (MA, ME) are fully recoverable with this minimal set.
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_MinimalPoints_3)
 {
     SPKMathPlugin plugin;
@@ -1158,8 +1447,30 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_Polar)
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_AxisErrors)
 {
     SPKMathPlugin plugin;
-    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3), .ch = ARCMIN_TO_DEG(8)}, 3, 100, 1.0,
+    // IA and IE are terms 0-1 and are fitted at 3 points.
+    RunPluginAlignValidate(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)}, 3, 100, 1.0,
                            kLosAngeles, ::Alignment::ALTAZ);
+}
+
+// Regression test for SPK altaz roll = pi-Az_NE convention fix.
+// See RunGotoConventionRegression for the methodology.
+// Tolerance 0.1deg: SPK fits the injected IH/ID errors exactly, so the
+// residual at a held-out point is sub-arcsecond.  A 180deg convention bug
+// would produce azDiff ~180deg.
+TEST_F(AlignmentPluginTest, SPK_AltAz_Goto_Convention_Regression)
+{
+    SPKMathPlugin plugin;
+    RunGotoConventionRegression(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)},
+                                3, 12.0, 50.0, 0.1);
+}
+
+TEST_F(AlignmentPluginTest, SPK_EQ_Polar_Mapping_Regression)
+{
+    SPKMathPlugin plugin;
+    // Inject significant ME and MA and verify the plugin maps them to the correct axes.
+    // Use 10 points to ensure a full 6-term fit is well-conditioned.
+    RunEqPolarRegression(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)},
+                         10, 18.0, 45.0, 1.0);
 }
 
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_NonPerp)
@@ -1192,8 +1503,8 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_Southern)
 // directly measures generalization accuracy rather than round-trip consistency.
 //
 // Expected behavior:
-//   - 3 pts: both SVD and SPK have zero or negative degrees of freedom for
-//     the noise realization, so residuals are large and comparable.
+//   - 3 pts: SPK fits 4 terms (IH, ID, ME, MA) with 2 DoF; SVD is near
+//     determined.  Residuals are larger than at 12 pts.
 //   - 12 pts: SPK's 6-term systematic model has 18 DoF to average down noise;
 //     SVD's general linear fit has more free parameters and averages less.
 //     SPK should show lower residuals at new sky positions.
@@ -1423,6 +1734,294 @@ TEST_F(AlignmentPluginTest, Nearest_PolarDegeneracy_AltAz_SinglePoint)
 {
     NearestMathPlugin plugin;
     RunPolarDegeneracyTestImpl(plugin, kFieldErrors, kLosAngeles, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, SPK_PolarDegeneracy_EQ_SinglePoint)
+{
+    SPKMathPlugin plugin;
+    RunPolarDegeneracyTestImpl(plugin, kFieldErrors, kLosAngeles, ::Alignment::EQ_GEM);
+}
+
+TEST_F(AlignmentPluginTest, SPK_PolarDegeneracy_AltAz_SinglePoint)
+{
+    SPKMathPlugin plugin;
+    RunPolarDegeneracyTestImpl(plugin, kFieldErrors, kLosAngeles, ::Alignment::ALTAZ);
+}
+
+// ---------------------------------------------------------------------------
+// SPK incremental hot-path tests
+//
+// Each test cold-initialises a plugin with 6 sync points (which builds the
+// NE accumulator at nt=6), adds one more point, and verifies the hot-path
+// result matches a fresh cold-initialised plugin with all 7 points.
+// ---------------------------------------------------------------------------
+
+TEST_F(AlignmentPluginTest, SPK_Incremental_MatchesCold_Equatorial)
+{
+    InMemoryDatabase db;
+    SPKMathPlugin hotPlugin;
+    auto generator = buildIncrementalDb(hotPlugin, kMixed, 6, db);
+
+    auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&hotPlugin);
+    double gmst = ln_get_apparent_sidereal_time(fixedJD);
+    double lst  = range24(gmst + DEG_TO_HOURS(kLosAngeles.longitude));
+    {
+        double ra, dec;
+        auto raw = HaltonSequence(2, 3).getRaw(7);
+        getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
+        AlignmentDatabaseEntry entry;
+        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+        db.GetAlignmentDatabase().push_back(entry);
+    }
+    ASSERT_TRUE(hotPlugin.Initialise(&db));
+
+    SPKMathPlugin coldPlugin;
+    coldPlugin.SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
+    ASSERT_TRUE(coldPlugin.Initialise(&db));
+
+    verifyHotMatchesCold(hotPlugin, coldPlugin);
+}
+
+TEST_F(AlignmentPluginTest, SPK_Incremental_MatchesCold_AltAz)
+{
+    InMemoryDatabase db;
+    SPKMathPlugin hotPlugin;
+    auto generator = buildIncrementalDb(hotPlugin, kMixed, 6, db, ::Alignment::ALTAZ);
+
+    auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&hotPlugin);
+    double gmst = ln_get_apparent_sidereal_time(fixedJD);
+    double lst  = range24(gmst + DEG_TO_HOURS(kLosAngeles.longitude));
+    {
+        double ra, dec;
+        auto raw = HaltonSequence(2, 3).getRaw(7);
+        getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
+        AlignmentDatabaseEntry entry;
+        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::ALTAZ, entry);
+        db.GetAlignmentDatabase().push_back(entry);
+    }
+    ASSERT_TRUE(hotPlugin.Initialise(&db));
+
+    SPKMathPlugin coldPlugin;
+    coldPlugin.SetApproximateMountAlignment(ZENITH);
+    ASSERT_TRUE(coldPlugin.Initialise(&db));
+
+    verifyHotMatchesCold(hotPlugin, coldPlugin, ::Alignment::ALTAZ);
+}
+
+TEST_F(AlignmentPluginTest, SPK_Incremental_InvalidStateNotUsed)
+{
+    // With fewer than 6 points (m_NE_valid=false), adding a 6th must take the
+    // cold path (which then builds the NE accumulator).  A subsequent 7th
+    // point should use the hot path and produce a sensible result.
+    InMemoryDatabase db;
+    SPKMathPlugin plugin;
+    auto generator = buildIncrementalDb(plugin, kMixed, 5, db);
+
+    auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+    double gmst = ln_get_apparent_sidereal_time(fixedJD);
+    double lst  = range24(gmst + DEG_TO_HOURS(kLosAngeles.longitude));
+
+    for (int i : {6, 7})
+    {
+        double ra, dec;
+        auto raw = HaltonSequence(2, 3).getRaw(i);
+        getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
+        AlignmentDatabaseEntry entry;
+        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+        db.GetAlignmentDatabase().push_back(entry);
+        ASSERT_TRUE(plugin.Initialise(&db));
+    }
+
+    double joff = fixedJD - ln_get_julian_from_sys();
+    TelescopeDirectionVector v;
+    ASSERT_TRUE(plugin.TransformCelestialToTelescope(12.0, 45.0, joff, v));
+    double outRA, outDec;
+    plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff);
+    EXPECT_NEAR(12.0, outRA,  kRoundTripTolHours);
+    EXPECT_NEAR(45.0, outDec, kRoundTripTolDeg);
+}
+
+TEST_F(AlignmentPluginTest, SPK_Incremental_MountTypeChange)
+{
+    // Cold-init equatorial (m_NE_mountChar='E').  Switch to AltAz.  The
+    // mountChar mismatch must force the cold path on the next Initialise call.
+    InMemoryDatabase db;
+    SPKMathPlugin plugin;
+    buildIncrementalDb(plugin, kMixed, 6, db);
+
+    plugin.SetApproximateMountAlignment(ZENITH);
+
+    InMemoryDatabase dbAz;
+    auto generatorAz = buildIncrementalDb(plugin, kMixed, 7, dbAz, ::Alignment::ALTAZ);
+    (void)generatorAz;
+
+    double joff = fixedJD - ln_get_julian_from_sys();
+    TelescopeDirectionVector v;
+    ASSERT_TRUE(plugin.TransformCelestialToTelescope(12.0, 60.0, joff, v));
+    double outRA, outDec;
+    plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff);
+    EXPECT_NEAR(12.0, outRA,  kRoundTripTolHours);
+    EXPECT_NEAR(60.0, outDec, kRoundTripTolDeg);
+}
+
+// ---------------------------------------------------------------------------
+// Driver pipeline integration tests
+//
+// These simulate what telescope_simulator.cpp does with scopesim_helper
+// outputs, catching convention mismatches (e.g. stale +-180 offsets) that
+// unit tests on individual functions miss.
+//
+// The pattern mirrors the driver's actual flow:
+//   Goto:  RA/Dec -> instrumentHaDecToMount -> axisPrimary.position = primary
+//   Read:  mountToInstrumentHaDec(axisPrimary.position, ...) -> RA/Dec
+//   Sync:  TelescopeDirectionVectorFromAltitudeAzimuth({primary.Degrees(), ...})
+//   PE:    mountToApparentHaDec(axisPrimary.position, ...) -> RA/Dec
+// ---------------------------------------------------------------------------
+
+class DriverPipelineTest : public AlignmentPluginTest
+{
+protected:
+    struct SkyPoint { double ra; double dec; };
+
+    static constexpr SkyPoint kTestPoints[] = {
+        { 3.0,  45.0},
+        { 8.0, -15.0},
+        {14.0,  70.0},
+        {20.0,  10.0},
+    };
+
+    static double getLST(INDI::IGeographicCoordinates site)
+    {
+        double gmst = ln_get_apparent_sidereal_time(fixedJD);
+        return range24(gmst + DEG_TO_HOURS(site.longitude));
+    }
+};
+
+// instrumentHaDecToMount -> mountToInstrumentHaDec round-trip for ALTAZ.
+// The driver stores instrumentHaDecToMount output directly in axisPrimary.position
+// (no +-180 conversion) and reads it back via mountToInstrumentHaDec.
+TEST_F(DriverPipelineTest, AltAz_InstrumentRoundTrip)
+{
+    ::Alignment gen = makeGenerator({}, kLosAngeles, ::Alignment::ALTAZ);
+    double lst = getLST(kLosAngeles);
+
+    for (auto [testRA, testDec] : kTestPoints)
+    {
+        Angle ha(get_local_hour_angle(lst, testRA), Angle::HOURS);
+        Angle primary, secondary;
+        gen.instrumentHaDecToMount(ha, Angle(testDec), &primary, &secondary);
+
+        // Driver does: axisPrimary.position = primary (no conversion)
+        Angle instHA, instDec;
+        gen.mountToInstrumentHaDec(primary, secondary, &instHA, &instDec);
+
+        double recoveredRA = range24(lst - instHA.Hours());
+        EXPECT_NEAR(testRA,  recoveredRA,    0.001) << "RA round-trip failed";
+        EXPECT_NEAR(testDec, instDec.Degrees(), 0.001) << "Dec round-trip failed";
+    }
+}
+
+// instrumentHaDecToMount -> mountToApparentHaDec round-trip for ALTAZ.
+// With zero mount errors, apparent == instrument, so HA/Dec should round-trip.
+// We use mountToApparentHaDec (not mountToApparentRaDec) to avoid dependency
+// on system-time LST which differs from the test's fixed JD LST.
+TEST_F(DriverPipelineTest, AltAz_ApparentRoundTrip)
+{
+    ::Alignment gen = makeGenerator({}, kLosAngeles, ::Alignment::ALTAZ);
+    double lst = getLST(kLosAngeles);
+
+    for (auto [testRA, testDec] : kTestPoints)
+    {
+        double inputHA = get_local_hour_angle(lst, testRA);
+        Angle ha(inputHA, Angle::HOURS);
+        Angle primary, secondary;
+        gen.instrumentHaDecToMount(ha, Angle(testDec), &primary, &secondary);
+
+        // With zero errors, mountToApparentHaDec should return the same HA/Dec
+        Angle apparentHa, apparentDec;
+        gen.mountToApparentHaDec(primary, secondary, &apparentHa, &apparentDec);
+
+        EXPECT_NEAR(range24(inputHA), apparentHa.Hours(), 0.001) << "HA apparent round-trip failed at RA=" << testRA;
+        EXPECT_NEAR(testDec, apparentDec.Degrees(), 0.001) << "Dec apparent round-trip failed at RA=" << testRA;
+    }
+}
+
+// Verify that instrumentHaDecToMount output yields the correct TDV when
+// passed to TelescopeDirectionVectorFromAltitudeAzimuth (the Sync path).
+// The TDV should match what EquatorialToHorizontal + TDV conversion produces.
+TEST_F(DriverPipelineTest, AltAz_SyncTDV_Convention)
+{
+    ::Alignment gen = makeGenerator({}, kLosAngeles, ::Alignment::ALTAZ);
+    SPKMathPlugin plugin;
+    auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+    double lst = getLST(kLosAngeles);
+
+    for (auto [testRA, testDec] : kTestPoints)
+    {
+        Angle ha(get_local_hour_angle(lst, testRA), Angle::HOURS);
+        Angle primary, secondary;
+        gen.instrumentHaDecToMount(ha, Angle(testDec), &primary, &secondary);
+
+        // Driver Sync path: TDV from axisPrimary.position (no conversion)
+        INDI::IHorizontalCoordinates horCoords = { primary.Degrees(), secondary.Degrees() };
+        TelescopeDirectionVector driverTDV =
+            pSupport->TelescopeDirectionVectorFromAltitudeAzimuth(horCoords);
+
+        // Reference: EquatorialToHorizontal for the same sky position
+        INDI::IEquatorialCoordinates eq = { testRA, testDec };
+        INDI::IGeographicCoordinates site = kLosAngeles;
+        INDI::IHorizontalCoordinates refAltAz;
+        INDI::EquatorialToHorizontal(&eq, &site, fixedJD, &refAltAz);
+        TelescopeDirectionVector refTDV =
+            pSupport->TelescopeDirectionVectorFromAltitudeAzimuth(refAltAz);
+
+        // TDVs should be nearly identical (no mount errors)
+        EXPECT_NEAR(refTDV.x, driverTDV.x, 1e-4) << "TDV.x mismatch at RA=" << testRA;
+        EXPECT_NEAR(refTDV.y, driverTDV.y, 1e-4) << "TDV.y mismatch at RA=" << testRA;
+        EXPECT_NEAR(refTDV.z, driverTDV.z, 1e-4) << "TDV.z mismatch at RA=" << testRA;
+    }
+}
+
+// Same pipeline tests for EQ_GEM to ensure we didn't break equatorial.
+TEST_F(DriverPipelineTest, EqGem_InstrumentRoundTrip)
+{
+    ::Alignment gen = makeGenerator({}, kLosAngeles, ::Alignment::EQ_GEM);
+    double lst = getLST(kLosAngeles);
+
+    for (auto [testRA, testDec] : kTestPoints)
+    {
+        Angle ha(get_local_hour_angle(lst, testRA), Angle::HOURS);
+        Angle primary, secondary;
+        gen.instrumentHaDecToMount(ha, Angle(testDec), &primary, &secondary);
+
+        Angle instHA, instDec;
+        gen.mountToInstrumentHaDec(primary, secondary, &instHA, &instDec);
+
+        double recoveredRA = range24(lst - instHA.Hours());
+        EXPECT_NEAR(testRA,  recoveredRA,    0.001) << "RA round-trip failed";
+        EXPECT_NEAR(testDec, instDec.Degrees(), 0.001) << "Dec round-trip failed";
+    }
+}
+
+// Southern hemisphere ALTAZ pipeline
+TEST_F(DriverPipelineTest, AltAz_InstrumentRoundTrip_Southern)
+{
+    ::Alignment gen = makeGenerator({}, kSydney, ::Alignment::ALTAZ);
+    double lst = getLST(kSydney);
+
+    for (auto [testRA, testDec] : kTestPoints)
+    {
+        Angle ha(get_local_hour_angle(lst, testRA), Angle::HOURS);
+        Angle primary, secondary;
+        gen.instrumentHaDecToMount(ha, Angle(testDec), &primary, &secondary);
+
+        Angle instHA, instDec;
+        gen.mountToInstrumentHaDec(primary, secondary, &instHA, &instDec);
+
+        double recoveredRA = range24(lst - instHA.Hours());
+        EXPECT_NEAR(testRA,  recoveredRA,    0.001) << "RA round-trip failed";
+        EXPECT_NEAR(testDec, instDec.Degrees(), 0.001) << "Dec round-trip failed";
+    }
 }
 
 int main(int argc, char **argv)

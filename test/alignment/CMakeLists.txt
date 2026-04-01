@@ -47,3 +47,4 @@ TARGET_LINK_LIBRARIES(test_alignment_plugins
 TARGET_COMPILE_DEFINITIONS(test_alignment_plugins PRIVATE NO_PLUGIN_HOOKS)
 
 ADD_TEST(test-alignment-plugins test_alignment_plugins)
+

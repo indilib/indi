@@ -29,3 +29,9 @@ Vendored copy of P.T. Wallace's SPK pointing kernel library.
   SOFA's restrictively licensed sources.
 - `vtel.c`: corrected VD (vertical deflection) formula from `pvd` to
   `pvd*cos(el)` to match the `TF` coefficient shape used by `pmfit.c`.
+- `pmfit.c`: reordered `Bfun` basis functions so that polar-axis terms
+  (ME/MA for equatorial, AN/AW for altazimuth) precede collimation (CH/CA).
+  Original upstream order: IH, ID, CH, ME, MA, TF / IA, IE, CA, AN, AW, TF.
+  INDI order: IH, ID, ME, MA, CH, TF / IA, IE, AN, AW, CA, TF.
+  This ensures a 3-point fit produces a well-conditioned 4-term polar solution
+  (IH, ID, ME, MA) rather than including the correlated collimation term.
