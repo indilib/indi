@@ -24,9 +24,6 @@
 
 /**
  * @brief Driver for the Wanderer Snowflake filter wheel family.
- *
- * The device uses a numeric serial protocol described in
- * Wanderer_Snowflake_Filter_Wheel_Serial_Protocol_v20260124_Rev1.pdf.
  */
 class WandererSnowflakeFW : public INDI::FilterWheel
 {

@@ -56,7 +56,6 @@ bool WandererSnowflakeFW::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
-    // Protocol: 19200 8N1. INDI serial defaults are already 8N1; only baud must be set.
     if (serialConnection != nullptr)
         serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -289,7 +288,6 @@ bool WandererSnowflakeFW::sendCommand(const char *command, char *response, int r
     if (PortFD < 0)
         return false;
 
-    // Protocol text commands are CR-terminated (Wanderer serial docs / common UART practice).
     char line[48];
     const int linelen = std::snprintf(line, sizeof(line), "%s\r", command);
     if (linelen <= 0 || linelen >= static_cast<int>(sizeof(line)))
@@ -298,10 +296,6 @@ bool WandererSnowflakeFW::sendCommand(const char *command, char *response, int r
         return false;
     }
 
-    // For move commands (no response read), do not flush RX: while the wheel is turning the
-    // buffer fills with status; flushing can discard data and timing can make the next write
-    // look like a failure on older builds that still read a fixed reply after 200X.
-    // Flush RX only when we wait for an optional line reply (e.g. 1500002).
     if (response != nullptr && responseLen > 1)
         tcflush(PortFD, TCIFLUSH);
 
@@ -316,8 +310,7 @@ bool WandererSnowflakeFW::sendCommand(const char *command, char *response, int r
     if (response == nullptr || responseLen <= 1)
         return true;
 
-    // Optional line reply (e.g. "NP") — read until CR/LF, not a fixed byte count (tty_read
-    // would otherwise soak arbitrary bytes from the status stream).
+
     rc = tty_read_section(PortFD, response, '\r', timeoutSeconds, &nbytes_read);
     if (rc != TTY_OK)
         rc = tty_read_section(PortFD, response, '\n', timeoutSeconds, &nbytes_read);
@@ -439,11 +432,6 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
     if (PortFD < 0)
         return false;
 
-    // Status format (Wanderer Snowflake serial protocol):
-    // <Model>A<FirmwareVersion>A<CurrentFilter>A<8 filter names>A<offsets>...A<DeviceID>A
-    //
-    // tty_read_section includes the delimiter 'A' in the buffer — strip before parsing.
-    // Resync: skip A-fields until one looks like the model (WSFW…), then firmware, then slot.
 
     constexpr int maxResync = 32;
     bool haveModel = false;
@@ -498,7 +486,6 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
         return false;
     }
 
-    /* Resync consumed partial frames; flush RX and try three A-fields from a fresh boundary. */
     tcflush(PortFD, TCIFLUSH);
     usleep(150000);
     LOG_DEBUG("No WSFW token after resync; flushed RX and trying 3-field status read.");
