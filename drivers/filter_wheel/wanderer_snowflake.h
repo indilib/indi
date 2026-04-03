@@ -1,4 +1,6 @@
 /*******************************************************************************
+  Copyright(c) 2026 Jérémie Klein. All rights reserved.
+
   Wanderer Snowflake Filter Wheel Driver
 
   This library is free software; you can redistribute it and/or
