@@ -405,5 +405,5 @@ SET(alpaca_focuser_SRC
     indi_alpaca_focuser.cpp)
 
 add_executable(indi_alpaca_focuser ${alpaca_focuser_SRC})
-target_link_libraries(indi_alpaca_focuser indidriver)
+target_link_libraries(indi_alpaca_focuser indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_focuser RUNTIME DESTINATION bin)

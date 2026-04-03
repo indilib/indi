@@ -91,5 +91,5 @@ SET(alpaca_filterwheel_SRC
     indi_alpaca_filterwheel.cpp)
 
 add_executable(indi_alpaca_filterwheel ${alpaca_filterwheel_SRC})
-target_link_libraries(indi_alpaca_filterwheel indidriver)
+target_link_libraries(indi_alpaca_filterwheel indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_filterwheel RUNTIME DESTINATION bin)
