@@ -35,7 +35,9 @@ class WandererSnowflakeFW : public INDI::FilterWheel
         // INDI::DefaultDevice overrides
         const char *getDefaultName() override;
         bool initProperties() override;
+        bool updateProperties() override;
         bool Handshake() override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         // INDI::FilterInterface overrides
         int QueryFilter() override;
@@ -44,5 +46,12 @@ class WandererSnowflakeFW : public INDI::FilterWheel
     private:
         bool readCurrentFilterFromStatus(int &position);
         bool sendCommand(const char *command, char *response, int responseLen, int timeoutSeconds);
+        /** Protocol command 1500002 — automatic calibration before next filter change. */
+        bool sendAutomaticCalibration();
+        /** Zero position detection (command in .cpp — verify against protocol PDF). */
+        bool sendZeroDetection();
+
+        ISwitch CalibrationCmdS[2] {};
+        ISwitchVectorProperty CalibrationCmdSP {};
 };
 
