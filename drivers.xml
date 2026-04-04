@@ -777,7 +777,7 @@
             <driver name="ioptron Wheel">indi_ioptron_wheel</driver>
             <version>1.0</version>
         </device>
-        <device label="Wanderer Snowflake" manufacturer="Wanderer">
+        <device label="Wanderer Snowflake" manufacturer="Wanderer Astro">
             <driver name="Wanderer Snowflake Filter Wheel">indi_wanderer_snowflake_wheel</driver>
             <version>1.0</version>
         </device>
