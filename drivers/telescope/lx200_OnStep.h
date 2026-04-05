@@ -24,6 +24,7 @@
 
     ===========================================
 
+    Version 1.26: Fix issues due to migration to new INDI properties.
     Version 1.25: Refactor driver to use INDI new properties.
     Version 1.24: During manual slew, only send back RA & DE.
     Version not yet updated/No INDI release:
@@ -310,7 +311,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         INDI::PropertyNumber BacklashNP {2};
         INDI::PropertyNumber ElevationLimitNP {2};
 
-        INDI::PropertyText VersionTP {5};
+        INDI::PropertyText VersionTP {4};
 
         OnStepVersion OnStepMountVersion = OSV_UNKNOWN;
 
@@ -326,7 +327,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         // Focuser controls
         // Focuser 1
         bool OSFocuser1 = false;
-        INDI::PropertySwitch OSFocus1InitializeSP {4};
+        INDI::PropertySwitch OSFocus1InitializeSP {2};
 
         // Focus T° Compensation
         INDI::PropertyNumber FocusTemperatureNP {2};
@@ -384,7 +385,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         INDI::PropertySwitch OSNAlignWriteSP {1};
         INDI::PropertySwitch OSNAlignPolarRealignSP {2};
         INDI::PropertyText OSNAlignTP {8};
-        INDI::PropertyText OSNAlignErrTP {4};
+        INDI::PropertyText OSNAlignErrTP {2};
         char OSNAlignStat[RB_MAX_LEN];
 
         // Note: OSOutput1SP and OSOutput2SP are deprecated in favor of OutputPorts_NP

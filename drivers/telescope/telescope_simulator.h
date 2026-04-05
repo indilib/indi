@@ -55,6 +55,8 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
     protected:
         // Slew Rate
@@ -178,6 +180,10 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
         INDI::PropertyNumber flipHourAngleNP {1};
         INDI::PropertyNumber decBacklashNP {1};
+
+        INDI::PropertyText PACDeviceTP {1};
+        double m_snoopedAzError { 0 };
+        double m_snoopedAltError { 0 };
 
 #endif
 

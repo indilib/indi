@@ -20,6 +20,7 @@
 #include "scopesim_helper.h"
 
 #include "indicom.h"
+#include "lilxml.h"
 
 #include <cmath>
 #include <cstring>
@@ -115,6 +116,14 @@ bool ScopeSim::initProperties()
     decBacklashNP.fill(getDeviceName(), "DEC_BACKLASH", "DEC Backlash",
                        "Simulation", IP_RW, 0, IPS_IDLE);
 
+    PACDeviceTP[0].fill("PAC_DEVICE", "Alignment Corrector", "Alignment Correction Simulator");
+    PACDeviceTP.fill(getDeviceName(), "ACTIVE_PAC", "Polar Alignment Corrector", "Simulation", IP_RW, 60, IPS_IDLE);
+    PACDeviceTP.load();
+
+    const char *pacDevice = PACDeviceTP[0].getText();
+    if (pacDevice && strlen(pacDevice) > 0)
+        IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
+
 #endif
 
     /* How fast do we guide compared to sidereal rate */
@@ -168,6 +177,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     flipHourAngleNP.load();
     defineProperty(decBacklashNP);
     decBacklashNP.load();
+    defineProperty(PACDeviceTP);
+    PACDeviceTP.load();
 #endif
     double Latitude = LocationNP[LOCATION_LATITUDE].getValue();
     m_sinLat = std::sin(Latitude * 0.0174533);
@@ -215,6 +226,12 @@ bool ScopeSim::updateProperties()
         }
 
         sendTimeFromSystem();
+
+#ifdef USE_SIM_TAB
+        const char *pacDevice = PACDeviceTP[0].getText();
+        if (pacDevice && strlen(pacDevice) > 0)
+            IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
+#endif
     }
     else
     {
@@ -253,7 +270,7 @@ bool ScopeSim::ReadScopeStatus()
         double sinAlt = std::sin(DEG_TO_RAD(m_currentAlt));
         double cosAlt = std::cos(DEG_TO_RAD(m_currentAlt));
         SetTrackRate((m_sinLat - ((cosAz * sinAlt * m_cosLat) / cosAlt)) * TRACKRATE_SIDEREAL,
-                      m_cosLat * sinAz * TRACKRATE_SIDEREAL);
+                     m_cosLat * sinAz * TRACKRATE_SIDEREAL);
     }
 
     // SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
@@ -534,6 +551,95 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+#ifdef USE_SIM_TAB
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (PACDeviceTP.isNameMatch(name))
+        {
+            PACDeviceTP.setState(IPS_OK);
+            PACDeviceTP.update(texts, names, n);
+            PACDeviceTP.apply();
+
+            const char *pacDevice = PACDeviceTP[0].getText();
+            if (pacDevice && strlen(pacDevice) > 0)
+                IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
+
+            saveConfig(PACDeviceTP);
+            return true;
+        }
+    }
+#endif
+    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
+}
+
+bool ScopeSim::ISSnoopDevice(XMLEle *root)
+{
+#ifdef USE_SIM_TAB
+    const char *propName   = findXMLAttValu(root, "name");
+    const char *deviceName = findXMLAttValu(root, "device");
+    const char *pacDevice  = PACDeviceTP[0].getText();
+
+    if (pacDevice && strlen(pacDevice) > 0 && deviceName && strcmp(deviceName, pacDevice) == 0)
+    {
+        if (!strcmp(propName, "PAC_MANUAL_ADJUSTMENT"))
+        {
+            // Capture the step values (AZ and ALT) whenever the property is updated.
+            // PAC_MANUAL_ADJUSTMENT[MANUAL_AZ_STEP]  > 0 → East,  < 0 → West
+            // PAC_MANUAL_ADJUSTMENT[MANUAL_ALT_STEP] > 0 → North, < 0 → South
+            XMLEle *ep = nullptr;
+            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            {
+                const char *elemName = findXMLAttValu(ep, "name");
+                if (!strcmp(elemName, "MANUAL_AZ_STEP"))
+                    m_snoopedAzError = atof(pcdataXMLEle(ep));
+                else if (!strcmp(elemName, "MANUAL_ALT_STEP"))
+                    m_snoopedAltError = atof(pcdataXMLEle(ep));
+            }
+
+            // Only update the mount model once the physical move has completed (state = Ok).
+            const char *stateStr = findXMLAttValu(root, "state");
+            if (!strcmp(stateStr, "Ok"))
+            {
+                // The PAA's azStep and MM_MA use opposite sign conventions:
+                //   azStep > 0 (correction East) ↔ MM_MA decreases in the model
+                // Adding m_snoopedAzError to the current MM_MA correctly simulates
+                // the physical delta correction applied to the mount.
+                double oldMA = mountModelNP[MM_MA].getValue();
+                double oldME = mountModelNP[MM_ME].getValue();
+                double newMA = oldMA + m_snoopedAzError;
+                double newME = oldME + m_snoopedAltError;
+
+                mountModelNP[MM_MA].setValue(newMA);
+                mountModelNP[MM_ME].setValue(newME);
+                alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
+                                         mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
+                                         mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
+
+                mountModelNP.setState(IPS_OK);
+                mountModelNP.apply();
+
+                LOGF_INFO("Applied PAC correction: MA %.4f -> %.4f, ME %.4f -> %.4f",
+                          oldMA, newMA, oldME, newME);
+
+                // Force an immediate coordinate update so that the next CCD capture
+                // uses the corrected pointing rather than waiting up to one full
+                // polling cycle (default 500 ms) for ReadScopeStatus to run.
+                Angle immediateRa, immediateDec;
+                alignment.mountToApparentRaDec(axisPrimary.position, axisSecondary.position,
+                                               &immediateRa, &immediateDec);
+                m_currentRA  = immediateRa.Hours();
+                m_currentDEC = immediateDec.Degrees();
+                NewRaDec(m_currentRA, m_currentDEC);
+            }
+            return true;
+        }
+    }
+#endif
+    return INDI::Telescope::ISSnoopDevice(root);
+}
+
 bool ScopeSim::Abort()
 {
     axisPrimary.Abort();
@@ -729,6 +835,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     mountModelNP.save(fp);
     flipHourAngleNP.save(fp);
     decBacklashNP.save(fp);
+    PACDeviceTP.save(fp);
 
 #endif
     return true;

@@ -132,7 +132,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
          * @return True if transformation is successful, false otherwise.
          */
         bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                                           double &RightAscension, double &Declination);
+                                           double &RightAscension, double &Declination, double JulianOffset = 0);
 
     private:
         void EnumeratePlugins();
@@ -162,7 +162,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
                 double JulianOffset,
                 TelescopeDirectionVector &TelescopeDirectionVector);
         bool (MathPlugin::*pTransformTelescopeToCelestial)(const TelescopeDirectionVector &TelescopeDirectionVector,
-                double &RightAscension, double &Declination);
+                double &RightAscension, double &Declination, double JulianOffset);
         MathPlugin *pLoadedMathPlugin;
         void *LoadedMathPluginHandle;
 

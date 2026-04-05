@@ -22,6 +22,10 @@
 
 #include "defaultdevice.h"
 #include "indiimuinterface.h"
+#include "imusensorfusion.h"
+
+#include <chrono>
+#include <memory>
 
 namespace Connection
 {
@@ -183,6 +187,38 @@ class IMU : public DefaultDevice, public IMUInterface
         // Magnetic Declination
         INDI::PropertyNumber MagneticDeclinationNP {1};
 
+        // ── Sensor Fusion properties ──────────────────────────────────────────
+        //
+        // These are shown in the IMU tab when the driver does NOT provide its own
+        // hardware orientation output (i.e., when !HasOrientation()).
+        // Drivers that perform on-chip fusion (e.g. BNO08x) call SetOrientationData()
+        // directly and do not need these properties.
+
+        enum SensorFusionSwitch
+        {
+            FUSION_ENABLE  = 0,
+            FUSION_DISABLE = 1
+        };
+
+        enum FusionTypeSwitch
+        {
+            FUSION_MADGWICK = 0,
+            FUSION_MAHONY   = 1
+        };
+
+        enum FusionParam
+        {
+            FUSION_PARAM_1 = 0, ///< β for Madgwick; Kp for Mahony
+            FUSION_PARAM_2 = 1  ///< unused for Madgwick; Ki for Mahony
+        };
+
+        /// Enable / Disable software sensor fusion
+        INDI::PropertySwitch SensorFusionSP {2};
+        /// Select fusion algorithm: Madgwick or Mahony
+        INDI::PropertySwitch FusionTypeSP {2};
+        /// Algorithm tuning parameters (β for Madgwick; Kp & Ki for Mahony)
+        INDI::PropertyNumber FusionParamsNP {2};
+
         Connection::Serial *serialConnection = nullptr;
         Connection::I2C *i2cConnection       = nullptr;
 
@@ -203,6 +239,27 @@ class IMU : public DefaultDevice, public IMUInterface
         double last_raw_q_j = 0.0;
         double last_raw_q_k = 0.0;
         double last_raw_q_w = 1.0; // Default to identity quaternion
+
+        // ── Software sensor fusion ────────────────────────────────────────────
+        std::unique_ptr<IMUSensorFusion> m_SensorFusion; ///< Active filter instance
+
+        /// Buffered raw sensor readings (used as fusion inputs)
+        struct RawSensorData
+        {
+            double x {0.0}, y {0.0}, z {0.0};
+            bool valid {false};
+        };
+        RawSensorData m_RawAccel, m_RawGyro, m_RawMag;
+
+        /// Timestamp of the last fusion update (for dt calculation)
+        std::chrono::steady_clock::time_point m_LastFusionTime;
+        bool m_FusionTimerInitialized {false};
+
+        /// Returns true when sensor fusion is enabled
+        bool isFusionEnabled() const;
+
+        /// Rebuild the filter object after an algorithm or parameter change
+        void recreateFusionFilter();
 
     protected:
         // Function to recalculate astronomical coordinates using last known quaternion

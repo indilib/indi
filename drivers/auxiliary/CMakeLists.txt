@@ -143,6 +143,30 @@ add_executable(indi_simulator_dustcover ${dustcoversimulator_SRC})
 target_link_libraries(indi_simulator_dustcover indidriver)
 install(TARGETS indi_simulator_dustcover RUNTIME DESTINATION bin)
 
+# ########## PAC Simulator (Polar Alignment Correction) ###############
+SET(pacsimulator_SRC
+    pac_simulator.cpp)
+
+add_executable(indi_simulator_pac ${pacsimulator_SRC})
+target_link_libraries(indi_simulator_pac indidriver)
+install(TARGETS indi_simulator_pac RUNTIME DESTINATION bin)
+
+# ########## Avalon UPAS (Universal Polar Alignment System) ###############
+SET(avalon_upas_SRC
+    avalon_upas.cpp)
+
+add_executable(indi_avalon_upas ${avalon_upas_SRC})
+target_link_libraries(indi_avalon_upas indidriver)
+install(TARGETS indi_avalon_upas RUNTIME DESTINATION bin)
+
+# ########## MLAstro RPA (Robotic Polar Alignment) ###############
+SET(mlastro_rpa_SRC
+    mlastro_rpa.cpp)
+
+add_executable(indi_mlastro_rpa ${mlastro_rpa_SRC})
+target_link_libraries(indi_mlastro_rpa indidriver)
+install(TARGETS indi_mlastro_rpa RUNTIME DESTINATION bin)
+
 
 # ########## RB Focus Excalibur ###############
 SET(Excalibur_SRC
@@ -330,3 +354,11 @@ SET(startech_hub_SRC
 add_executable(indi_startech_hub ${startech_hub_SRC})
 target_link_libraries(indi_startech_hub indidriver)
 install(TARGETS indi_startech_hub RUNTIME DESTINATION bin)
+
+# ########## Wake-on-LAN ###############
+SET(wake_on_lan_SRC
+    wake_on_lan.cpp)
+
+add_executable(indi_wake_on_lan ${wake_on_lan_SRC})
+target_link_libraries(indi_wake_on_lan indidriver)
+install(TARGETS indi_wake_on_lan RUNTIME DESTINATION bin)

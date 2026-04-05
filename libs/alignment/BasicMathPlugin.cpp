@@ -591,7 +591,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 }
 
 bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-        double &RightAscension, double &Declination)
+        double &RightAscension, double &Declination, double JulianOffset)
 {
     IGeographicCoordinates Position;
 
@@ -625,7 +625,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                               ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
                     //ASSDEBUGF("ActualVector x %lf y %lf z %lf", RotatedTDV.x, RotatedTDV.y, RotatedTDV.z);
                     AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ActualAltAz);
-                    HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+                    HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualRaDec);
                 }
                 break;
 
@@ -663,7 +663,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             if (ApproximateMountAlignment == ZENITH)
             {
                 AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
-                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualRaDec);
             }
             else
             {
@@ -796,7 +796,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             if (ApproximateMountAlignment == ZENITH)
             {
                 AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
-                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualRaDec);
             }
             else
             {

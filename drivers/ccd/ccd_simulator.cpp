@@ -82,7 +82,7 @@ bool CCDSim::setupParameters()
     // For ALTAZ-mount this variable is altered consecutively by the value of the parallactic
     // angle (transfered through a signal from KStars/skymapdrawabstract.cpp) and this way used
     // to simulate the deviation of the camera orientation from N.
-    m_CameraRotation = SimulatorSettingsNP[SIM_ROTATION].getValue();
+    m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
@@ -125,14 +125,14 @@ bool CCDSim::initProperties()
     CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
     addCaptureFormat(format);
 
-    SimulatorSettingsNP[SIM_XRES].fill("SIM_XRES", "CCD X resolution", "%4.0f", 512, 8192, 512, 1280);
-    SimulatorSettingsNP[SIM_YRES].fill("SIM_YRES", "CCD Y resolution", "%4.0f", 512, 8192, 512, 1024);
-    SimulatorSettingsNP[SIM_XSIZE].fill("SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
-    SimulatorSettingsNP[SIM_YSIZE].fill("SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 1, 30, 5, 5.2);
-    SimulatorSettingsNP[SIM_MAXVAL].fill("SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 255, 65000, 1000, 65000);
+    SimulatorSettingsNP[SIM_XRES].fill("SIM_XRES", "X resolution", "%4.0f", 512, 8192, 512, 1280);
+    SimulatorSettingsNP[SIM_YRES].fill("SIM_YRES", "Y resolution", "%4.0f", 512, 8192, 512, 1024);
+    SimulatorSettingsNP[SIM_XSIZE].fill("SIM_XSIZE", "X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
+    SimulatorSettingsNP[SIM_YSIZE].fill("SIM_YSIZE", "Y Pixel Size", "%4.2f", 1, 30, 5, 5.2);
+    SimulatorSettingsNP[SIM_MAXVAL].fill("SIM_MAXVAL", "Maximum ADU", "%4.0f", 255, 65000, 1000, 65000);
     SimulatorSettingsNP[SIM_SATURATION].fill("SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 1, 1.0);
     SimulatorSettingsNP[SIM_LIMITINGMAG].fill("SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 1, 17.0);
-    SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 500, 10);
+    SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "Noise", "%4.0f", 0, 6000, 500, 10);
     SimulatorSettingsNP[SIM_SKYGLOW].fill("SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 500, 19.5);
     SimulatorSettingsNP[SIM_OAGOFFSET].fill("SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 500, 0);
     SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 100, 0);
@@ -140,7 +140,7 @@ bool CCDSim::initProperties()
     SimulatorSettingsNP[SIM_PE_PERIOD].fill("SIM_PEPERIOD", "PE Period (seconds)", "%4.1f", 0, 60, 5, 0);
     SimulatorSettingsNP[SIM_PE_MAX].fill("SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
     SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
-    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
+    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation Offset", "%.2f", -180, 180, 10, 0);
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
@@ -617,14 +617,18 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
             pprx, ppry, Scalex, Scaley);
 #endif
-        m_CameraRotation = SimulatorSettingsNP[SIM_ROTATION].getValue();
-        double theta = m_CameraRotation;
+        m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
+        double theta = m_RotationOffset;
+        // With a rotator device "RotatorAngle" is snooped and defined, so the
+        // resulting camera rotation is the addition of offset and rotator angle.
         if (!std::isnan(RotatorAngle))
             theta += RotatorAngle;
+        // Without a rotator device ("Manual Rotator") the rotator angle is
+        // considered fixed to 0° and the camera rotation is equal to offset
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
         theta = range360(theta);
-        LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, m_CameraRotation);
+        LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, theta);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
         // TS: 2025-06-09: Below we have "Invert horizontally" and in the end

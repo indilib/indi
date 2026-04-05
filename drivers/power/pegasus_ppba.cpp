@@ -860,7 +860,7 @@ bool PegasusPPBA::getMetricsData()
         if (PI::PowerChannelCurrentNP.size() > 0)
         {
             PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
-            if (lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
+            if (lastMetricsData.size() < PC_N || lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
             {
                 PI::PowerChannelCurrentNP.setState(IPS_OK);
                 PI::PowerChannelCurrentNP.apply();
@@ -872,8 +872,7 @@ bool PegasusPPBA::getMetricsData()
         if (PI::DewChannelCurrentNP.size() > 1)
             PI::DewChannelCurrentNP[1].setValue(std::stod(result[PC_DEWB_CURRENT]));
         if (lastMetricsData.size() < PC_N ||
-                lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT]
-                || // Total current is not directly mapped to PI properties, but we keep it for change detection
+                lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] ||
                 lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
                 lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
         {

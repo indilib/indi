@@ -24,6 +24,14 @@ add_executable(indi_pegasus_upb ${pegasus_upb_SRC})
 target_link_libraries(indi_pegasus_upb indidriver)
 install(TARGETS indi_pegasus_upb RUNTIME DESTINATION bin)
 
+# ########## Pegasus Ultimate Power Box V3 Driver ###############
+SET(pegasus_upb3_SRC
+    pegasus_upb3.cpp)
+
+add_executable(indi_pegasus_upb3 ${pegasus_upb3_SRC})
+target_link_libraries(indi_pegasus_upb3 indidriver)
+install(TARGETS indi_pegasus_upb3 RUNTIME DESTINATION bin)
+
 # ########## Pegasus Pocket Power Box Driver ###############
 SET(pegasus_ppb_SRC
     pegasus_ppb.cpp)

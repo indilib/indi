@@ -21,3 +21,13 @@ SET(alpacaccd_SRC
 add_executable(indi_alpaca_ccd ${alpacaccd_SRC})
 target_link_libraries(indi_alpaca_ccd indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_ccd RUNTIME DESTINATION bin)
+
+# ########## Seestar CCD ##############
+SET(seestarccd_SRC
+    indi_seestar_ccd.cpp
+    indi_alpaca_ccd.cpp)
+
+add_executable(indi_seestar_ccd ${seestarccd_SRC})
+target_compile_definitions(indi_seestar_ccd PRIVATE INDI_ALPACA_CCD_NO_INSTANCE)
+target_link_libraries(indi_seestar_ccd indidriver ${HTTPLIB_LIBRARY})
+install(TARGETS indi_seestar_ccd RUNTIME DESTINATION bin)

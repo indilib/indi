@@ -155,6 +155,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indifocuserinterface.cpp
     indigpsinterface.cpp
     indiweatherinterface.cpp
+    imusensorfusion.cpp
     indiimuinterface.cpp
     indifocuser.cpp
     indirotator.cpp
@@ -169,6 +170,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indigps.cpp
     indiimu.cpp        
     indiweather.cpp
+    indipacinterface.cpp
     indidustcapinterface.cpp
     indilightboxinterface.cpp
     indilogger.cpp
@@ -218,10 +220,12 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indidome.h
     indigps.h
     indilightboxinterface.h
+    indipacinterface.h
     indidustcapinterface.h
     indiweather.h
     indilogger.h
     indicontroller.h
+    imusensorfusion.h
     indiimuinterface.h
     indiimu.h
     indiusbdevice.h

@@ -77,7 +77,8 @@ class RTLSDR : public INDI::Receiver
         // Struct to keep timing
         struct timeval IntStart;
         float IntegrationRequest;
-        uint8_t *continuum;
+        uint8_t *real;
+        uint8_t *imaginary;
 
         int32_t receiverIndex = { 0 };
 

@@ -132,24 +132,35 @@ void WeatherInterface::checkWeatherUpdate()
     {
         // Ok
         case IPS_OK:
+            syncCriticalParameters();
 
-            if (syncCriticalParameters())
+            // Override weather state if required - checked unconditionally so it is
+            // always enforced even when critical parameter states have not changed.
+            if (OverrideSP[0].getState() == ISS_ON)
             {
-                // Override weather state if required
-                if (OverrideSP[0].getState() == ISS_ON)
+                critialParametersLP.setState(IPS_OK);
+
+                // Update SafetyStatusLP to match override status (only if different)
+                if (SafetyStatusLP.getState() != IPS_OK)
                 {
-                    critialParametersLP.setState(IPS_OK);
-
-                    // Update SafetyStatusLP to match override status (only if different)
-                    if (SafetyStatusLP.getState() != IPS_OK)
-                    {
-                        SafetyStatusLP.setState(IPS_OK);
-                        SafetyStatusLP.apply();
-                    }
+                    SafetyStatusLP.setState(IPS_OK);
+                    SafetyStatusLP.apply();
                 }
-
-                critialParametersLP.apply();
             }
+
+            // If no critical parameters are defined, syncCriticalParameters() returns
+            // early without ever touching SafetyStatusLP. Ensure it still reflects
+            // that the weather reading itself is OK so safety monitors see green.
+            if (critialParametersLP.count() == 0 && SafetyStatusLP.getState() != IPS_OK)
+            {
+                SafetyStatusLP.setState(IPS_OK);
+                SafetyStatusLP.apply();
+            }
+
+            // Always push the light property so clients stay in sync (e.g. after a
+            // reconnect where preStates matched and syncCriticalParameters returned false).
+            if (critialParametersLP.count() > 0)
+                critialParametersLP.apply();
 
             ParametersNP.setState(state);
             ParametersNP.apply();
@@ -167,8 +178,14 @@ void WeatherInterface::checkWeatherUpdate()
             ParametersNP.apply();
             break;
 
-        // Weather update is in progress
+        // Weather update is in progress - only transition the state once to IPS_BUSY
+        // so clients know an update is underway, without spamming them on every 5s retry.
         default:
+            if (ParametersNP.getState() != IPS_BUSY)
+            {
+                ParametersNP.setState(IPS_BUSY);
+                ParametersNP.apply();
+            }
             break;
     }
 
@@ -231,17 +248,17 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
     // Update period
     if (UpdatePeriodNP.isNameMatch(name))
     {
-        UpdatePeriodNP.update(values, names, n);
-        UpdatePeriodNP.setState(IPS_OK);
-        UpdatePeriodNP.apply();
-
-        if (UpdatePeriodNP[0].getValue() == 0)
-            LOG_INFO("Periodic updates are disabled.");
-        else
+        m_defaultDevice->updateProperty(UpdatePeriodNP, values, names, n, [this, values]()
         {
-            m_UpdateTimer.setInterval(UpdatePeriodNP[0].getValue() * 1000);
-            m_UpdateTimer.start();
-        }
+            if (values[0] == 0)
+                LOG_INFO("Periodic updates are disabled.");
+            else
+            {
+                m_UpdateTimer.setInterval(values[0] * 1000);
+                m_UpdateTimer.start();
+            }
+            return true;
+        }, true);
         return true;
     }
     else
@@ -251,14 +268,13 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
         {
             if (oneRange.isNameMatch(name))
             {
-                oneRange.update(values, names, n);
-
-                if (syncCriticalParameters())
-                    critialParametersLP.apply();
-
-                oneRange.setState(IPS_OK);
-                oneRange.apply();
-                m_defaultDevice->saveConfig(oneRange);
+                m_defaultDevice->updateProperty(oneRange, values, names, n, [this, &oneRange, values, names, n]()
+                {
+                    oneRange.update(values, names, n);
+                    if (syncCriticalParameters())
+                        critialParametersLP.apply();
+                    return true;
+                }, true);
                 return true;
             }
         }

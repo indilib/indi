@@ -38,13 +38,32 @@
 #endif
 
 // We declare an auto pointer to AlpacaCCD
+#ifndef INDI_ALPACA_CCD_NO_INSTANCE
 std::unique_ptr<AlpacaCCD> alpaca_ccd(new AlpacaCCD());
+#endif
 
 AlpacaCCD::AlpacaCCD()
 {
     // Set initial CCD capabilities based on ASCOM Alpaca Camera API
     SetCCDCapability(INDI::CCD::CCD_CAN_ABORT | INDI::CCD::CCD_CAN_BIN | INDI::CCD::CCD_CAN_SUBFRAME |
                      INDI::CCD::CCD_HAS_COOLER | INDI::CCD::CCD_HAS_SHUTTER);
+}
+
+void AlpacaCCD::setDefaultServerAddress(const char *host, const char *port, bool force)
+{
+    if (host != nullptr)
+    {
+        const char *currentHost = ServerAddressTP[0].getText();
+        if (force || currentHost == nullptr || strlen(currentHost) == 0)
+            ServerAddressTP[0].setText(host);
+    }
+
+    if (port != nullptr)
+    {
+        const char *currentPort = ServerAddressTP[1].getText();
+        if (force || currentPort == nullptr || strlen(currentPort) == 0)
+            ServerAddressTP[1].setText(port);
+    }
 }
 
 bool AlpacaCCD::initProperties()
@@ -994,35 +1013,7 @@ bool AlpacaCCD::sendAlpacaPUT(const std::string& endpoint, const nlohmann::json&
     }
 
     std::string url = getAlpacaURL(endpoint);
-
-    // Convert JSON to form data for Alpaca compatibility
-    std::string form_data;
-    for (auto& [key, value] : request.items())
-    {
-        if (!form_data.empty()) form_data += "&";
-
-        if (value.is_string())
-        {
-            form_data += key + "=" + value.get<std::string>();
-        }
-        else if (value.is_number_integer())
-        {
-            form_data += key + "=" + std::to_string(value.get<int>());
-        }
-        else if (value.is_number_float())
-        {
-            form_data += key + "=" + std::to_string(value.get<double>());
-        }
-        else if (value.is_boolean())
-        {
-            form_data += key + "=" + (value.get<bool>() ? "true" : "false");
-        }
-    }
-
-    // Add ClientID and ClientTransactionID to form data
-    if (!form_data.empty()) form_data += "&";
-    form_data += "ClientID=" + std::to_string(getpid());
-    form_data += "&ClientTransactionID=" + std::to_string(getTransactionId());
+    std::string form_data = buildAlpacaFormData(request);
 
     httplib::Headers headers =
     {
@@ -1140,43 +1131,8 @@ bool AlpacaCCD::alpacaGetImageArrayImageBytes(uint8_t** buffer, size_t* buffer_s
 
     // Convert from little-endian if needed (most systems are little-endian already)
     // Note: The spec requires little-endian format for maximum compatibility
-
-    // Validate metadata version as per section 8.7.1
-    if (metadata->MetadataVersion != 1)
-    {
-        LOGF_ERROR("Unsupported ImageBytes metadata version: %d", metadata->MetadataVersion);
+    if (!parseImageBytesMetadata(metadata, result->body.size()))
         return false;
-    }
-
-    // Check for errors as per section 8.9
-    if (metadata->ErrorNumber != 0)
-    {
-        // Extract UTF8 error message from data section
-        size_t error_msg_size = result->body.size() - metadata->DataStart;
-        if (static_cast<size_t>(metadata->DataStart) < result->body.size() && error_msg_size > 0)
-        {
-            std::string error_msg(result->body.data() + metadata->DataStart, error_msg_size);
-            LOGF_ERROR("Alpaca ImageBytes error %d: %s", metadata->ErrorNumber, error_msg.c_str());
-        }
-        else
-        {
-            LOGF_ERROR("Alpaca ImageBytes error %d (no message)", metadata->ErrorNumber);
-        }
-        return false;
-    }
-
-    // Validate dimensions
-    if (metadata->Rank < 2 || metadata->Rank > 3)
-    {
-        LOGF_ERROR("Invalid image rank: %d (must be 2 or 3)", metadata->Rank);
-        return false;
-    }
-
-    if (metadata->Dimension1 <= 0 || metadata->Dimension2 <= 0)
-    {
-        LOGF_ERROR("Invalid image dimensions: %dx%d", metadata->Dimension1, metadata->Dimension2);
-        return false;
-    }
 
     // Calculate expected data size based on transmission element type
     size_t bytes_per_element;
@@ -1231,6 +1187,83 @@ bool AlpacaCCD::alpacaGetImageArrayImageBytes(uint8_t** buffer, size_t* buffer_s
     LOGF_DEBUG("ImageBytes: %dx%dx%d, type %d->%d, %zu bytes",
                metadata->Dimension1, metadata->Dimension2, planes,
                metadata->ImageElementType, metadata->TransmissionElementType, *buffer_size);
+
+    return true;
+}
+
+uint32_t AlpacaCCD::getTransactionId()
+{
+    return ++m_ClientTransactionID;
+}
+
+std::string AlpacaCCD::buildAlpacaFormData(const nlohmann::json &request)
+{
+    // Convert JSON to form data for Alpaca compatibility
+    std::string form_data;
+    for (auto & [key, value] : request.items())
+    {
+        if (!form_data.empty()) form_data += "&";
+
+        if (value.is_string())
+        {
+            form_data += key + "=" + value.get<std::string>();
+        }
+        else if (value.is_number_integer())
+        {
+            form_data += key + "=" + std::to_string(value.get<int>());
+        }
+        else if (value.is_number_float())
+        {
+            form_data += key + "=" + std::to_string(value.get<double>());
+        }
+        else if (value.is_boolean())
+        {
+            form_data += key + "=" + (value.get<bool>() ? "true" : "false");
+        }
+    }
+
+    // Add ClientID and ClientTransactionID to form data
+    if (!form_data.empty()) form_data += "&";
+    form_data += "ClientID=" + std::to_string(getpid());
+    form_data += "&ClientTransactionID=" + std::to_string(getTransactionId());
+
+    return form_data;
+}
+
+bool AlpacaCCD::parseImageBytesMetadata(ImageBytesMetadata *metadata, size_t body_size)
+{
+    // Validate metadata version as per section 8.7.1
+    if (metadata->MetadataVersion != 1)
+    {
+        LOGF_ERROR("Unsupported ImageBytes metadata version: %d", metadata->MetadataVersion);
+        return false;
+    }
+
+    // Check for errors as per section 8.9
+    if (metadata->ErrorNumber != 0)
+    {
+        LOGF_ERROR("Alpaca ImageBytes error %d", metadata->ErrorNumber);
+        return false;
+    }
+
+    // Validate dimensions
+    if (metadata->Rank < 2 || metadata->Rank > 3)
+    {
+        LOGF_ERROR("Invalid image rank: %d (must be 2 or 3)", metadata->Rank);
+        return false;
+    }
+
+    if (metadata->Dimension1 <= 0 || metadata->Dimension2 <= 0)
+    {
+        LOGF_ERROR("Invalid image dimensions: %dx%d", metadata->Dimension1, metadata->Dimension2);
+        return false;
+    }
+
+    if (metadata->DataStart < 0 || static_cast<size_t>(metadata->DataStart) > body_size)
+    {
+        LOGF_ERROR("Invalid data start offset: %d", metadata->DataStart);
+        return false;
+    }
 
     return true;
 }

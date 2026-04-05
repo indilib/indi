@@ -39,7 +39,7 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
 
         /// \brief Override for the base class virtual function
         virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                double &RightAscension, double &Declination);
+                double &RightAscension, double &Declination, double JulianOffset = 0);
 
     protected:
         /// \brief Calculate transformation matrices from the supplied vectors

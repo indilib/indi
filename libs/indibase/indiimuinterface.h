@@ -47,7 +47,8 @@ class IMUInterface
             IMU_HAS_MAGNETOMETER    = 1 << 3, /*!< Has magnetometer data */
             IMU_HAS_CALIBRATION     = 1 << 4, /*!< Supports calibration */
             IMU_HAS_TEMPERATURE     = 1 << 5, /*!< Has temperature sensor */
-            IMU_HAS_STABILITY_MON   = 1 << 6  /*!< Supports stability monitoring */
+            IMU_HAS_STABILITY_MON   = 1 << 6, /*!< Supports stability monitoring */
+            IMU_HAS_SENSOR_FUSION   = 1 << 7  /*!< Base-class software sensor fusion is active (Madgwick/Mahony) */
         };
 
         enum OrientationProperty

@@ -378,11 +378,12 @@ bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscen
 }
 
 bool MathPluginManagement::TransformTelescopeToCelestial(
-    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination)
+    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination,
+    double JulianOffset)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
         return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension,
-                Declination);
+                Declination, JulianOffset);
     else
         return false;
 }

@@ -52,7 +52,7 @@ bool DummyMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 }
 
 bool DummyMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-        double &RightAscension, double &Declination)
+        double &RightAscension, double &Declination, double /*JulianOffset*/)
 {
     return false;
 }

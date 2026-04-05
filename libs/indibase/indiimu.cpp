@@ -112,6 +112,54 @@ bool IMU::initProperties()
                                IPS_IDLE);
     MagneticDeclinationNP.load();
 
+    // ── Software Sensor Fusion ────────────────────────────────────────────────
+    // Drivers that provide only raw accel/gyro/mag (e.g. ICM-20948) do not set
+    // IMU_HAS_ORIENTATION in their capability.  In that case we enable software
+    // Kalman/AHRS fusion here so that orientation output is produced centrally in
+    // this base class without any driver changes.
+    // Drivers that perform on-chip fusion (e.g. BNO08x) set IMU_HAS_ORIENTATION
+    // and call SetOrientationData() directly – they are completely unaffected.
+    if (!HasOrientation())
+    {
+        // Mark that software fusion is available/active.
+        SetCapability(GetCapability() | IMU_HAS_SENSOR_FUSION);
+
+        // IMUInterface::initProperties() skipped OrientationNP because HasOrientation()
+        // was false at call time.  Initialise it here so fusion output can be displayed.
+        OrientationNP[ORIENTATION_ROLL].fill("ROLL", "Roll (deg)", "%.4f", -180, 180, 0, 0);
+        OrientationNP[ORIENTATION_PITCH].fill("PITCH", "Pitch (deg)", "%.4f", -90, 90, 0, 0);
+        OrientationNP[ORIENTATION_YAW].fill("YAW", "Yaw (deg)", "%.4f", 0, 360, 0, 0);
+        OrientationNP[ORIENTATION_QUATERNION_W].fill("QUATERNION_W", "Quaternion W", "%.4f", -1, 1, 0, 0);
+        OrientationNP.fill(getDeviceName(), "ORIENTATION", "Orientation", IMU_TAB.c_str(), IP_RO, 0, IPS_IDLE);
+
+        // Enable / Disable switch (enabled by default for raw-data drivers)
+        SensorFusionSP[FUSION_ENABLE].fill("FUSION_ENABLE", "Enable", ISS_ON);
+        SensorFusionSP[FUSION_DISABLE].fill("FUSION_DISABLE", "Disable", ISS_OFF);
+        SensorFusionSP.fill(getDeviceName(), "SENSOR_FUSION", "Sensor Fusion", IMU_TAB.c_str(), IP_RW, ISR_1OFMANY, 0,
+                            IPS_IDLE);
+        SensorFusionSP.load();
+
+        // Algorithm selection: Madgwick (default) or Mahony
+        FusionTypeSP[FUSION_MADGWICK].fill("MADGWICK", "Madgwick", ISS_ON);
+        FusionTypeSP[FUSION_MAHONY].fill("MAHONY", "Mahony", ISS_OFF);
+        FusionTypeSP.fill(getDeviceName(), "FUSION_TYPE", "Fusion Algorithm", IMU_TAB.c_str(), IP_RW, ISR_1OFMANY, 0,
+                          IPS_IDLE);
+        FusionTypeSP.load();
+
+        // Tuning parameters:
+        //   FUSION_PARAM_1 = β for Madgwick  /  Kp for Mahony
+        //   FUSION_PARAM_2 = unused (Madgwick) / Ki for Mahony
+        FusionParamsNP[FUSION_PARAM_1].fill("FUSION_PARAM_1", "β (Madgwick) / Kp (Mahony)", "%.4f", 0.001, 10.0, 0.01,
+                                            0.1);
+        FusionParamsNP[FUSION_PARAM_2].fill("FUSION_PARAM_2", "Ki – Mahony integral gain", "%.4f", 0.0, 1.0, 0.001,
+                                            0.005);
+        FusionParamsNP.fill(getDeviceName(), "FUSION_PARAMS", "Fusion Parameters", IMU_TAB.c_str(), IP_RW, 0, IPS_IDLE);
+        FusionParamsNP.load();
+
+        // Create the initial filter instance (Madgwick with default β = 0.1)
+        recreateFusionFilter();
+    }
+
     if (imuConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
@@ -152,6 +200,20 @@ bool IMU::updateProperties()
         defineProperty(TelescopeVectorNP);
         defineProperty(GeographicCoordNP);
         defineProperty(MagneticDeclinationNP);
+
+        // For raw-data drivers using software fusion: define orientation output
+        // and fusion control properties.  Hardware-fusion drivers (e.g. BNO08x)
+        // have IMU_HAS_ORIENTATION set and are handled by IMUInterface above.
+        if (GetCapability() & IMU_HAS_SENSOR_FUSION)
+        {
+            defineProperty(OrientationNP);
+            defineProperty(SensorFusionSP);
+            defineProperty(FusionTypeSP);
+            defineProperty(FusionParamsNP);
+
+            // Reset the fusion filter on every new connection so we start fresh.
+            recreateFusionFilter();
+        }
     }
     else
     {
@@ -164,6 +226,14 @@ bool IMU::updateProperties()
         deleteProperty(TelescopeVectorNP);
         deleteProperty(GeographicCoordNP);
         deleteProperty(MagneticDeclinationNP);
+
+        if (GetCapability() & IMU_HAS_SENSOR_FUSION)
+        {
+            deleteProperty(OrientationNP);
+            deleteProperty(SensorFusionSP);
+            deleteProperty(FusionTypeSP);
+            deleteProperty(FusionParamsNP);
+        }
     }
     return true;
 }
@@ -407,6 +477,41 @@ bool IMU::ISNewNumber(const char *dev, const char *name, double values[], char *
         return true;
     }
 
+    // ── Sensor Fusion parameters ──────────────────────────────────────────────
+    if ((GetCapability() & IMU_HAS_SENSOR_FUSION) && FusionParamsNP.isNameMatch(name))
+    {
+        FusionParamsNP.update(values, names, n);
+        FusionParamsNP.setState(IPS_OK);
+        FusionParamsNP.apply();
+        saveConfig(FusionParamsNP);
+
+        // Apply new parameters to the running filter without a full reset
+        double p1 = FusionParamsNP[FUSION_PARAM_1].getValue();
+        double p2 = FusionParamsNP[FUSION_PARAM_2].getValue();
+
+        if (m_SensorFusion)
+        {
+            if (FusionTypeSP[FUSION_MAHONY].getState() == ISS_ON)
+            {
+                auto *f = dynamic_cast<MahonyFilter *>(m_SensorFusion.get());
+                if (f)
+                {
+                    f->setKp(p1);
+                    f->setKi(p2);
+                }
+            }
+            else
+            {
+                auto *f = dynamic_cast<MadgwickFilter *>(m_SensorFusion.get());
+                if (f)
+                    f->setBeta(p1);
+            }
+        }
+
+        LOGF_INFO("IMU: Fusion parameters updated (param1=%.4f, param2=%.4f).", p1, p2);
+        return true;
+    }
+
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -435,6 +540,38 @@ bool IMU::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         return true;
     }
 
+    // ── Sensor Fusion switches ────────────────────────────────────────────────
+    if ((GetCapability() & IMU_HAS_SENSOR_FUSION) && SensorFusionSP.isNameMatch(name))
+    {
+        SensorFusionSP.update(states, names, n);
+        SensorFusionSP.setState(IPS_OK);
+        SensorFusionSP.apply();
+        saveConfig(SensorFusionSP);
+
+        if (SensorFusionSP[FUSION_ENABLE].getState() == ISS_ON)
+        {
+            recreateFusionFilter();
+            LOG_INFO("IMU: Software sensor fusion enabled.");
+        }
+        else
+        {
+            LOG_INFO("IMU: Software sensor fusion disabled.");
+        }
+        return true;
+    }
+
+    if ((GetCapability() & IMU_HAS_SENSOR_FUSION) && FusionTypeSP.isNameMatch(name))
+    {
+        FusionTypeSP.update(states, names, n);
+        FusionTypeSP.setState(IPS_OK);
+        FusionTypeSP.apply();
+        saveConfig(FusionTypeSP);
+
+        recreateFusionFilter();
+
+        LOGF_INFO("IMU: Fusion algorithm changed to %s.", FusionTypeSP.findOnSwitch()->getLabel());
+        return true;
+    }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -458,6 +595,14 @@ bool IMU::saveConfigItems(FILE *fp)
     OrientationAdjustmentsNP.save(fp);
     TelescopeVectorNP.save(fp);
     GeographicCoordNP.save(fp);
+
+    // Save fusion properties (only meaningful for raw-data drivers)
+    if (GetCapability() & IMU_HAS_SENSOR_FUSION)
+    {
+        SensorFusionSP.save(fp);
+        FusionTypeSP.save(fp);
+        FusionParamsNP.save(fp);
+    }
 
     return true;
 }
@@ -677,12 +822,11 @@ void IMU::RecalculateAstroCoordinates()
             break;
         case NWU:
             // Convert East-North-Up to North-West-Up telescope frame
-            // Since telescope NORTH is along IMU EAST:
-            // X_nwu = X_enu (North = ENU_X, since telescope North is along IMU East)
-            // Y_nwu = -Y_enu (West = -ENU_Y)
+            // X_nwu = Y_enu (North = ENU_Y)
+            // Y_nwu = -X_enu (West = -ENU_X)
             // Z_nwu = Z_enu (Up = ENU_Z)
-            horizontal_vector.x = imu_vector.x;
-            horizontal_vector.y = -imu_vector.y;
+            horizontal_vector.x = imu_vector.y;
+            horizontal_vector.y = -imu_vector.x;
             horizontal_vector.z = imu_vector.z;
             break;
         case SWU:
@@ -1062,6 +1206,9 @@ bool IMU::SetOrientationData(double i, double j, double k, double w)
 
 bool IMU::SetAccelerationData(double x, double y, double z)
 {
+    // Buffer for software fusion (used as the accelerometer correction step)
+    m_RawAccel = {x, y, z, true};
+
     AccelerationNP[ACCELERATION_X].setValue(x);
     AccelerationNP[ACCELERATION_Y].setValue(y);
     AccelerationNP[ACCELERATION_Z].setValue(z);
@@ -1072,6 +1219,58 @@ bool IMU::SetAccelerationData(double x, double y, double z)
 
 bool IMU::SetGyroscopeData(double x, double y, double z)
 {
+    // Buffer for software fusion
+    m_RawGyro = {x, y, z, true};
+
+    // ── Run software sensor fusion ───────────────────────────────────────────
+    // The gyroscope is the highest-rate sensor and drives the integration step.
+    // We trigger a fusion update each time new gyro data arrives, using the most
+    // recently buffered accelerometer and magnetometer readings.
+    if (isFusionEnabled() && m_SensorFusion && m_RawAccel.valid)
+    {
+        // Compute dt (time since last fusion update)
+        auto now = std::chrono::steady_clock::now();
+        double dt;
+        if (!m_FusionTimerInitialized)
+        {
+            dt = 0.01; // Assume 100 Hz for the very first sample
+            m_FusionTimerInitialized = true;
+        }
+        else
+        {
+            dt = std::chrono::duration<double>(now - m_LastFusionTime).count();
+        }
+        m_LastFusionTime = now;
+
+        // Convert gyro to rad/s if the driver reports in deg/s.
+        // AngularUnitsSP defaults to DEGREES (matching the ICM-20948 which uses
+        // getGyroX_dps()).  Drivers that supply rad/s should set the property to
+        // RADIANS so no conversion is applied.
+        bool gyroInDegrees = (AngularUnitsSP[ANGULAR_UNITS_DEGREES].getState() == ISS_ON);
+        double gx = gyroInDegrees ? DEG_TO_RAD(x) : x;
+        double gy = gyroInDegrees ? DEG_TO_RAD(y) : y;
+        double gz = gyroInDegrees ? DEG_TO_RAD(z) : z;
+
+        // Use magnetometer data only when available
+        bool useMag = m_RawMag.valid;
+        m_SensorFusion->update(
+            gx, gy, gz,
+            m_RawAccel.x, m_RawAccel.y, m_RawAccel.z,
+            m_RawMag.x,   m_RawMag.y,   m_RawMag.z,
+            dt, useMag);
+
+        // Feed fused quaternion into the existing orientation pipeline
+        // (multipliers → offsets → mag declination → AstroCoordinates)
+        double qw, qi, qj, qk;
+        m_SensorFusion->getQuaternion(qw, qi, qj, qk);
+
+        DEBUGF(Logger::DBG_DEBUG,
+               "IMU Fusion: dt=%.4fs  q=(w=%.4f, i=%.4f, j=%.4f, k=%.4f)  useMag=%d",
+               dt, qw, qi, qj, qk, useMag);
+
+        SetOrientationData(qi, qj, qk, qw);
+    }
+
     GyroscopeNP[GYROSCOPE_X].setValue(x);
     GyroscopeNP[GYROSCOPE_Y].setValue(y);
     GyroscopeNP[GYROSCOPE_Z].setValue(z);
@@ -1082,12 +1281,49 @@ bool IMU::SetGyroscopeData(double x, double y, double z)
 
 bool IMU::SetMagnetometerData(double x, double y, double z)
 {
+    // Buffer for software fusion (used as the magnetometer correction step)
+    m_RawMag = {x, y, z, true};
+
     MagnetometerNP[MAGNETOMETER_X].setValue(x);
     MagnetometerNP[MAGNETOMETER_Y].setValue(y);
     MagnetometerNP[MAGNETOMETER_Z].setValue(z);
     MagnetometerNP.setState(IPS_OK);
     MagnetometerNP.apply();
     return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sensor fusion helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool IMU::isFusionEnabled() const
+{
+    // Fusion is only available for raw-data drivers (no hardware orientation)
+    if (!(GetCapability() & IMU_HAS_SENSOR_FUSION))
+        return false;
+
+    return SensorFusionSP[FUSION_ENABLE].getState() == ISS_ON;
+}
+
+void IMU::recreateFusionFilter()
+{
+    double p1 = FusionParamsNP[FUSION_PARAM_1].getValue(); // β or Kp
+    double p2 = FusionParamsNP[FUSION_PARAM_2].getValue(); // unused or Ki
+
+    if (FusionTypeSP[FUSION_MAHONY].getState() == ISS_ON)
+        m_SensorFusion = std::make_unique<MahonyFilter>(p1, p2);
+    else
+        m_SensorFusion = std::make_unique<MadgwickFilter>(p1);
+
+    // Invalidate buffered sensor data so the filter starts from rest
+    m_RawAccel.valid        = false;
+    m_RawGyro.valid         = false;
+    m_RawMag.valid          = false;
+    m_FusionTimerInitialized = false;
+
+    DEBUGF(Logger::DBG_DEBUG, "IMU: Fusion filter created: %s (p1=%.4f, p2=%.4f)",
+           FusionTypeSP[FUSION_MADGWICK].getState() == ISS_ON ? "Madgwick" : "Mahony",
+           p1, p2);
 }
 bool IMU::SetCalibrationStatus(int sys, int gyro, int accel, int mag)
 {

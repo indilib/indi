@@ -25,6 +25,7 @@
 
 #include <libnova/julian_day.h>
 
+#include <cctype>
 #include <cmath>
 #include <map>
 #include <cstring>
@@ -528,8 +529,73 @@ bool Base::getCoords(double *ra, double *dec)
 
     if (sendCommand(":GEC#", res))
     {
-        *ra = Ra = DecodeString(res + 9, 8, ieqHours);
-        *dec = Dec = DecodeString(res, 9, ieqDegrees);
+        // Response format: sTTTTTTTTXXXXXXXX (17 chars)
+        // s = sign, TTTTTTTT = DEC (8 digits), XXXXXXXX = RA (8 digits)
+        // Valid DEC range: [-32,400,000, +32,400,000]
+        // Valid RA range: [0, 86,400,000]
+        static constexpr size_t EXPECTED_LEN = 17;
+        static constexpr int32_t DEC_MIN = -32400000;
+        static constexpr int32_t DEC_MAX = 32400000;
+        static constexpr int32_t RA_MIN = 0;
+        static constexpr int32_t RA_MAX = 86400000;
+
+        // Check response length
+        size_t resLen = strlen(res);
+        if (resLen < EXPECTED_LEN)
+        {
+            LOGF_ERROR("Invalid GEC response: expected %zu chars, got %zu ('%s')",
+                       EXPECTED_LEN, resLen, res);
+            return false;
+        }
+
+        // Validate sign character for DEC
+        if (res[0] != '+' && res[0] != '-')
+        {
+            LOGF_ERROR("Invalid GEC response: expected sign at position 0, got '%c' ('%s')",
+                       res[0], res);
+            return false;
+        }
+
+        // Validate DEC digits (positions 1-8)
+        for (size_t i = 1; i < 9; i++)
+        {
+            if (!isdigit(static_cast<unsigned char>(res[i])))
+            {
+                LOGF_ERROR("Invalid GEC response: non-digit at position %zu ('%s')", i, res);
+                return false;
+            }
+        }
+
+        // Validate RA digits (positions 9-16)
+        for (size_t i = 9; i < 17; i++)
+        {
+            if (!isdigit(static_cast<unsigned char>(res[i])))
+            {
+                LOGF_ERROR("Invalid GEC response: non-digit at position %zu ('%s')", i, res);
+                return false;
+            }
+        }
+
+        // Decode and validate ranges
+        int32_t rawDec = DecodeString(res, 9);
+        int32_t rawRa = DecodeString(res + 9, 8);
+
+        if (rawDec < DEC_MIN || rawDec > DEC_MAX)
+        {
+            LOGF_ERROR("Invalid GEC response: DEC %d out of range [%d, %d]",
+                       rawDec, DEC_MIN, DEC_MAX);
+            return false;
+        }
+
+        if (rawRa < RA_MIN || rawRa > RA_MAX)
+        {
+            LOGF_ERROR("Invalid GEC response: RA %d out of range [%d, %d]",
+                       rawRa, RA_MIN, RA_MAX);
+            return false;
+        }
+
+        *ra = Ra = rawRa / ieqHours;
+        *dec = Dec = rawDec / ieqDegrees;
         return true;
     }
 

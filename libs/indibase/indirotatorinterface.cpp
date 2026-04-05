@@ -42,7 +42,8 @@ void RotatorInterface::initProperties(const char *groupName)
     // Abort Rotator
     // @INDI_STANDARD_PROPERTY@
     AbortRotatorSP[0].fill("ABORT", "Abort", ISS_OFF);
-    AbortRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    AbortRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1,
+                        0, IPS_IDLE);
 
     // Rotator Sync
     // @INDI_STANDARD_PROPERTY@
@@ -58,18 +59,21 @@ void RotatorInterface::initProperties(const char *groupName)
     // @INDI_STANDARD_PROPERTY@
     ReverseRotatorSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     ReverseRotatorSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    ReverseRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ReverseRotatorSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY, 0,
+                          IPS_IDLE);
 
     // Backlash Compensation
     // @INDI_STANDARD_PROPERTY@
     RotatorBacklashSP[DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     RotatorBacklashSP[DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    RotatorBacklashSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    RotatorBacklashSP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
+                           ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation Value
     // @INDI_STANDARD_PROPERTY@
     RotatorBacklashNP[0].fill("ROTATOR_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
-    RotatorBacklashNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS", "Backlash", groupName, IP_RW, 60, IPS_OK);
+    RotatorBacklashNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS", "Backlash", groupName, IP_RW, 60,
+                           IPS_OK);
 
     // Rotator Limits
     // @INDI_STANDARD_PROPERTY@
@@ -99,7 +103,7 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             // If value is outside safe zone, then prevent motion
             if (RotatorLimitsNP[0].getValue() > 0 && ((values[0] < 180
                     && (std::abs(values[0] - m_RotatorOffset)) > RotatorLimitsNP[0].getValue()) ||
-                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) < (360 - RotatorLimitsNP[0].getValue()))))
+                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) > (360 - RotatorLimitsNP[0].getValue()))))
             {
                 GotoRotatorNP.setState(IPS_ALERT);
                 DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
@@ -148,19 +152,15 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             {
                 RotatorBacklashNP.setState(IPS_IDLE);
                 DEBUGDEVICE(dev, Logger::DBG_WARNING, "Rotatorer backlash must be enabled first.");
+                RotatorBacklashNP.apply();
+                return true;
             }
-            else
+
+            m_defaultDevice->updateProperty(RotatorBacklashNP, values, names, n, [this, values]()
             {
                 uint32_t steps = static_cast<uint32_t>(values[0]);
-                if (SetRotatorBacklash(steps))
-                {
-                    RotatorBacklashNP[0].setValue(values[0]);
-                    RotatorBacklashNP.setState(IPS_OK);
-                }
-                else
-                    RotatorBacklashNP.setState(IPS_ALERT);
-            }
-            RotatorBacklashNP.apply();
+                return SetRotatorBacklash(steps);
+            }, true);
             return true;
         }
         ////////////////////////////////////////////
@@ -168,12 +168,23 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
         ////////////////////////////////////////////
         else if (RotatorLimitsNP.isNameMatch(name))
         {
-            RotatorLimitsNP.update(values, names, n);
-            RotatorLimitsNP.setState(IPS_OK);
-            RotatorLimitsNP.apply();
-            if (RotatorLimitsNP[0].getValue() == 0)
-                DEBUGDEVICE(dev, Logger::DBG_SESSION, "Rotator limits are disabled.");
-            m_RotatorOffset = GotoRotatorNP[0].getValue();
+            m_defaultDevice->updateProperty(RotatorLimitsNP, values, names, n, [this, values, dev]()
+            {
+                if (values[0] == 0)
+                {
+                    DEBUGDEVICE(dev, Logger::DBG_SESSION, "Rotator limits are disabled.");
+                }
+                else
+                {
+                    double startAngle = m_RotatorOffset;
+                    double endAngle   = startAngle + values[0];
+                    if (endAngle >= 360) endAngle -= 360;
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                                 "Rotator limits set to %.f degrees. Safe range: %.2f to %.2f degrees.",
+                                 values[0], startAngle, endAngle);
+                }
+                return true;
+            }, true);
             return true;
         }
     }
@@ -223,26 +234,20 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (ReverseRotatorSP.isNameMatch(name))
         {
-            int prevIndex = ReverseRotatorSP.findOnSwitchIndex();
-            ReverseRotatorSP.update(states, names, n);
-            const bool enabled = ReverseRotatorSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED;
+            m_defaultDevice->updateProperty(ReverseRotatorSP, states, names, n, [this, states]()
+            {
+                bool enabled = states[0] == ISS_ON;
 
-            if (ReverseRotator(enabled))
-            {
-                ReverseRotatorSP.update(states, names, n);
-                ReverseRotatorSP.setState(IPS_OK);
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator direction is %s.",
-                             (enabled ? "reversed" : "normal"));
-            }
-            else
-            {
-                ReverseRotatorSP.reset();
-                ReverseRotatorSP[prevIndex].setState(ISS_ON);
-                ReverseRotatorSP.setState(IPS_ALERT);
+                if (ReverseRotator(enabled))
+                {
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator direction is %s.",
+                                 (enabled ? "reversed" : "normal"));
+                    return true;
+                }
                 DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator reverse direction failed.");
-            }
+                return false;
+            }, true);
 
-            ReverseRotatorSP.apply();
             return true;
         }
         ////////////////////////////////////////////
@@ -250,25 +255,20 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (RotatorBacklashSP.isNameMatch(name))
         {
-            int prevIndex = RotatorBacklashSP.findOnSwitchIndex();
-            RotatorBacklashSP.update(states, names, n);
-            const bool enabled = RotatorBacklashSP.findOnSwitchIndex() == DefaultDevice::INDI_ENABLED;
+            m_defaultDevice->updateProperty(RotatorBacklashSP, states, names, n, [this, states]()
+            {
+                bool enabled = states[0] == ISS_ON;
 
-            if (SetRotatorBacklashEnabled(enabled))
-            {
-                RotatorBacklashSP.setState(IPS_OK);
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator backlash is %s.",
-                             (enabled ? "enabled" : "disabled"));
-            }
-            else
-            {
-                RotatorBacklashSP.reset();
-                RotatorBacklashSP[prevIndex].setState(ISS_ON);
-                RotatorBacklashSP.setState(IPS_ALERT);
+                if (SetRotatorBacklashEnabled(enabled))
+                {
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator backlash is %s.",
+                                 (enabled ? "enabled" : "disabled"));
+                    return true;
+                }
                 DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Failed to set trigger rotator backlash.");
-            }
+                return false;
+            }, true);
 
-            RotatorBacklashSP.apply();
             return true;
         }
     }

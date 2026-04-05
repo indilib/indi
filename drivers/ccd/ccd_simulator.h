@@ -163,9 +163,12 @@ protected:
     float ImageScaley { 1.0 };
     //  An oag is offset this much from center of scope position (arcminutes)
     float m_OAGOffset { 0 };
-    float m_RotationCW { 0 };
     float m_TimeFactor { 1 };
-    double m_CameraRotation { 0 };
+    // With a rotator device "RotatorAngle" is snooped and defined, so the
+    // resulting camera rotation is the addition of offset and rotator angle.
+    // Without a rotator device ("Manual Rotator") the rotator angle is
+    // considered fixed to 0° and the camera rotation is equal to offset
+    float m_RotationOffset { 0 };
 
     bool m_SimulateBayer { false };
 
