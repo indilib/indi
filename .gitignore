@@ -33,3 +33,9 @@ documentation
 install_manifest.txt
 .idea
 *.kdev4
+DartConfiguration.tcl
+make_*symlink.cmake
+
+/config*.h
+/*.pc
+/indiversion.h
