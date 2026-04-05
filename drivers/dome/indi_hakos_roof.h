@@ -19,7 +19,12 @@
 #pragma once
 
 #include "indidome.h"
-#include "indijson.hpp"
+
+#ifdef _USE_SYSTEM_JSONLIB
+#include <nlohmann/json.hpp>
+#else
+#include <indijson.hpp>
+#endif
 
 using json = nlohmann::json;
 
