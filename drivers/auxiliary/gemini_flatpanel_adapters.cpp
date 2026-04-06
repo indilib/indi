@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 
 //////////////////////////////////////////////////////////////////////////////
 // GeminiFlatpanelRev1Adapter Implementation
