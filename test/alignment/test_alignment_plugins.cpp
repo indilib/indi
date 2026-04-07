@@ -442,6 +442,41 @@ TEST_F(AlignmentPluginTest, Test_SVD_AltAz)
 }
 
 // ---------------------------------------------------------------------------
+// Single sync point -- all plugins
+//
+// Verifies that each plugin initialises, transforms, and round-trips correctly
+// with exactly one sync point.  This exercises the size() >= 1 gate in
+// AlignmentSubsystemForDrivers: corrections must apply from the first sync.
+//
+// Index errors on both axes (IH = 5 arcmin, ID = 3 arcmin) are used so the
+// correction has both an RA and a Dec component.  With a single sync point
+// every plugin's minimal model recovers only index errors, not polar errors,
+// so pure index errors are the appropriate choice here.
+//
+// NearestMathPlugin applies the single point's offset uniformly across the
+// sky — for pure index errors the offset is position-independent, so the
+// round-trip is exact at any validation point.
+// ---------------------------------------------------------------------------
+
+TEST_F(AlignmentPluginTest, SinglePoint_BuiltIn)
+{
+    BuiltInMathPlugin plugin;
+    RunPluginAllInAlignment(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)}, 1);
+}
+
+TEST_F(AlignmentPluginTest, SinglePoint_SVD)
+{
+    SVDMathPlugin plugin;
+    RunPluginAllInAlignment(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)}, 1);
+}
+
+TEST_F(AlignmentPluginTest, SinglePoint_Nearest)
+{
+    NearestMathPlugin plugin;
+    RunPluginAllInAlignment(plugin, {.ih = ARCMIN_TO_DEG(5), .id = ARCMIN_TO_DEG(3)}, 1);
+}
+
+// ---------------------------------------------------------------------------
 // AlignValidate -- equatorial mounts
 // ---------------------------------------------------------------------------
 

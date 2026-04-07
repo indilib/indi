@@ -3,6 +3,7 @@ SET(ccdsimulator_SRC
     ccd_simulator.cpp)
 
 add_executable(indi_simulator_ccd ${ccdsimulator_SRC})
+target_compile_definitions(indi_simulator_ccd PRIVATE USE_EQUATORIAL_PE)
 target_link_libraries(indi_simulator_ccd indidriver)
 install(TARGETS indi_simulator_ccd RUNTIME DESTINATION bin)
 

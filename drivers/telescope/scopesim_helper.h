@@ -41,7 +41,7 @@
 
 #include <indicom.h>
 
-static char device_str[64] = "Telescope Simulator";
+extern char device_str[64];
 
 ///
 /// \brief The Angle class
@@ -501,6 +501,11 @@ class Alignment
         /// without applying the Wallace pointing-model corrections.
         ///
         void mountToInstrumentHaDec(Angle primary, Angle secondary, Angle *instrumentHa, Angle *instrumentDec);
+
+        // Inverse of mountToInstrumentHaDec: converts raw instrument HA/Dec (no Wallace) to
+        // axis positions.  Uses the same flipHourAngle condition as apparentHaDecToMount so
+        // it selects the correct pier side for a Goto without applying pointing corrections.
+        void instrumentHaDecToMount(Angle instrumentHa, Angle instrumentDec, Angle *primary, Angle *secondary);
 
         ///
         /// \brief apparentHaDecToMount

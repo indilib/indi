@@ -97,10 +97,12 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         double m_currentAlt { 0 };
         double m_targetRA { 0 };
         double m_targetDEC { 0 };
-        double m_sinLat, m_cosLat;
-
         /// used by GoTo and Park
         void StartSlew(double ra, double dec, TelescopeStatus status);
+
+        /// Decompose a celestial N/S/E/W guide pulse into Az/Alt axis motion
+        /// via the parallactic angle, for ALTAZ mount guiding.
+        void guideAltAzDecomposed(double dNS, double dEW, uint32_t ms);
 
         // bool forceMeridianFlip { false }; // #PS: unused
         unsigned int DBG_SCOPE { 0 };
@@ -189,6 +191,12 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         double m_snoopedAltError { 0 };
 
 #endif
+
+        // True pointing position (Wallace errors applied) published as EQUATORIAL_PE so the
+        // CCD simulator can generate star fields at the physically-correct sky position while
+        // EQUATORIAL_EOD_COORD carries the raw encoder position for the INDI alignment module.
+        INDI::PropertyNumber EqPENP {2};
+        enum { PE_RA = 0, PE_DEC = 1 };
 
 };
 

@@ -649,7 +649,14 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         ImageScaley = Scaley;
 
 #ifdef USE_EQUATORIAL_PE
-        if (!usePE)
+        if (usePE)
+        {
+            // Use the true pointing position (Wallace errors applied) published as
+            // EQUATORIAL_PE by the telescope simulator.  raPE/decPE are J2000.
+            currentRA = raPE + guideWEOffset;
+            currentDE = decPE + guideNSOffset;
+        }
+        else
         {
 #endif
             currentRA  = RA;
@@ -673,11 +680,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             currentRA  = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
-
-            //LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
-            //INDI::IEquatorialCoordinates jnpos;
-            //INDI::J2000toObserved(&J2000Pos, jd, &jnpos);
-            //LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
@@ -803,7 +805,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 #ifdef __DEV__
                         if (rc == 1)
                         {
-                            LOGF_DEBUG("star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f", id, rad, decPE, ra, dec, ccdx, ccdy);
+                            LOGF_DEBUG("star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f", id, rad, currentDE, ra, dec, ccdx, ccdy);
                             LOGF_DEBUG("star %s ccd %6.2f %6.2f", id, ccdx, ccdy);
                         }
 #endif
@@ -1299,10 +1301,9 @@ bool CCDSim::watchDirectory()
 void CCDSim::activeDevicesUpdated()
 {
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
-#else
-    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_PE");
 #endif
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM");
 
     strncpy(FWHMNP.device, ActiveDeviceTP[ACTIVE_FOCUSER].getText(), MAXINDIDEVICE);
@@ -1357,12 +1358,11 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
             }
         }
     }
-    // We try to snoop EQPEC first, if not found, we snoop regular EQNP
+    // We try to snoop EQUATORIAL_PE first (true pointing with mount errors injected);
+    // if not found we fall through to the regular EQUATORIAL_EOD_COORD snoop below.
 #ifdef USE_EQUATORIAL_PE
-    const char * propName = findXMLAttValu(root, "name");
-    if (!strcmp(propName, EqPENP.name))
+    if (!strcmp(propName, "EQUATORIAL_PE"))
     {
-        XMLEle * ep = nullptr;
         int rc_ra = -1, rc_de = -1;
         double newra = 0, newdec = 0;
 
@@ -1376,22 +1376,19 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
                 rc_de = f_scansexa(pcdataXMLEle(ep), &newdec);
         }
 
-        if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
+        if (rc_ra == 0 && rc_de == 0)
         {
-            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = newra * 15.0;
-            epochPos.dec = newdec;
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            INDI::IEquatorialCoordinates epochPos { newra * 15.0, newdec }, J2000Pos { 0, 0 };
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            raPE  = J2000Pos.rightascension / 15.0;
+            decPE = J2000Pos.declination;
             usePE = true;
 
-            EqPEN[AXIS_RA].value = newra;
-            EqPEN[AXIS_DE].value = newdec;
-            IDSetNumber(&EqPENP, nullptr);
+            EqPENP[AXIS_RA].setValue(newra);
+            EqPENP[AXIS_DE].setValue(newdec);
+            EqPENP.apply();
 
-            LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
-
+            LOGF_DEBUG("Snooped EQUATORIAL_PE JNow RA %g Dec %g -> J2000 RA %g Dec %g", newra, newdec, raPE, decPE);
             return true;
         }
     }

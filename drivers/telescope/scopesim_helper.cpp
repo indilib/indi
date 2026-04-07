@@ -25,6 +25,8 @@
 
 #include "indilogger.h"
 
+char device_str[64] = "Telescope Simulator";
+
 /////////////////////////////////////////////////////////////////////
 
 // Angle implementation
@@ -294,13 +296,22 @@ void Alignment::mountToApparentRaDec(Angle primary, Angle secondary, Angle * app
 
 void Alignment::mountToInstrumentHaDec(Angle primary, Angle secondary, Angle *instrumentHa, Angle *instrumentDec)
 {
-    // Replicate the axis-to-prio/seco step from mountToApparentHaDec, but stop before
-    // applying instrumentToObserved.  The result is the raw encoder HA/Dec — what the
-    // mount axis angles represent in the telescope coordinate system, without any
-    // Wallace pointing-model correction.
+    // Convert axis positions to equatorial HA/Dec without any Wallace pointing-model correction.
+    // For EQ mounts the axes are already in HA/Dec space; for ALTAZ we must apply the inverse
+    // spherical rotation (Az/Alt → HA/Dec) to match what apparentHaDecToMount does, but skip
+    // the instrumentToObserved step (which applies IH/ID/CH/NP).
     switch (mountType)
     {
         case MOUNT_TYPE::ALTAZ:
+        {
+            // primary = Az in scopesim convention (0=South), secondary = Alt.
+            // Undo the +180° offset, then rotate back from horizontal to equatorial.
+            Angle rot = latitude - Angle(90);  // inverse of rotateY(90 - lat)
+            Vector haDec = Vector(primary - Angle(180.0), secondary).rotateY(rot);
+            *instrumentHa  = haDec.primary();
+            *instrumentDec = haDec.secondary();
+            break;
+        }
         case MOUNT_TYPE::EQ_FORK:
             *instrumentDec = (latitude >= 0) ? secondary : -secondary;
             *instrumentHa  = primary;
@@ -320,6 +331,40 @@ void Alignment::mountToInstrumentHaDec(Angle primary, Angle secondary, Angle *in
             }
             break;
         }
+    }
+}
+
+void Alignment::instrumentHaDecToMount(Angle instrumentHa, Angle instrumentDec, Angle *primary, Angle *secondary)
+{
+    switch (mountType)
+    {
+        case MOUNT_TYPE::ALTAZ:
+        {
+            // Convert equatorial HA/Dec to Az/Alt via spherical rotation (no Wallace errors),
+            // mirroring apparentHaDecToMount but skipping the observedToInstrument step.
+            Vector altAzm = Vector(instrumentHa, instrumentDec).rotateY(Angle(90) - latitude);
+            *primary   = altAzm.primary() + Angle(180.0);  // scopesim Az: 0=South
+            *secondary = altAzm.secondary();
+            break;
+        }
+        case MOUNT_TYPE::EQ_FORK:
+            *primary   = instrumentHa;
+            *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;
+            break;
+        case MOUNT_TYPE::EQ_GEM:
+            if (instrumentHa < flipHourAngle)  // west side — same condition as apparentHaDecToMount
+            {
+                *primary   = instrumentHa + Angle(180);
+                *secondary = Angle(180) - instrumentDec;
+            }
+            else
+            {
+                *primary   = instrumentHa;
+                *secondary = instrumentDec;
+            }
+            if (latitude < 0)
+                *secondary = -*secondary;
+            break;
     }
 }
 

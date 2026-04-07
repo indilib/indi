@@ -190,6 +190,8 @@ protected:
     double currentRA { 0 };
     double currentDE { 0 };
     bool usePE { false };
+    double raPE  { 0 };   // J2000 RA  from snooped EQUATORIAL_PE (hours)
+    double decPE { 0 };   // J2000 Dec from snooped EQUATORIAL_PE (degrees)
     time_t RunStart;
 
     float guideNSOffset {0};
