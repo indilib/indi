@@ -22,6 +22,10 @@
 #include "indicom.h"
 #include "lilxml.h"
 
+#include <libnova/julian_day.h>
+
+using namespace INDI::AlignmentSubsystem;
+
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -166,6 +170,8 @@ bool ScopeSim::initProperties()
 
     setDefaultPollingPeriod(250);
 
+    InitAlignmentProperties(this);
+
     return true;
 }
 
@@ -175,10 +181,13 @@ void ScopeSim::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
 #ifdef USE_SIM_TAB
-    // Load mount type settings
+    // Load mount type settings and apply immediately so axis track rates and
+    // alignment.mountType are correct before the first ReadScopeStatus tick.
     MountTypeSP.load();
+    MountTypeSP.apply();
     defineProperty(simPierSideSP);
     simPierSideSP.load();
+    updateMountAndPierSide();
     defineProperty(mountModelArcminNP);
     mountModelArcminNP.load();
     // Apply loaded arcmin values to the degrees mirror and alignment
@@ -199,7 +208,7 @@ void ScopeSim::ISGetProperties(const char *dev)
     double Latitude = LocationNP[LOCATION_LATITUDE].getValue();
     m_sinLat = std::sin(Latitude * 0.0174533);
     m_cosLat = std::cos(Latitude * 0.0174533);
-    m_currentAz = 180 + axisPrimary.position.Degrees(); // Primary to Azm
+    m_currentAz  = 180 + axisPrimary.position.Degrees();
     m_currentAlt = axisSecondary.position.Degrees();
 }
 
@@ -248,6 +257,8 @@ bool ScopeSim::updateProperties()
         if (pacDevice && strlen(pacDevice) > 0)
             IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
 #endif
+
+        SetAlignmentSubsystemActive(true);
     }
     else
     {
@@ -300,8 +311,41 @@ bool ScopeSim::ReadScopeStatus()
     alignment.mountToApparentRaDec(axisPrimary.position, axisSecondary.position, &ra, &dec);
     m_currentRA = ra.Hours();
     m_currentDEC = dec.Degrees();
-    m_currentAz = 180 + axisPrimary.position.Degrees(); // ALTAZ-Primary to Azm
-    m_currentAlt = axisSecondary.position.Degrees();
+
+    // If the INDI alignment subsystem has 2+ sync points, apply its correction on top
+    // of the raw mount position.
+    if (GetAlignmentDatabase().size() > 1)
+    {
+        Angle instHA, instDec;
+        alignment.mountToInstrumentHaDec(axisPrimary.position, axisSecondary.position,
+                                         &instHA, &instDec);
+        INDI::IEquatorialCoordinates haCoords{ instHA.Hours(), instDec.Degrees() };
+        TelescopeDirectionVector tdv =
+            TelescopeDirectionVectorFromLocalHourAngleDeclination(haCoords);
+
+        double corrRA, corrDec;
+        if (TransformTelescopeToCelestial(tdv, corrRA, corrDec))
+        {
+            m_currentRA  = corrRA;
+            m_currentDEC = corrDec;
+        }
+    }
+
+    // Derive Az/Alt from the finalised RA/Dec so the AltAz tracking rate calculation
+    // uses the same convention as EquatorialToHorizontal used for the target position.
+    if (alignment.mountType == Alignment::MOUNT_TYPE::ALTAZ)
+    {
+        INDI::IEquatorialCoordinates eq { m_currentRA, m_currentDEC };
+        INDI::IHorizontalCoordinates hz;
+        INDI::EquatorialToHorizontal(&eq, &m_Location, ln_get_julian_from_sys(), &hz);
+        m_currentAz  = hz.azimuth;
+        m_currentAlt = hz.altitude;
+    }
+    else
+    {
+        m_currentAz  = 180 + axisPrimary.position.Degrees();
+        m_currentAlt = axisSecondary.position.Degrees();
+    }
 
     // update properties from the axis
     if (alignment.mountType == Alignment::MOUNT_TYPE::EQ_GEM)
@@ -402,22 +446,36 @@ bool ScopeSim::Goto(double r, double d)
 
 bool ScopeSim::Sync(double ra, double dec)
 {
-    Angle a1, a2;
-    // set the mount axes to the position that will cause it to report the sync position
-    alignment.apparentRaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
-    axisPrimary.setDegrees(a1.Degrees());
-    axisSecondary.setDegrees(a2.Degrees());
+    // Build a telescope direction vector from the current instrument (encoder) HA/Dec,
+    // without Wallace pointing-model corrections applied.
+    Angle instHA, instDec;
+    alignment.mountToInstrumentHaDec(axisPrimary.position, axisSecondary.position,
+                                     &instHA, &instDec);
 
-    Angle r, d;
-    alignment.mountToApparentRaDec(a1, a2, &r, &d);
-    LOGF_DEBUG("sync to %f, %f, reached %f, %f", ra, dec, r.Hours(), d.Degrees());
-    m_currentRA = r.Hours();
-    m_currentDEC = d.Degrees();
+    INDI::IEquatorialCoordinates haCoords{ instHA.Hours(), instDec.Degrees() };
+    TelescopeDirectionVector tdv =
+        TelescopeDirectionVectorFromLocalHourAngleDeclination(haCoords);
+
+    AlignmentDatabaseEntry entry;
+    entry.ObservationJulianDate = ln_get_julian_from_sys();
+    entry.RightAscension        = ra;
+    entry.Declination           = dec;
+    entry.TelescopeDirection    = tdv;
+    entry.PrivateDataSize       = 0;
+
+    if (!CheckForDuplicateSyncPoint(entry))
+    {
+        GetAlignmentDatabase().push_back(entry);
+        UpdateSize();
+        Initialise(this);
+    }
+
+    LOGF_DEBUG("Sync at RA %f Dec %f  instHA %f instDec %f",
+               ra, dec, instHA.Degrees(), instDec.Degrees());
 
     LOG_INFO("Sync is successful.");
 
     EqNP.setState(IPS_OK);
-
     NewRaDec(m_currentRA, m_currentDEC);
 
     return true;
@@ -520,6 +578,8 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
 #endif
     }
 
+    ProcessAlignmentNumberProperties(this, name, values, names, n);
+
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -538,6 +598,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             MountTypeSP.setState(IPS_OK);
             MountTypeSP.apply();
             updateMountAndPierSide();
+            saveConfig(MountTypeSP);
             return true;
         }
         if (simPierSideSP.isNameMatch(name))
@@ -563,6 +624,14 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
     }
 
+    ProcessAlignmentSwitchProperties(this, name, states, names, n);
+
+    // Persist alignment plugin and active state immediately when changed, since
+    // SaveAlignmentConfigProperties() is only called during a full saveConfigItems() run.
+    if (strcmp(name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0 ||
+        strcmp(name, "ALIGNMENT_SUBSYSTEM_ACTIVE") == 0)
+        saveConfig(true, name);
+
     //  Nobody has claimed this, so pass it over
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
@@ -587,6 +656,7 @@ bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char 
         }
     }
 #endif
+    ProcessAlignmentTextProperties(this, name, texts, names, n);
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
@@ -864,6 +934,8 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
     alignment.latitude = Angle(latitude);
     alignment.longitude = Angle(longitude);
 
+    UpdateLocation(latitude, longitude, elevation);
+
     INDI_UNUSED(elevation);
     return true;
 }
@@ -895,6 +967,15 @@ bool ScopeSim::updateMountAndPierSide()
     }
 
     alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(mountType);
+
+    // Reinitialize the secondary axis track rate for the selected mount type.
+    // ALTAZ: both axes need sidereal rate (overridden each tick by parabolic tracking).
+    // EQ: primary tracks sidereal, secondary (Dec) is driven only when slewing.
+    if (mountType == Alignment::MOUNT_TYPE::ALTAZ)
+        axisSecondary.TrackRate(Axis::SIDEREAL);
+    else
+        axisSecondary.TrackRate(Axis::OFF);
+
     // update the pier side capability depending on the mount type
     uint32_t cap = GetTelescopeCapability();
     if (pierSide == 1 && mountType == 2)

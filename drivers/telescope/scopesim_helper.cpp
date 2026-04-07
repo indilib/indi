@@ -292,6 +292,37 @@ void Alignment::mountToApparentRaDec(Angle primary, Angle secondary, Angle * app
                 apparentRa->Degrees(), apparentDec->Degrees());
 }
 
+void Alignment::mountToInstrumentHaDec(Angle primary, Angle secondary, Angle *instrumentHa, Angle *instrumentDec)
+{
+    // Replicate the axis-to-prio/seco step from mountToApparentHaDec, but stop before
+    // applying instrumentToObserved.  The result is the raw encoder HA/Dec — what the
+    // mount axis angles represent in the telescope coordinate system, without any
+    // Wallace pointing-model correction.
+    switch (mountType)
+    {
+        case MOUNT_TYPE::ALTAZ:
+        case MOUNT_TYPE::EQ_FORK:
+            *instrumentDec = (latitude >= 0) ? secondary : -secondary;
+            *instrumentHa  = primary;
+            break;
+        case MOUNT_TYPE::EQ_GEM:
+        {
+            Angle seco = (latitude >= 0) ? secondary : -secondary;
+            if (seco.Degrees() > 90 || seco.Degrees() < -90)
+            {
+                *instrumentHa  = primary + Angle(180.0);
+                *instrumentDec = Angle(180.0) - seco;
+            }
+            else
+            {
+                *instrumentHa  = primary;
+                *instrumentDec = seco;
+            }
+            break;
+        }
+    }
+}
+
 void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle* primary, Angle* secondary)
 {
     // convert to Alt Azm first

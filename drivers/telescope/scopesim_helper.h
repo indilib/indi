@@ -441,6 +441,10 @@ class Alignment
         /// \param me
         ///
         void setCorrections(double ih, double id, double ch, double np, double ma, double me);
+        void setCorrections(double *coeffs)
+        {
+            setCorrections(coeffs[0], coeffs[1], coeffs[2], coeffs[3], coeffs[4], coeffs[5]);
+        }
 
         void setFlipHourAngle(double deg)
         {
@@ -491,6 +495,12 @@ class Alignment
         /// \param apparentDec
         ///
         void mountToApparentHaDec(Angle primary, Angle secondary, Angle *apparentHa, Angle *apparentDec);
+
+        ///
+        /// \brief mountToInstrumentHaDec: convert mount axis positions to instrument (encoder) HA/Dec
+        /// without applying the Wallace pointing-model corrections.
+        ///
+        void mountToInstrumentHaDec(Angle primary, Angle secondary, Angle *instrumentHa, Angle *instrumentDec);
 
         ///
         /// \brief apparentHaDecToMount

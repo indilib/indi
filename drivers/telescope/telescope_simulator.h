@@ -21,6 +21,7 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 #include "scopesim_helper.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 #define USE_SIM_TAB
 
@@ -39,7 +40,8 @@
  *
  * @author Jasem Mutlaq
  */
-class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
+class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
+                 public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
     public:
         ScopeSim();

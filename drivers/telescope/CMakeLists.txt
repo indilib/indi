@@ -241,7 +241,7 @@ add_executable(indi_simulator_telescope
     telescope_simulator.cpp
     scopesim_helper.cpp)
 
-target_link_libraries(indi_simulator_telescope indidriver)
+target_link_libraries(indi_simulator_telescope AlignmentDriver indidriver)
 
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin)
 
