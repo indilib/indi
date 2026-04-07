@@ -182,7 +182,7 @@ static class Loader
                 IDLog("initializing for Pegasus NYX-101 mount...\n");
                 telescope.reset(new LX200NYX101());
             }
-            else if (strstr(__progname, "indi_lx200_esp32go"))
+            else if (strstr(getProgName(), "indi_lx200_esp32go"))
             {
                 IDLog("initializing for ESP32go mount...\n");
                 telescope.reset(new LX200_esp32go());
