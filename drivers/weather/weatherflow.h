@@ -107,10 +107,11 @@ class WeatherFlow : public INDI::Weather
         bool m_isConnected = false;
 
         // API configuration
-        const std::string API_BASE_URL = "https://swd.weatherflow.com/swd/rest/";
-        const std::string STATIONS_ENDPOINT = "stations";
-        const std::string OBSERVATIONS_ENDPOINT = "observations/station/";
-        const std::string DEVICE_OBSERVATIONS_ENDPOINT = "observations/";
+        // httplib::Client takes host and port separately from the request path.
+        const std::string API_HOST = "swd.weatherflow.com";
+        const std::string STATIONS_ENDPOINT = "/swd/rest/stations";
+        const std::string OBSERVATIONS_ENDPOINT = "/swd/rest/observations/station/";
+        const std::string DEVICE_OBSERVATIONS_ENDPOINT = "/swd/rest/observations/";
 
         // Rate limiting
         const int RATE_LIMIT_REQUESTS = 1000;

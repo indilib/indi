@@ -293,16 +293,9 @@ bool WeatherFlow::fetchCurrentObservations()
     std::string response;
     std::string endpoint;
 
-    if (!m_deviceID.empty())
-    {
-        // Use device-specific observations if device ID is available
-        endpoint = DEVICE_OBSERVATIONS_ENDPOINT + "?device_id=" + m_deviceID + "&token=" + wfAPIKeyTP[0].getText();
-    }
-    else
-    {
-        // Use station observations
-        endpoint = OBSERVATIONS_ENDPOINT + m_stationID + "?token=" + wfAPIKeyTP[0].getText();
-    }
+    // Always use station observations: the device endpoint returns arrays, not
+    // key-value objects, so named fields like barometric_pressure are not parseable.
+    endpoint = OBSERVATIONS_ENDPOINT + m_stationID + "?token=" + wfAPIKeyTP[0].getText();
 
     if (!makeAPIRequest(endpoint, response))
     {
@@ -415,7 +408,7 @@ bool WeatherFlow::makeAPIRequest(const std::string &endpoint, std::string &respo
     {
         try
         {
-            httplib::Client cli("swd.weatherflow.com", 443);
+            httplib::Client cli(API_HOST, 80);
             cli.set_connection_timeout(static_cast<int>(wfSettingsNP[WF_CONNECTION_TIMEOUT].getValue()));
             cli.set_read_timeout(static_cast<int>(wfSettingsNP[WF_CONNECTION_TIMEOUT].getValue()));
 
