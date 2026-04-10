@@ -269,8 +269,8 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
     if (mountType == MOUNT_TYPE::ALTAZ)
     {
         Angle rot = latitude - Angle(90);
-        // apparentHa and apparentDec hold corrected Azimuth and Altitude.
-        // Convert Azimuth (0=North) back to scopesim convention (0=South) before forming Vector
+        // apparentHa and apparentDec hold corrected INDI Az and Altitude.
+        // Vector uses scopesim Az (0=South); subtract 180 deg to convert from INDI Az.
         Vector trueAzAlt(*apparentHa - Angle(180.0), *apparentDec);
         Vector haDec = trueAzAlt.rotateY(rot);
         // Primary instrument axis: Negative PA-system looking down from Zenith:Nadir, origin "HA-like" ...
@@ -304,8 +304,8 @@ void Alignment::mountToInstrumentHaDec(Angle primary, Angle secondary, Angle *in
     {
         case MOUNT_TYPE::ALTAZ:
         {
-            // primary = Az in scopesim convention (0=South), secondary = Alt.
-            // Undo the +180° offset, then rotate back from horizontal to equatorial.
+            // primary = INDI Az (0=North), secondary = Alt.
+            // Vector uses scopesim Az (0=South); subtract 180 deg before rotating to HA/Dec.
             Angle rot = latitude - Angle(90);  // inverse of rotateY(90 - lat)
             Vector haDec = Vector(primary - Angle(180.0), secondary).rotateY(rot);
             *instrumentHa  = haDec.primary();
@@ -342,8 +342,9 @@ void Alignment::instrumentHaDecToMount(Angle instrumentHa, Angle instrumentDec, 
         {
             // Convert equatorial HA/Dec to Az/Alt via spherical rotation (no Wallace errors),
             // mirroring apparentHaDecToMount but skipping the observedToInstrument step.
+            // Vector.primary() returns scopesim Az (0=South); add 180 deg to yield INDI Az (0=North).
             Vector altAzm = Vector(instrumentHa, instrumentDec).rotateY(Angle(90) - latitude);
-            *primary   = altAzm.primary() + Angle(180.0);  // scopesim Az: 0=South
+            *primary   = altAzm.primary() + Angle(180.0);  // INDI Az (0=North)
             *secondary = altAzm.secondary();
             break;
         }
@@ -376,8 +377,8 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         // rotate the apparent HaDec vector to the vertical
         // TODO sort out Southern Hemisphere
         Vector altAzm = Vector(apparentHa, apparentDec).rotateY(Angle(90) - latitude);
-        // azimuth in scopesim convention is 0° = South, increasing clockwise West→North→East
-        // INDI's IHorizontalCoordinates uses 0° = North.
+        // azimuth in scopesim convention is 0 deg = South, increasing clockwise West->North->East
+        // INDI's IHorizontalCoordinates uses 0 deg = North.
         Angle apparentAz = altAzm.primary() + Angle(180.0);
         Angle apparentAlt = altAzm.secondary();
 

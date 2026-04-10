@@ -192,7 +192,7 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineProperty(PACDeviceTP);
     PACDeviceTP.load();
 #endif
-    m_currentAz  = 180 + axisPrimary.position.Degrees();
+    m_currentAz  = axisPrimary.position.Degrees();
     m_currentAlt = axisSecondary.position.Degrees();
 }
 
@@ -223,7 +223,7 @@ bool ScopeSim::updateProperties()
                     // Convert stored INDI Az/Alt park position to instrument RA/Dec.
                     Angle instHA, instDec;
                     alignment.mountToInstrumentHaDec(
-                        Angle(ParkPositionNP[AXIS_RA].getValue() - 180.0),  // INDI Az -> scopesim Az
+                        Angle(ParkPositionNP[AXIS_RA].getValue()),
                         Angle(ParkPositionNP[AXIS_DE].getValue()),
                         &instHA, &instDec);
                     m_currentRA  = (alignment.lst() - instHA).Hours();
@@ -259,7 +259,7 @@ bool ScopeSim::updateProperties()
             alignment.instrumentHaDecToMount(ha, Angle(m_currentDEC), &primary, &secondary);
             axisPrimary.position   = primary;
             axisSecondary.position = secondary;
-            m_currentAz  = 180 + axisPrimary.position.Degrees();
+            m_currentAz  = axisPrimary.position.Degrees();
             m_currentAlt = axisSecondary.position.Degrees();
             m_targetRA   = m_currentRA;
             m_targetDEC  = m_currentDEC;
@@ -347,7 +347,7 @@ bool ScopeSim::ReadScopeStatus()
         if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
         {
             // ALTAZ: alignment math plugin uses Az/Alt encoding.
-            double indi_az  = axisPrimary.position.Degrees() + 180.0;
+            double indi_az  = axisPrimary.position.Degrees();
             double indi_alt = axisSecondary.position.Degrees();
             corrected = TelescopeAltAzToSky(indi_alt, indi_az, corrRA, corrDec);
         }
@@ -369,8 +369,8 @@ bool ScopeSim::ReadScopeStatus()
     // axis motors; it must compare axis-space positions against axis-space targets.  Using
     // Wallace-corrected (true) Az/Alt here would inject the Wallace error as a permanent
     // position offset, causing the servo to oscillate every tick.  Use raw axis positions.
-    // axisPrimary is in scopesim Az convention (0=South); +180° converts to INDI (0=North).
-    m_currentAz  = 180 + axisPrimary.position.Degrees();
+    // axisPrimary stores INDI Az (0=North through East), same convention as m_currentAz.
+    m_currentAz  = axisPrimary.position.Degrees();
     m_currentAlt = axisSecondary.position.Degrees();
 
     // update properties from the axis
@@ -419,6 +419,7 @@ bool ScopeSim::ReadScopeStatus()
                     double dSec = (axisSecondary.position - tSecondary).Degrees();
                     LOGF_DEBUG("slew accuracy pri %f arcsec, sec %f arcsec", dPri * 3600, dSec * 3600);
                 }
+
             }
             break;
         case SCOPE_PARKED:
@@ -486,15 +487,13 @@ bool ScopeSim::Goto(double r, double d)
         double instrumentAlt, instrumentAz_INDI;
         if (SkyToTelescopeAltAz(r, d, instrumentAlt, instrumentAz_INDI))
         {
-            // Convert INDI Az (0=North) to scopesim Az (0=South) for axis positions.
-            Angle scopesim_az = Angle(instrumentAz_INDI - 180.0);
-            axisPrimary.StartSlew(scopesim_az);
+            axisPrimary.StartSlew(Angle(instrumentAz_INDI));
             axisSecondary.StartSlew(Angle(instrumentAlt));
 
             // m_targetRA/Dec must be the instrument position (not celestial) so the ALTAZ
             // tracking servo's getAltAz() computes instrument Az/Alt rates, not celestial.
             Angle instHA, instDec;
-            alignment.mountToInstrumentHaDec(scopesim_az, Angle(instrumentAlt), &instHA, &instDec);
+            alignment.mountToInstrumentHaDec(Angle(instrumentAz_INDI), Angle(instrumentAlt), &instHA, &instDec);
             m_targetRA  = (alignment.lst() - instHA).Hours();
             m_targetDEC = instDec.Degrees();
 
@@ -531,8 +530,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
     {
-        // Axis positions are scopesim Az (0=South) and Alt; convert to INDI Az (0=North).
-        double indi_az  = axisPrimary.position.Degrees() + 180.0;  // → (0, 360]
+        double indi_az  = axisPrimary.position.Degrees();
         double indi_alt = axisSecondary.position.Degrees();
         AddAlignmentEntryAltAz(ra, dec, indi_alt, indi_az);  // handles DB + Initialise
     }
@@ -587,12 +585,12 @@ bool ScopeSim::Park()
         // For ALTAZ, park position is stored as INDI Az (degrees) / Alt (degrees).
         // Convert directly to axis positions and slew; do not go through StartSlew's
         // HA/Dec path which treats Axis1 as hours.
-        Angle scopesim_az = Angle(GetAxis1Park() - 180.0);  // INDI Az -> scopesim Az
-        Angle alt         = Angle(GetAxis2Park());
-        axisPrimary.StartSlew(scopesim_az);
+        Angle indi_az = Angle(GetAxis1Park());
+        Angle alt     = Angle(GetAxis2Park());
+        axisPrimary.StartSlew(indi_az);
         axisSecondary.StartSlew(alt);
         Angle instHA, instDec;
-        alignment.mountToInstrumentHaDec(scopesim_az, alt, &instHA, &instDec);
+        alignment.mountToInstrumentHaDec(indi_az, alt, &instHA, &instDec);
         m_targetRA  = (alignment.lst() - instHA).Hours();
         m_targetDEC = instDec.Degrees();
         TrackState  = SCOPE_PARKING;
@@ -851,7 +849,7 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                     bool corrected = false;
                     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
                     {
-                        double indi_az  = axisPrimary.position.Degrees() + 180.0;
+                        double indi_az  = axisPrimary.position.Degrees();
                         double indi_alt = axisSecondary.position.Degrees();
                         corrected = TelescopeAltAzToSky(indi_alt, indi_az, corrRA, corrDec);
                     }
@@ -1186,6 +1184,13 @@ bool ScopeSim::updateMountAndPierSide()
     }
 
     alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(mountType);
+
+    // Tell the INDI alignment subsystem (SPK et al.) whether this is an equatorial or ALTAZ mount.
+    // Without this, the math plugin always fits an ALTAZ model regardless of mount type.
+    SetApproximateMountAlignmentFromMountType(
+        alignment.mountType == Alignment::MOUNT_TYPE::ALTAZ
+            ? INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ
+            : INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
 
     // Set the park data type appropriate for the mount geometry.
     if (mountType == static_cast<int>(Alignment::MOUNT_TYPE::ALTAZ))
