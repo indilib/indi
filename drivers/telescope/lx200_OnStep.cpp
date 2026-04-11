@@ -4991,6 +4991,9 @@ bool LX200_OnStep::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
+    EqNP.setState(IPS_OK);
+    NewRaDec(currentRA, currentDEC);
+
     LOG_INFO("OnStep: Synchronization successful.");
     return true;
 }
