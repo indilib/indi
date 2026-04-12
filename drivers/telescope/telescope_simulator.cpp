@@ -344,18 +344,64 @@ void ScopeSim::setTargetFromAxisPosition(Angle primary, Angle secondary)
     m_targetDEC = instDec.Degrees();
 }
 
-/// ALTAZ: The tracking rates of the mechanical axes vary with the angle positions.
-/// (See "Deriving Field Rotation Rate for an Alt-Az Mounted Telescope" by Russell P. Patera1)
 bool ScopeSim::ReadScopeStatus()
 {
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ && TrackState == SCOPE_TRACKING)
     {
-        double sinAz = std::sin(DEG_TO_RAD(m_currentAz));
-        double cosAz = std::cos(DEG_TO_RAD(m_currentAz));
-        double sinAlt = std::sin(DEG_TO_RAD(m_currentAlt));
-        double cosAlt = std::cos(DEG_TO_RAD(m_currentAlt));
-        SetTrackRate((m_sinLat - ((cosAz * sinAlt * m_cosLat) / cosAlt)) * TRACKRATE_SIDEREAL,
-                     m_cosLat * sinAz * TRACKRATE_SIDEREAL);
+        double dt      = getCurrentPollingPeriod() / 1000.0;
+        double JDnow   = ln_get_julian_from_sys();
+        double JDoffset = dt / 86400.0;
+
+        auto getAltAz = [&](double JD, INDI::IHorizontalCoordinates &coords)
+        {
+            INDI::IEquatorialCoordinates eq { m_targetRA, m_targetDEC };
+            INDI::EquatorialToHorizontal(&eq, &m_Location, JD, &coords);
+        };
+
+        bool targetChanged = std::abs(m_LastTrackingRA  - m_targetRA)  > 1e-6 ||
+                             std::abs(m_LastTrackingDec - m_targetDEC) > 1e-6;
+
+        if (!m_IsPipelinePrimed || targetChanged)
+        {
+            getAltAz(JDnow - JDoffset, m_TrackingWindowCoords[0]);
+            getAltAz(JDnow,            m_TrackingWindowCoords[1]);
+            getAltAz(JDnow + JDoffset, m_TrackingWindowCoords[2]);
+            m_IsPipelinePrimed = true;
+            m_LastTrackingRA   = m_targetRA;
+            m_LastTrackingDec  = m_targetDEC;
+        }
+        else
+        {
+            m_TrackingWindowCoords[0] = m_TrackingWindowCoords[1];
+            m_TrackingWindowCoords[1] = m_TrackingWindowCoords[2];
+            getAltAz(JDnow + JDoffset, m_TrackingWindowCoords[2]);
+        }
+
+        // Unwrap azimuth around the center point to avoid 360/0 discontinuity
+        // Angle(x).Degrees() normalizes x to (-180, +180], same as the private Angle::range()
+        auto range180 = [](double x) { return Angle(x).Degrees(); };
+        double pAz[3] = { m_TrackingWindowCoords[0].azimuth,
+                          m_TrackingWindowCoords[1].azimuth,
+                          m_TrackingWindowCoords[2].azimuth };
+        pAz[0] = pAz[1] + range180(pAz[0] - pAz[1]);
+        pAz[2] = pAz[1] + range180(pAz[2] - pAz[1]);
+
+        // Parabolic coefficients (t in normalized units; points at t = -1, 0, +1)
+        double az_a  = (pAz[2] + pAz[0] - 2.0 * pAz[1]) / 2.0;
+        double az_b  = (pAz[2] - pAz[0]) / 2.0;
+        double alt_a = (m_TrackingWindowCoords[2].altitude + m_TrackingWindowCoords[0].altitude
+                        - 2.0 * m_TrackingWindowCoords[1].altitude) / 2.0;
+        double alt_b = (m_TrackingWindowCoords[2].altitude - m_TrackingWindowCoords[0].altitude) / 2.0;
+
+        // Predicted position at next tick (t = +1 normalized = +dt seconds from now)
+        double targetAzNext  = az_a  + az_b  + pAz[1];
+        double targetAltNext = alt_a + alt_b + m_TrackingWindowCoords[1].altitude;
+
+        // Rate to close the gap in exactly dt seconds, converted to arcsec/s for SetTrackRate
+        double azRate  = range180(targetAzNext - m_currentAz)  / dt * 3600.0;
+        double altRate = (targetAltNext - m_currentAlt) / dt * 3600.0;
+
+        SetTrackRate(azRate, altRate);
     }
 
     // new mechanical angle calculation
@@ -667,18 +713,22 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
         }
 
 #ifdef USE_SIM_TAB
-        if (mountModelNP.isNameMatch(name))
+        if (mountModelArcminNP.isNameMatch(name))
         {
-            if (mountModelNP.isUpdated(values, names, n))
+            if (mountModelArcminNP.isUpdated(values, names, n))
             {
-                mountModelNP.update(values, names, n);
+                mountModelArcminNP.update(values, names, n);
+                for (int i = 0; i < 6; i++)
+                    mountModelNP[i].setValue(mountModelArcminNP[i].getValue() / 60.0);
                 alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
                                          mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
                                          mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
-                saveConfig(mountModelNP);
+                mountModelNP.setState(IPS_OK);
+                mountModelNP.apply();
+                saveConfig(mountModelArcminNP);
             }
-            mountModelNP.setState(IPS_OK);
-            mountModelNP.apply();
+            mountModelArcminNP.setState(IPS_OK);
+            mountModelArcminNP.apply();
             return true;
         }
 
@@ -822,12 +872,16 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
 
                 mountModelNP[MM_MA].setValue(newMA);
                 mountModelNP[MM_ME].setValue(newME);
+                mountModelArcminNP[MM_MA].setValue(newMA * 60.0);
+                mountModelArcminNP[MM_ME].setValue(newME * 60.0);
                 alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
                                          mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
                                          mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
 
                 mountModelNP.setState(IPS_OK);
                 mountModelNP.apply();
+                mountModelArcminNP.setState(IPS_OK);
+                mountModelArcminNP.apply();
 
                 LOGF_INFO("Applied PAC correction: MA %.4f -> %.4f, ME %.4f -> %.4f",
                           oldMA, newMA, oldME, newME);
@@ -1086,6 +1140,8 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
 
 bool ScopeSim::SetTrackEnabled(bool enabled)
 {
+    if (enabled)
+        m_IsPipelinePrimed = false;
     axisPrimary.Tracking(enabled);
     axisSecondary.Tracking(enabled);
     return true;
@@ -1108,7 +1164,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     GuideRateNP.save(fp);
     MountTypeSP.save(fp);
     simPierSideSP.save(fp);
-    mountModelNP.save(fp);
+    mountModelArcminNP.save(fp);
     flipHourAngleNP.save(fp);
     decBacklashNP.save(fp);
     PACDeviceTP.save(fp);

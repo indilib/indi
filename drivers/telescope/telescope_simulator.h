@@ -149,6 +149,14 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         int m_MountType {-1};
 
         Alignment alignment;
+
+        // Parabolic Alt-Az tracking window: three sky positions bracketing the current time,
+        // used to fit a 2nd-order polynomial for axis rate prediction.
+        INDI::IHorizontalCoordinates m_TrackingWindowCoords[3] {};
+        bool   m_IsPipelinePrimed { false };
+        double m_LastTrackingRA  { 0 };
+        double m_LastTrackingDec { 0 };
+
         bool updateMountAndPierSide();
 
 #ifdef USE_SIM_TAB
