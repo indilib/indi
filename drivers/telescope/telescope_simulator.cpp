@@ -94,14 +94,23 @@ bool ScopeSim::initProperties()
     simPierSideSP.fill(getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
                        "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 
-    mountModelNP[MM_IH].fill("MM_IH", "Ha Zero (IH)", "%g", -5, 5, 0.01, 0);
-    mountModelNP[MM_ID].fill("MM_ID", "Dec Zero (ID)", "%g", -5, 5, 0.01, 0);
-    mountModelNP[MM_CH].fill("MM_CH", "Cone (CH)", "%g", -5, 5, 0.01, 0);
-    mountModelNP[MM_NP].fill("MM_NP", "Ha/Dec (NP)", "%g", -5, 5, 0.01, 0);
-    mountModelNP[MM_MA].fill("MM_MA", "Pole Azm (MA)", "%g", -5, 5, 0.01, 0);
-    mountModelNP[MM_ME].fill("MM_ME", "Pole elev (ME)", "%g", -5, 5, 0.01, 0);
-    mountModelNP.fill(getDeviceName(), "MOUNT_MODEL", "Mount Model",
-                      "Simulation", IP_WO, 0, IPS_IDLE);
+    mountModelArcminNP[MM_IH].fill("MM_IH", "Ha Zero (IH) '", "%.1f", -10800, 10800, 0.1, 0);
+    mountModelArcminNP[MM_ID].fill("MM_ID", "Dec Zero (ID) '", "%.1f", -10800, 10800, 0.1, 0);
+    mountModelArcminNP[MM_CH].fill("MM_CH", "Cone (CH) '", "%.1f", -300, 300, 0.1, 0);
+    mountModelArcminNP[MM_NP].fill("MM_NP", "Ha/Dec (NP) '", "%.1f", -300, 300, 0.1, 0);
+    mountModelArcminNP[MM_MA].fill("MM_MA", "Pole Azm (MA) '", "%.1f", -300, 300, 0.1, 0);
+    mountModelArcminNP[MM_ME].fill("MM_ME", "Pole elev (ME) '", "%.1f", -300, 300, 0.1, 0);
+    mountModelArcminNP.fill(getDeviceName(), "MOUNT_MODEL_ARCMIN", "Mount Model",
+                            "Simulation", IP_RW, 0, IPS_IDLE);
+
+    mountModelNP[MM_IH].fill("MM_IH", "Ha Zero (IH) deg", "%g", -180, 180, 0.01, 0);
+    mountModelNP[MM_ID].fill("MM_ID", "Dec Zero (ID) deg", "%g", -180, 180, 0.01, 0);
+    mountModelNP[MM_CH].fill("MM_CH", "Cone (CH) deg", "%g", -5, 5, 0.01, 0);
+    mountModelNP[MM_NP].fill("MM_NP", "Ha/Dec (NP) deg", "%g", -5, 5, 0.01, 0);
+    mountModelNP[MM_MA].fill("MM_MA", "Pole Azm (MA) deg", "%g", -5, 5, 0.01, 0);
+    mountModelNP[MM_ME].fill("MM_ME", "Pole elev (ME) deg", "%g", -5, 5, 0.01, 0);
+    mountModelNP.fill(getDeviceName(), "MOUNT_MODEL", "Mount Model (deg)",
+                      "Simulation", IP_RO, 0, IPS_IDLE);
 
     flipHourAngleNP[0].fill("FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
     flipHourAngleNP.fill(getDeviceName(), "FLIP_HA", "Flip Posn.",
@@ -170,8 +179,15 @@ void ScopeSim::ISGetProperties(const char *dev)
     MountTypeSP.load();
     defineProperty(simPierSideSP);
     simPierSideSP.load();
+    defineProperty(mountModelArcminNP);
+    mountModelArcminNP.load();
+    // Apply loaded arcmin values to the degrees mirror and alignment
+    for (int i = 0; i < 6; i++)
+        mountModelNP[i].setValue(mountModelArcminNP[i].getValue() / 60.0);
+    alignment.setCorrections(mountModelNP[MM_IH].getValue(), mountModelNP[MM_ID].getValue(),
+                             mountModelNP[MM_CH].getValue(), mountModelNP[MM_NP].getValue(),
+                             mountModelNP[MM_MA].getValue(), mountModelNP[MM_ME].getValue());
     defineProperty(mountModelNP);
-    mountModelNP.load();
     defineProperty(mountAxisNP);
     defineProperty(flipHourAngleNP);
     flipHourAngleNP.load();
