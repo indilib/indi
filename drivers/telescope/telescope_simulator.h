@@ -93,7 +93,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
     private:
         double m_currentRA { 0 };
         double m_currentDEC { 90 };
-        double m_currentAz { 180 };
+        double m_currentAz { 180 };  // INDI Az convention: 0=North, increasing eastward
         double m_currentAlt { 0 };
         double m_targetRA { 0 };
         double m_targetDEC { 0 };
@@ -104,7 +104,12 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         /// via the parallactic angle, for ALTAZ mount guiding.
         void guideAltAzDecomposed(double dNS, double dEW, uint32_t ms);
 
-        // bool forceMeridianFlip { false }; // #PS: unused
+        /// Compute m_currentRA/DEC from axis positions, then apply any INDI alignment correction.
+        void updateCurrentCoordsFromAxes();
+
+        /// Set m_targetRA/DEC from raw axis positions (for ALTAZ tracking servo consistency).
+        void setTargetFromAxisPosition(Angle primary, Angle secondary);
+
         unsigned int DBG_SCOPE { 0 };
 
         int mcRate = 0;
