@@ -323,12 +323,21 @@ void HotPlugManager::checkHotPlugEvents()
         {
             if (currentConnected.find(identifier) == currentConnected.end())
             {
-                // Device disconnected
-                LOGF_DEBUG("HotPlugManager: Device disconnected: %s", identifier.c_str());
                 std::shared_ptr<DefaultDevice> deviceToRemove = managedDevices.at(identifier);
+
+                // If the device is currently connected to a client, skip removal.
+                // Some devices (e.g. ZWO ASI cameras) perform USB resets after each
+                // frame readout, causing them to transiently disappear from USB
+                // enumeration. Destroying a connected device in this window breaks
+                // all INDI clients (KStars, PHD2) that hold property references.
+                if (deviceToRemove->isConnected())
+                {
+                    LOGF_DEBUG("HotPlugManager: Device %s not found on USB but is connected to a client, skipping removal.", identifier.c_str());
+                    continue;
+                }
+
+                LOGF_DEBUG("HotPlugManager: Device disconnected: %s", identifier.c_str());
                 handler->destroyDevice(deviceToRemove);
-                // Note: The handler's internal map should be updated by destroyDevice or subsequent createDevice calls
-                // For std::deque, this means removing the element.
             }
         }
 
