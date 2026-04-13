@@ -353,9 +353,21 @@ bool ScopeSim::ReadScopeStatus()
         double JDnow   = ln_get_julian_from_sys();
         double JDoffset = dt / 86400.0;
 
+        // RA drift rate relative to sidereal for the selected track mode, in hours/sec.
+        // Nudging RA at each parabola sample by the non-sidereal offset makes the
+        // derived Az/Alt rates correct for the track mode without changing the meaning
+        // of m_targetRA/Dec.  Mirrors EQ behaviour: RA is corrected, Dec is not.
+        int trackMode = TrackModeSP.findOnSwitchIndex();
+        double raDriftHrsPerSec = 0;
+        if (trackMode == TRACK_SOLAR)
+            raDriftHrsPerSec = (TRACKRATE_SIDEREAL - TRACKRATE_SOLAR) / 3600.0 / 15.0;
+        else if (trackMode == TRACK_LUNAR)
+            raDriftHrsPerSec = (TRACKRATE_SIDEREAL - TRACKRATE_LUNAR) / 3600.0 / 15.0;
+
         auto getAltAz = [&](double JD, INDI::IHorizontalCoordinates &coords)
         {
-            INDI::IEquatorialCoordinates eq { m_targetRA, m_targetDEC };
+            double dtFromNow = (JD - JDnow) * 86400.0;
+            INDI::IEquatorialCoordinates eq { m_targetRA + raDriftHrsPerSec * dtFromNow, m_targetDEC };
             INDI::EquatorialToHorizontal(&eq, &m_Location, JD, &coords);
         };
 
