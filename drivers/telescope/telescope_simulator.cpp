@@ -346,7 +346,8 @@ void ScopeSim::setTargetFromAxisPosition(Angle primary, Angle secondary)
 
 bool ScopeSim::ReadScopeStatus()
 {
-    if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ && TrackState == SCOPE_TRACKING)
+    if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ && TrackState == SCOPE_TRACKING &&
+        TrackModeSP.findOnSwitchIndex() != TRACK_CUSTOM)
     {
         double dt      = getCurrentPollingPeriod() / 1000.0;
         double JDnow   = ln_get_julian_from_sys();
