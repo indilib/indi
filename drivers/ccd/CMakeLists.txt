@@ -12,6 +12,7 @@ SET(guidesimulator_SRC
     guide_simulator.cpp)
 
 add_executable(indi_simulator_guide ${guidesimulator_SRC})
+target_compile_definitions(indi_simulator_guide PRIVATE USE_EQUATORIAL_PE)
 target_link_libraries(indi_simulator_guide indidriver)
 install(TARGETS indi_simulator_guide RUNTIME DESTINATION bin)
 

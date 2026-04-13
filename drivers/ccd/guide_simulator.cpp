@@ -510,7 +510,14 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         m_ImageScaleY = Scaley;
 
 #ifdef USE_EQUATORIAL_PE
-        if (!m_UsePE)
+        if (m_UsePE)
+        {
+            // Use the true pointing position (Wallace errors applied) published as
+            // EQUATORIAL_PE by the telescope simulator.  raPE/decPE are J2000.
+            m_CurrentRA  = raPE + m_GuideWEOffset;
+            m_CurrentDEC = decPE + m_GuideNSOffset;
+        }
+        else
         {
 #endif
             m_CurrentRA  = RA;
@@ -619,7 +626,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // tra, tdec are at the center of the projection center for the simulated
             // images
             //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
-            double J2dec = J2000Pos.declination;
+            double J2dec = m_CurrentDEC;
 
             //double J2rar = J2ra * DEGREES_TO_RADIANS;
             double J2decr = J2dec * DEGREES_TO_RADIANS;
@@ -1128,18 +1135,18 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
 void GuideSim::activeDevicesUpdated()
 {
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_PE");
-#else
-    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_PE");
 #endif
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 }
 
 bool GuideSim::ISSnoopDevice(XMLEle * root)
 {
-    // We try to snoop EQPEC first, if not found, we snoop regular EQNP
+    // We try to snoop EQUATORIAL_PE first (true pointing with mount errors injected);
+    // if not found we fall through to the regular EQUATORIAL_EOD_COORD snoop below.
 #ifdef USE_EQUATORIAL_PE
     const char * propName = findXMLAttValu(root, "name");
-    if (!strcmp(propName, EqPENP.name))
+    if (!strcmp(propName, "EQUATORIAL_PE"))
     {
         XMLEle * ep = nullptr;
         int rc_ra = -1, rc_de = -1;
@@ -1155,21 +1162,19 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
                 rc_de = f_scansexa(pcdataXMLEle(ep), &newdec);
         }
 
-        if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
+        if (rc_ra == 0 && rc_de == 0)
         {
-            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = newra * 15.0;
-            epochPos.dec = newdec;
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            INDI::IEquatorialCoordinates epochPos { newra * 15.0, newdec }, J2000Pos { 0, 0 };
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            raPE  = J2000Pos.rightascension / 15.0;
+            decPE = J2000Pos.declination;
             m_UsePE = true;
 
-            EqPEN[AXIS_RA].value = newra;
-            EqPEN[AXIS_DE].value = newdec;
-            IDSetNumber(&EqPENP, nullptr);
+            EqPENP[AXIS_RA].setValue(newra);
+            EqPENP[AXIS_DE].setValue(newdec);
+            EqPENP.apply();
 
-            LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
+            LOGF_DEBUG("Snooped EQUATORIAL_PE JNow RA %g Dec %g -> J2000 RA %g Dec %g", newra, newdec, raPE, decPE);
 
             return true;
         }

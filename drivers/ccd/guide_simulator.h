@@ -151,6 +151,8 @@ class GuideSim : public INDI::CCD
         double m_CurrentRA { 0 };
         double m_CurrentDEC { 0 };
         bool m_UsePE { false };
+        double raPE  { 0 };
+        double decPE { 0 };
         time_t m_RunStart;
         time_t m_LastSim;
         bool m_RunStartInitialized { false };
