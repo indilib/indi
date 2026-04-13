@@ -349,21 +349,25 @@ void Alignment::instrumentHaDecToMount(Angle instrumentHa, Angle instrumentDec, 
             break;
         }
         case MOUNT_TYPE::EQ_FORK:
+            // Primary instrument axis: HA (negative PA-system looking down to NCP:SCP)
+            // Secondary instrument axis: Dec (positive PA-system looking E)
             *primary   = instrumentHa;
             *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;
             break;
         case MOUNT_TYPE::EQ_GEM:
-            if (instrumentHa < flipHourAngle)  // west side — same condition as apparentHaDecToMount
+            if (instrumentHa < flipHourAngle)  // pierside west (looking east)
             {
-                *primary   = instrumentHa + Angle(180);
-                *secondary = Angle(180) - instrumentDec;
+                // Ha axis: Negative PA-system looking down from NCP:SCP, origin HA-like
+                // Dec axis: Positive PA-system looking at E, origin DEC-like
+                *primary   = instrumentHa + Angle(180);    // Ha to Primary: negative PA-system with origin opposite HA-like
+                *secondary = Angle(180) - instrumentDec;   // Dec to Secondary: positive PA-system with origin DEC-like
             }
             else
             {
-                *primary   = instrumentHa;
-                *secondary = instrumentDec;
+                *primary   = instrumentHa;    // Ha already rotated by 180
+                *secondary = instrumentDec;   // Dec already rotated by 180
             }
-            if (latitude < 0)
+            if (latitude < 0)  // southern hemisphere
                 *secondary = -*secondary;
             break;
     }
@@ -391,45 +395,13 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
                     secondary->Degrees() );
         return; // Prevent fallthrough to equatorial override
     }
-    // Ha is negative PA-system looking down to NCP:SCP
-    // Dec is positive PA-system looking E
+    // EQ: apply Wallace pointing-model correction in HA/Dec space, then delegate axis mapping.
+    // (For ALTAZ the correction is applied in Az/Alt space above, before the early return.)
     Angle instrumentHa, instrumentDec;
-    // ignore diurnal aberrations and refractions to get observed ha, dec
-    // apply telescope pointing to get instrument
     observedToInstrument(apparentHa, apparentDec, &instrumentHa, &instrumentDec);
-
-    switch (mountType)
-    {
-        case MOUNT_TYPE::ALTAZ:
-            // Ha axis: Negative PA-system looking down to Zenith:Nadir pole, origin "HA-like"
-            // Dec axis: Positive PA-system looking at east, origin "DEC-like"
-            break;
-        case MOUNT_TYPE::EQ_FORK:
-            // Primary instrument axis: ??
-            // Secondary instrument axis: ??
-            *primary = instrumentHa;
-            *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;  // northern : southern hemisphere
-            break;
-        case MOUNT_TYPE::EQ_GEM:
-            if (instrumentHa < flipHourAngle)  // pierside west (looking east)
-            {
-                // Ha axis: Negative PA-system looking down from NCP:SCP, origin HA-like
-                // Dec axis: Positive PA-system looking at E, origin DEC-like
-                *primary = instrumentHa + Angle(180);    // Ha to Primary to get negative PA-system with origin opposite HA-like
-                *secondary = Angle(180) - instrumentDec; // Dec to Secondary to get positive PA-system with origin DEC-like
-            }
-            else
-            {
-                *primary = instrumentHa;    // Ha already rotated by 180, so no transformation to get origin opposite HA-like
-                *secondary = instrumentDec; // Dec already rotated by 180, so no transformation to get origin opposite DEC-like
-            }
-            if (latitude < 0)  // southern hemisphere
-                *secondary = -*secondary;
-            break;
-    }
-    if (mountType != MOUNT_TYPE::ALTAZ)
-        LOGF_EXTRA1("apparent HaDec to EQ: ha %f, dec %f to pri %f, sec %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
-                    secondary->Degrees() );
+    instrumentHaDecToMount(instrumentHa, instrumentDec, primary, secondary);
+    LOGF_EXTRA1("apparent HaDec to EQ: ha %f, dec %f to pri %f, sec %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
+                secondary->Degrees() );
 }
 
 void Alignment::apparentRaDecToMount(Angle apparentRa, Angle apparentDec, Angle* primary, Angle* secondary)
