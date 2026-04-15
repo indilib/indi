@@ -33,27 +33,13 @@ extern std::mutex lx200CommsLock;
 LX200_esp32go::LX200_esp32go() : LX200Generic()
 {
     setVersion(1, 0);
-
-/*
-// ... from lx200generic
-    setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
-                       LX200_HAS_PULSE_GUIDING);
-
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
-                           4);
-
-*/
+    trackingMode   = LX200_TRACK_SIDEREAL;
     
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-/*
-    SetTelescopeCapability(GetTelescopeCapability() |
-                           TELESCOPE_CAN_CONTROL_TRACK |
-                           TELESCOPE_HAS_PIER_SIDE 
-                           , 4);
-*/
+
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE ,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE |
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK ,
                            4);
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -79,6 +65,8 @@ bool LX200_esp32go::initProperties()
     VersionTP[3].fill("Name", "", "");
     VersionTP.fill(getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
+
+
     if(activeFocus)
     {
         //FocuserInterface
@@ -92,15 +80,7 @@ bool LX200_esp32go::initProperties()
         FocusAbsPosNP[0].setMax(100000.);
         FocusAbsPosNP[0].setValue(0);
         FocusAbsPosNP[0].setStep(10);
-/*
-        // Focus T° Compensation
-        // Property must be FOCUS_TEMPERATURE to be recognized by Ekos
-        FocusTemperatureNP[0].fill("FOCUS_TEMPERATURE", "TFC T°", "%+2.2f", 0, 1, 0.25,
-                               25);  //default value is meaningless
-        FocusTemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Focuser T°",
-                            FOCUS_TAB, IP_RO, 0,
-                            IPS_IDLE);
-*/
+
         setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
         FI::updateProperties();
@@ -147,53 +127,10 @@ bool LX200_esp32go::updateProperties()
     return true;
 }
 
-
-bool LX200_esp32go::updateTime(ln_date *utc, double utc_offset)
-{
-    ln_zonedate ltm;
-
-    if (isSimulation())
-        return true;
-
-    JD = ln_get_julian_day(utc);
-
-    LOGF_DEBUG("New JD is %.2f", JD);
-
-    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600);
-
-    LOGF_DEBUG("Local time is %02d:%02d:%02g", ltm.hours, ltm.minutes, ltm.seconds);
-
-    // Set Local Time
-    if (setLocalTime24(ltm.hours, ltm.minutes, ltm.seconds) == false)
-    {
-        LOG_ERROR("Error setting local time time.");
-        return false;
-    }
-
-    // UTC Date, it's not Local for LX200GPS
-    if (setLocalDate(utc->days, utc->months, utc->years) == false)
-    {
-        LOG_ERROR("Error setting UTC date.");
-        return false;
-    }
-
-    // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
-    // is the opposite of the standard definition of UTC offset!
-    if (setUTCOffset(utc_offset) == false)
-    {
-        LOG_ERROR("Error setting UTC Offset.");
-        return false;
-    }
-
-    LOG_INFO("Time updated, updating planetary data...");
-    return true;
-}
-
 bool LX200_esp32go::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
-
 
 bool LX200_esp32go::UnPark()
 {
@@ -217,9 +154,6 @@ bool LX200_esp32go::ReadScopeStatus()
         mountSim();
         return true;
     }
-
-    //if (check_lx200_connection(PortFD))
-    //return false;
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -257,6 +191,18 @@ bool LX200_esp32go::ReadScopeStatus()
     }
     NewRaDec(currentRA, currentDEC);
     
+    // track mode
+    if(trackmodeUpdate || TrackModeSP[0].getState() != ISS_ON)
+    {
+        trackmodeUpdate = false;
+        trackingMode   = LX200_TRACK_SIDEREAL;
+        TrackModeSP.reset();
+        TrackModeSP[0].setState(ISS_ON);
+        //TrackModeSP.setState(IPS_ALERT);
+        TrackModeSP.apply();
+        LOG_INFO("SetTrackMode not supported Yet. Back to Sidereal");
+    }
+
     // guide rate
     if(guideUpdate)
     {
@@ -454,6 +400,33 @@ bool LX200_esp32go::SetTrackEnabled(bool enabled) //track On/Off events handled 
     return true;
 }
 
+bool LX200_esp32go::SetTrackMode(uint8_t mode)
+{
+    if (isSimulation())
+        return true;
+
+    // FW not ready yet
+/*
+    LOG_INFO("SetTrackMode");
+    switch(mode)
+    {
+        case TRACK_SIDEREAL:
+            return sendCommandBlind(":TQ#");
+            break;
+        case TRACK_SOLAR:
+            return sendCommandBlind(":TS#");
+            break;
+        case TRACK_LUNAR:
+            return sendCommandBlind(":TL#");
+            break;
+        case TRACK_KING:
+            return sendCommandBlind(":TK#");
+            break;
+    }
+*/
+    return true;
+}
+
 void LX200_esp32go::getBasicData()
 {
     // process parent
@@ -471,17 +444,12 @@ void LX200_esp32go::getBasicData()
             char lines[26][100];
             int lineCount;
             splitString(configData, lines, &lineCount);
-            //char buff[100];
-            //snprintf(buff, sizeof(buff), "lines: %i", lineCount);
-            //LOG_INFO(buff);
             // az guide rate index 2
             GuideRateNP[0].setValue(atof(lines[2]));
             // az guide rate index 6
             GuideRateNP[1].setValue(atof(lines[6]));
             GuideRateNP.apply();
             // mount mode index 18
-            //snprintf(buff, sizeof(buff), "lines18: %s", lines[18]);
-            //LOG_INFO(buff);
             MountTypeSP.reset();
             MountTypeSP[MOUNT_EQ_GEM].setState(ISS_ON);
             if(*lines[18]=='0')

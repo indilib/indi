@@ -50,24 +50,29 @@ class LX200_esp32go : public LX200Generic
         void ISGetProperties(const char *dev);
         //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n); //override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool updateTime(ln_date *utc, double utc_offset);
 
     protected:
         virtual bool UnPark();
 
         
-        virtual bool ReadScopeStatus(); //override;
-        virtual void getBasicData(); // override;
-        virtual bool SetTrackEnabled(bool enabled); // override;
+        virtual bool ReadScopeStatus() override;
+        virtual void getBasicData() override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
 
         INDI::PropertyText VersionTP {5};
         INDI::PropertyNumber GuideRateNP {2};
-        //int IsTracking = 0;
         bool guideUpdate = false;
+        bool trackmodeUpdate = false;
         bool picgotoMode = false;
         bool activeFocus = true;
-
-        //virtual bool saveConfigItems(FILE *fp);    
+        enum TelescopeTrackMode
+        {
+            TRACK_SIDEREAL,
+            TRACK_SOLAR,
+            TRACK_LUNAR,
+            TRACK_KING
+        };
 
         long int OSTimeoutSeconds = 0;
         long int OSTimeoutMicroSeconds = 100000;
@@ -80,7 +85,6 @@ class LX200_esp32go : public LX200Generic
         void splitString(const char *str, char array[][100], int *count);
 
         // ------------ FocuserInterface
-        //INDI::PropertyNumber FocusTemperatureNP {2};
         IPState MoveAbsFocuser (uint32_t targetTicks);// override;
         IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks);// override;
         bool AbortFocuser ();// override;
