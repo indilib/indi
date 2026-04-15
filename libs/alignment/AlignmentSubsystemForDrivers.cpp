@@ -113,7 +113,7 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeEquatorial(double actualRA, dou
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
         if (TransformCelestialToTelescope(actualRA, actualDec, 0.0, TDV))
         {
@@ -143,7 +143,7 @@ bool AlignmentSubsystemForDrivers::TelescopeEquatorialToSky(double mountRA, doub
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
         TelescopeDirectionVector TDV;
         eq.rightascension = mountRA;
@@ -200,7 +200,7 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeAltAz(double actualRA, double a
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
         if (TransformCelestialToTelescope(actualRA, actualDec, 0.0, TDV))
         {
@@ -224,7 +224,7 @@ bool AlignmentSubsystemForDrivers::TelescopeAltAzToSky(double mountAlt, double m
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
         TelescopeDirectionVector TDV;
         altaz.azimuth  = range360(mountAz);

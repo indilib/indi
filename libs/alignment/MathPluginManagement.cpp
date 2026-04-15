@@ -46,7 +46,7 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
 
     int configPlugin = -1;
     IUGetConfigOnSwitchIndex(ChildTelescope->getDeviceName(),  "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", &configPlugin);
-    if (configPlugin > 0 && configPlugin < AlignmentSubsystemMathPluginsV.nsp)
+    if (configPlugin >= 0 && configPlugin < AlignmentSubsystemMathPluginsV.nsp)
     {
         IUResetSwitch(&AlignmentSubsystemMathPluginsV);
         AlignmentSubsystemMathPluginsV.sp[configPlugin].s = ISS_ON;
