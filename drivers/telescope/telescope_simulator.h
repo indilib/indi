@@ -177,8 +177,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
             PS_ON
         };
 
-        INDI::PropertyNumber mountModelArcminNP {6}; // R/W input in arcminutes
-        INDI::PropertyNumber mountModelNP {6};        // R/O mirror in degrees (for snooping)
+        INDI::PropertyNumber mountModelNP {6};
         enum
         {
             MM_IH,
