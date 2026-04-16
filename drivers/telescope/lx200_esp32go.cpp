@@ -404,7 +404,9 @@ bool LX200_esp32go::SetTrackMode(uint8_t mode)
 {
     if (isSimulation())
         return true;
-
+    
+    LOGF_DEBUG("SetTrackMode: %d", mode);
+    
     // FW not ready yet
 /*
     LOG_INFO("SetTrackMode");

@@ -44,15 +44,15 @@ class LX200_esp32go : public LX200Generic
         LX200_esp32go();
         ~LX200_esp32go() {}
 
-        const char *getDefaultName();
-        bool initProperties();
-        bool updateProperties();
-        void ISGetProperties(const char *dev);
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
+        void ISGetProperties(const char *dev) override;
         //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n); //override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
-        virtual bool UnPark();
+        virtual bool UnPark() override;
 
         
         virtual bool ReadScopeStatus() override;
@@ -85,9 +85,9 @@ class LX200_esp32go : public LX200Generic
         void splitString(const char *str, char array[][100], int *count);
 
         // ------------ FocuserInterface
-        IPState MoveAbsFocuser (uint32_t targetTicks);// override;
-        IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks);// override;
-        bool AbortFocuser ();// override;
+        IPState MoveAbsFocuser (uint32_t targetTicks) override;
+        IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+        bool AbortFocuser () override;
         int UpdateFocuser(); //Return = 0 good, -1 = Communication error
 
 };
