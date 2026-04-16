@@ -93,3 +93,11 @@ SET(alpaca_filterwheel_SRC
 add_executable(indi_alpaca_filterwheel ${alpaca_filterwheel_SRC})
 target_link_libraries(indi_alpaca_filterwheel indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_filterwheel RUNTIME DESTINATION bin)
+
+# ############### Wanderer Snowflake Filter Wheel ################
+SET(wanderer_snowflake_wheel_SRC
+    wanderer_snowflake.cpp)
+
+add_executable(indi_wanderer_snowflake_wheel ${wanderer_snowflake_wheel_SRC})
+target_link_libraries(indi_wanderer_snowflake_wheel indidriver)
+install(TARGETS indi_wanderer_snowflake_wheel RUNTIME DESTINATION bin)
