@@ -1,17 +1,15 @@
 #!/usr/bin/make -f
+#!/usr/bin/make -f
 
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/cmake.mk
-
-# Enable specific hardening flags but avoid the most performance-impacting ones
 export DEB_BUILD_MAINT_OPTIONS = hardening=+format,+fortify,+stackprotector,+relro,-pie,-bindnow
 
-# Add some defensive flags without significant performance impact
 export DEB_CFLAGS_MAINT_APPEND = -Wall -fno-strict-aliasing
 export DEB_CXXFLAGS_MAINT_APPEND = -Wall -fno-strict-aliasing
 
-# Ensure proper RPATH handling to find libraries
-DEB_CMAKE_EXTRA_FLAGS += -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
+%:
+	dh $@ --buildsystem=cmake
 
-# Build with symbols for better debugging
-DEB_CMAKE_EXTRA_FLAGS += -DCMAKE_BUILD_TYPE=RelWithDebInfo
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
