@@ -77,7 +77,7 @@ void RotatorInterface::initProperties(const char *groupName)
 
     // Rotator Limits
     // @INDI_STANDARD_PROPERTY@
-    RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Max Range (degrees)", "%.f", 0, 360, 30, 0);
+    RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Safe Range (degrees)", "%.f", 0, 360, 30, 0);
     RotatorLimitsNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_LIMITS", "Limits", groupName, IP_RW, 60, IPS_IDLE);
 }
 
@@ -100,23 +100,27 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 return true;
             }
 
-            // If value is outside safe zone, then prevent motion
-            if (RotatorLimitsNP[0].getValue() > 0 && ((values[0] < 180
-                    && (std::abs(values[0] - m_RotatorOffset)) > RotatorLimitsNP[0].getValue()) ||
-                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) > (360 - RotatorLimitsNP[0].getValue()))))
+            // If value is outside safe zone, then prevent motion.
+            // The safe zone is a symmetric window of ±(limit/2) degrees centered on the sync offset.
+            // Minimum arc distance handles wrap-around correctly; limit=0 disables the check.
+            if (RotatorLimitsNP[0].getValue() > 0)
             {
-                GotoRotatorNP.setState(IPS_ALERT);
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
-                             "Rotator target %.2f exceeds safe limits of %.2f degrees...", values[0], RotatorLimitsNP[0].getValue());
-                GotoRotatorNP.apply();
+                double limit   = RotatorLimitsNP[0].getValue();
+                double diff    = std::abs(values[0] - m_RotatorOffset);
+                double minDist = std::min(diff, 360.0 - diff);
+                if (minDist > limit / 2.0)
+                {
+                    GotoRotatorNP.setState(IPS_ALERT);
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                                 "Rotator target %.2f exceeds safe limits of %.2f degrees...", values[0], limit);
+                    GotoRotatorNP.apply();
+                    return true;
+                }
             }
-            else
-            {
-                GotoRotatorNP.setState(MoveRotator(values[0]));
-                GotoRotatorNP.apply();
-                if (GotoRotatorNP.getState() == IPS_BUSY)
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
-            }
+            GotoRotatorNP.setState(MoveRotator(values[0]));
+            GotoRotatorNP.apply();
+            if (GotoRotatorNP.getState() == IPS_BUSY)
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
             return true;
         }
         ////////////////////////////////////////////
@@ -176,9 +180,11 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 }
                 else
                 {
-                    double startAngle = m_RotatorOffset;
-                    double endAngle   = startAngle + values[0];
-                    if (endAngle >= 360) endAngle -= 360;
+                    double half       = values[0] / 2.0;
+                    double startAngle = m_RotatorOffset - half;
+                    if (startAngle < 0) startAngle += 360.0;
+                    double endAngle   = m_RotatorOffset + half;
+                    if (endAngle >= 360) endAngle -= 360.0;
                     DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
                                  "Rotator limits set to %.f degrees. Safe range: %.2f to %.2f degrees.",
                                  values[0], startAngle, endAngle);

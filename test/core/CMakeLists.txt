@@ -28,4 +28,17 @@ TARGET_LINK_LIBRARIES(test_property_class
 )
 ADD_TEST(test_property_class test_property_class)
 
+SET (test_rotator_limits_SRCS
+    test_rotator_limits.cpp
+)
+ADD_EXECUTABLE(test_rotator_limits
+    ${test_rotator_limits_SRCS}
+)
+TARGET_LINK_LIBRARIES(test_rotator_limits
+    -lgtest_main
+    -lgtest
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_rotator_limits test_rotator_limits)
+
 
