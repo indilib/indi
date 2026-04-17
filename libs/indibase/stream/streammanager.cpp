@@ -105,6 +105,11 @@ bool StreamManagerPrivate::initProperties()
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                       STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Full Depth Streaming — right after Video Stream toggle
+    FullDepthSP[FULL_DEPTH_8BIT ].fill("FULL_DEPTH_8BIT",  "8-bit",  ISS_ON);
+    FullDepthSP[FULL_DEPTH_16BIT].fill("FULL_DEPTH_16BIT", "16-bit", ISS_OFF);
+    FullDepthSP.fill(getDeviceName(), "STREAM_FULL_DEPTH", "Stream Depth", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // @INDI_STANDARD_PROPERTY@
     StreamTimeNP[0].fill("STREAM_DELAY_TIME", "Delay (s)", "%.3f", 0, 60, 0.001, 0);
     StreamTimeNP.fill(getDeviceName(), "STREAM_DELAY", "Video Stream Delay", STREAM_TAB, IP_RO, 0, IPS_IDLE);
@@ -184,6 +189,7 @@ bool StreamManagerPrivate::initProperties()
     LimitsNP[LIMITS_BUFFER_MAX ].fill("LIMITS_BUFFER_MAX",  "Maximum Buffer Size (MB)", "%.0f", 1, 1024 * 64, 1, 512);
     LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS",      "%.0f", 1, 120,     1,  10);
     LimitsNP.fill(getDeviceName(), "LIMITS", "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -201,6 +207,7 @@ void StreamManagerPrivate::ISGetProperties(const char *dev)
     if (currentDevice->isConnected())
     {
         currentDevice->defineProperty(StreamSP);
+        currentDevice->defineProperty(FullDepthSP);
         if (hasStreamingExposure)
             currentDevice->defineProperty(StreamExposureNP);
         currentDevice->defineProperty(FpsNP);
@@ -234,6 +241,7 @@ bool StreamManagerPrivate::updateProperties()
         }
 
         currentDevice->defineProperty(StreamSP);
+        currentDevice->defineProperty(FullDepthSP);
         currentDevice->defineProperty(StreamTimeNP);
         if (hasStreamingExposure)
             currentDevice->defineProperty(StreamExposureNP);
@@ -260,6 +268,7 @@ bool StreamManagerPrivate::updateProperties()
         currentDevice->deleteProperty(EncoderSP.getName());
         currentDevice->deleteProperty(RecorderSP.getName());
         currentDevice->deleteProperty(LimitsNP.getName());
+        currentDevice->deleteProperty(FullDepthSP.getName());
     }
 
     return true;
@@ -482,11 +491,12 @@ void StreamManagerPrivate::asyncStreamThread()
         }
 
         // For streaming, downscale to 8bit if higher than 8bit to reduce bandwidth
+        // unless Full Depth mode is enabled.
         // You can reduce the number of frames by setting a frame limit.
         if (isStreaming && FPSPreview.newFrame())
         {
-            // Downscale to 8bit always for streaming to reduce bandwidth
-            if (PixelFormat != INDI_JPG && PixelDepth > 8)
+            // Downscale to 8bit for streaming to reduce bandwidth, unless full depth is enabled
+            if (PixelFormat != INDI_JPG && PixelDepth > 8 && FullDepthSP[FULL_DEPTH_16BIT].getState() != ISS_ON)
             {
                 // Allocale new buffer if size changes
                 downscaleBuffer.resize(dstFrameInfo.pixels());
@@ -910,6 +920,17 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
         return true;
     }
 
+    // Full Depth Streaming
+    if (FullDepthSP.isNameMatch(name))
+    {
+        currentDevice->updateProperty(FullDepthSP, states, names, n, [this, states]()
+        {
+            LOGF_INFO("Stream depth set to %s.", states[FULL_DEPTH_16BIT] == ISS_ON ? "16-bit" : "8-bit");
+            return true;
+        }, true);
+        return true;
+    }
+
     // No properties were processed
     return false;
 }
@@ -1155,6 +1176,7 @@ bool StreamManager::saveConfigItems(FILE * fp)
     d->RecordOptionsNP.save(fp);
     d->RecorderSP.save(fp);
     d->LimitsNP.save(fp);
+    d->FullDepthSP.save(fp);
     return true;
 }
 
