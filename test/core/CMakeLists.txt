@@ -34,9 +34,9 @@ SET (test_rotator_limits_SRCS
 ADD_EXECUTABLE(test_rotator_limits
     ${test_rotator_limits_SRCS}
 )
-TARGET_LINK_LIBRARIES(test_rotator_limits
-    -lgtest_main
-    -lgtest
+TARGET_LINK_LIBRARIES(test_rotator_limits   
+    ${GTEST_BOTH_LIBRARIES}
+	${GMOCK_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_rotator_limits test_rotator_limits)
