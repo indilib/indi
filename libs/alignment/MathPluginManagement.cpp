@@ -101,8 +101,26 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
         AlignmentSubsystemCurrentMathPluginV.s = IPS_OK;
         IUUpdateText(&AlignmentSubsystemCurrentMathPluginV, texts, names, n);
 
+        // If the switch has already selected and loaded an external plugin, it takes
+        // precedence over the text property (which may be stale from a previous config
+        // save).  Sync the text to match the switch and skip the redundant reload.
+        int currentSwitch = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+        if (currentSwitch > 0 && currentSwitch <= (int)MathPluginFiles.size())
+        {
+            const char *switchPath = MathPluginFiles[currentSwitch - 1].c_str();
+            if (strcmp(AlignmentSubsystemCurrentMathPlugin.text, switchPath) != 0)
+                IUSaveText(&AlignmentSubsystemCurrentMathPlugin, switchPath);
+            return;
+        }
+
         if (0 != strcmp(AlignmentSubsystemMathPlugins.get()[0].label, AlignmentSubsystemCurrentMathPlugin.text))
         {
+            // Capture current mount alignment before unloading the old plugin so we can
+            // propagate it to the newly loaded plugin.  Without this, every externally-loaded
+            // plugin (Nearest, SVD, …) defaults to ZENITH, which silently switches EQ
+            // drivers to the AltAz code paths and produces garbage Goto coordinates.
+            MountAlignment_t currentMountAlignment = GetApproximateMountAlignment();
+
             // Unload old plugin if required
             if (nullptr != LoadedMathPluginHandle)
             {
@@ -138,6 +156,8 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
                 if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
+                    SetApproximateMountAlignment(currentMountAlignment);
+                    Initialise(CurrentInMemoryDatabase);
 
                     // TODO - Update the client to reflect the new plugin
                     int i = 0;

@@ -1378,9 +1378,9 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0)
         {
-            INDI::IEquatorialCoordinates epochPos { newra * 15.0, newdec }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { newra, newdec }, J2000Pos { 0, 0 };
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            raPE  = J2000Pos.rightascension / 15.0;
+            raPE  = J2000Pos.rightascension;
             decPE = J2000Pos.declination;
             usePE = true;
 
