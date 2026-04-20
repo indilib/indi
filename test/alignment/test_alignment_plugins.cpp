@@ -196,7 +196,7 @@ protected:
 
     static void buildEntry(::Alignment &gen,
                            TelescopeDirectionVectorSupportFunctions *pSupport,
-                           double ra, double dec, double lst_hrs,
+                           double ra, double dec, double lst_hrs, double jd,
                            ::Alignment::MOUNT_TYPE mountType,
                            AlignmentDatabaseEntry &entry)
     {
@@ -204,7 +204,7 @@ protected:
 
         entry.RightAscension        = ra;
         entry.Declination           = dec;
-        entry.ObservationJulianDate = fixedJD;
+        entry.ObservationJulianDate = jd;
 
         if (mountType == ::Alignment::ALTAZ)
         {
@@ -260,8 +260,8 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
-            db.GetAlignmentDatabase().push_back(entry);
+                    buildEntry(generator, pSupport, ra, dec, lst, fixedJD, mountType, entry);
+                    db.GetAlignmentDatabase().push_back(entry);
         }
 
         ASSERT_TRUE(plugin.Initialise(&db));
@@ -322,7 +322,7 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
+            buildEntry(generator, pSupport, ra, dec, lst, fixedJD, mountType, entry);
             alignDb.GetAlignmentDatabase().push_back(entry);
         }
 
@@ -423,7 +423,7 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
+            buildEntry(generator, pSupport, ra, dec, lst, fixedJD, mountType, entry);
             cleanDb.GetAlignmentDatabase().push_back(entry);
 
             addNoiseToDirection(entry.TelescopeDirection, noiseSigmaDeg, rng);
@@ -477,6 +477,80 @@ protected:
             << "Plugin failed noise-stress P95 target " << targetRMSArcsec * 1.5 << "\"";
     }
 
+    void RunTimeShiftValidate(MathPlugin &plugin, const MountErrors &errors,
+                                int numAlign, int numValidate,
+                                double shiftHours, double targetRMSArcsec,
+                                INDI::IGeographicCoordinates site = kLosAngeles,
+                                ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM)
+    {
+        double minDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MinEl : kEQ_MinDec;
+        double maxDec = (mountType == ::Alignment::ALTAZ) ? kAZ_MaxEl : kEQ_MaxDec;
+
+        InMemoryDatabase alignDb;
+        alignDb.SetDatabaseReferencePosition(site);
+
+        MountAlignment_t alignment = (mountType == ::Alignment::ALTAZ) ? ZENITH :
+                                     site.latitude >= 0  ? NORTH_CELESTIAL_POLE
+                                                     : SOUTH_CELESTIAL_POLE;
+        plugin.SetApproximateMountAlignment(alignment);
+
+        ::Alignment generator = makeGenerator(errors, site, mountType);
+        auto *pSupport = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+        ASSERT_NE(pSupport, nullptr);
+
+        // Training Phase: JD = fixedJD
+        double gmst = ln_get_apparent_sidereal_time(fixedJD);
+        double lst  = range24(gmst + DEG_TO_HOURS(site.longitude));
+
+        HaltonSequence alignSeq(2, 3);
+        for (int i = 1; i <= numAlign; ++i)
+        {
+            double ra, dec;
+            auto raw = alignSeq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
+
+            AlignmentDatabaseEntry entry;
+            buildEntry(generator, pSupport, ra, dec, lst, fixedJD, mountType, entry);
+            alignDb.GetAlignmentDatabase().push_back(entry);
+        }
+
+        ASSERT_TRUE(plugin.Initialise(&alignDb));
+
+        // Validation Phase: JD = fixedJD + shiftHours/24
+        double valJD = fixedJD + shiftHours / 24.0;
+        double joff = valJD - ln_get_julian_from_sys();
+
+        HaltonSequence validateSeq(5, 7);
+        std::vector<double> residuals;
+
+        for (int i = 1; i <= numValidate; ++i)
+        {
+            double ra, dec;
+            auto raw = validateSeq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
+
+            TelescopeDirectionVector resultV;
+            // The plugin must correctly interpret ra, dec relative to the new joff (time)
+            ASSERT_TRUE(plugin.TransformCelestialToTelescope(ra, dec, joff, resultV));
+
+            double outRA, outDec;
+            plugin.TransformTelescopeToCelestial(resultV, outRA, outDec, joff);
+
+            double dRA  = DEG_TO_ARCSEC(rangeHA(outRA - ra) * 15.0) * std::cos(DEG_TO_RAD(dec));
+            double dDec = DEG_TO_ARCSEC(outDec - dec);
+            double residual = std::sqrt(dRA * dRA + dDec * dDec);
+
+            residuals.push_back(residual);
+        }
+
+        ErrorStats stats = ErrorStats::compute(residuals);
+        GTEST_LOG_(INFO) << "[ TIME SHIFT " << shiftHours << "h ] RMS: " << stats.rms << "\" Target: " << targetRMSArcsec
+                         << "\" P95: " << stats.p95 << "\" Peak: " << stats.max << "\"";
+
+        EXPECT_LT(stats.rms, targetRMSArcsec)
+            << "Plugin failed time-shift RMS quality target " << targetRMSArcsec << "\"";
+    }
+
     // -----------------------------------------------------------------------
     // RunGotoConventionRegression -- AltAz C->T convention check.
     //
@@ -514,7 +588,7 @@ protected:
             auto raw = seq.getRaw(i);
             getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
             AlignmentDatabaseEntry entry;
-            buildEntry(gen, pSupport, ra, dec, lst, ::Alignment::ALTAZ, entry);
+            buildEntry(gen, pSupport, ra, dec, lst, fixedJD, ::Alignment::ALTAZ, entry);
             db.GetAlignmentDatabase().push_back(entry);
         }
         ASSERT_TRUE(plugin.Initialise(&db));
@@ -572,7 +646,7 @@ protected:
             auto raw = seq.getRaw(i);
             getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
             AlignmentDatabaseEntry entry;
-            buildEntry(gen, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+            buildEntry(gen, pSupport, ra, dec, lst, fixedJD, ::Alignment::EQ_GEM, entry);
             db.GetAlignmentDatabase().push_back(entry);
         }
         ASSERT_TRUE(plugin.Initialise(&db));
@@ -609,6 +683,64 @@ protected:
         EXPECT_LT(totalDiff, tolArcsec) << "Encoder position differs by " << totalDiff << "\" — likely ME/MA mapping bug";
     }
 
+    void RunAltAzPolarRegression(SPKMathPlugin &plugin,
+                                 const MountErrors &errors,
+                                 int numAlign,
+                                 double valRA, double valDec,
+                                 double tolArcsec,
+                                 INDI::IGeographicCoordinates site = kLosAngeles)
+    {
+        plugin.SetApproximateMountAlignment(ZENITH);
+
+        InMemoryDatabase db;
+        db.SetDatabaseReferencePosition(site);
+
+        ::Alignment gen = makeGenerator(errors, site, ::Alignment::ALTAZ);
+        auto *pSupport  = dynamic_cast<TelescopeDirectionVectorSupportFunctions *>(&plugin);
+        ASSERT_NE(pSupport, nullptr);
+
+        double gmst = ln_get_apparent_sidereal_time(fixedJD);
+        double lst  = range24(gmst + DEG_TO_HOURS(site.longitude));
+
+        HaltonSequence seq(2, 3);
+        for (int i = 1; i <= numAlign; ++i)
+        {
+            double ra, dec;
+            auto raw = seq.getRaw(i);
+            getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
+            AlignmentDatabaseEntry entry;
+            buildEntry(gen, pSupport, ra, dec, lst, fixedJD, ::Alignment::ALTAZ, entry);
+            db.GetAlignmentDatabase().push_back(entry);
+        }
+        ASSERT_TRUE(plugin.Initialise(&db));
+
+        double joff = fixedJD - ln_get_julian_from_sys();
+
+        // Ground truth encoder position (Alt/Az) from scopesim
+        Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
+        Angle adec(valDec);
+        Angle encAz, encAlt;
+        gen.apparentHaDecToMount(ha, adec, &encAz, &encAlt);
+
+        // Plugin C->T prediction, decoded to Alt/Az without T->C
+        TelescopeDirectionVector tdv;
+        ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+        INDI::IHorizontalCoordinates horCoords;
+        pSupport->AltitudeAzimuthFromTelescopeDirectionVector(tdv, horCoords);
+
+        double azDiff  = std::fmod(horCoords.azimuth - encAz.Degrees() + 540.0, 360.0) - 180.0;
+        double altDiff = std::abs(horCoords.altitude - encAlt.Degrees());
+        double totalDiff = std::sqrt(std::pow(azDiff * std::cos(DEG_TO_RAD(horCoords.altitude)), 2) + altDiff * altDiff);
+        totalDiff *= 3600.0; // arcsec
+
+        GTEST_LOG_(INFO) << "  encAz=" << encAz.Degrees() << " pluginAz=" << horCoords.azimuth
+                         << " azDiff=" << azDiff * 3600.0 << "\"";
+        GTEST_LOG_(INFO) << "  encAlt=" << encAlt.Degrees() << " pluginAlt=" << horCoords.altitude
+                         << " altDiff=" << altDiff * 3600.0 << "\"";
+
+        EXPECT_LT(totalDiff, tolArcsec) << "Encoder position differs by " << totalDiff << "\" — likely AN/AW mapping bug";
+    }
+
     // -----------------------------------------------------------------------
     // RunMeridianFlipValidate -- exercises GEM pier flips in both hemispheres
     // -----------------------------------------------------------------------
@@ -639,7 +771,7 @@ protected:
             getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
 
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+            buildEntry(generator, pSupport, ra, dec, lst, fixedJD, ::Alignment::EQ_GEM, entry);
             alignDb.GetAlignmentDatabase().push_back(entry);
         }
 
@@ -723,8 +855,8 @@ protected:
             auto raw = seq.getRaw(i);
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
             AlignmentDatabaseEntry entry;
-            buildEntry(generator, pSupport, ra, dec, lst, mountType, entry);
-            db.GetAlignmentDatabase().push_back(entry);
+                    buildEntry(generator, pSupport, ra, dec, lst, fixedJD, mountType, entry);
+                    db.GetAlignmentDatabase().push_back(entry);
         }
         EXPECT_TRUE(plugin.Initialise(&db));
         return generator;
@@ -1029,7 +1161,7 @@ TEST_F(AlignmentPluginTest, Nearest_AltAz_Goto_Convention_Regression)
         getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
         if (i == 1) { valRA = ra; valDec = dec; }
         AlignmentDatabaseEntry entry;
-        buildEntry(gen, pSupport, ra, dec, lst, ::Alignment::ALTAZ, entry);
+        buildEntry(gen, pSupport, ra, dec, lst, fixedJD, ::Alignment::ALTAZ, entry);
         db.GetAlignmentDatabase().push_back(entry);
     }
     ASSERT_TRUE(plugin.Initialise(&db));
@@ -1091,7 +1223,7 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_ConvexHullFallback)
         if (ra >= 6.0 && ra < 18.0)
             continue;
         AlignmentDatabaseEntry entry;
-        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+        buildEntry(generator, pSupport, ra, dec, lst, fixedJD, ::Alignment::EQ_GEM, entry);
         alignDb.GetAlignmentDatabase().push_back(entry);
         ++alignCount;
     }
@@ -1473,6 +1605,31 @@ TEST_F(AlignmentPluginTest, SPK_EQ_Polar_Mapping_Regression)
                          10, 18.0, 45.0, 1.0);
 }
 
+TEST_F(AlignmentPluginTest, SPK_EQ_ConeError_Mapping_Regression)
+{
+    SPKMathPlugin plugin;
+    // Inject significant CH and verify the plugin maps it correctly.
+    RunEqPolarRegression(plugin, {.ch = ARCMIN_TO_DEG(10)},
+                         10, 18.0, 45.0, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SPK_EQ_Sydney_Mapping_Regression)
+{
+    SPKMathPlugin plugin;
+    // Verify Southern Hemisphere polar mapping (Sydney, lat=-33.9)
+    RunEqPolarRegression(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)},
+                         10, 18.0, -45.0, 1.0, kSydney);
+}
+
+TEST_F(AlignmentPluginTest, SPK_AltAz_Polar_Mapping_Regression)
+{
+    SPKMathPlugin plugin;
+    // Inject significant AN and AW and verify the plugin maps them to the correct axes.
+    // Use 10 points to ensure a full 6-term fit is well-conditioned.
+    RunAltAzPolarRegression(plugin, {.ma = ARCMIN_TO_DEG(10), .me = ARCMIN_TO_DEG(5)},
+                            10, 18.0, 45.0, 1.0);
+}
+
 TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_NonPerp)
 {
     SPKMathPlugin plugin;
@@ -1511,6 +1668,18 @@ TEST_F(AlignmentPluginTest, SPK_AlignValidate_AltAz_Southern)
 // ---------------------------------------------------------------------------
 
 static constexpr double kNoiseSigma30arcsec = ARCSEC_TO_DEG(30.0);  // 30" per axis
+
+TEST_F(AlignmentPluginTest, SPK_TimeShift_Regression)
+{
+    SPKMathPlugin plugin;
+    RunTimeShiftValidate(plugin, kMixed, 6, 100, 3.0, 1.0);
+}
+
+TEST_F(AlignmentPluginTest, SVD_TimeShift_Regression)
+{
+    SVDMathPlugin plugin;
+    RunTimeShiftValidate(plugin, kMixed, 3, 100, 3.0, 1.0);
+}
 
 TEST_F(AlignmentPluginTest, NoiseStress_SPK_3pts)
 {
@@ -1583,16 +1752,16 @@ static void RunPolarDegeneracyTestImpl(
         return gen;
     };
 
-    auto buildEntry = [&](::Alignment &gen,
+    auto buildEntryLocal = [&](::Alignment &gen,
                           TelescopeDirectionVectorSupportFunctions *pSupport,
-                          double ra, double dec, double lst_hrs,
+                          double ra, double dec, double lst_hrs, double jd,
                           ::Alignment::MOUNT_TYPE mt,
                           AlignmentDatabaseEntry &entry)
     {
         Angle ha(get_local_hour_angle(lst_hrs, ra), Angle::HOURS), adec(dec);
         entry.RightAscension        = ra;
         entry.Declination           = dec;
-        entry.ObservationJulianDate = fixedJD;
+        entry.ObservationJulianDate = jd;
         if (mt == ::Alignment::ALTAZ)
         {
             Angle primary, secondary;
@@ -1641,7 +1810,7 @@ static void RunPolarDegeneracyTestImpl(
     }
 
     AlignmentDatabaseEntry entry;
-    buildEntry(gen, pSupport, syncRA, syncDec, lst, mountType, entry);
+    buildEntryLocal(gen, pSupport, syncRA, syncDec, lst, fixedJD, mountType, entry);
     db.GetAlignmentDatabase().push_back(entry);
 
     ASSERT_TRUE(plugin.Initialise(&db));
@@ -1770,7 +1939,7 @@ TEST_F(AlignmentPluginTest, SPK_Incremental_MatchesCold_Equatorial)
         auto raw = HaltonSequence(2, 3).getRaw(7);
         getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
         AlignmentDatabaseEntry entry;
-        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+        buildEntry(generator, pSupport, ra, dec, lst, fixedJD, ::Alignment::EQ_GEM, entry);
         db.GetAlignmentDatabase().push_back(entry);
     }
     ASSERT_TRUE(hotPlugin.Initialise(&db));
@@ -1796,7 +1965,7 @@ TEST_F(AlignmentPluginTest, SPK_Incremental_MatchesCold_AltAz)
         auto raw = HaltonSequence(2, 3).getRaw(7);
         getSkyPoint(raw.first, raw.second, kAZ_MinEl, kAZ_MaxEl, ra, dec);
         AlignmentDatabaseEntry entry;
-        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::ALTAZ, entry);
+        buildEntry(generator, pSupport, ra, dec, lst, fixedJD, ::Alignment::ALTAZ, entry);
         db.GetAlignmentDatabase().push_back(entry);
     }
     ASSERT_TRUE(hotPlugin.Initialise(&db));
@@ -1827,7 +1996,7 @@ TEST_F(AlignmentPluginTest, SPK_Incremental_InvalidStateNotUsed)
         auto raw = HaltonSequence(2, 3).getRaw(i);
         getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
         AlignmentDatabaseEntry entry;
-        buildEntry(generator, pSupport, ra, dec, lst, ::Alignment::EQ_GEM, entry);
+        buildEntry(generator, pSupport, ra, dec, lst, fixedJD, ::Alignment::EQ_GEM, entry);
         db.GetAlignmentDatabase().push_back(entry);
         ASSERT_TRUE(plugin.Initialise(&db));
     }
