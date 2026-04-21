@@ -18,14 +18,15 @@
 /**
  * Unit tests for the INDI rotator interface limit-checking logic.
  *
- * The safe zone is a symmetric window of ±(limit/2) degrees centered on the
- * sync offset. Minimum arc distance is used so wrap-around is handled
- * correctly. The check is disabled when limit == 0.
+ * The safe zone is a symmetric window of ±(limit/2) degrees centered on a
+ * fixed cable-neutral reference point (m_RotatorOffset). The reference is set
+ * at connect time from the hardware position and updated on every sync.
+ * This prevents cable wrap regardless of how many incremental moves are made.
+ * The check is disabled when limit == 0.
  *
  * Formula:
- *   diff    = |target - offset|
- *   minDist = min(diff, 360 - diff)
- *   blocked = (limit > 0) && (minDist > limit / 2)
+ *   delta   = target - reference          (normalized to [-180, +180])
+ *   blocked = (limit > 0) && (|delta| > limit / 2)
  */
 
 #include <gtest/gtest.h>
@@ -36,14 +37,15 @@
 // Pure reimplementation of the formula from indirotatorinterface.cpp so the
 // tests are self-contained and do not require linking the full INDI library.
 // ---------------------------------------------------------------------------
-static bool rotatorExceedsLimit(double target, double offset, double limit)
+static bool rotatorExceedsLimit(double target, double reference, double limit)
 {
     if (limit <= 0.0)
         return false;                           // limits disabled
 
-    double diff    = std::abs(target - offset);
-    double minDist = std::min(diff, 360.0 - diff);
-    return minDist > limit / 2.0;
+    double delta = target - reference;
+    while (delta >  180.0) delta -= 360.0;
+    while (delta < -180.0) delta += 360.0;
+    return std::abs(delta) > limit / 2.0;
 }
 
 // ===========================================================================
@@ -51,7 +53,7 @@ static bool rotatorExceedsLimit(double target, double offset, double limit)
 // ===========================================================================
 TEST(RotatorLimits, DisabledLimits_NothingBlocked)
 {
-    // limit == 0 means no restriction regardless of target or offset
+    // limit == 0 means no restriction regardless of target or reference
     EXPECT_FALSE(rotatorExceedsLimit(0.0,   0.0, 0.0));
     EXPECT_FALSE(rotatorExceedsLimit(180.0, 0.0, 0.0));
     EXPECT_FALSE(rotatorExceedsLimit(359.0, 0.0, 0.0));
@@ -59,13 +61,12 @@ TEST(RotatorLimits, DisabledLimits_NothingBlocked)
 }
 
 // ===========================================================================
-// Test suite: full range (limit == 360) — regression for the original bug
+// Test suite: full range (limit == 360) — nothing should be blocked
 // ===========================================================================
 TEST(RotatorLimits, FullRange_NothingBlocked)
 {
     // With limit=360, the safe window is ±180° — every target is within range.
-    // This was the original bug: targets > 180° were incorrectly blocked.
-    EXPECT_FALSE(rotatorExceedsLimit(181.0, 0.0, 360.0));  // original bug case
+    EXPECT_FALSE(rotatorExceedsLimit(181.0, 0.0, 360.0));
     EXPECT_FALSE(rotatorExceedsLimit(340.0, 0.0, 360.0));
     EXPECT_FALSE(rotatorExceedsLimit(350.0, 0.0, 360.0));
     EXPECT_FALSE(rotatorExceedsLimit(358.0, 0.0, 360.0));
@@ -76,12 +77,33 @@ TEST(RotatorLimits, FullRange_NothingBlocked)
 }
 
 // ===========================================================================
-// Test suite: typical limit, offset at 0°
+// Test suite: cable wrap scenario — the fundamental correctness test.
+// With reference=0, limit=360 (±180°), incremental moves must not bypass
+// the limit by "walking" around the circle.
 // ===========================================================================
-TEST(RotatorLimits, Offset0_Limit180_SafeRange_270to90)
+TEST(RotatorLimits, CableWrap_IncrementalMovesCannotBypassLimit)
 {
-    // offset=0, limit=180 → safe: 270°–360° and 0°–90° (i.e. within ±90° of 0°)
-    EXPECT_FALSE(rotatorExceedsLimit(0.0,   0.0, 180.0));   // at offset
+    // reference=0, limit=190 (±95°)
+    // Move 1: 0 → 80°  (delta=80, within ±95) — allowed
+    EXPECT_FALSE(rotatorExceedsLimit(80.0,  0.0, 190.0));
+    // Move 2: 80 → 170° (delta from reference=0 is 170, exceeds 95) — BLOCKED
+    // (Even though it's only 90° from current position 80°, it's 170° from reference)
+    EXPECT_TRUE (rotatorExceedsLimit(170.0, 0.0, 190.0));
+    // Move 3: 0 → 350° (delta = -10°, within ±95) — allowed (350° is 10° CCW from 0)
+    EXPECT_FALSE(rotatorExceedsLimit(350.0, 0.0, 190.0));
+    // Move 4: 350 → 265° — from reference 0°, 265° = -95° (exactly on boundary) — allowed
+    EXPECT_FALSE(rotatorExceedsLimit(265.0, 0.0, 190.0));
+    // Move 5: 350 → 264° — from reference 0°, 264° = -96° (just outside) — BLOCKED
+    EXPECT_TRUE (rotatorExceedsLimit(264.0, 0.0, 190.0));
+}
+
+// ===========================================================================
+// Test suite: typical limit, reference at 0°
+// ===========================================================================
+TEST(RotatorLimits, Reference0_Limit180_SafeRange_270to90)
+{
+    // reference=0, limit=180 → safe: 270°–360° and 0°–90° (i.e. within ±90° of 0°)
+    EXPECT_FALSE(rotatorExceedsLimit(0.0,   0.0, 180.0));   // at reference
     EXPECT_FALSE(rotatorExceedsLimit(90.0,  0.0, 180.0));   // boundary CW
     EXPECT_FALSE(rotatorExceedsLimit(270.0, 0.0, 180.0));   // boundary CCW (wrap)
     EXPECT_TRUE (rotatorExceedsLimit(91.0,  0.0, 180.0));   // just outside CW
@@ -90,12 +112,12 @@ TEST(RotatorLimits, Offset0_Limit180_SafeRange_270to90)
 }
 
 // ===========================================================================
-// Test suite: typical limit, offset at 180° — scenario from the bug report
+// Test suite: typical limit, reference at 180°
 // ===========================================================================
-TEST(RotatorLimits, Offset180_Limit90_SafeRange_135to225)
+TEST(RotatorLimits, Reference180_Limit90_SafeRange_135to225)
 {
-    // offset=180, limit=90 → safe: 135°–225° (±45° around 180°)
-    EXPECT_FALSE(rotatorExceedsLimit(180.0, 180.0, 90.0));  // at offset
+    // reference=180, limit=90 → safe: 135°–225° (±45° around 180°)
+    EXPECT_FALSE(rotatorExceedsLimit(180.0, 180.0, 90.0));  // at reference
     EXPECT_FALSE(rotatorExceedsLimit(135.0, 180.0, 90.0));  // boundary CCW
     EXPECT_FALSE(rotatorExceedsLimit(225.0, 180.0, 90.0));  // boundary CW
     EXPECT_TRUE (rotatorExceedsLimit(134.0, 180.0, 90.0));  // just outside CCW
@@ -105,12 +127,12 @@ TEST(RotatorLimits, Offset180_Limit90_SafeRange_135to225)
 }
 
 // ===========================================================================
-// Test suite: wrap-around — offset near 360°
+// Test suite: wrap-around — reference near 360°
 // ===========================================================================
-TEST(RotatorLimits, Offset350_Limit90_SafeRange_305to35)
+TEST(RotatorLimits, Reference350_Limit90_SafeRange_305to35)
 {
-    // offset=350, limit=90 → safe: 305°–35° (spans the 0°/360° boundary)
-    EXPECT_FALSE(rotatorExceedsLimit(350.0, 350.0, 90.0));  // at offset
+    // reference=350, limit=90 → safe: 305°–35° (spans the 0°/360° boundary)
+    EXPECT_FALSE(rotatorExceedsLimit(350.0, 350.0, 90.0));  // at reference
     EXPECT_FALSE(rotatorExceedsLimit(305.0, 350.0, 90.0));  // boundary CCW
     EXPECT_FALSE(rotatorExceedsLimit(35.0,  350.0, 90.0));  // boundary CW (wrapped)
     EXPECT_FALSE(rotatorExceedsLimit(10.0,  350.0, 90.0));  // inside, past 0°
@@ -121,30 +143,32 @@ TEST(RotatorLimits, Offset350_Limit90_SafeRange_305to35)
 }
 
 // ===========================================================================
-// Test suite: target exactly at 180° (previous code had a gap — neither
-// branch "<180" nor ">180" fired)
-// ===========================================================================
-TEST(RotatorLimits, TargetAt180_NoBranchGap)
-{
-    // With offset=0, limit=90, a target of exactly 180° is 180° away — blocked.
-    EXPECT_TRUE(rotatorExceedsLimit(180.0, 0.0, 90.0));
-
-    // With offset=180, limit=360 (full range), target=180° must be safe.
-    EXPECT_FALSE(rotatorExceedsLimit(180.0, 180.0, 360.0));
-
-    // With offset=180, limit=90, target=180° is at the offset — safe.
-    EXPECT_FALSE(rotatorExceedsLimit(180.0, 180.0, 90.0));
-}
-
-// ===========================================================================
 // Test suite: small limit — only tiny window allowed
 // ===========================================================================
 TEST(RotatorLimits, SmallLimit_TightWindow)
 {
-    // offset=90, limit=10 → safe: 85°–95°
-    EXPECT_FALSE(rotatorExceedsLimit(90.0, 90.0, 10.0));   // at offset
+    // reference=90, limit=10 → safe: 85°–95°
+    EXPECT_FALSE(rotatorExceedsLimit(90.0, 90.0, 10.0));   // at reference
     EXPECT_FALSE(rotatorExceedsLimit(85.0, 90.0, 10.0));   // boundary
     EXPECT_FALSE(rotatorExceedsLimit(95.0, 90.0, 10.0));   // boundary
     EXPECT_TRUE (rotatorExceedsLimit(84.0, 90.0, 10.0));   // outside
     EXPECT_TRUE (rotatorExceedsLimit(96.0, 90.0, 10.0));   // outside
+}
+
+// ===========================================================================
+// Test suite: user-reported bug scenario
+// limit=190, reference=0, rotator moves to 10, then 90, then commanded to 265.24
+// With the fixed reference approach, 265.24° from reference 0° is -94.76° — allowed.
+// But 264° from reference 0° is -96° — blocked.
+// ===========================================================================
+TEST(RotatorLimits, BugReport_Limit190_Reference0)
+{
+    // reference=0, limit=190 (±95°)
+    // 265.24° from 0° = -94.76° (within ±95°) — allowed
+    EXPECT_FALSE(rotatorExceedsLimit(265.24, 0.0, 190.0));
+    // 264° from 0° = -96° (outside ±95°) — blocked
+    EXPECT_TRUE (rotatorExceedsLimit(264.0,  0.0, 190.0));
+    // The intermediate moves (10°, 90°) don't change the reference — still 0°
+    EXPECT_FALSE(rotatorExceedsLimit(10.0,  0.0, 190.0));
+    EXPECT_FALSE(rotatorExceedsLimit(90.0,  0.0, 190.0));
 }

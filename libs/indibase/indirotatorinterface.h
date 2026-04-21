@@ -219,7 +219,10 @@ class RotatorInterface
 
         // Rotator Limits
         INDI::PropertyNumber RotatorLimitsNP {1};
-        double m_RotatorOffset {0};
+        // Fixed reference angle (set at connect time and updated on sync).
+        // The limit check prevents the rotator from moving more than ±(limit/2)°
+        // away from this point, protecting against cable wrap.
+        double m_RotatorOffset {-1};  // -1 means "not yet initialized"
 
         uint32_t rotatorCapability = 0;
         DefaultDevice *m_defaultDevice { nullptr };

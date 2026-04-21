@@ -100,19 +100,30 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 return true;
             }
 
+            // Lazily initialize the cable-neutral reference from the first known hardware
+            // position. By the time the first goto is commanded, GotoRotatorNP[0] will
+            // have been populated (either in the driver's updateProperties or via TimerHit).
+            if (m_RotatorOffset < 0)
+                m_RotatorOffset = GotoRotatorNP[0].getValue();
+
             // If value is outside safe zone, then prevent motion.
-            // The safe zone is a symmetric window of ±(limit/2) degrees centered on the sync offset.
-            // Minimum arc distance handles wrap-around correctly; limit=0 disables the check.
+            // The safe zone is a symmetric window of ±(limit/2) degrees centered on the
+            // cable-neutral reference point (m_RotatorOffset). This prevents cable wrap
+            // regardless of how many incremental moves are commanded.
+            // limit=0 disables the check entirely.
             if (RotatorLimitsNP[0].getValue() > 0)
             {
-                double limit   = RotatorLimitsNP[0].getValue();
-                double diff    = std::abs(values[0] - m_RotatorOffset);
-                double minDist = std::min(diff, 360.0 - diff);
-                if (minDist > limit / 2.0)
+                double limit  = RotatorLimitsNP[0].getValue();
+                // Compute signed angular distance from the reference point, normalized to [-180, +180].
+                double delta  = values[0] - m_RotatorOffset;
+                while (delta >  180.0) delta -= 360.0;
+                while (delta < -180.0) delta += 360.0;
+                if (std::abs(delta) > limit / 2.0)
                 {
                     GotoRotatorNP.setState(IPS_ALERT);
                     DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
-                                 "Rotator target %.2f exceeds safe limits of %.2f degrees...", values[0], limit);
+                                 "Rotator target %.2f exceeds safe limits (±%.1f° from reference %.2f°)...",
+                                 values[0], limit / 2.0, m_RotatorOffset);
                     GotoRotatorNP.apply();
                     return true;
                 }
@@ -140,7 +151,7 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             if (rc)
             {
                 SyncRotatorNP[0].setValue(values[0]);
-                // Always reset offset after a sync
+                // Sync redefines the cable-neutral reference point.
                 m_RotatorOffset = values[0];
             }
 
@@ -180,14 +191,16 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 }
                 else
                 {
+                    // Use the current hardware position as reference if not yet initialized.
+                    double ref = (m_RotatorOffset >= 0) ? m_RotatorOffset : GotoRotatorNP[0].getValue();
                     double half       = values[0] / 2.0;
-                    double startAngle = m_RotatorOffset - half;
+                    double startAngle = ref - half;
                     if (startAngle < 0) startAngle += 360.0;
-                    double endAngle   = m_RotatorOffset + half;
+                    double endAngle   = ref + half;
                     if (endAngle >= 360) endAngle -= 360.0;
                     DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
-                                 "Rotator limits set to %.f degrees. Safe range: %.2f to %.2f degrees.",
-                                 values[0], startAngle, endAngle);
+                                 "Rotator limits set to %.f degrees. Safe range: %.2f to %.2f degrees (reference: %.2f°).",
+                                 values[0], startAngle, endAngle, ref);
                 }
                 return true;
             }, true);
