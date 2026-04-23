@@ -310,7 +310,7 @@ bool Focuser::isHallSensorDetected(bool &isDetected)
 *******************************************************************************************************/
 bool Focuser::getAbsolutePosition(uint32_t &position)
 {
-    return m_Communication->get(MOT_1, "ABS_POS_STEPS", position);
+    return m_Communication->get(MOT_1, "ABS_POS_STEP", position);
 }
 
 /******************************************************************************************************
