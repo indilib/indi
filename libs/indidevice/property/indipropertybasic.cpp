@@ -58,7 +58,14 @@ PropertyBasicPrivateTemplate<T>::~PropertyBasicPrivateTemplate()
 {
 #ifdef INDI_PROPERTY_RAW_CAST
     if (!raw)
+    {
+        // Null out 'property' before deleting to prevent the base class
+        // PropertyPrivate::~PropertyPrivate() from doing a double-free
+        // when dynamic == true. Both 'property' and &this->typedProperty
+        // point to the same heap-allocated PropertyView<T>.
+        property = nullptr;
         delete &this->typedProperty;
+    }
 #endif
 }
 
