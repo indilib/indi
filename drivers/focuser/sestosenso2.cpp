@@ -519,7 +519,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationSP.apply();
 
                     // SestoSenso2: Manual Calibration (user moves by hand)
-                    if (m_SestoSenso2->initCalibrationSS2() == false)
+                    if (m_SestoSenso2->initCalibration() == false)
                         return false;
                     CalibrationMessageTP[0].setText("Manual Calibration: Set focus in MIN position and then press NEXT.");
                     CalibrationMessageTP.apply();
@@ -546,7 +546,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 }
                 else if (cStage == GoMinimum)
                 {
-                    if (m_SestoSenso2->storeAsMaxPositionSS2() == false)
+                    if (m_SestoSenso2->storeAsMaxPosition() == false)
                         return false;
                     CalibrationMessageTP[0].setText("Manual Calibration: Press NEXT to finish.");
                     CalibrationMessageTP.apply();
@@ -625,7 +625,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                         return false;
                     break;
                 case FASTMOVE_OUT:
-                    if (m_SestoSenso2->goOutToFindMaxPosSS2() == false)
+                    if (m_SestoSenso2->goOutToFindMaxPos() == false)
                         return false;
                     CalibrationMessageTP[0].setText("Manual Calibration: Press STOP focuser almost at MAX position.");
                     CalibrationMessageTP.apply();

@@ -418,176 +418,26 @@ bool SestoSenso2::getModel(std::string &model)
 }
 
 /******************************************************************************************************
- * Get SubModel for SestoSenso3 variants
-*******************************************************************************************************/
-bool SestoSenso2::getSubModel(std::string &submodel)
-{
-    json jsonRequest = {{"req", {{"srv", {{"GET_MODEL_SUBMODEL", ""}}}}}};
-    json jsonResponse;
-
-    if (m_Communication->sendRequest(jsonRequest, &jsonResponse))
-    {
-        try
-        {
-            std::string response;
-            jsonResponse["srv"]["GET_MODEL_SUBMODEL"].get_to(response);
-
-            // Parse: "Model = SESTOSENSO3, SubModel = SESTOSENSO3SC, ARCO = Not enabled"
-            size_t subModelPos = response.find("SubModel = ");
-            if (subModelPos != std::string::npos)
-            {
-                subModelPos += 11; // Length of "SubModel = "
-                size_t commaPos = response.find(",", subModelPos);
-                if (commaPos != std::string::npos)
-                {
-                    submodel = response.substr(subModelPos, commaPos - subModelPos);
-                }
-                else
-                {
-                    // No comma found, take until end of string
-                    submodel = response.substr(subModelPos);
-                }
-                return true;
-            }
-        }
-        catch (json::exception &e)
-        {
-            LOGF_ERROR("Error parsing submodel response: %s", e.what());
-        }
-    }
-    return false;
-}
-
-/******************************************************************************************************
  * ===== SESTOSENSO 2 Calibration Methods =====
-*******************************************************************************************************/
-bool SestoSenso2::initCalibrationSS2()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "Init"}});
-}
-
-bool SestoSenso2::goOutToFindMaxPosSS2()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoOutToFindMaxPos"}});
-}
-
-bool SestoSenso2::storeAsMaxPositionSS2()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos"}});
-}
-
-/******************************************************************************************************
- * ===== SESTOSENSO 3 Manual Calibration Methods =====
-*******************************************************************************************************/
-bool SestoSenso2::initCalibrationSS3Manual()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "Init-Manual"}});
-}
-
-bool SestoSenso2::storeAsMaxPositionSS3Manual()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos-Manual"}});
-}
-
-/******************************************************************************************************
- * ===== SESTOSENSO 3 Semi-Automatic Calibration Methods =====
-*******************************************************************************************************/
-bool SestoSenso2::initCalibrationSS3SemiAuto()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "Init"}});
-}
-
-bool SestoSenso2::goInToFindMinPosSS3()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoInToFindMinPos"}});
-}
-
-bool SestoSenso2::goOutToFindMaxPosSS3()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoOutToFindMaxPos"}});
-}
-
-bool SestoSenso2::stopMotorSS3()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StopMotor"}});
-}
-
-bool SestoSenso2::storeAsMaxPositionSS3SemiAuto()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos"}});
-}
-
-bool SestoSenso2::moveInSS3(uint32_t steps)
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "MoveIn-" + std::to_string(steps)}});
-}
-
-bool SestoSenso2::moveOutSS3(uint32_t steps)
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "MoveOut-" + std::to_string(steps)}});
-}
-
-/******************************************************************************************************
- * ===== SESTOSENSO 3 SC Automatic Calibration Methods =====
-*******************************************************************************************************/
-bool SestoSenso2::startAutoCalibrationSS3SC()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "start_auto_cal"}});
-}
-
-bool SestoSenso2::stopCalibrationSS3()
-{
-    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "stop_calib"}});
-}
-
-/******************************************************************************************************
- * ===== SESTOSENSO 3 Motion Methods =====
  *******************************************************************************************************/
-bool SestoSenso2::goAbsolutePositionSS3(uint32_t position)
+bool SestoSenso2::initCalibration()
 {
-    return m_Communication->command(MOT_1, {{"GOTO", position}});
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "Init"}});
 }
 
-bool SestoSenso2::isBusySS3()
+bool SestoSenso2::goOutToFindMaxPos()
 {
-    json status;
-    if (m_Communication->get(MOT_1, "STATUS", status))
-    {
-        bool busy = (status["BUSY"] == 1);
-        std::string mst;
-        if (status.contains("MST"))
-            status["MST"].get_to(mst);
-        // Motor is still moving if BUSY=1, or if MST is not yet "stop".
-        // The SS3 can transiently assert BUSY=0 while MST is still
-        // "CstSpeed" or "dec" during encoder-feedback transitions.
-        bool motorStopped = mst.empty() || (mst == "stop");
-        return busy || !motorStopped;
-    }
-    return false;
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoOutToFindMaxPos"}});
 }
 
-bool SestoSenso2::getAbsolutePositionSS3(uint32_t &position)
+bool SestoSenso2::storeAsMaxPosition()
 {
-    return m_Communication->get(MOT_1, "ABS_POS_STEPS", position);
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMaxPos"}});
 }
 
-/******************************************************************************************************
- * ===== Shared Calibration Methods (All Models) =====
-*******************************************************************************************************/
 bool SestoSenso2::storeAsMinPosition()
 {
     return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "StoreAsMinPos"}});
-}
-
-// SestoSenso3 Recovery Delay
-bool SestoSenso2::setRecoveryDelay(int32_t delay)
-{
-    return m_Communication->set(GENERIC_NODE, {{"RECOVER_DELAY", delay}});
-}
-
-bool SestoSenso2::getRecoveryDelay(int32_t &delay)
-{
-    return m_Communication->get(GENERIC_NODE, "RECOVER_DELAY", delay);
 }
 
 /******************************************************************************************************

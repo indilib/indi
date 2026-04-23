@@ -194,47 +194,13 @@ class SestoSenso2 : public Focuser
         bool setMotorCurrents(const MotorCurrents &currents);
         bool setMotorHold(bool hold);
 
-        // ===== SESTOSENSO 2 Calibration Methods =====
-        // SS2 uses: "Init", "StoreAsMinPos", "GoOutToFindMaxPos", "StoreAsMaxPos"
-        bool initCalibrationSS2();              // Sends: "Init"
-        bool goOutToFindMaxPosSS2();            // Sends: "GoOutToFindMaxPos"
-        bool storeAsMaxPositionSS2();           // Sends: "StoreAsMaxPos"
+        // ===== Calibration Methods =====
+        bool initCalibration();             // Sends: "Init"
+        bool goOutToFindMaxPos();           // Sends: "GoOutToFindMaxPos"
+        bool storeAsMaxPosition();          // Sends: "StoreAsMaxPos"
+        bool storeAsMinPosition();          // Sends: "StoreAsMinPos"
 
-        // ===== SESTOSENSO 3 Manual Calibration Methods =====
-        // SS3 Manual mode uses: "Init-Manual", "StoreAsMinPos", "StoreAsMaxPos-Manual"
-        bool initCalibrationSS3Manual();        // Sends: "Init-Manual"
-        bool storeAsMaxPositionSS3Manual();     // Sends: "StoreAsMaxPos-Manual"
-
-        // ===== SESTOSENSO 3 Semi-Automatic Calibration Methods =====
-        // SS3 Semi-Auto uses: "Init", "StoreAsMinPos", move commands, "GoOutToFindMaxPos", "StoreAsMaxPos"
-        bool initCalibrationSS3SemiAuto();      // Sends: "Init"
-        bool goInToFindMinPosSS3();             // Sends: "GoInToFindMinPos"
-        bool goOutToFindMaxPosSS3();            // Sends: "GoOutToFindMaxPos"
-        bool stopMotorSS3();                    // Sends: "StopMotor"
-        bool storeAsMaxPositionSS3SemiAuto();   // Sends: "StoreAsMaxPos"
-        bool moveInSS3(uint32_t steps);         // Sends: "MoveIn-<steps>"
-        bool moveOutSS3(uint32_t steps);        // Sends: "MoveOut-<steps>"
-
-        // ===== SESTOSENSO 3 SC Automatic Calibration Methods =====
-        // SS3 SC uses: "start_auto_cal" (fully automatic)
-        bool startAutoCalibrationSS3SC();       // Sends: "start_auto_cal"
-        bool stopCalibrationSS3();              // Sends: "stop_calib"
-
-        // ===== Shared Calibration Methods (All Models) =====
-        bool storeAsMinPosition();              // Sends: "StoreAsMinPos" (same for all models)
-
-        // SestoSenso3 Recovery Delay
-        bool setRecoveryDelay(int32_t delay);
-        bool getRecoveryDelay(int32_t &delay);
-        bool getModel(std::string &model); // Added to SestoSenso2
-
-        // SestoSenso3 Model Detection
-        bool getSubModel(std::string &submodel);
-
-        // ===== SESTOSENSO 3 Motion Methods =====
-        bool goAbsolutePositionSS3(uint32_t position);   // Uses GOTO instead of MOVE_ABS
-        bool isBusySS3();                                  // Checks BUSY + MST fields
-        bool getAbsolutePositionSS3(uint32_t &position);  // Uses ABS_POS_STEPS instead of ABS_POS
+        bool getModel(std::string &model);
 };
 
 /*****************************************************************************************
