@@ -9,36 +9,24 @@
   "configurations": [
     {
       "name": "Debug INDI Driver",
-      "type": "cppdbg",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/build/indiserver/indiserver",
       "args": [
         "-v",
-        "${workspaceFolder}/build/drivers/power/indi_pegasus_upb",
+        "${workspaceFolder}/build/drivers/focuser/indi_simulator_focus",
         "indi_simulator_telescope",
         "indi_simulator_ccd"
       ],
       "postDebugTask": "Kill indiserver",
-      "stopAtEntry": false,
       "cwd": "${fileDirname}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        },
-        {
-          "description": "Set Disassembly Flavor to Intel",
-          "text": "-gdb-set disassembly-flavor intel",
-          "ignoreFailures": true
-        },
-        {
-          "text": "-gdb-set follow-fork-mode child"
-        }
-      ]
+      "sourceLanguages": [
+        "cpp"
+      ],
+      "initCommands": [
+        "settings set target.process.follow-fork-mode child"
+      ],
+      "env": {}
     }
   ]
 }
