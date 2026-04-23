@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InMemoryDatabase.h"
+#include "TelescopeDirectionVectorSupportFunctions.h"
 
 namespace INDI
 {
@@ -81,6 +82,20 @@ class MathPlugin
         /// deterministic, clock-injected testing and avoid reliance on the system clock.
         virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                 double &RightAscension, double &Declination, double JulianOffset = 0) = 0;
+
+        /// \brief Sanitize alignment database entries that are near the pole (EQ) or
+        /// zenith (altaz).  At these singularities the roll-axis (HA or Az) component
+        /// of the TDV is unconstrained, making any pointing model ill-conditioned.
+        ///
+        /// The method shifts such entries to a moderate pitch by applying the same
+        /// delta to both the TDV encoder position and the celestial declination,
+        /// preserving the pointing correction while breaking the degeneracy.
+        /// The encoder HA/Az is reconstructed from the celestial coordinates,
+        /// implicitly assuming zero roll-index error.
+        ///
+        /// Call this before processing the database in Initialise().
+        static void SanitizePolarEntries(InMemoryDatabase *pInMemoryDatabase,
+                                         MountAlignment_t mountAlignment);
 
     protected:
         // Protected properties

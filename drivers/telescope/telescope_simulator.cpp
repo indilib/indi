@@ -795,11 +795,12 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
     ProcessAlignmentSwitchProperties(this, name, states, names, n);
 
-    // Persist alignment plugin and active state immediately when changed, since
-    // SaveAlignmentConfigProperties() is only called during a full saveConfigItems() run.
+    // Persist alignment plugin and active state immediately when changed.
+    // Use a full saveConfig() — the selective form (saveConfig(true, name)) only
+    // patches the named property in the existing XML and skips CURRENT_MATH_PLUGIN.
     if (strcmp(name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0 ||
         strcmp(name, "ALIGNMENT_SUBSYSTEM_ACTIVE") == 0)
-        saveConfig(true, name);
+        saveConfig();
 
     //  Nobody has claimed this, so pass it over
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
