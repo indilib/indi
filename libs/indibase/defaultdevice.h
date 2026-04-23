@@ -663,7 +663,7 @@ class DefaultDevice : public ParentDevice
         /** @brief Set device nickname based on an identifier
          *  @param identifier The id to look up
          */
-        void setDeviceNicknameFromId(const char *identifier);
+        bool setDeviceNicknameFromId(const char *identifier);
 
         void saveNicknameId(const char *nickname, const char *identifier);
 

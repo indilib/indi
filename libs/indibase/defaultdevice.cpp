@@ -355,7 +355,8 @@ int DefaultDevicePrivate::saveINDINicknamesXML(const char *devicename)
     if (!NickXmlRoot) // empty file, make new root node
         NickXmlRoot = addXMLEle(nullptr, NICK_TAG_ROOT);
 
-    if (strcmp(tagXMLEle(NickXmlRoot), NICK_TAG_ROOT) != 0) {
+    if (strcmp(tagXMLEle(NickXmlRoot), NICK_TAG_ROOT) != 0)
+    {
         // Unexpected tag, clear and make new
         delXMLEle(NickXmlRoot);
         NickXmlRoot = addXMLEle(nullptr, NICK_TAG_ROOT);
@@ -402,8 +403,12 @@ int DefaultDevicePrivate::saveINDINicknamesXML(const char *devicename)
         editXMLEle(nickxml, kv.second.c_str());
     }
 
-    // Reopen for writng and truncate file
-    fp = freopen(filename.c_str(), "w+", fp);
+    // Reopen for writing and truncate file.
+    // freopen requires a valid FILE* — if the file didn't exist, fp is null, so fall back to fopen.
+    if (fp)
+        fp = freopen(filename.c_str(), "w+", fp);
+    else
+        fp = fopen(filename.c_str(), "w+");
     if (fp)
     {
         prXMLEle(fp, NickXmlRoot, 0);
@@ -1565,7 +1570,8 @@ void DefaultDevice::setDeviceNickname(const char *nick)
     if (nick)
         n = nick;
 
-    if (n.rfind(def, 0) == 0) { // Remove prefix if nick is full name
+    if (n.rfind(def, 0) == 0)   // Remove prefix if nick is full name
+    {
         n = n.substr(def.length());
     }
     // If prefix was removed, remove the space left over
@@ -1616,10 +1622,12 @@ const char *DefaultDevice::lookupDeviceNicknameFromId(const char *identifier, co
     return "";
 }
 
-void DefaultDevice::setDeviceNicknameFromId(const char *identifier)
+bool DefaultDevice::setDeviceNicknameFromId(const char *identifier)
 {
-    // Set nickname even if null, to set the default name
-    setDeviceNickname(lookupDeviceNicknameFromId(identifier));
+    const char *nick = lookupDeviceNicknameFromId(identifier);
+    bool hasNickname = (nick && *nick);
+    setDeviceNickname(nick);
+    return hasNickname;
 }
 
 void DefaultDevice::saveNicknameId(const char *nickname, const char *identifier)
