@@ -230,6 +230,59 @@ class SestoSenso2 : public Focuser
 
         // SestoSenso3 Model Detection
         bool getSubModel(std::string &submodel);
+
+        // ===== SESTOSENSO 3 Motion Methods =====
+        bool goAbsolutePositionSS3(uint32_t position);   // Uses GOTO instead of MOVE_ABS
+        bool isBusySS3();                                  // Checks BUSY + MST fields
+        bool getAbsolutePositionSS3(uint32_t &position);  // Uses ABS_POS_STEPS instead of ABS_POS
+};
+
+/*****************************************************************************************
+ * SestoSenso3 class
+ * Separate class for SestoSenso3 with clean method names (no SS3 suffix needed).
+ * Overrides motion methods to use SS3-specific protocol commands.
+******************************************************************************************/
+class SestoSenso3 : public Focuser
+{
+    public:
+        SestoSenso3(const std::string &name, int port);
+
+        const char *getDeviceName()
+        {
+            return m_Communication->getDeviceName();
+        }
+
+        // Motion overrides (SS3-specific protocol)
+        bool goAbsolutePosition(uint32_t position);   // Uses GOTO instead of MOVE_ABS
+        bool isBusy();                                 // Checks BUSY + MST fields
+        bool getAbsolutePosition(uint32_t &position);  // Uses ABS_POS_STEPS
+
+        // Model detection
+        bool getModel(std::string &model);
+        bool getSubModel(std::string &submodel);
+
+        // Recovery delay
+        bool setRecoveryDelay(int32_t delay);
+        bool getRecoveryDelay(int32_t &delay);
+
+        // Motor settings
+        bool getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHoldActive);
+        bool setMotorRates(const MotorRates &rates);
+        bool setMotorCurrents(const MotorCurrents &currents);
+        bool setMotorHold(bool hold);
+        bool applyMotorPreset(const std::string &name);
+
+        // ===== Calibration Methods =====
+        bool initCalibrationSemiAuto();     // Sends: "Init"
+        bool goInToFindMinPos();            // Sends: "GoInToFindMinPos"
+        bool goOutToFindMaxPos();           // Sends: "GoOutToFindMaxPos"
+        bool stopMotor();                   // Sends: "StopMotor"
+        bool storeAsMinPosition();          // Sends: "StoreAsMinPos"
+        bool storeAsMaxPosition();          // Sends: "StoreAsMaxPos"
+        bool moveIn(uint32_t steps);        // Sends: "MoveIn-<steps>"
+        bool moveOut(uint32_t steps);       // Sends: "MoveOut-<steps>"
+        bool startAutoCalibration();        // Sends: "start_auto_cal" (SC only)
+        bool stopCalibration();             // Sends: "stop_calib"
 };
 
 /*****************************************************************************************

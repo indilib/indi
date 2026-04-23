@@ -596,16 +596,16 @@
             <version>1.2</version>
         </device>
         <device label="Sesto Senso 3" manufacturer="Primaluce Lab">
-            <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>1.2</version>
+            <driver name="Sesto Senso 3">indi_sestosenso3_focus</driver>
+            <version>1.0</version>
         </device>
         <device label="Sesto Senso 3 SC" manufacturer="Primaluce Lab">
-            <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>1.2</version>
+            <driver name="Sesto Senso 3">indi_sestosenso3_focus</driver>
+            <version>1.0</version>
         </device>
         <device label="Sesto Senso 3 LS" manufacturer="Primaluce Lab">
-            <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>1.2</version>
+            <driver name="Sesto Senso 3">indi_sestosenso3_focus</driver>
+            <version>1.0</version>
         </device>
         <device label="Esatto" manufacturer="Primaluce Lab">
             <driver name="Esatto">indi_esatto_focus</driver>

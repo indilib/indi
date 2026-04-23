@@ -1,7 +1,6 @@
 /*
-    SestoSenso 2 Focuser
-    Copyright (C) 2020 Piotr Zyziuk
-    Copyright (C) 2020 Jasem Mutlaq (Added Esatto support)
+    SestoSenso 3 Focuser
+    Copyright (C) 2026 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,7 +18,7 @@
 
 */
 
-#include "sestosenso2.h"
+#include "sestosenso3.h"
 
 #include "indicom.h"
 
@@ -34,30 +33,27 @@
 #include <connectionplugins/connectionserial.h>
 #include <sys/ioctl.h>
 
-static std::unique_ptr<SestoSenso2> sesto(new SestoSenso2());
+static std::unique_ptr<SestoSenso3> sesto3(new SestoSenso3());
 
 static const char *MOTOR_TAB  = "Motor";
 static const char *ENVIRONMENT_TAB  = "Environment";
-// Settings names for the default motor settings presets
 const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
 
-SestoSenso2::SestoSenso2()
+SestoSenso3::SestoSenso3()
 {
-    setVersion(1, 2);
+    setVersion(1, 0);
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
-    m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso2::checkMotionProgressCallback, this));
+    m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso3::checkMotionProgressCallback, this));
     m_MotionProgressTimer.setSingleShot(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::initProperties()
+bool SestoSenso3::initProperties()
 {
-
     INDI::Focuser::initProperties();
 
     FocusBacklashNP[0].setMin(0);
@@ -70,7 +66,7 @@ bool SestoSenso2::initProperties()
     // Firmware information
     FirmwareTP[FIRMWARE_SN].fill("SERIALNUMBER", "Serial Number", "");
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "");
-    FirmwareTP.fill(getDeviceName(), "FOCUS_FIRMWARE", "Firmware", CONNECTION_TAB, IP_RO, 0,  IPS_IDLE);
+    FirmwareTP.fill(getDeviceName(), "FOCUS_FIRMWARE", "Firmware", CONNECTION_TAB, IP_RO, 0, IPS_IDLE);
 
     // Voltage Information
     VoltageInNP[0].fill("VOLTAGEIN", "Volts", "%.2f", 0, 100, 0., 0.);
@@ -81,30 +77,48 @@ bool SestoSenso2::initProperties()
     TemperatureNP[TEMPERATURE_EXTERNAL].fill("TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Focuser calibration
+    // Calibration message
     CalibrationMessageTP[0].fill("CALIBRATION", "Calibration stage", "Press START to begin the Calibration.");
     CalibrationMessageTP.fill(getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Calibration
+    // Calibration switches (SC only has START, others have START + NEXT)
     CalibrationSP[CALIBRATION_START].fill("CALIBRATION_START", "Start", ISS_OFF);
     CalibrationSP[CALIBRATION_NEXT].fill("CALIBRATION_NEXT", "Next", ISS_OFF);
     CalibrationSP.fill(getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Speed Moves
+    // Recovery delay
+    RecoveryDelayNP[RECOVERY_DELAY_VALUE].fill("RECOVERY_DELAY", "Recovery Delay (s)", "%.0f", -1, 120, 1, 0);
+    RecoveryDelayNP.fill(getDeviceName(), "RECOVERY_DELAY_PROP", "Recovery Delay", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Fast move switches
     FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
     FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
     FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
     FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    // Hold state
+    // Semi-automatic calibration move switches
+    MoveInOut100SP[MOVE_IN_100].fill("MOVE_IN_100", "Move In 100", ISS_OFF);
+    MoveInOut100SP[MOVE_OUT_100].fill("MOVE_OUT_100", "Move Out 100", ISS_OFF);
+    MoveInOut100SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_100", "Move 100 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                        IPS_IDLE);
+
+    MoveInOut500SP[MOVE_IN_500].fill("MOVE_IN_500", "Move In 500", ISS_OFF);
+    MoveInOut500SP[MOVE_OUT_500].fill("MOVE_OUT_500", "Move Out 500", ISS_OFF);
+    MoveInOut500SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_500", "Move 500 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                        IPS_IDLE);
+
+    MoveInOut1000SP[MOVE_IN_1000].fill("MOVE_IN_1000", "Move In 1000", ISS_OFF);
+    MoveInOut1000SP[MOVE_OUT_1000].fill("MOVE_OUT_1000", "Move Out 1000", ISS_OFF);
+    MoveInOut1000SP.fill(getDeviceName(), "SEMI_AUTO_MOVE_1000", "Move 1000 Steps", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                         IPS_IDLE);
+
+    // Motor hold
     MotorHoldSP[MOTOR_HOLD_ON].fill("HOLD_ON", "Hold On", ISS_OFF);
     MotorHoldSP[MOTOR_HOLD_OFF].fill("HOLD_OFF", "Hold Off", ISS_OFF);
-    MotorHoldSP.fill(getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
-                     IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    MotorHoldSP.fill(getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Override the default Max. Position to make it Read-Only
-    FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
-                       0, IPS_IDLE);
+    // Max position (read-only)
+    FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Motor rate
     MotorRateNP[MOTOR_RATE_ACC].fill("ACC", "Acceleration", "%.f", 1, 10, 1, 1);
@@ -119,25 +133,11 @@ bool SestoSenso2::initProperties()
     MotorCurrentNP[MOTOR_CURR_HOLD].fill("CURR_HOLD", "Hold", "%.f", 0, 5, 1, 3);
     MotorCurrentNP.fill(getDeviceName(), "MOTOR_CURRENT", "Current", MOTOR_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Load motor preset
+    // Motor presets
     MotorApplyPresetSP[MOTOR_APPLY_LIGHT].fill("MOTOR_APPLY_LIGHT", "Light", ISS_OFF);
     MotorApplyPresetSP[MOTOR_APPLY_MEDIUM].fill("MOTOR_APPLY_MEDIUM", "Medium", ISS_OFF);
     MotorApplyPresetSP[MOTOR_APPLY_HEAVY].fill("MOTOR_APPLY_HEAVY", "Heavy", ISS_OFF);
     MotorApplyPresetSP.fill(getDeviceName(), "MOTOR_APPLY_PRESET", "Apply Preset", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Load user preset
-    MotorApplyUserPresetSP[MOTOR_APPLY_USER1].fill("MOTOR_APPLY_USER1", "User 1", ISS_OFF);
-    MotorApplyUserPresetSP[MOTOR_APPLY_USER2].fill("MOTOR_APPLY_USER2", "User 2", ISS_OFF);
-    MotorApplyUserPresetSP[MOTOR_APPLY_USER3].fill("MOTOR_APPLY_USER3", "User 3", ISS_OFF);
-    MotorApplyUserPresetSP.fill(getDeviceName(), "MOTOR_APPLY_USER_PRESET", "Apply Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0,
-                                IPS_IDLE);
-
-    // Save user preset
-    MotorSaveUserPresetSP[MOTOR_SAVE_USER1].fill("MOTOR_SAVE_USER1", "User 1", ISS_OFF);
-    MotorSaveUserPresetSP[MOTOR_SAVE_USER2].fill("MOTOR_SAVE_USER2", "User 2", ISS_OFF);
-    MotorSaveUserPresetSP[MOTOR_SAVE_USER3].fill("MOTOR_SAVE_USER3", "User 3", ISS_OFF);
-    MotorSaveUserPresetSP.fill(getDeviceName(), "MOTOR_SAVE_USER_PRESET", "Save Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0,
-                               IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosNP[0].setMin(0.);
@@ -156,7 +156,6 @@ bool SestoSenso2::initProperties()
     PresetNP[2].setMax(FocusMaxPosNP[0].getValue());
 
     addAuxControls();
-
     setDefaultPollingPeriod(500);
 
     return true;
@@ -165,7 +164,7 @@ bool SestoSenso2::initProperties()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::updateProperties()
+bool SestoSenso3::updateProperties()
 {
     if (isConnected() && updateMaxLimit() == false)
         LOGF_WARN("Check you have the latest %s firmware. Focuser requires calibration.", getDeviceName());
@@ -175,14 +174,31 @@ bool SestoSenso2::updateProperties()
     if (isConnected())
     {
         defineProperty(CalibrationMessageTP);
+
+        // SC model only has START (automatic), others have START + NEXT
+        if (m_SubModel == SESTOSENSO3_SC)
+        {
+            CalibrationSP.resize(1);
+        }
         defineProperty(CalibrationSP);
+
+        defineProperty(RecoveryDelayNP);
+        int32_t delay = 0;
+        if (m_SestoSenso3->getRecoveryDelay(delay))
+        {
+            RecoveryDelayNP[RECOVERY_DELAY_VALUE].setValue(delay);
+            RecoveryDelayNP.setState(IPS_OK);
+        }
+        else
+        {
+            RecoveryDelayNP.setState(IPS_ALERT);
+        }
+        RecoveryDelayNP.apply();
+
         defineProperty(MotorRateNP);
         defineProperty(MotorCurrentNP);
         defineProperty(MotorHoldSP);
         defineProperty(MotorApplyPresetSP);
-        defineProperty(MotorApplyUserPresetSP);
-        defineProperty(MotorSaveUserPresetSP);
-
         defineProperty(FirmwareTP);
 
         if (updateTemperature())
@@ -204,12 +220,11 @@ bool SestoSenso2::updateProperties()
         deleteProperty(VoltageInNP);
         deleteProperty(CalibrationMessageTP);
         deleteProperty(CalibrationSP);
+        deleteProperty(RecoveryDelayNP);
         deleteProperty(MotorRateNP);
         deleteProperty(MotorCurrentNP);
         deleteProperty(MotorHoldSP);
         deleteProperty(MotorApplyPresetSP);
-        deleteProperty(MotorApplyUserPresetSP);
-        deleteProperty(MotorSaveUserPresetSP);
     }
 
     return true;
@@ -218,7 +233,7 @@ bool SestoSenso2::updateProperties()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::Handshake()
+bool SestoSenso3::Handshake()
 {
     if (Ack())
     {
@@ -233,29 +248,29 @@ bool SestoSenso2::Handshake()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::SetFocuserBacklash(int32_t steps)
+bool SestoSenso3::SetFocuserBacklash(int32_t steps)
 {
-    return m_SestoSenso2->setBacklash(steps);
+    return m_SestoSenso3->setBacklash(steps);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char *SestoSenso2::getDefaultName()
+const char *SestoSenso3::getDefaultName()
 {
-    return "Sesto Senso 2";
+    return "Sesto Senso 3";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::updateTemperature()
+bool SestoSenso3::updateTemperature()
 {
     double temperature = 0;
 
     if (isSimulation())
         temperature = 23.5;
-    else if ( m_SestoSenso2->getMotorTemp(temperature) == false)
+    else if (m_SestoSenso3->getMotorTemp(temperature) == false)
         return false;
 
     if (temperature > 90)
@@ -264,8 +279,7 @@ bool SestoSenso2::updateTemperature()
     TemperatureNP[TEMPERATURE_MOTOR].setValue(temperature);
     TemperatureNP.setState(IPS_OK);
 
-    // External temperature - Optional
-    if (m_SestoSenso2->getExternalTemp(temperature))
+    if (m_SestoSenso3->getExternalTemp(temperature))
     {
         if (temperature < 90)
             TemperatureNP[TEMPERATURE_EXTERNAL].setValue(temperature);
@@ -279,14 +293,14 @@ bool SestoSenso2::updateTemperature()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::updateMaxLimit()
+bool SestoSenso3::updateMaxLimit()
 {
     uint32_t maxLimit = 0;
 
     if (isSimulation())
         return true;
 
-    if (m_SestoSenso2->getMaxPosition(maxLimit) == false)
+    if (m_SestoSenso3->getMaxPosition(maxLimit) == false)
         return false;
 
     FocusMaxPosNP[0].setMax(maxLimit);
@@ -310,7 +324,6 @@ bool SestoSenso2::updateMaxLimit()
     PresetNP[2].setMax(maxLimit);
     PresetNP[2].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
-
     FocusMaxPosNP.setState(IPS_OK);
     return true;
 }
@@ -318,12 +331,12 @@ bool SestoSenso2::updateMaxLimit()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::updatePosition()
+bool SestoSenso3::updatePosition()
 {
     uint32_t steps = 0;
     if (isSimulation())
         steps = static_cast<uint32_t>(FocusAbsPosNP[0].getValue());
-    else if (m_SestoSenso2->getAbsolutePosition(steps) == false)
+    else if (m_SestoSenso3->getAbsolutePosition(steps) == false)
         return false;
 
     FocusAbsPosNP[0].setValue(steps);
@@ -333,13 +346,13 @@ bool SestoSenso2::updatePosition()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::updateVoltageIn()
+bool SestoSenso3::updateVoltageIn()
 {
     double voltageIn = 0;
 
     if (isSimulation())
         voltageIn = 12.0;
-    else if (m_SestoSenso2->getVoltage12v(voltageIn) == false)
+    else if (m_SestoSenso3->getVoltage12v(voltageIn) == false)
         return false;
 
     if (voltageIn > 24)
@@ -354,9 +367,8 @@ bool SestoSenso2::updateVoltageIn()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::fetchMotorSettings()
+bool SestoSenso3::fetchMotorSettings()
 {
-    // Fetch driver state and reflect in INDI
     PrimalucaLabs::MotorRates ms;
     PrimalucaLabs::MotorCurrents mc;
     bool motorHoldActive = false;
@@ -373,7 +385,7 @@ bool SestoSenso2::fetchMotorSettings()
     }
     else
     {
-        if (!m_SestoSenso2->getMotorSettings(ms, mc, motorHoldActive))
+        if (!m_SestoSenso3->getMotorSettings(ms, mc, motorHoldActive))
         {
             MotorRateNP.setState(IPS_IDLE);
             MotorCurrentNP.setState(IPS_IDLE);
@@ -395,7 +407,6 @@ bool SestoSenso2::fetchMotorSettings()
     MotorCurrentNP.setState(IPS_OK);
     MotorCurrentNP.apply();
 
-    // Also update motor hold switch
     auto activeSwitchID = motorHoldActive ? "HOLD_ON" : "HOLD_OFF";
     auto sp = MotorHoldSP.findWidgetByName(activeSwitchID);
     assert(sp != nullptr && "Motor hold switch not found");
@@ -408,9 +419,7 @@ bool SestoSenso2::fetchMotorSettings()
     }
 
     if (motorHoldActive && mc.holdCurrent == 0)
-    {
         LOG_WARN("Motor hold current set to 0, motor hold setting will have no effect");
-    }
 
     return true;
 }
@@ -418,18 +427,17 @@ bool SestoSenso2::fetchMotorSettings()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::applyMotorRates()
+bool SestoSenso3::applyMotorRates()
 {
     if (isSimulation())
         return true;
 
-    // Send INDI state to driver
     PrimalucaLabs::MotorRates mr;
     mr.accRate = static_cast<uint32_t>(MotorRateNP[MOTOR_RATE_ACC].getValue());
     mr.runSpeed = static_cast<uint32_t>(MotorRateNP[MOTOR_RATE_RUN].getValue());
     mr.decRate = static_cast<uint32_t>(MotorRateNP[MOTOR_RATE_DEC].getValue());
 
-    if (!m_SestoSenso2->setMotorRates(mr))
+    if (!m_SestoSenso3->setMotorRates(mr))
     {
         LOG_ERROR("Failed to apply motor rates");
         return false;
@@ -442,19 +450,18 @@ bool SestoSenso2::applyMotorRates()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::applyMotorCurrents()
+bool SestoSenso3::applyMotorCurrents()
 {
     if (isSimulation())
         return true;
 
-    // Send INDI state to driver
     PrimalucaLabs::MotorCurrents mc;
     mc.accCurrent = static_cast<uint32_t>(MotorCurrentNP[MOTOR_CURR_ACC].getValue());
     mc.runCurrent = static_cast<uint32_t>(MotorCurrentNP[MOTOR_CURR_RUN].getValue());
     mc.decCurrent = static_cast<uint32_t>(MotorCurrentNP[MOTOR_CURR_DEC].getValue());
     mc.holdCurrent = static_cast<uint32_t>(MotorCurrentNP[MOTOR_CURR_HOLD].getValue());
 
-    if (!m_SestoSenso2->setMotorCurrents(mc))
+    if (!m_SestoSenso3->setMotorCurrents(mc))
     {
         LOG_ERROR("Failed to apply motor currents");
         return false;
@@ -468,7 +475,7 @@ bool SestoSenso2::applyMotorCurrents()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::isMotionComplete()
+bool SestoSenso3::isMotionComplete()
 {
     if (isSimulation())
     {
@@ -491,17 +498,17 @@ bool SestoSenso2::isMotionComplete()
         return (std::abs(nextPos - static_cast<int32_t>(targetPos)) == 0);
     }
 
-    return !m_SestoSenso2->isBusy();
+    return !m_SestoSenso3->isBusy();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool SestoSenso3::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Calibrate focuser
+        // Calibration
         if (CalibrationSP.isNameMatch(name))
         {
             CalibrationSP.update(states, names, n);
@@ -511,20 +518,34 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
 
             if (current_switch == CALIBRATION_START)
             {
-                if (cStage == Idle || cStage == Complete )
+                if (cStage == Idle || cStage == Complete)
                 {
-                    // Start the calibration process
                     LOG_INFO("Start Calibration");
                     CalibrationSP.setState(IPS_BUSY);
                     CalibrationSP.apply();
 
-                    // SestoSenso2: Manual Calibration (user moves by hand)
-                    if (m_SestoSenso2->initCalibrationSS2() == false)
-                        return false;
-                    CalibrationMessageTP[0].setText("Manual Calibration: Set focus in MIN position and then press NEXT.");
-                    CalibrationMessageTP.apply();
-                    fetchMotorSettings();
-                    cStage = GoToMiddle;
+                    if (m_SubModel == SESTOSENSO3_SC)
+                    {
+                        if (m_SestoSenso3->startAutoCalibration() == false)
+                            return false;
+                        CalibrationMessageTP[0].setText("Automatic Calibration Started. Please wait...");
+                        CalibrationMessageTP.apply();
+                        cStage = GoToMiddle;
+                    }
+                    else
+                    {
+                        // STANDARD and LS: Semi-Automatic Calibration
+                        if (m_SestoSenso3->initCalibrationSemiAuto() == false)
+                            return false;
+                        CalibrationMessageTP[0].setText("Semi-Automatic Calibration: Move focuser to MIN position and then press NEXT.");
+                        CalibrationMessageTP.apply();
+                        fetchMotorSettings();
+                        cStage = GoToMiddle;
+
+                        defineProperty(MoveInOut100SP);
+                        defineProperty(MoveInOut500SP);
+                        defineProperty(MoveInOut1000SP);
+                    }
                 }
                 else
                 {
@@ -535,28 +556,37 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             }
             else if (current_switch == CALIBRATION_NEXT)
             {
+                if (m_SubModel == SESTOSENSO3_SC)
+                {
+                    LOG_ERROR("CALIBRATION_NEXT not applicable for SestoSenso3 SC Automatic Calibration.");
+                    CalibrationMessageTP[0].setText("Error: NEXT not applicable for Automatic Calibration.");
+                    CalibrationMessageTP.apply();
+                    CalibrationSP.setState(IPS_ALERT);
+                    CalibrationSP.apply();
+                    return false;
+                }
+
                 if (cStage == GoToMiddle)
                 {
                     defineProperty(FastMoveSP);
-                    if (m_SestoSenso2->storeAsMinPosition() == false)
+                    if (m_SestoSenso3->storeAsMinPosition() == false)
                         return false;
-                    CalibrationMessageTP[0].setText("Manual Calibration: Press MOVE OUT to move focuser out (CAUTION!)");
+                    CalibrationMessageTP[0].setText("Semi-Automatic Calibration: Use Fast Move OUT to find MAX position, then press STOP, then NEXT.");
                     CalibrationMessageTP.apply();
                     cStage = GoMinimum;
                 }
                 else if (cStage == GoMinimum)
                 {
-                    if (m_SestoSenso2->storeAsMaxPositionSS2() == false)
+                    if (m_SestoSenso3->storeAsMaxPosition() == false)
                         return false;
-                    CalibrationMessageTP[0].setText("Manual Calibration: Press NEXT to finish.");
+                    CalibrationMessageTP[0].setText("Calibration: Press NEXT to finish.");
                     CalibrationMessageTP.apply();
                     cStage = GoMaximum;
                 }
                 else if (cStage == GoMaximum)
                 {
                     uint32_t maxLimit = 0;
-
-                    if (m_SestoSenso2->getMaxPosition(maxLimit) == false)
+                    if (m_SestoSenso3->getMaxPosition(maxLimit) == false)
                         return false;
 
                     LOGF_INFO("MAX setting is %d", maxLimit);
@@ -591,6 +621,9 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationMessageTP.apply();
 
                     deleteProperty(FastMoveSP);
+                    deleteProperty(MoveInOut100SP);
+                    deleteProperty(MoveInOut500SP);
+                    deleteProperty(MoveInOut1000SP);
 
                     cStage = Complete;
 
@@ -600,7 +633,6 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationSP[current_switch].setState(ISS_OFF);
                     CalibrationSP.apply();
 
-                    // Double check motor hold state after calibration
                     fetchMotorSettings();
                 }
                 else
@@ -608,7 +640,6 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationMessageTP[0].setText("Calibration not in progress.");
                     CalibrationMessageTP.apply();
                 }
-
             }
             return true;
         }
@@ -621,18 +652,18 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             switch (current_switch)
             {
                 case FASTMOVE_IN:
-                    if (m_SestoSenso2->fastMoveIn() == false)
+                    if (m_SestoSenso3->fastMoveIn() == false)
                         return false;
                     break;
                 case FASTMOVE_OUT:
-                    if (m_SestoSenso2->goOutToFindMaxPosSS2() == false)
+                    if (m_SestoSenso3->goOutToFindMaxPos() == false)
                         return false;
-                    CalibrationMessageTP[0].setText("Manual Calibration: Press STOP focuser almost at MAX position.");
+                    CalibrationMessageTP[0].setText("Semi-Automatic Calibration: Press STOP when focuser is almost at MAX position.");
                     CalibrationMessageTP.apply();
                     fetchMotorSettings();
                     break;
                 case FASTMOVE_STOP:
-                    if (m_SestoSenso2->stop() == false)
+                    if (m_SestoSenso3->stopMotor() == false)
                         return false;
                     CalibrationMessageTP[0].setText("Press NEXT to store max limit.");
                     CalibrationMessageTP.apply();
@@ -645,23 +676,71 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             FastMoveSP.apply();
             return true;
         }
-        // Homing
+        // Semi-automatic calibration move switches
+        else if (MoveInOut100SP.isNameMatch(name))
+        {
+            MoveInOut100SP.update(states, names, n);
+            auto current_move_switch = MoveInOut100SP.findOnSwitchIndex();
+            if (current_move_switch == MOVE_IN_100)
+            {
+                if (m_SestoSenso3->moveIn(100) == false) return false;
+            }
+            else if (current_move_switch == MOVE_OUT_100)
+            {
+                if (m_SestoSenso3->moveOut(100) == false) return false;
+            }
+            MoveInOut100SP.setState(IPS_IDLE);
+            MoveInOut100SP.apply();
+            return true;
+        }
+        else if (MoveInOut500SP.isNameMatch(name))
+        {
+            MoveInOut500SP.update(states, names, n);
+            auto current_move_switch = MoveInOut500SP.findOnSwitchIndex();
+            if (current_move_switch == MOVE_IN_500)
+            {
+                if (m_SestoSenso3->moveIn(500) == false) return false;
+            }
+            else if (current_move_switch == MOVE_OUT_500)
+            {
+                if (m_SestoSenso3->moveOut(500) == false) return false;
+            }
+            MoveInOut500SP.setState(IPS_IDLE);
+            MoveInOut500SP.apply();
+            return true;
+        }
+        else if (MoveInOut1000SP.isNameMatch(name))
+        {
+            MoveInOut1000SP.update(states, names, n);
+            auto current_move_switch = MoveInOut1000SP.findOnSwitchIndex();
+            if (current_move_switch == MOVE_IN_1000)
+            {
+                if (m_SestoSenso3->moveIn(1000) == false) return false;
+            }
+            else if (current_move_switch == MOVE_OUT_1000)
+            {
+                if (m_SestoSenso3->moveOut(1000) == false) return false;
+            }
+            MoveInOut1000SP.setState(IPS_IDLE);
+            MoveInOut1000SP.apply();
+            return true;
+        }
+        // Motor hold
         else if (MotorHoldSP.isNameMatch(name))
         {
             MotorHoldSP.update(states, names, n);
             auto sp = MotorHoldSP.findOnSwitch();
             assert(sp != nullptr);
 
-            // NOTE: Default to HOLD_ON as a safety feature
             if (!strcmp(sp->name, "HOLD_OFF"))
             {
-                m_SestoSenso2->setMotorHold(false);
+                m_SestoSenso3->setMotorHold(false);
                 MotorHoldSP.setState(IPS_ALERT);
                 LOG_INFO("Motor hold OFF. You may now manually adjust the focuser. Remember to enable motor hold once done.");
             }
             else
             {
-                m_SestoSenso2->setMotorHold(true);
+                m_SestoSenso3->setMotorHold(true);
                 MotorHoldSP.setState(IPS_OK);
                 LOG_INFO("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
                 if (MotorCurrentNP[MOTOR_CURR_HOLD].getValue() < 2.0)
@@ -680,9 +759,9 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             auto index = MotorApplyPresetSP.findOnSwitchIndex();
             assert(index >= 0 && index < 3);
 
-            const char* presetName = MOTOR_PRESET_NAMES[index];
+            const char *presetName = MOTOR_PRESET_NAMES[index];
 
-            if (m_SestoSenso2->applyMotorPreset(presetName))
+            if (m_SestoSenso3->applyMotorPreset(presetName))
             {
                 LOGF_INFO("Loaded motor preset: %s", presetName);
                 MotorApplyPresetSP.setState(IPS_IDLE);
@@ -706,7 +785,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool SestoSenso3::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev == nullptr || strcmp(dev, getDeviceName()) != 0)
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -727,6 +806,24 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
         MotorCurrentNP.apply();
         return true;
     }
+    else if (RecoveryDelayNP.isNameMatch(name))
+    {
+        RecoveryDelayNP.update(values, names, n);
+        int32_t delay = static_cast<int32_t>(RecoveryDelayNP[RECOVERY_DELAY_VALUE].getValue());
+        if (m_SestoSenso3->setRecoveryDelay(delay))
+        {
+            RecoveryDelayNP.setState(IPS_OK);
+            LOGF_INFO("Recovery Delay set to %d seconds.", delay);
+        }
+        else
+        {
+            RecoveryDelayNP.setState(IPS_ALERT);
+            LOG_ERROR("Failed to set Recovery Delay.");
+        }
+        saveConfig(RecoveryDelayNP);
+        RecoveryDelayNP.apply();
+        return true;
+    }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
@@ -734,22 +831,19 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
+IPState SestoSenso3::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
     if (isSimulation() == false)
     {
         backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
-        if(backlashDirection == FOCUS_INWARD)
-        {
-            targetPos -=  backlashTicks;
-        }
+        if (backlashDirection == FOCUS_INWARD)
+            targetPos -= backlashTicks;
         else
-        {
-            targetPos +=  backlashTicks;
-        }
-        if (m_SestoSenso2->goAbsolutePosition(targetPos) == false)
+            targetPos += backlashTicks;
+
+        if (m_SestoSenso3->goAbsolutePosition(targetPos) == false)
             return IPS_ALERT;
     }
 
@@ -760,10 +854,10 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState SestoSenso3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
-    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
+    int relativeTicks = ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
@@ -774,20 +868,20 @@ IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::AbortFocuser()
+bool SestoSenso3::AbortFocuser()
 {
     m_MotionProgressTimer.stop();
 
     if (isSimulation())
         return true;
 
-    return m_SestoSenso2->stop();
+    return m_SestoSenso3->stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void SestoSenso2::checkMotionProgressCallback()
+void SestoSenso3::checkMotionProgressCallback()
 {
     FocusAbsPosNP.apply();
     lastPos = FocusAbsPosNP[0].getValue();
@@ -798,7 +892,7 @@ void SestoSenso2::checkMotionProgressCallback()
         if (CalibrationSP.getState() == IPS_BUSY)
         {
             ISState states[2] = { ISS_OFF, ISS_ON };
-            const char * names[2] = { CalibrationSP[CALIBRATION_START].getName(), CalibrationSP[CALIBRATION_NEXT].getName() };
+            const char *names[2] = { CalibrationSP[CALIBRATION_START].getName(), CalibrationSP[CALIBRATION_NEXT].getName() };
             ISNewSwitch(getDeviceName(), CalibrationSP.getName(), states, const_cast<char **>(names), CalibrationSP.count());
         }
         else
@@ -814,11 +908,11 @@ void SestoSenso2::checkMotionProgressCallback()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void SestoSenso2::TimerHit()
+void SestoSenso3::TimerHit()
 {
     if (!isConnected() ||
-            FocusAbsPosNP.getState() == IPS_BUSY
-            || FocusRelPosNP.getState() == IPS_BUSY ||
+            FocusAbsPosNP.getState() == IPS_BUSY ||
+            FocusRelPosNP.getState() == IPS_BUSY ||
             CalibrationSP.getState() == IPS_BUSY)
     {
         SetTimer(getCurrentPollingPeriod());
@@ -847,7 +941,6 @@ void SestoSenso2::TimerHit()
             }
         }
 
-        // Also use temperature poll rate for tracking input voltage
         rc = updateVoltageIn();
         if (rc)
         {
@@ -857,13 +950,11 @@ void SestoSenso2::TimerHit()
                 lastVoltageIn = VoltageInNP[0].getValue();
 
                 if (VoltageInNP[0].getValue() < 11.0)
-                {
                     LOG_WARN("Please check 12v DC power supply is connected.");
-                }
             }
         }
 
-        m_TemperatureCounter = 0;   // Reset the counter
+        m_TemperatureCounter = 0;
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -872,23 +963,21 @@ void SestoSenso2::TimerHit()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::getStartupValues()
+bool SestoSenso3::getStartupValues()
 {
     bool rc = updatePosition();
     if (rc)
-    {
         FocusAbsPosNP.apply();
-    }
 
     rc &= fetchMotorSettings();
 
-    return (rc);
+    return rc;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::ReverseFocuser(bool enable)
+bool SestoSenso3::ReverseFocuser(bool enable)
 {
     INDI_UNUSED(enable);
     return false;
@@ -897,7 +986,7 @@ bool SestoSenso2::ReverseFocuser(bool enable)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::Ack()
+bool SestoSenso3::Ack()
 {
     std::string response;
 
@@ -905,12 +994,12 @@ bool SestoSenso2::Ack()
         response = "1.0 Simulation";
     else
     {
-        if(initCommandSet() == false)
+        if (initCommandSet() == false)
         {
             LOG_ERROR("Failed setting attributes on serial port and init command sets");
             return false;
         }
-        if(m_SestoSenso2->getSerialNumber(response))
+        if (m_SestoSenso3->getSerialNumber(response))
         {
             LOGF_INFO("Serial number: %s", response.c_str());
         }
@@ -920,15 +1009,42 @@ bool SestoSenso2::Ack()
         }
 
         std::string modelName;
-        if (m_SestoSenso2->getModel(modelName))
+        if (m_SestoSenso3->getModel(modelName))
         {
             LOGF_INFO("Model name: %s", modelName.c_str());
+
+            std::string subModel;
+            if (m_SestoSenso3->getSubModel(subModel))
+            {
+                LOGF_INFO("SubModel: %s", subModel.c_str());
+
+                if (subModel.find("SESTOSENSO3SC") != std::string::npos)
+                {
+                    m_SubModel = SESTOSENSO3_SC;
+                    LOG_INFO("Detected: SestoSenso3 SC (Automatic Calibration)");
+                }
+                else if (subModel.find("SESTOSENSO3LS") != std::string::npos)
+                {
+                    m_SubModel = SESTOSENSO3_LS;
+                    LOG_INFO("Detected: SestoSenso3 LS (Semi-Automatic Calibration)");
+                }
+                else
+                {
+                    m_SubModel = SESTOSENSO3_STANDARD;
+                    LOG_INFO("Detected: SestoSenso3 Standard (Semi-Automatic Calibration)");
+                }
+            }
+            else
+            {
+                m_SubModel = SESTOSENSO3_STANDARD;
+                LOG_WARN("Failed to query submodel, defaulting to SestoSenso3 Standard");
+            }
         }
     }
 
     FirmwareTP[FIRMWARE_SN].setText(response.c_str());
 
-    if (m_SestoSenso2->getFirmwareVersion(response))
+    if (m_SestoSenso3->getFirmwareVersion(response))
     {
         LOGF_INFO("Firmware version: %s", response.c_str());
         IUSaveText(&FirmwareTP[FIRMWARE_VERSION], response.c_str());
@@ -944,7 +1060,7 @@ bool SestoSenso2::Ack()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void SestoSenso2::setConnectionParams()
+void SestoSenso3::setConnectionParams()
 {
     serialConnection->setDefaultBaudRate(serialConnection->B_115200);
     serialConnection->setWordSize(8);
@@ -953,9 +1069,9 @@ void SestoSenso2::setConnectionParams()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::initCommandSet()
+bool SestoSenso3::initCommandSet()
 {
-    m_SestoSenso2.reset(new PrimalucaLabs::SestoSenso2(getDeviceName(), PortFD));
+    m_SestoSenso3.reset(new PrimalucaLabs::SestoSenso3(getDeviceName(), PortFD));
 
     struct termios tty_setting;
     if (tcgetattr(PortFD, &tty_setting) == -1)
@@ -975,7 +1091,7 @@ bool SestoSenso2::initCommandSet()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SestoSenso2::saveConfigItems(FILE *fp)
+bool SestoSenso3::saveConfigItems(FILE *fp)
 {
     Focuser::saveConfigItems(fp);
     MotorRateNP.save(fp);

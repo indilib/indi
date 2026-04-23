@@ -155,6 +155,16 @@ add_executable(indi_sestosenso2_focus ${sesto2_SRC})
 target_link_libraries(indi_sestosenso2_focus indidriver ${JSONLIB})
 install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 
+# ############### Sesto Senso 3 Focuser ################
+SET(sesto3_SRC
+    sestosenso3.cpp
+    primalucacommandset.cpp
+)
+
+add_executable(indi_sestosenso3_focus ${sesto3_SRC})
+target_link_libraries(indi_sestosenso3_focus indidriver ${JSONLIB})
+install(TARGETS indi_sestosenso3_focus RUNTIME DESTINATION bin)
+
 # ############### Esatto Focuser ################
 SET(esatto_SRC
     esatto.cpp

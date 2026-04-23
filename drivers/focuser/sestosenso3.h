@@ -1,6 +1,6 @@
 /*
-    SestoSenso 2 Focuser
-    Copyright (C) 2020 Piotr Zyziuk
+    SestoSenso 3 Focuser
+    Copyright (C) 2026 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,11 +24,11 @@
 #include "inditimer.h"
 #include "primalucacommandset.h"
 
-class SestoSenso2 : public INDI::Focuser
+class SestoSenso3 : public INDI::Focuser
 {
     public:
-        SestoSenso2();
-        virtual ~SestoSenso2() override = default;
+        SestoSenso3();
+        virtual ~SestoSenso3() override = default;
 
         const char *getDefaultName() override;
         virtual bool initProperties() override;
@@ -44,15 +44,11 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
         virtual bool SetFocuserBacklash(int32_t steps) override;
-
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         bool Ack();
-        bool setMinLimit(uint32_t limit);
-        bool setMaxLimit(uint32_t limit);
         bool updateMaxLimit();
-
         bool updateTemperature();
         bool updatePosition();
         bool updateVoltageIn();
@@ -62,33 +58,29 @@ class SestoSenso2 : public INDI::Focuser
         void setConnectionParams();
         bool initCommandSet();
         void checkMotionProgressCallback();
-        void checkHallSensorCallback();
-
         bool getStartupValues();
-        void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
-        FocusDirection backlashDirection { FOCUS_INWARD };
-        FocusDirection oldbacklashDirection { FOCUS_INWARD };
+        // Submodel variants
+        enum SestoSenso3Model
+        {
+            SESTOSENSO3_STANDARD,
+            SESTOSENSO3_SC,
+            SESTOSENSO3_LS,
+        };
+        SestoSenso3Model m_SubModel { SESTOSENSO3_STANDARD };
 
-        int32_t startPos { 0 };
+        FocusDirection backlashDirection { FOCUS_INWARD };
         uint32_t backlashTicks { 0 };
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
-        int32_t previousPos { 0 };
         double lastVoltageIn { 0 };
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
-        INDI::PropertyNumber TemperatureNP {2};
-        enum
-        {
-            TEMPERATURE_EXTERNAL,
-            TEMPERATURE_MOTOR,
-        };
+        std::unique_ptr<PrimalucaLabs::SestoSenso3> m_SestoSenso3;
 
-        INDI::PropertyNumber SpeedNP {1};
-
+        // Properties
         INDI::PropertyText FirmwareTP {2};
         enum
         {
@@ -97,6 +89,15 @@ class SestoSenso2 : public INDI::Focuser
         };
 
         INDI::PropertyNumber VoltageInNP {1};
+
+        INDI::PropertyNumber TemperatureNP {2};
+        enum
+        {
+            TEMPERATURE_EXTERNAL,
+            TEMPERATURE_MOTOR,
+        };
+
+        INDI::PropertyText CalibrationMessageTP {1};
 
         INDI::PropertySwitch CalibrationSP {2};
         enum
@@ -113,10 +114,33 @@ class SestoSenso2 : public INDI::Focuser
             FASTMOVE_STOP
         };
 
+        // Semi-automatic calibration move switches (STANDARD and LS only)
+        INDI::PropertySwitch MoveInOut100SP {2};
         enum
         {
-            CMD_OK = true,
-            CMD_FALSE = false
+            MOVE_IN_100,
+            MOVE_OUT_100
+        };
+
+        INDI::PropertySwitch MoveInOut500SP {2};
+        enum
+        {
+            MOVE_IN_500,
+            MOVE_OUT_500
+        };
+
+        INDI::PropertySwitch MoveInOut1000SP {2};
+        enum
+        {
+            MOVE_IN_1000,
+            MOVE_OUT_1000
+        };
+
+        INDI::PropertySwitch MotorHoldSP {2};
+        enum
+        {
+            MOTOR_HOLD_ON,
+            MOTOR_HOLD_OFF
         };
 
         INDI::PropertyNumber MotorRateNP {3};
@@ -136,13 +160,6 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_CURR_HOLD
         };
 
-        INDI::PropertySwitch MotorHoldSP {2};
-        enum
-        {
-            MOTOR_HOLD_ON,
-            MOTOR_HOLD_OFF
-        };
-
         INDI::PropertySwitch MotorApplyPresetSP {3};
         enum
         {
@@ -151,42 +168,22 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_APPLY_HEAVY,
         };
 
-        INDI::PropertySwitch MotorApplyUserPresetSP {3};
+        INDI::PropertyNumber RecoveryDelayNP {1};
         enum
         {
-            MOTOR_APPLY_USER1,
-            MOTOR_APPLY_USER2,
-            MOTOR_APPLY_USER3
+            RECOVERY_DELAY_VALUE,
         };
 
-        INDI::PropertySwitch MotorSaveUserPresetSP {3};
-        enum
-        {
-            MOTOR_SAVE_USER1,
-            MOTOR_SAVE_USER2,
-            MOTOR_SAVE_USER3
-        };
-
-        INDI::PropertyText CalibrationMessageTP {1};
-        typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
+        typedef enum { Idle, GoToMiddle, GoMinimum, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
         INDI::Timer m_MotionProgressTimer;
-        INDI::Timer m_HallSensorTimer;
-
-        std::unique_ptr<PrimalucaLabs::SestoSenso2> m_SestoSenso2;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
-        // CR is the stop char
         static const char SESTO_STOP_CHAR { 0xD };
-        // Update temperature every 10x POLLMS. For 500ms, we would
-        // update the temperature one every 5 seconds.
         static constexpr const uint8_t SESTO_TEMPERATURE_FREQ {10};
-        // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t SESTO_TIMEOUT {5};
-        // Maximum buffer for sending/receiving.
         static constexpr const int SESTO_LEN {1024};
-
 };
