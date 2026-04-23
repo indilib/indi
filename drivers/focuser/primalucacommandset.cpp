@@ -256,7 +256,7 @@ Focuser::Focuser(const std::string &name, int port)
 *******************************************************************************************************/
 bool Focuser::goAbsolutePosition(uint32_t position)
 {
-    return m_Communication->command(MOT_1, {{"MOVE_ABS", {{"STEP", position}}}});
+    return m_Communication->command(MOT_1, {{"GOTO", position}});
 }
 
 /******************************************************************************************************
@@ -310,7 +310,7 @@ bool Focuser::isHallSensorDetected(bool &isDetected)
 *******************************************************************************************************/
 bool Focuser::getAbsolutePosition(uint32_t &position)
 {
-    return m_Communication->get(MOT_1, "ABS_POS", position);
+    return m_Communication->get(MOT_1, "ABS_POS_STEPS", position);
 }
 
 /******************************************************************************************************
@@ -337,7 +337,15 @@ bool Focuser::isBusy()
     json status;
     if (m_Communication->get(MOT_1, "STATUS", status))
     {
-        return status["BUSY"] == 1;
+        bool busy = (status["BUSY"] == 1);
+        std::string mst;
+        if (status.contains("MST"))
+            status["MST"].get_to(mst);
+        // Motor is still moving if BUSY=1, or if MST is not yet "stop".
+        // The SS3 can transiently assert BUSY=0 while MST is still
+        // "CstSpeed" or "dec" during encoder-feedback transitions.
+        bool motorStopped = mst.empty() || (mst == "stop");
+        return busy || !motorStopped;
     }
     return false;
 }
