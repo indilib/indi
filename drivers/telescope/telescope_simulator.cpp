@@ -310,9 +310,13 @@ void ScopeSim::updateCurrentCoordsFromAxes()
         }
         else
         {
-            INDI::IEquatorialCoordinates haCoords{ instHA.Hours(), instDec.Degrees() };
+            // Encode the current encoder RA (= LST − HA), not HA, so the TDV
+            // fed into TransformTelescopeToCelestial uses the same time-stable
+            // coordinate that Sync() now stores in the alignment database.
+            double encoderRA = (alignment.lst() - instHA).Hours();
+            INDI::IEquatorialCoordinates raCoords{ encoderRA, instDec.Degrees() };
             TelescopeDirectionVector tdv =
-                TelescopeDirectionVectorFromLocalHourAngleDeclination(haCoords);
+                TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
             corrected = TransformTelescopeToCelestial(tdv, corrRA, corrDec);
         }
         if (corrected)
@@ -334,7 +338,7 @@ void ScopeSim::setTargetFromAxisPosition(Angle primary, Angle secondary)
 bool ScopeSim::ReadScopeStatus()
 {
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ && TrackState == SCOPE_TRACKING &&
-        TrackModeSP.findOnSwitchIndex() != TRACK_CUSTOM)
+            TrackModeSP.findOnSwitchIndex() != TRACK_CUSTOM)
     {
         double dt      = getCurrentPollingPeriod() / 1000.0;
         double JDnow   = ln_get_julian_from_sys();
@@ -351,7 +355,7 @@ bool ScopeSim::ReadScopeStatus()
         else if (trackMode == TRACK_LUNAR)
             raDriftHrsPerSec = (TRACKRATE_SIDEREAL - TRACKRATE_LUNAR) / 3600.0 / 15.0;
 
-        auto getAltAz = [&](double JD, INDI::IHorizontalCoordinates &coords)
+        auto getAltAz = [&](double JD, INDI::IHorizontalCoordinates & coords)
         {
             double dtFromNow = (JD - JDnow) * 86400.0;
             INDI::IEquatorialCoordinates eq { m_targetRA + raDriftHrsPerSec * dtFromNow, m_targetDEC };
@@ -379,10 +383,14 @@ bool ScopeSim::ReadScopeStatus()
 
         // Unwrap azimuth around the center point to avoid 360/0 discontinuity
         // Angle(x).Degrees() normalizes x to (-180, +180], same as the private Angle::range()
-        auto range180 = [](double x) { return Angle(x).Degrees(); };
+        auto range180 = [](double x)
+        {
+            return Angle(x).Degrees();
+        };
         double pAz[3] = { m_TrackingWindowCoords[0].azimuth,
                           m_TrackingWindowCoords[1].azimuth,
-                          m_TrackingWindowCoords[2].azimuth };
+                          m_TrackingWindowCoords[2].azimuth
+                        };
         pAz[0] = pAz[1] + range180(pAz[0] - pAz[1]);
         pAz[2] = pAz[1] + range180(pAz[2] - pAz[1]);
 
@@ -537,8 +545,9 @@ bool ScopeSim::Goto(double r, double d)
     // ALTAZ mounts: the math plugin uses Az/Alt encoding.  Decode via SkyToTelescopeAltAz
     // and set axis slew targets directly in Az/Alt space.
     //
-    // EQ mounts: the math plugin uses HA/Dec encoding.  Decode via LocalHourAngle... and
-    // convert back through instrumentHaDecToMount inside StartSlew.
+    // EQ mounts: the math plugin uses RA/Dec encoding.  Decode via
+    // EquatorialCoordinatesFromTelescopeDirectionVector to obtain encoder RA directly,
+    // then pass it to StartSlew which converts it to HA for the axis motor.
     if (GetAlignmentDatabase().size() >= 1 && m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
     {
         double instrumentAlt, instrumentAz_INDI;
@@ -564,10 +573,12 @@ bool ScopeSim::Goto(double r, double d)
         TelescopeDirectionVector tdv;
         if (TransformCelestialToTelescope(r, d, 0.0, tdv))
         {
-            INDI::IEquatorialCoordinates haCoords;
-            LocalHourAngleDeclinationFromTelescopeDirectionVector(tdv, haCoords);
-            targetRA  = (alignment.lst() - Angle(haCoords.rightascension, Angle::HOURS)).Hours();
-            targetDec = haCoords.declination;
+            // The TDV now encodes encoder RA (time-stable), so decode with
+            // EquatorialCoordinatesFromTelescopeDirectionVector — no LST conversion needed.
+            INDI::IEquatorialCoordinates raCoords;
+            EquatorialCoordinatesFromTelescopeDirectionVector(tdv, raCoords);
+            targetRA  = raCoords.rightascension;
+            targetDec = raCoords.declination;
         }
     }
 
@@ -579,9 +590,10 @@ bool ScopeSim::Sync(double ra, double dec)
 {
     // The INDI alignment math plugins encode telescope directions as:
     //   - ALTAZ (ZENITH) mounts: Az/Alt via TelescopeDirectionVectorFromAltitudeAzimuth
-    //   - EQ mounts: HA/Dec via TelescopeDirectionVectorFromLocalHourAngleDeclination
-    // Using the wrong encoding causes the correction to be applied in the wrong coordinate
-    // system, which after Goto's instrumentHaDecToMount re-rotation produces garbage altitudes.
+    //   - EQ mounts: RA/Dec via TelescopeDirectionVectorFromEquatorialCoordinates
+    // Using encoder RA (= LST − HA, time-stable during sidereal tracking) ensures the
+    // stored offset sky_RA − encoder_RA remains constant across iterations, so successive
+    // sync+goto cycles converge rather than diverging.
 
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
     {
@@ -591,14 +603,19 @@ bool ScopeSim::Sync(double ra, double dec)
     }
     else
     {
-        // EQ mounts: encode the raw encoder HA/Dec as the telescope direction.
+        // EQ mounts: encode the raw encoder RA/Dec as the telescope direction.
+        // Use RA (= LST − HA), not HA, so the stored offset is time-stable.
+        // HA changes at the sidereal rate even during tracking; encoder RA does not.
+        // Storing HA causes the correction to drift by ~15 arcsec/s, accumulating
+        // error over successive alignment iterations.
         Angle instHA, instDec;
         alignment.mountToInstrumentHaDec(axisPrimary.position, axisSecondary.position,
                                          &instHA, &instDec);
 
-        INDI::IEquatorialCoordinates haCoords{ instHA.Hours(), instDec.Degrees() };
+        double encoderRA = (alignment.lst() - instHA).Hours();
+        INDI::IEquatorialCoordinates raCoords{ encoderRA, instDec.Degrees() };
         TelescopeDirectionVector tdv =
-            TelescopeDirectionVectorFromLocalHourAngleDeclination(haCoords);
+            TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
 
         AlignmentDatabaseEntry entry;
         entry.ObservationJulianDate = ln_get_julian_from_sys();
@@ -799,7 +816,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     // Use a full saveConfig() — the selective form (saveConfig(true, name)) only
     // patches the named property in the existing XML and skips CURRENT_MATH_PLUGIN.
     if (strcmp(name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0 ||
-        strcmp(name, "ALIGNMENT_SUBSYSTEM_ACTIVE") == 0)
+            strcmp(name, "ALIGNMENT_SUBSYSTEM_ACTIVE") == 0)
         saveConfig();
 
     //  Nobody has claimed this, so pass it over
@@ -1209,8 +1226,8 @@ bool ScopeSim::updateMountAndPierSide()
     // Without this, the math plugin always fits an ALTAZ model regardless of mount type.
     SetApproximateMountAlignmentFromMountType(
         alignment.mountType == Alignment::MOUNT_TYPE::ALTAZ
-            ? INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ
-            : INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
+        ? INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ
+        : INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
 
     // Set the park data type appropriate for the mount geometry.
     if (mountType == static_cast<int>(Alignment::MOUNT_TYPE::ALTAZ))
