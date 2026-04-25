@@ -865,6 +865,14 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             if (rc_ra == 0 && rc_de == 0 && !std::isnan(ra) && !std::isnan(de))
             {
+                // Ignore empty/uninitialized target coordinates (e.g. default RA=0, DEC=0 broadcast on startup
+                // before any actual GOTO has been commanded). Without this guard the dome would spuriously
+                // slew to the position corresponding to RA=0/DEC=0 and then have to correct itself once the
+                // real mount coordinates arrive, mirroring the same protection already present in the
+                // EQUATORIAL_EOD_COORD handler.
+                if (ra == 0 && de == 0)
+                    return true;
+
                 //  everything parsed ok, so lets start the dome to moving
                 //  If this slew involves a meridian flip, then the slaving calcs will end up using
                 //  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
