@@ -1,23 +1,7 @@
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
-#include <stddef.h>
-#include "sofa.h"
-#include "spk.h"
-
-int Bfun ( int, double, char, double, double, double* );
-int Simeqn (int, double*, double* );
-
-int Pmfit ( double, char, int, double*, int,
-            double*, double*, double* );
-
-/* Internal helper Bfun prototype */
-int Bfun ( int, double, char, double, double, double* );
-int Simeqn (int, double*, double* );
-
-/*--------------------------------------------------------------------*/
-
 #include <sofa.h>
 
 int Bfun ( int, double, char, double, double, double* );
@@ -253,7 +237,7 @@ int Pmfit ( double phi, char mount, int n, double* obs, int nt,
    }
 
 /* On-sky variance and RMS. */
-   skyvar = ( 2*n > nt ) ? sumr2 / (double) ( 2*n - nt ) : 0.0;
+   skyvar = sumr2 / (double) (n-nt);
 
 /* Standard deviations of the model coefficients. */
    for ( i = 0; i < nt; i++ ) sigmas[i] = sqrt ( skyvar * a[i*(nt+1)] );
@@ -410,6 +394,27 @@ int Bfun ( int nt, double phi, char mount, double rdem, double pdem,
 ** ---------------------------------------------------
 ** The basis functions at the current point in the sky
 ** ---------------------------------------------------
+**
+** Each term is an [x,y] correction vector at the given point in the
+** sky, where the x-axis is east-west for equatorials or left-right
+** for altazimuths and the y-axis north-south or up-down respectively.
+**
+** The equatorial terms are from Appendix 1 of Wallace, P.T., 1975,
+** Programming the Control Computer of the Anglo-Australian 3.9 Metre
+** Telescope.  In Telescope Automation: proceedings of an International
+** Conference held at MIT, Cambridge, MA USA, April 29 - May 1, 1975,
+** Eds. Maureen K. Huguenin and Thomas B. McCord. Published by MIT,
+** 1975, p.281.
+**
+** The altazimuth terms are from Table 3 in Jeffrey G. Mangum,
+** Jacob W. M. Baars, Albert Greve, Robert Lucas, Ralph C. Snel,
+** Patrick Wallace, Mark Holdaway, 2006, Evaluation of the ALMA
+** Prototype Antennas, Publications of the Astronomical Society of the
+** Pacific, 118, 847, 1260.
+**
+** n.b. The formulas are first-order approximations, not rigorous frame
+** rotations, valid for relatively small values of the pointing-model
+** coefficients.
 */
 
    switch ( (int) mount ) {

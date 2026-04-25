@@ -1,5 +1,3 @@
-#include <math.h>
-#include <string.h>
 #include "sofa.h"
 #include "spk.h"
 

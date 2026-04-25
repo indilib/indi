@@ -220,6 +220,8 @@ bool SPKMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector
 
     spkTAR tar;
     tar.sys = APPT;
+    tar.a   = 0.0;  // not used by spkVtel in TARG mode, but read unconditionally before the mode switch
+    tar.b   = 0.0;
 
     double tara, tare, tarr, tarp, soln[5];
     int status = spkVtel(TARG, &m_Obs, &m_Opt, &m_PM, &m_Ast, &ax3, &tar, &m_PO,
@@ -267,20 +269,32 @@ void SPKMathPlugin::UpdateAstrometry(double JD)
     utc.mi = date.minutes;
     utc.sec = date.seconds;
 
+    // Compute LST first — needed both for the ERA synchronization below and
+    // as a safe fallback if spkAstr fails.
+    double gmst_hrs = ln_get_apparent_sidereal_time(JD);
+    double lst_rad  = HOURS_TO_RAD(range24(gmst_hrs + RAD_TO_HOURS(m_Obs.slon)));
+    m_LST_rad = lst_rad;
+
     spkEOP eop = {0, 0, 0};
     // pressure=0 disables spkVtel's internal refraction model; temperature and humidity
     // are nominal placeholders.  Atmospheric refraction is not modeled in this pipeline
     // (INDI's coordinate flow stops at "apparent" / JNow; see tar.sys = APPT above).
     spkAIR air = {0.0, 10.0, 0.5};
-    
-    // Use official spkAstr
-    spkAstr(1, utc, 0.0, &eop, &m_Obs, &air, &m_Opt, &m_Ast);
 
-    // Synchronize SOFA internal "clock" (ERA) with libnova LST
+    // Zero m_Ast before calling spkAstr so a failure cannot leave stale data behind.
+    memset(&m_Ast, 0, sizeof(m_Ast));
+    int astrStatus = spkAstr(1, utc, 0.0, &eop, &m_Obs, &air, &m_Opt, &m_Ast);
+    if (astrStatus < 0)
+    {
+        ASSDEBUGF("SPK UpdateAstrometry: spkAstr failed (status=%d), transforms will be inaccurate", astrStatus);
+        // Leave m_Ast zeroed; set eral from libnova LST so subsequent spkVtel
+        // calls see a minimally coherent ERA rather than garbage.
+        m_Ast.astrom.eral = iauAnp(lst_rad);
+        return;
+    }
+
+    // Synchronize SOFA internal "clock" (ERA) with libnova LST.
     // This ensures consistency with the simulator's view of HA/Az.
-    double gmst_hrs = ln_get_apparent_sidereal_time(JD);
-    double lst_rad  = HOURS_TO_RAD(range24(gmst_hrs + RAD_TO_HOURS(m_Obs.slon)));
-    m_LST_rad = lst_rad;
     // eral = ERA + Longitude = LST + EO
     m_Ast.astrom.eral = iauAnp(lst_rad + m_Ast.eo);
 }
