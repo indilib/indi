@@ -392,6 +392,11 @@ void Serial::setDefaultBaudRate(BaudRate newRate)
         IDSetSwitch(&BaudRateSP, nullptr);
 }
 
+void Serial::setPortMatchPattern(const std::string &pattern)
+{
+    m_PortMatchPattern = pattern;
+}
+
 uint32_t Serial::baud()
 {
     return atoi(IUFindOnSwitch(&BaudRateSP)->name);
@@ -568,6 +573,43 @@ bool Serial::Refresh(bool silent)
     // in case the default config port does not exist.
     if (pCount == 1 && m_ConfigPort.empty())
         IUSaveText(&PortT[0], m_Ports[0].c_str());
+
+    // If a port match pattern is registered, try to auto-select the best matching port.
+    // This is only done when no previously-saved config port is present among the discovered
+    // ports (e.g. first run, or device plugged into a different USB slot).
+    // Devices like Pegasus Astro embed their product name in the /dev/serial/by-id/ symlink,
+    // which makes it possible to pick the right port without blind handshake attempts.
+    if (!m_PortMatchPattern.empty())
+    {
+        // Check whether the saved config port is still available in the system port list.
+        const bool configPortAvailable = !m_ConfigPort.empty() &&
+                                         std::find(m_SystemPorts.begin(), m_SystemPorts.end(), m_ConfigPort) != m_SystemPorts.end();
+
+        if (!configPortAvailable)
+        {
+            try
+            {
+                const std::regex portRe(m_PortMatchPattern, std::regex::icase);
+                for (const auto &onePort : m_SystemPorts)
+                {
+                    if (std::regex_search(onePort, portRe))
+                    {
+                        LOGF_INFO("Auto-selected port %s based on device name pattern \"%s\".",
+                                  onePort.c_str(), m_PortMatchPattern.c_str());
+                        IUSaveText(&PortT[0], onePort.c_str());
+                        IDSetText(&PortTP, nullptr);
+                        break;
+                    }
+                }
+            }
+            catch (const std::regex_error &e)
+            {
+                LOGF_WARN("Port match pattern \"%s\" is not a valid regex: %s",
+                          m_PortMatchPattern.c_str(), e.what());
+            }
+        }
+    }
+
     return true;
 }
 }

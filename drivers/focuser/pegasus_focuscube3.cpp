@@ -144,6 +144,7 @@ bool PegasusFocusCube3::initProperties()
     addDebugControl();
     setDefaultPollingPeriod(200);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    serialConnection->setPortMatchPattern("FocusCube");
 
     return true;
 }

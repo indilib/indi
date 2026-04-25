@@ -27,6 +27,7 @@
 
 #include "pegasus_falconv2.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <cmath>
 #include <memory>
@@ -56,6 +57,7 @@ bool PegasusFalconV2::initProperties()
                   ROTATOR_CAN_SYNC);
 
     addAuxControls();
+    serialConnection->setPortMatchPattern("Falcon");
 
     ////////////////////////////////////////////////////////////////////////////
     /// Main Control Panel
