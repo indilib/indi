@@ -21,6 +21,7 @@ unitybuild_*.c*
 *.a
 *.so.*
 *.so
+*.dylib
 Makefile
 moc_*.cpp
 CMakeFiles
