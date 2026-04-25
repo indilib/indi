@@ -1659,7 +1659,10 @@ void Dome::UpdateAutoSync()
             return;
         }
 
-        if (std::abs(targetAz - DomeAbsPosNP[0].getValue()) > DomeParamNP[0].getValue())
+        double diff = std::abs(targetAz - DomeAbsPosNP[0].getValue());
+        if (diff > 180.0)
+            diff = 360.0 - diff;
+        if (diff > DomeParamNP[0].getValue())
         {
             IPState ret = Dome::MoveAbs(targetAz);
             if (ret == IPS_OK)
