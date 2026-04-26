@@ -20,10 +20,11 @@ case "$OS" in
         then
             BREW="/opt/homebrew/bin/brew"
         fi
+        brew update
         brew install \
             git \
             cfitsio libnova libusb curl \
-            gsl jpeg fftw librtlsdr libev \
+            gsl erfa jpeg fftw librtlsdr libev \
             qt@5
         ;;
     Linux)
@@ -37,7 +38,7 @@ case "$OS" in
                     git \
                     cmake build-essential zlib1g-dev \
                     libcfitsio-dev libnova-dev libusb-1.0-0-dev libcurl4-gnutls-dev \
-                    libgsl-dev libjpeg-dev libfftw3-dev librtlsdr-dev libev-dev \
+                    libgsl-dev liberfa-dev libjpeg-dev libfftw3-dev librtlsdr-dev libev-dev \
                     qtbase5-dev
                 ;;
             fedora)
@@ -46,7 +47,7 @@ case "$OS" in
                     git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb1-devel libcurl-devel \
-                    gsl-devel libjpeg-devel fftw-devel rtl-sdr-devel libev-devel \
+                    gsl-devel erfa-devel libjpeg-devel fftw-devel rtl-sdr-devel libev-devel \
                     qt5-qtbase-devel
                 ;;
             arch)
@@ -55,7 +56,7 @@ case "$OS" in
                     git \
                     cmake base-devel \
                     cfitsio libnova libusb curl \
-                    gsl libjpeg-turbo fftw rtl-sdr libev \
+                    gsl erfa libjpeg-turbo fftw rtl-sdr libev \
                     qt5-base
                 ;;
             opensuse-tumbleweed)
@@ -66,7 +67,7 @@ case "$OS" in
                     openssh git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
-                    gsl-devel libjpeg-devel fftw-devel rtlsdr-devel libtheora-devel libev-devel
+                    gsl-devel erfa-devel libjpeg-devel fftw-devel rtlsdr-devel libtheora-devel libev-devel
                 ;;
             *)
                 echo "Unknown Linux Distribution: $ID"
