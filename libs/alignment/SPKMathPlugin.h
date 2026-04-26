@@ -52,7 +52,7 @@ class SPKMathPlugin : public MathPlugin, public TelescopeDirectionVectorSupportF
         spkOPT m_Opt;
         spkPO m_PO;
 
-        void UpdateObsConfig();
+        bool UpdateObsConfig();
         void UpdateAstrometry(double JD);
 
         std::vector<double> BuildObservationData(const InMemoryDatabase::AlignmentDatabaseType &syncPoints, int &outTermCount);

@@ -82,7 +82,7 @@ bool SPKMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
     if (!pInMemoryDatabase) return false;
     MathPlugin::Initialise(pInMemoryDatabase);
 
-    UpdateObsConfig();
+    if (!UpdateObsConfig()) return true;  // no location yet — model unconstrained, not an error
 
     InMemoryDatabase::AlignmentDatabaseType &syncPoints = pInMemoryDatabase->GetAlignmentDatabase();
     int  n         = static_cast<int>(syncPoints.size());
@@ -164,6 +164,7 @@ bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, c
         double JulianOffset,
         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
+    if (!UpdateObsConfig()) return false;
     UpdateAstrometry(ln_get_julian_from_sys() + JulianOffset);
 
     spkTAR tar;
@@ -208,6 +209,7 @@ bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, c
 bool SPKMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
         double &RightAscension, double &Declination, double JulianOffset)
 {
+    if (!UpdateObsConfig()) return false;
     UpdateAstrometry(ln_get_julian_from_sys() + JulianOffset);
 
     spkAX3 ax3;
@@ -241,18 +243,17 @@ bool SPKMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector
     return false;
 }
 
-void SPKMathPlugin::UpdateObsConfig()
+bool SPKMathPlugin::UpdateObsConfig()
 {
+    if (!pInMemoryDatabase) return false;
     INDI::IGeographicCoordinates pos;
-    if (pInMemoryDatabase->GetDatabaseReferencePosition(pos))
-    {
-        m_Obs.slat = DEG_TO_RAD(pos.latitude);
-        m_Obs.slon = DEG_TO_RAD(pos.longitude);
-        m_Obs.sh = pos.elevation;
-    }
-    
-    // Set mount type based on driver's approximate alignment
+    if (!pInMemoryDatabase->GetDatabaseReferencePosition(pos))
+        return false;
+    m_Obs.slat = DEG_TO_RAD(pos.latitude);
+    m_Obs.slon = DEG_TO_RAD(pos.longitude);
+    m_Obs.sh   = pos.elevation;
     m_Obs.mount = (ApproximateMountAlignment == ZENITH) ? ALTAZ : EQUAT;
+    return true;
 }
 
 void SPKMathPlugin::UpdateAstrometry(double JD)

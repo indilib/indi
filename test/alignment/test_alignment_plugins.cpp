@@ -2034,6 +2034,92 @@ TEST_F(AlignmentPluginTest, SPK_Incremental_MountTypeChange)
 }
 
 // ---------------------------------------------------------------------------
+// SPK plugin lifecycle tests
+//
+// Verify defensive behaviour around missing location and mount-type propagation.
+// ---------------------------------------------------------------------------
+
+// Transforms must fail gracefully when no reference position has been set.
+TEST_F(AlignmentPluginTest, SPK_Lifecycle_NoLocation_TransformsFail)
+{
+    InMemoryDatabase db;  // no SetDatabaseReferencePosition
+    SPKMathPlugin plugin;
+    plugin.Initialise(&db);
+    plugin.SetApproximateMountAlignment(ZENITH);
+
+    double joff = fixedJD - ln_get_julian_from_sys();
+    TelescopeDirectionVector v;
+    EXPECT_FALSE(plugin.TransformCelestialToTelescope(12.0, 45.0, joff, v));
+
+    // Provide a dummy TDV and confirm T->C also fails without a location.
+    v = TelescopeDirectionVector{0, 0, 1};
+    double outRA, outDec;
+    EXPECT_FALSE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+}
+
+// Initialise without a location must not crash and must return true
+// (model is simply unconstrained, not an error).
+TEST_F(AlignmentPluginTest, SPK_Lifecycle_NoLocation_InitialiseOk)
+{
+    InMemoryDatabase db;
+    SPKMathPlugin plugin;
+    EXPECT_TRUE(plugin.Initialise(&db));
+}
+
+// Transforms must succeed once a location is provided, even if it arrives
+// after the initial Initialise call (simulates late ISGetProperties config load).
+TEST_F(AlignmentPluginTest, SPK_Lifecycle_LateLocation_TransformsSucceed)
+{
+    InMemoryDatabase db;
+    SPKMathPlugin plugin;
+    plugin.Initialise(&db);
+    plugin.SetApproximateMountAlignment(ZENITH);
+
+    // Location arrives late (e.g. from a saved config property).
+    db.SetDatabaseReferencePosition(kLosAngeles);
+
+    double joff = fixedJD - ln_get_julian_from_sys();
+    TelescopeDirectionVector v;
+    EXPECT_TRUE(plugin.TransformCelestialToTelescope(12.0, 45.0, joff, v));
+    double outRA, outDec;
+    EXPECT_TRUE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+}
+
+// Mount type set after Initialise must be picked up on the next transform call,
+// without requiring a second Initialise.  This is the celestronaux bug scenario:
+// Initialise is called at physical connection before the driver re-propagates
+// its mount type to the plugin.
+TEST_F(AlignmentPluginTest, SPK_Lifecycle_MountTypeAfterInit_PickedUpByTransform)
+{
+    InMemoryDatabase db;
+    db.SetDatabaseReferencePosition(kLosAngeles);
+    SPKMathPlugin plugin;
+
+    // Initialise with EQUAT (default from MathPlugin constructor)
+    plugin.Initialise(&db);
+    ASSERT_EQ(plugin.GetApproximateMountAlignment(), ZENITH);  // default
+
+    // Driver now sets ALTAZ — no second Initialise.
+    plugin.SetApproximateMountAlignment(ZENITH);
+
+    // Transform should use ALTAZ formulas.  Verify by round-trip: C->T->C.
+    double joff = fixedJD - ln_get_julian_from_sys();
+    TelescopeDirectionVector v;
+    ASSERT_TRUE(plugin.TransformCelestialToTelescope(12.0, 30.0, joff, v));
+    double outRA, outDec;
+    ASSERT_TRUE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+    EXPECT_NEAR(12.0, outRA,  kRoundTripTolHours);
+    EXPECT_NEAR(30.0, outDec, kRoundTripTolDeg);
+
+    // Now switch to EQUAT without Initialise — must also be picked up.
+    plugin.SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
+    ASSERT_TRUE(plugin.TransformCelestialToTelescope(6.0, 45.0, joff, v));
+    ASSERT_TRUE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+    EXPECT_NEAR(6.0,  outRA,  kRoundTripTolHours);
+    EXPECT_NEAR(45.0, outDec, kRoundTripTolDeg);
+}
+
+// ---------------------------------------------------------------------------
 // Driver pipeline integration tests
 //
 // These simulate what telescope_simulator.cpp does with scopesim_helper
