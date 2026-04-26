@@ -31,9 +31,13 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
+#include <cerrno>
 #include <cstring>
+#include <netinet/in.h>
 #include <strings.h>
+#include <sys/socket.h>
 #include <termios.h>
+#include <unistd.h>
 #include <math.h>
 #include <libnova/libnova.h>
 
@@ -58,6 +62,8 @@
 #define TRAJECTORY_TIME "TRAJECTORY_TIME"
 #define SAT_TRACKING_STAT "SAT_TRACKING_STAT"
 #define UNATTENDED_FLIP "UNATTENDED_FLIP"
+#define WAKE_ON_LAN_MAC  "WAKE_ON_LAN_MAC"
+#define WAKE_ON_LAN_SEND "WAKE_ON_LAN_SEND"
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
@@ -184,14 +190,33 @@ bool LX200_10MICRON::initProperties()
         IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                            "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+        
+        IUFillText(&WoLMacT[0], "MAC", "MAC Address (XX:XX:XX:XX:XX:XX)", "");
+        IUFillTextVector(&WoLMacTP, WoLMacT, 1, getDeviceName(), WAKE_ON_LAN_MAC, "Wake on LAN", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+        char wolMacBuf[128] = {};
+        if (IUGetConfigText(getDeviceName(), WoLMacTP.name, WoLMacT[0].name, wolMacBuf, sizeof(wolMacBuf)) == 0)
+            IUSaveText(&WoLMacT[0], wolMacBuf);
+
+        IUFillSwitch(&WoLSendS[0], "SEND", "Wake Mount", ISS_OFF);
+        IUFillSwitchVector(&WoLSendSP, WoLSendS, 1, getDeviceName(), WAKE_ON_LAN_SEND, "Wake on LAN", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
     return result;
+}
+
+void LX200_10MICRON::ISGetProperties(const char *dev)
+{
+    LX200Generic::ISGetProperties(dev);
+
+    defineProperty(&WoLMacTP);
+    defineProperty(&WoLSendSP);
 }
 
 bool LX200_10MICRON::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &UnattendedFlipSP);
+    IUSaveConfigText(fp, &WoLMacTP);
     return true;
 }
 
@@ -1297,6 +1322,22 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&UnattendedFlipSP, nullptr);
             return true;
         }
+        if (strcmp(WoLSendSP.name, name) == 0)
+        {
+            IUResetSwitch(&WoLSendSP);
+            if (sendWakeOnLanPacket())
+            {
+                WoLSendSP.s = IPS_OK;
+                LOG_INFO("Wake on LAN packet sent successfully.");
+            }
+            else
+            {
+                WoLSendSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to send Wake on LAN packet.");
+            }
+            IDSetSwitch(&WoLSendSP, nullptr);
+            return true;
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -1354,6 +1395,14 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
                 LOG_ERROR("Trajectory could not be calculated");
                 return false;
             }
+        }
+        if (strcmp(name, WAKE_ON_LAN_MAC) == 0)
+        {
+            IUUpdateText(&WoLMacTP, texts, names, n);
+            WoLMacTP.s = IPS_OK;
+            IDSetText(&WoLMacTP, nullptr);
+            LOGF_INFO("WoL MAC address set to %s", WoLMacT[0].text);
+            return true;
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);
@@ -1452,4 +1501,67 @@ int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *da
     }
 
     return 0;
+}
+
+bool LX200_10MICRON::sendWakeOnLanPacket()
+{
+    const char *macStr = WoLMacT[0].text;
+    if (!macStr || macStr[0] == '\0')
+    {
+        LOG_ERROR("WoL: MAC address not configured.");
+        return false;
+    }
+
+    // Parse MAC — supports both XX:XX:XX:XX:XX:XX and XX-XX-XX-XX-XX-XX
+    unsigned char mac[6];
+    if (sscanf(macStr, "%hhx%*c%hhx%*c%hhx%*c%hhx%*c%hhx%*c%hhx",
+               &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6)
+    {
+        LOGF_ERROR("WoL: Invalid MAC address '%s'. Expected XX:XX:XX:XX:XX:XX.", macStr);
+        return false;
+    }
+
+    // Build 102-byte magic packet: 6×0xFF followed by 16 repetitions of the MAC
+    unsigned char packet[102];
+    memset(packet, 0xFF, 6);
+    for (int i = 0; i < 16; i++)
+        memcpy(packet + 6 + i * 6, mac, 6);
+
+    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock < 0)
+    {
+        LOGF_ERROR("WoL: socket() failed: %s", strerror(errno));
+        return false;
+    }
+
+    int bcast = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bcast, sizeof(bcast)) < 0)
+    {
+        LOGF_ERROR("WoL: setsockopt SO_BROADCAST failed: %s", strerror(errno));
+        close(sock);
+        return false;
+    }
+
+    bool success = false;
+
+    // 1. Global broadcast 255.255.255.255:9
+    {
+        struct sockaddr_in addr {};
+        addr.sin_family      = AF_INET;
+        addr.sin_port        = htons(9);
+        addr.sin_addr.s_addr = INADDR_BROADCAST;
+        if (sendto(sock, packet, sizeof(packet), 0,
+                   reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) >= 0)
+        {
+            LOGF_INFO("WoL: magic packet sent to 255.255.255.255:9 (MAC: %s)", WoLMacT[0].text);
+            success = true;
+        }
+        else
+        {
+            LOGF_WARN("WoL: global broadcast failed: %s", strerror(errno));
+        }
+    }
+
+    close(sock);
+    return success;
 }
