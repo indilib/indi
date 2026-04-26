@@ -194,8 +194,9 @@ set(SPKMathPlugin_SRCS
 )
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(ERFA REQUIRED IMPORTED_TARGET erfa)
+pkg_check_modules(ERFA IMPORTED_TARGET erfa)
 
+if(ERFA_FOUND)
 add_library(indi_SPK_MathPlugin SHARED ${SPKMathPlugin_SRCS})
 target_include_directories(indi_SPK_MathPlugin
     PRIVATE
@@ -213,3 +214,4 @@ install(TARGETS indi_SPK_MathPlugin
     ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
     LIBRARY DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
     RUNTIME DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
+endif(ERFA_FOUND)
