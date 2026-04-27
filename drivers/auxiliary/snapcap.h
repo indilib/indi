@@ -32,6 +32,8 @@
 #include "indilightboxinterface.h"
 #include "indidustcapinterface.h"
 
+#include <cstdint>
+
 namespace Connection
 {
 class Serial;
@@ -90,6 +92,12 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         virtual bool SetLightBoxBrightness(uint16_t value) override;
         virtual bool EnableLightBox(bool enable) override;
 
+        // Retry/reconnect interface for subclasses.
+        bool sendCommandWithRetry(const char *command, char *response);
+        virtual int maxConsecutiveFailures() const;
+        virtual int reconnectBaseDelayMs() const;
+        virtual int reconnectMaxDelayMs() const;
+
     private:
         bool getStartupData();
         bool ping();
@@ -100,6 +108,13 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         bool Handshake();
 
         bool sendCommand(const char *command, char *response);
+        void maybeScheduleReconnect(const char *reason);
+        bool isConnectionValid();
+        bool attemptReconnect();
+        void scheduleReconnect(const char *reason);
+        void processPendingReconnect();
+        void resetReconnectState();
+        int computeReconnectDelayMs() const;
 
         // Status
         INDI::PropertyText StatusTP{3};
@@ -109,6 +124,9 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
         // Force open & close
         INDI::PropertySwitch ForceSP{2};
+
+        // Reconnect policy
+        INDI::PropertyNumber ReconnectNP{2};
 
         int PortFD{ -1 };
         bool hasLight{ true };
@@ -121,6 +139,19 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
         Connection::Serial *serialConnection = nullptr;
         Connection::TCP *tcpConnection       = nullptr;
+
+        // Connection reliability tracking
+        int connectionFailureCount{ 0 };
+        static constexpr int DEFAULT_MAX_CONSECUTIVE_FAILURES = 2;
+        static constexpr int DEFAULT_RECONNECT_BASE_DELAY_MS = 500;
+        static constexpr int MIN_RECONNECT_RETRIES = 1;
+        static constexpr int MAX_RECONNECT_RETRIES = 10;
+        static constexpr int MIN_RECONNECT_DELAY_MS = 100;
+        static constexpr int MAX_RECONNECT_DELAY_SETTING_MS = 5000;
+        static constexpr int MAX_RECONNECT_DELAY_MS = 8000;
+        bool reconnectPending{ false };
+        uint64_t nextReconnectAttemptMs{ 0 };
+        uint8_t reconnectAttemptCount{ 0 };
 
     private:
         bool callHandshake();

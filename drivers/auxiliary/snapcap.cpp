@@ -30,11 +30,24 @@
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
+#include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <memory>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+
+namespace
+{
+uint64_t monotonicMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+}
 
 // We declare an auto pointer to SnapCap.
 std::unique_ptr<SnapCap> snapcap(new SnapCap());
@@ -45,7 +58,7 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 
 SnapCap::SnapCap() : LightBoxInterface(this), DustCapInterface(this)
 {
-    setVersion(1, 4);
+    setVersion(1, 5);
 }
 
 SnapCap::~SnapCap()
@@ -72,6 +85,13 @@ bool SnapCap::initProperties()
     ForceSP[0].fill("OFF", "Off", ISS_ON);
     ForceSP[1].fill("ON", "On", ISS_OFF);
     ForceSP.fill(getDeviceName(), "FORCE", "Force movement", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    ReconnectNP[0].fill("RETRIES", "Retries", "%.f", MIN_RECONNECT_RETRIES, MAX_RECONNECT_RETRIES, 1,
+                        DEFAULT_MAX_CONSECUTIVE_FAILURES);
+    ReconnectNP[1].fill("DELAY_MS", "Delay (ms)", "%.f", MIN_RECONNECT_DELAY_MS, MAX_RECONNECT_DELAY_SETTING_MS, 100,
+                        DEFAULT_RECONNECT_BASE_DELAY_MS);
+    ReconnectNP.fill(getDeviceName(), "RECONNECT_POLICY", "Reconnect", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+    ReconnectNP.load();
 
     DI::initProperties(MAIN_CONTROL_TAB, CAN_ABORT);
     LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
@@ -113,6 +133,7 @@ bool SnapCap::initProperties()
 void SnapCap::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
+    defineProperty(ReconnectNP);
 
     // Get Light box properties
     LI::ISGetProperties(dev);
@@ -124,12 +145,11 @@ bool SnapCap::updateProperties()
 
     DI::updateProperties();
 
+    if (hasLight)
+        LI::updateProperties();
+
     if (isConnected())
     {
-        if (hasLight)
-        {
-            LI::updateProperties();
-        }
         defineProperty(StatusTP);
         defineProperty(FirmwareTP);
         defineProperty(ForceSP);
@@ -138,13 +158,11 @@ bool SnapCap::updateProperties()
     }
     else
     {
-        if (hasLight)
-        {
-            LI::updateProperties();
-        }
         deleteProperty(StatusTP);
         deleteProperty(FirmwareTP);
         deleteProperty(ForceSP);
+        PortFD = -1;
+        resetReconnectState();
     }
 
     return true;
@@ -184,13 +202,45 @@ bool SnapCap::callHandshake()
             PortFD = tcpConnection->getPortFD();
     }
 
+    resetReconnectState();
     return Handshake();
+}
+
+void SnapCap::resetReconnectState()
+{
+    connectionFailureCount = 0;
+    reconnectPending       = false;
+    reconnectAttemptCount  = 0;
+    nextReconnectAttemptMs = 0;
 }
 
 bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
+
+    if (ReconnectNP.isNameMatch(name))
+    {
+        ReconnectNP.update(values, names, n);
+
+        int retries = static_cast<int>(ReconnectNP[0].getValue());
+        int delayMs = static_cast<int>(ReconnectNP[1].getValue());
+
+        retries = std::clamp(retries, MIN_RECONNECT_RETRIES, MAX_RECONNECT_RETRIES);
+        delayMs = std::clamp(delayMs, MIN_RECONNECT_DELAY_MS, MAX_RECONNECT_DELAY_SETTING_MS);
+
+        ReconnectNP[0].setValue(retries);
+        ReconnectNP[1].setValue(delayMs);
+        ReconnectNP.setState(IPS_OK);
+        ReconnectNP.apply();
+        saveConfig(ReconnectNP);
+
+        // Apply new timing immediately for any pending reconnect cycle.
+        if (reconnectPending)
+            nextReconnectAttemptMs = monotonicMs();
+
+        return true;
+    }
 
     if (LI::processNumber(dev, name, values, names, n))
         return true;
@@ -240,6 +290,7 @@ bool SnapCap::ISSnoopDevice(XMLEle *root)
 bool SnapCap::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+    ReconnectNP.save(fp);
 
     return LI::saveConfigItems(fp);
 }
@@ -254,12 +305,155 @@ bool SnapCap::ping()
     return found;
 }
 
+bool SnapCap::isConnectionValid()
+{
+    if (PortFD < 0)
+    {
+        return false;
+    }
+
+    // For TCP connections, check if socket is still open by attempting a non-blocking check
+    if (getActiveConnection() == tcpConnection)
+    {
+        // Check if file descriptor is still valid using fstat
+        struct stat sb;
+        if (fstat(PortFD, &sb) < 0)
+        {
+            LOGF_WARN("TCP connection appears to be broken (fstat failed): %s", strerror(errno));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SnapCap::attemptReconnect()
+{
+    LOGF_INFO("Attempting to reconnect to %s...", getDeviceName());
+
+    // Disconnect first
+    if (PortFD >= 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            serialConnection->disconnect();
+        else if (getActiveConnection() == tcpConnection)
+            tcpConnection->disconnect();
+    }
+
+    PortFD = -1;
+
+    if (getActiveConnection() == serialConnection)
+    {
+        if (!serialConnection->connect())
+        {
+            LOGF_ERROR("Failed to reconnect serial connection");
+            return false;
+        }
+        PortFD = serialConnection->getPortFD();
+    }
+    else if (getActiveConnection() == tcpConnection)
+    {
+        if (!tcpConnection->connect())
+        {
+            LOGF_ERROR("Failed to reconnect TCP connection");
+            return false;
+        }
+        PortFD = tcpConnection->getPortFD();
+    }
+
+    char response[SNAP_RES];
+    if (!sendCommand(">V000", response))
+    {
+        LOGF_ERROR("Device ping failed after reconnect");
+        return false;
+    }
+
+    resetReconnectState();
+    LOGF_INFO("Successfully reconnected to %s", getDeviceName());
+    return true;
+}
+
+void SnapCap::scheduleReconnect(const char *reason)
+{
+    if (!reconnectPending)
+    {
+        LOGF_WARN("Scheduling non-blocking reconnect: %s", reason);
+        reconnectPending      = true;
+        reconnectAttemptCount = 0;
+    }
+
+    if (nextReconnectAttemptMs == 0)
+        nextReconnectAttemptMs = monotonicMs();
+}
+
+void SnapCap::processPendingReconnect()
+{
+    if (!reconnectPending)
+        return;
+
+    const uint64_t nowMs = monotonicMs();
+    if (nowMs < nextReconnectAttemptMs)
+        return;
+
+    if (attemptReconnect())
+    {
+        getStartupData();
+        return;
+    }
+
+    reconnectAttemptCount++;
+    const int backoffMs = computeReconnectDelayMs();
+    nextReconnectAttemptMs = nowMs + static_cast<uint64_t>(backoffMs);
+    LOGF_WARN("Reconnect attempt %u failed, next retry in %d ms", reconnectAttemptCount, backoffMs);
+}
+
+int SnapCap::computeReconnectDelayMs() const
+{
+    int delayMs = reconnectBaseDelayMs();
+
+    // Use a capped exponential backoff: base * 2^attempt.
+    for (uint8_t i = 0; i < reconnectAttemptCount && delayMs < reconnectMaxDelayMs() / 2; i++)
+        delayMs *= 2;
+
+    delayMs = std::min(delayMs, reconnectMaxDelayMs());
+
+
+    return delayMs;
+}
+
+int SnapCap::maxConsecutiveFailures() const
+{
+    return std::clamp(static_cast<int>(ReconnectNP[0].getValue()), MIN_RECONNECT_RETRIES, MAX_RECONNECT_RETRIES);
+}
+
+int SnapCap::reconnectBaseDelayMs() const
+{
+    return std::clamp(static_cast<int>(ReconnectNP[1].getValue()), MIN_RECONNECT_DELAY_MS,
+                      MAX_RECONNECT_DELAY_SETTING_MS);
+}
+
+int SnapCap::reconnectMaxDelayMs() const
+{
+    return MAX_RECONNECT_DELAY_MS;
+}
+
 bool SnapCap::sendCommand(const char *command, char *response)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    tcflush(PortFD, TCIOFLUSH);
+    if (!isConnectionValid())
+    {
+        LOGF_WARN("Connection appears invalid before sending command: %s", command);
+        return false;
+    }
+
+    // Flush any pending data, but handle errors gracefully
+    if (tcflush(PortFD, TCIOFLUSH) < 0)
+    {
+        LOGF_WARN("tcflush failed: %s", strerror(errno));
+        // Don't return false here, tcflush failure isn't always fatal
+    }
 
     LOGF_DEBUG("CMD (%s)", command);
 
@@ -269,14 +463,25 @@ bool SnapCap::sendCommand(const char *command, char *response)
     if ((rc = tty_write(PortFD, buffer, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+        LOGF_ERROR("Write failed for command '%s': %s", command, errstr);
+        connectionFailureCount++;
         return false;
     }
 
     if ((rc = tty_nread_section(PortFD, response, SNAP_RES, '\n', SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
+        LOGF_ERROR("Read failed for command '%s': %s", command, errstr);
+        connectionFailureCount++;
+        return false;
+    }
+
+    // Success - reset failure counter
+    connectionFailureCount = 0;
+
+    if (nbytes_read < 3)
+    {
+        LOGF_ERROR("Response too short for command '%s': got %d bytes", command, nbytes_read);
         return false;
     }
 
@@ -284,6 +489,23 @@ bool SnapCap::sendCommand(const char *command, char *response)
 
     LOGF_DEBUG("RES (%s)", response);
     return true;
+}
+
+bool SnapCap::sendCommandWithRetry(const char *command, char *response)
+{
+    if (!sendCommand(command, response))
+    {
+        maybeScheduleReconnect(command);
+        return false;
+    }
+
+    return true;
+}
+
+void SnapCap::maybeScheduleReconnect(const char *reason)
+{
+    if (connectionFailureCount >= maxConsecutiveFailures())
+        scheduleReconnect(reason);
 }
 
 bool SnapCap::getStartupData()
@@ -303,15 +525,11 @@ IPState SnapCap::ParkCap()
         return IPS_BUSY;
     }
 
-    char command[SNAP_CMD];
     char response[SNAP_RES];
 
-    if (ForceSP[1].getState() == ISS_ON)
-        strncpy(command, ">c000", SNAP_CMD); // Force close command
-    else
-        strncpy(command, ">C000", SNAP_CMD);
+    const char *command = (ForceSP[1].getState() == ISS_ON) ? ">c000" : ">C000";
 
-    if (!sendCommand(command, response))
+    if (!sendCommandWithRetry(command, response))
         return IPS_ALERT;
 
     if (strcmp(response, "*C000") == 0 || strcmp(response, "*c000") == 0)
@@ -333,15 +551,11 @@ IPState SnapCap::UnParkCap()
         return IPS_BUSY;
     }
 
-    char command[SNAP_CMD];
     char response[SNAP_RES];
 
-    if (ForceSP[1].getState() == ISS_ON)
-        strncpy(command, ">o000", SNAP_CMD); // Force open command
-    else
-        strncpy(command, ">O000", SNAP_CMD);
+    const char *command = (ForceSP[1].getState() == ISS_ON) ? ">o000" : ">O000";
 
-    if (!sendCommand(command, response))
+    if (!sendCommandWithRetry(command, response))
         return IPS_ALERT;
 
     if (strcmp(response, "*O000") == 0 || strcmp(response, "*o000") == 0)
@@ -365,7 +579,7 @@ IPState SnapCap::AbortCap()
 
     char response[SNAP_RES];
 
-    if (!sendCommand(">A000", response))
+    if (!sendCommandWithRetry(">A000", response))
         return IPS_ALERT;
 
     if (strcmp(response, "*A000") == 0)
@@ -380,30 +594,18 @@ IPState SnapCap::AbortCap()
 
 bool SnapCap::EnableLightBox(bool enable)
 {
-    char command[SNAP_CMD];
     char response[SNAP_RES];
 
     if (isSimulation())
         return true;
 
-    if (enable)
-        strncpy(command, ">L000", SNAP_CMD);
-    else
-        strncpy(command, ">D000", SNAP_CMD);
+    const char *command          = enable ? ">L000" : ">D000";
+    const char *expectedResponse = enable ? "*L000" : "*D000";
 
-    if (!sendCommand(command, response))
+    if (!sendCommandWithRetry(command, response))
         return false;
 
-    char expectedResponse[SNAP_RES];
-    if (enable)
-        snprintf(expectedResponse, SNAP_RES, "*L000");
-    else
-        snprintf(expectedResponse, SNAP_RES, "*D000");
-
-    if (strcmp(response, expectedResponse) == 0)
-        return true;
-
-    return false;
+    return strcmp(response, expectedResponse) == 0;
 }
 
 bool SnapCap::getStatus()
@@ -428,17 +630,14 @@ bool SnapCap::getStatus()
         {
             response[2] = '0';
             // Parked/Closed
-            if (ParkCapSP[CAP_PARK].getState() == ISS_ON)
-                response[4] = '2';
-            else
-                response[4] = '1';
+            response[4] = (ParkCapSP[CAP_PARK].getState() == ISS_ON) ? '2' : '1';
         }
 
         response[3] = (LightSP[FLAT_LIGHT_ON].getState() == ISS_ON) ? '1' : '0';
     }
     else
     {
-        if (!sendCommand(">S000", response))
+        if (!sendCommandWithRetry(">S000", response))
             return false;
     }
 
@@ -572,7 +771,7 @@ bool SnapCap::getFirmwareVersion()
 
     char response[SNAP_RES];
 
-    if (!sendCommand(">V000", response))
+    if (!sendCommandWithRetry(">V000", response))
         return false;
 
     char versionString[4] = { 0 };
@@ -585,10 +784,13 @@ bool SnapCap::getFirmwareVersion()
 
 void SnapCap::TimerHit()
 {
-    if (!isConnected())
+    if (!isConnected() && !reconnectPending)
         return;
 
-    getStatus();
+    processPendingReconnect();
+
+    if (isConnected() && !reconnectPending)
+        getStatus();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -602,7 +804,7 @@ bool SnapCap::getBrightness()
 
     char response[SNAP_RES];
 
-    if (!sendCommand(">J000", response))
+    if (!sendCommandWithRetry(">J000", response))
         return false;
 
     int brightnessValue = 0;
@@ -638,7 +840,7 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
 
     snprintf(command, SNAP_CMD, ">B%03d", value);
 
-    if (!sendCommand(command, response))
+    if (!sendCommandWithRetry(command, response))
         return false;
 
     int brightnessValue = 0;
