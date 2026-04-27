@@ -49,6 +49,90 @@ uint64_t monotonicMs()
 }
 }
 
+class SnapCapReconnect final : public SnapCap::ReconnectInterface
+{
+    public:
+        explicit SnapCapReconnect(SnapCap &owner) : m_Owner(owner) {}
+
+        bool sendCommand(const char *command, char *response) override
+        {
+            if (!m_Owner.sendCommand(command, response))
+            {
+                m_ConnectionFailureCount++;
+                if (m_ConnectionFailureCount >= m_Owner.maxConsecutiveFailures())
+                    schedule(command);
+                return false;
+            }
+
+            m_ConnectionFailureCount = 0;
+            return true;
+        }
+
+        void process() override
+        {
+            if (!m_ReconnectPending)
+                return;
+
+            const uint64_t nowMs = monotonicMs();
+            if (nowMs < m_NextReconnectAttemptMs)
+                return;
+
+            if (m_Owner.attemptReconnect())
+            {
+                reset();
+                m_Owner.getStartupData();
+                return;
+            }
+
+            m_ReconnectAttemptCount++;
+            const int backoffMs = m_Owner.computeReconnectDelayMs(m_ReconnectAttemptCount);
+            m_NextReconnectAttemptMs = nowMs + static_cast<uint64_t>(backoffMs);
+            INDI::Logger::getInstance().print(m_Owner.getDeviceName(), INDI::Logger::DBG_WARNING, __FILE__, __LINE__,
+                                             "Reconnect attempt %u failed, next retry in %d ms",
+                                             m_ReconnectAttemptCount, backoffMs);
+        }
+
+        void reset() override
+        {
+            m_ConnectionFailureCount = 0;
+            m_ReconnectPending       = false;
+            m_ReconnectAttemptCount  = 0;
+            m_NextReconnectAttemptMs = 0;
+        }
+
+        void rescheduleNow() override
+        {
+            if (m_ReconnectPending)
+                m_NextReconnectAttemptMs = monotonicMs();
+        }
+
+        bool isPending() const override
+        {
+            return m_ReconnectPending;
+        }
+
+    private:
+        void schedule(const char *reason)
+        {
+            if (!m_ReconnectPending)
+            {
+                INDI::Logger::getInstance().print(m_Owner.getDeviceName(), INDI::Logger::DBG_WARNING, __FILE__,
+                                                 __LINE__, "Scheduling non-blocking reconnect: %s", reason);
+                m_ReconnectPending      = true;
+                m_ReconnectAttemptCount = 0;
+            }
+
+            if (m_NextReconnectAttemptMs == 0)
+                m_NextReconnectAttemptMs = monotonicMs();
+        }
+
+        SnapCap &m_Owner;
+        int m_ConnectionFailureCount{ 0 };
+        bool m_ReconnectPending{ false };
+        uint64_t m_NextReconnectAttemptMs{ 0 };
+        uint8_t m_ReconnectAttemptCount{ 0 };
+};
+
 // We declare an auto pointer to SnapCap.
 std::unique_ptr<SnapCap> snapcap(new SnapCap());
 
@@ -56,7 +140,7 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 #define SNAP_RES 8 // Includes terminating null
 #define SNAP_TIMEOUT 3
 
-SnapCap::SnapCap() : LightBoxInterface(this), DustCapInterface(this)
+SnapCap::SnapCap() : LightBoxInterface(this), DustCapInterface(this), reconnect(std::make_unique<SnapCapReconnect>(*this))
 {
     setVersion(1, 5);
 }
@@ -162,7 +246,7 @@ bool SnapCap::updateProperties()
         deleteProperty(FirmwareTP);
         deleteProperty(ForceSP);
         PortFD = -1;
-        resetReconnectState();
+        reconnect->reset();
     }
 
     return true;
@@ -202,16 +286,8 @@ bool SnapCap::callHandshake()
             PortFD = tcpConnection->getPortFD();
     }
 
-    resetReconnectState();
+    reconnect->reset();
     return Handshake();
-}
-
-void SnapCap::resetReconnectState()
-{
-    connectionFailureCount = 0;
-    reconnectPending       = false;
-    reconnectAttemptCount  = 0;
-    nextReconnectAttemptMs = 0;
 }
 
 bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -236,8 +312,7 @@ bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], ch
         saveConfig(ReconnectNP);
 
         // Apply new timing immediately for any pending reconnect cycle.
-        if (reconnectPending)
-            nextReconnectAttemptMs = monotonicMs();
+        reconnect->rescheduleNow();
 
         return true;
     }
@@ -335,27 +410,27 @@ bool SnapCap::attemptReconnect()
     if (PortFD >= 0)
     {
         if (getActiveConnection() == serialConnection)
-            serialConnection->disconnect();
+            serialConnection->Disconnect();
         else if (getActiveConnection() == tcpConnection)
-            tcpConnection->disconnect();
+            tcpConnection->Disconnect();
     }
 
     PortFD = -1;
 
     if (getActiveConnection() == serialConnection)
     {
-        if (!serialConnection->connect())
+        if (!serialConnection->Connect())
         {
-            LOGF_ERROR("Failed to reconnect serial connection");
+            LOG_ERROR("Failed to reconnect serial connection");
             return false;
         }
         PortFD = serialConnection->getPortFD();
     }
     else if (getActiveConnection() == tcpConnection)
     {
-        if (!tcpConnection->connect())
+        if (!tcpConnection->Connect())
         {
-            LOGF_ERROR("Failed to reconnect TCP connection");
+            LOG_ERROR("Failed to reconnect TCP connection");
             return false;
         }
         PortFD = tcpConnection->getPortFD();
@@ -364,55 +439,20 @@ bool SnapCap::attemptReconnect()
     char response[SNAP_RES];
     if (!sendCommand(">V000", response))
     {
-        LOGF_ERROR("Device ping failed after reconnect");
+        LOG_ERROR("Device ping failed after reconnect");
         return false;
     }
 
-    resetReconnectState();
     LOGF_INFO("Successfully reconnected to %s", getDeviceName());
     return true;
 }
 
-void SnapCap::scheduleReconnect(const char *reason)
-{
-    if (!reconnectPending)
-    {
-        LOGF_WARN("Scheduling non-blocking reconnect: %s", reason);
-        reconnectPending      = true;
-        reconnectAttemptCount = 0;
-    }
-
-    if (nextReconnectAttemptMs == 0)
-        nextReconnectAttemptMs = monotonicMs();
-}
-
-void SnapCap::processPendingReconnect()
-{
-    if (!reconnectPending)
-        return;
-
-    const uint64_t nowMs = monotonicMs();
-    if (nowMs < nextReconnectAttemptMs)
-        return;
-
-    if (attemptReconnect())
-    {
-        getStartupData();
-        return;
-    }
-
-    reconnectAttemptCount++;
-    const int backoffMs = computeReconnectDelayMs();
-    nextReconnectAttemptMs = nowMs + static_cast<uint64_t>(backoffMs);
-    LOGF_WARN("Reconnect attempt %u failed, next retry in %d ms", reconnectAttemptCount, backoffMs);
-}
-
-int SnapCap::computeReconnectDelayMs() const
+int SnapCap::computeReconnectDelayMs(uint8_t attemptCount) const
 {
     int delayMs = reconnectBaseDelayMs();
 
     // Use a capped exponential backoff: base * 2^attempt.
-    for (uint8_t i = 0; i < reconnectAttemptCount && delayMs < reconnectMaxDelayMs() / 2; i++)
+    for (uint8_t i = 0; i < attemptCount && delayMs < reconnectMaxDelayMs() / 2; i++)
         delayMs *= 2;
 
     delayMs = std::min(delayMs, reconnectMaxDelayMs());
@@ -464,7 +504,6 @@ bool SnapCap::sendCommand(const char *command, char *response)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Write failed for command '%s': %s", command, errstr);
-        connectionFailureCount++;
         return false;
     }
 
@@ -472,12 +511,8 @@ bool SnapCap::sendCommand(const char *command, char *response)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Read failed for command '%s': %s", command, errstr);
-        connectionFailureCount++;
         return false;
     }
-
-    // Success - reset failure counter
-    connectionFailureCount = 0;
 
     if (nbytes_read < 3)
     {
@@ -493,19 +528,7 @@ bool SnapCap::sendCommand(const char *command, char *response)
 
 bool SnapCap::sendCommandWithRetry(const char *command, char *response)
 {
-    if (!sendCommand(command, response))
-    {
-        maybeScheduleReconnect(command);
-        return false;
-    }
-
-    return true;
-}
-
-void SnapCap::maybeScheduleReconnect(const char *reason)
-{
-    if (connectionFailureCount >= maxConsecutiveFailures())
-        scheduleReconnect(reason);
+    return reconnect->sendCommand(command, response);
 }
 
 bool SnapCap::getStartupData()
@@ -784,12 +807,12 @@ bool SnapCap::getFirmwareVersion()
 
 void SnapCap::TimerHit()
 {
-    if (!isConnected() && !reconnectPending)
+    if (!isConnected() && !reconnect->isPending())
         return;
 
-    processPendingReconnect();
+    reconnect->process();
 
-    if (isConnected() && !reconnectPending)
+    if (isConnected() && !reconnect->isPending())
         getStatus();
 
     SetTimer(getCurrentPollingPeriod());

@@ -33,6 +33,9 @@
 #include "indidustcapinterface.h"
 
 #include <cstdint>
+#include <memory>
+
+class SnapCapReconnect;
 
 namespace Connection
 {
@@ -80,6 +83,17 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
     protected:
         const char *getDefaultName() override;
 
+        class ReconnectInterface
+        {
+            public:
+                virtual ~ReconnectInterface() = default;
+                virtual bool sendCommand(const char *command, char *response) = 0;
+                virtual void process() = 0;
+                virtual void reset() = 0;
+                virtual void rescheduleNow() = 0;
+                virtual bool isPending() const = 0;
+        };
+
         virtual bool saveConfigItems(FILE *fp) override;
         void TimerHit() override;
 
@@ -99,6 +113,8 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         virtual int reconnectMaxDelayMs() const;
 
     private:
+        friend class SnapCapReconnect;
+
         bool getStartupData();
         bool ping();
         bool getStatus();
@@ -108,13 +124,9 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         bool Handshake();
 
         bool sendCommand(const char *command, char *response);
-        void maybeScheduleReconnect(const char *reason);
         bool isConnectionValid();
         bool attemptReconnect();
-        void scheduleReconnect(const char *reason);
-        void processPendingReconnect();
-        void resetReconnectState();
-        int computeReconnectDelayMs() const;
+        int computeReconnectDelayMs(uint8_t attemptCount) const;
 
         // Status
         INDI::PropertyText StatusTP{3};
@@ -139,9 +151,9 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
         Connection::Serial *serialConnection = nullptr;
         Connection::TCP *tcpConnection       = nullptr;
+        std::unique_ptr<ReconnectInterface> reconnect;
 
         // Connection reliability tracking
-        int connectionFailureCount{ 0 };
         static constexpr int DEFAULT_MAX_CONSECUTIVE_FAILURES = 2;
         static constexpr int DEFAULT_RECONNECT_BASE_DELAY_MS = 500;
         static constexpr int MIN_RECONNECT_RETRIES = 1;
@@ -149,9 +161,6 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         static constexpr int MIN_RECONNECT_DELAY_MS = 100;
         static constexpr int MAX_RECONNECT_DELAY_SETTING_MS = 5000;
         static constexpr int MAX_RECONNECT_DELAY_MS = 8000;
-        bool reconnectPending{ false };
-        uint64_t nextReconnectAttemptMs{ 0 };
-        uint8_t reconnectAttemptCount{ 0 };
 
     private:
         bool callHandshake();
