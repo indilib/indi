@@ -14,7 +14,9 @@ TARGET_LINK_LIBRARIES(test_alignment
 ADD_TEST(test-alignment test_alignment)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(ERFA REQUIRED IMPORTED_TARGET erfa)
+pkg_check_modules(ERFA IMPORTED_TARGET erfa)
+
+if(ERFA_FOUND)
 
 ADD_EXECUTABLE(test_alignment_plugins
     test_alignment_plugins.cpp
@@ -47,4 +49,6 @@ TARGET_LINK_LIBRARIES(test_alignment_plugins
 TARGET_COMPILE_DEFINITIONS(test_alignment_plugins PRIVATE NO_PLUGIN_HOOKS)
 
 ADD_TEST(test-alignment-plugins test_alignment_plugins)
+
+endif(ERFA_FOUND)
 
