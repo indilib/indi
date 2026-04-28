@@ -59,7 +59,7 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
             if (!m_Owner.sendCommand(command, response))
             {
                 m_ConnectionFailureCount++;
-                m_Owner.setConnected(false, IPS_ALERT);
+                m_Owner.setConnected(true, IPS_ALERT);
                 if (m_ConnectionFailureCount >= m_Owner.maxConsecutiveFailures())
                     schedule(command);
                 return false;
@@ -428,7 +428,7 @@ bool SnapCap::attemptReconnect()
         if (!serialConnection->Connect())
         {
             LOG_ERROR("Failed to reconnect serial connection");
-            setConnected(false, IPS_ALERT);
+            setConnected(true, IPS_ALERT);
             return false;
         }
         PortFD = serialConnection->getPortFD();
@@ -438,7 +438,7 @@ bool SnapCap::attemptReconnect()
         if (!tcpConnection->Connect())
         {
             LOG_ERROR("Failed to reconnect TCP connection");
-            setConnected(false, IPS_ALERT);
+            setConnected(true, IPS_ALERT);
             return false;
         }
         PortFD = tcpConnection->getPortFD();
@@ -448,7 +448,7 @@ bool SnapCap::attemptReconnect()
     if (!sendCommand(">V000", response))
     {
         LOG_ERROR("Device ping failed after reconnect");
-        setConnected(false, IPS_ALERT);
+        setConnected(true, IPS_ALERT);
         return false;
     }
 
