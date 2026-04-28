@@ -82,6 +82,7 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
             {
                 reset();
                 m_Owner.getStartupData();
+                m_Owner.setConnected(true, IPS_OK);
                 return;
             }
 
