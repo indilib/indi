@@ -488,12 +488,9 @@ bool SnapCap::sendCommand(const char *command, char *response)
         return false;
     }
 
-    // Flush any pending data, but handle errors gracefully
-    if (tcflush(PortFD, TCIOFLUSH) < 0)
-    {
-        LOGF_WARN("tcflush failed: %s", strerror(errno));
-        // Don't return false here, tcflush failure isn't always fatal
-    }
+    // Flush any pending data — only valid for serial TTY file descriptors, not TCP sockets.
+    if (isatty(PortFD))
+        tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("CMD (%s)", command);
 
