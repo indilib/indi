@@ -422,6 +422,7 @@ bool SnapCap::attemptReconnect()
         if (!serialConnection->Connect())
         {
             LOG_ERROR("Failed to reconnect serial connection");
+            setConnected(false, IPS_ALERT);
             return false;
         }
         PortFD = serialConnection->getPortFD();
@@ -431,6 +432,7 @@ bool SnapCap::attemptReconnect()
         if (!tcpConnection->Connect())
         {
             LOG_ERROR("Failed to reconnect TCP connection");
+            setConnected(false, IPS_ALERT);
             return false;
         }
         PortFD = tcpConnection->getPortFD();
@@ -440,10 +442,12 @@ bool SnapCap::attemptReconnect()
     if (!sendCommand(">V000", response))
     {
         LOG_ERROR("Device ping failed after reconnect");
+        setConnected(false, IPS_ALERT);
         return false;
     }
 
     LOGF_INFO("Successfully reconnected to %s", getDeviceName());
+    setConnected(true, IPS_OK);
     return true;
 }
 
