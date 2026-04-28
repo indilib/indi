@@ -59,6 +59,7 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
             if (!m_Owner.sendCommand(command, response))
             {
                 m_ConnectionFailureCount++;
+                m_Owner.setConnected(false, IPS_ALERT);
                 if (m_ConnectionFailureCount >= m_Owner.maxConsecutiveFailures())
                     schedule(command);
                 return false;
@@ -409,10 +410,14 @@ bool SnapCap::attemptReconnect()
     // Disconnect first
     if (PortFD >= 0)
     {
-        if (getActiveConnection() == serialConnection)
+        if (getActiveConnection() == serialConnection) {
             serialConnection->Disconnect();
-        else if (getActiveConnection() == tcpConnection)
+            setConnected(false, IPS_ALERT);
+        }
+        else if (getActiveConnection() == tcpConnection) {
             tcpConnection->Disconnect();
+            setConnected(false, IPS_ALERT);
+        }
     }
 
     PortFD = -1;
