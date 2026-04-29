@@ -173,10 +173,10 @@ bool SnapCap::initProperties()
     ForceSP[1].fill("ON", "On", ISS_OFF);
     ForceSP.fill(getDeviceName(), "FORCE", "Force movement", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    ReconnectNP[0].fill("FAILURES_BEFORE_RECONNECT", "Failures Before Reconnect", "%.f",
+    ReconnectNP[0].fill("FAILURES_BEFORE_RECONNECT", "Max Failures", "%.f",
                         MIN_FAILURES_BEFORE_RECONNECT, MAX_FAILURES_BEFORE_RECONNECT, 1,
                         DEFAULT_MAX_CONSECUTIVE_FAILURES);
-    ReconnectNP[1].fill("DELAY_MS", "Backoff Base Delay (ms)", "%.f", MIN_RECONNECT_DELAY_MS,
+    ReconnectNP[1].fill("DELAY_MS", "Base delay (ms)", "%.f", MIN_RECONNECT_DELAY_MS,
                         MAX_RECONNECT_DELAY_SETTING_MS, 100,
                         DEFAULT_RECONNECT_BASE_DELAY_MS);
     ReconnectNP.fill(getDeviceName(), "RECONNECT_POLICY", "Reconnect Policy", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
