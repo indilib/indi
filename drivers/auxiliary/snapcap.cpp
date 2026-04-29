@@ -59,7 +59,6 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
             if (!m_Owner.sendCommand(command, response))
             {
                 m_ConnectionFailureCount++;
-                // m_Owner.setConnected(true, IPS_ALERT);
                 if (m_ConnectionFailureCount >= m_Owner.maxConsecutiveFailures())
                     schedule(command);
                 return false;
@@ -82,7 +81,6 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
             {
                 reset();
                 m_Owner.getStartupData();
-                // m_Owner.setConnected(true, IPS_OK);
                 return;
             }
 
