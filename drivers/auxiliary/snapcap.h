@@ -156,8 +156,8 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         // Connection reliability tracking
         static constexpr int DEFAULT_MAX_CONSECUTIVE_FAILURES = 2;
         static constexpr int DEFAULT_RECONNECT_BASE_DELAY_MS = 500;
-        static constexpr int MIN_RECONNECT_RETRIES = 1;
-        static constexpr int MAX_RECONNECT_RETRIES = 10;
+        static constexpr int MIN_FAILURES_BEFORE_RECONNECT = 1;
+        static constexpr int MAX_FAILURES_BEFORE_RECONNECT = 10;
         static constexpr int MIN_RECONNECT_DELAY_MS = 100;
         static constexpr int MAX_RECONNECT_DELAY_SETTING_MS = 5000;
         static constexpr int MAX_RECONNECT_DELAY_MS = 8000;

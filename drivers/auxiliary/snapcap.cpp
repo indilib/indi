@@ -87,9 +87,10 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
             m_ReconnectAttemptCount++;
             const int backoffMs = m_Owner.computeReconnectDelayMs(m_ReconnectAttemptCount);
             m_NextReconnectAttemptMs = nowMs + static_cast<uint64_t>(backoffMs);
-            INDI::Logger::getInstance().print(m_Owner.getDeviceName(), INDI::Logger::DBG_WARNING, __FILE__, __LINE__,
-                                             "Reconnect attempt %u failed, next retry in %d ms",
-                                             m_ReconnectAttemptCount, backoffMs);
+            INDI::Logger::getInstance().print(
+                m_Owner.getDeviceName(), INDI::Logger::DBG_WARNING, __FILE__, __LINE__,
+                "Reconnect attempt %u failed, next retry in %d ms (base delay %d ms, exponential backoff)",
+                m_ReconnectAttemptCount, backoffMs, m_Owner.reconnectBaseDelayMs());
         }
 
         void reset() override
@@ -116,8 +117,10 @@ class SnapCapReconnect final : public SnapCap::ReconnectInterface
         {
             if (!m_ReconnectPending)
             {
-                INDI::Logger::getInstance().print(m_Owner.getDeviceName(), INDI::Logger::DBG_WARNING, __FILE__,
-                                                 __LINE__, "Scheduling non-blocking reconnect: %s", reason);
+                INDI::Logger::getInstance().print(
+                    m_Owner.getDeviceName(), INDI::Logger::DBG_WARNING, __FILE__, __LINE__,
+                    "Scheduling non-blocking reconnect after %d consecutive command failures (reason: %s)",
+                    m_Owner.maxConsecutiveFailures(), reason);
                 m_ReconnectPending      = true;
                 m_ReconnectAttemptCount = 0;
             }
@@ -170,11 +173,13 @@ bool SnapCap::initProperties()
     ForceSP[1].fill("ON", "On", ISS_OFF);
     ForceSP.fill(getDeviceName(), "FORCE", "Force movement", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    ReconnectNP[0].fill("RETRIES", "Retries", "%.f", MIN_RECONNECT_RETRIES, MAX_RECONNECT_RETRIES, 1,
+    ReconnectNP[0].fill("FAILURES_BEFORE_RECONNECT", "Failures Before Reconnect", "%.f",
+                        MIN_FAILURES_BEFORE_RECONNECT, MAX_FAILURES_BEFORE_RECONNECT, 1,
                         DEFAULT_MAX_CONSECUTIVE_FAILURES);
-    ReconnectNP[1].fill("DELAY_MS", "Delay (ms)", "%.f", MIN_RECONNECT_DELAY_MS, MAX_RECONNECT_DELAY_SETTING_MS, 100,
+    ReconnectNP[1].fill("DELAY_MS", "Backoff Base Delay (ms)", "%.f", MIN_RECONNECT_DELAY_MS,
+                        MAX_RECONNECT_DELAY_SETTING_MS, 100,
                         DEFAULT_RECONNECT_BASE_DELAY_MS);
-    ReconnectNP.fill(getDeviceName(), "RECONNECT_POLICY", "Reconnect", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+    ReconnectNP.fill(getDeviceName(), "RECONNECT_POLICY", "Reconnect Policy", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
     ReconnectNP.load();
 
     DI::initProperties(MAIN_CONTROL_TAB, CAN_ABORT);
@@ -299,17 +304,22 @@ bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], ch
     {
         ReconnectNP.update(values, names, n);
 
-        int retries = static_cast<int>(ReconnectNP[0].getValue());
+        int failuresBeforeReconnect = static_cast<int>(ReconnectNP[0].getValue());
         int delayMs = static_cast<int>(ReconnectNP[1].getValue());
 
-        retries = std::clamp(retries, MIN_RECONNECT_RETRIES, MAX_RECONNECT_RETRIES);
+        failuresBeforeReconnect =
+            std::clamp(failuresBeforeReconnect, MIN_FAILURES_BEFORE_RECONNECT, MAX_FAILURES_BEFORE_RECONNECT);
         delayMs = std::clamp(delayMs, MIN_RECONNECT_DELAY_MS, MAX_RECONNECT_DELAY_SETTING_MS);
 
-        ReconnectNP[0].setValue(retries);
+        ReconnectNP[0].setValue(failuresBeforeReconnect);
         ReconnectNP[1].setValue(delayMs);
         ReconnectNP.setState(IPS_OK);
         ReconnectNP.apply();
         saveConfig(ReconnectNP);
+
+        LOGF_INFO(
+            "Reconnect policy updated: reconnect after %d consecutive command failures; base backoff delay %d ms",
+            failuresBeforeReconnect, delayMs);
 
         // Apply new timing immediately for any pending reconnect cycle.
         reconnect->rescheduleNow();
@@ -471,7 +481,8 @@ int SnapCap::computeReconnectDelayMs(uint8_t attemptCount) const
 
 int SnapCap::maxConsecutiveFailures() const
 {
-    return std::clamp(static_cast<int>(ReconnectNP[0].getValue()), MIN_RECONNECT_RETRIES, MAX_RECONNECT_RETRIES);
+    return std::clamp(static_cast<int>(ReconnectNP[0].getValue()), MIN_FAILURES_BEFORE_RECONNECT,
+                      MAX_FAILURES_BEFORE_RECONNECT);
 }
 
 int SnapCap::reconnectBaseDelayMs() const
