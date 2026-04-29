@@ -822,8 +822,7 @@ int IUGetConfigOnSwitchName(const char *dev, const char *property, char *name, s
         if ((property && !strcmp(property, rname)) || property == NULL)
         {
             XMLEle *oneSwitch = NULL;
-            int currentIndex = 0;
-            for (oneSwitch = nextXMLEle(root, 1); oneSwitch != NULL; oneSwitch = nextXMLEle(root, 0), currentIndex++)
+            for (oneSwitch = nextXMLEle(root, 1); oneSwitch != NULL; oneSwitch = nextXMLEle(root, 0))
             {
                 ISState s = ISS_OFF;
                 if (crackISState(pcdataXMLEle(oneSwitch), &s) == 0 && s == ISS_ON)
