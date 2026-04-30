@@ -76,6 +76,28 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
     IUFillSwitchVector(&LANSearchSP, LANSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_LAN_SEARCH, "LAN Search",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Retry/backoff configuration: number vector property
+    // Default values
+    IUFillNumber(&RetryN[TCP::RETRY_RETRIES], "CONNECT_RETRIES", "Connection retries", "%.0f", 0, 100, 1,
+                 static_cast<double>(m_ConnectRetries));
+    IUFillNumber(&RetryN[TCP::RETRY_BACKOFF_MS], "BACKOFF_BASE_MS", "Backoff base (ms)", "%.0f", 0, 60000, 1,
+                 static_cast<double>(m_BackoffBaseMs));
+    IUFillNumberVector(&RetryNP, RetryN, 2, getDeviceName(), "CONNECTION_RETRY", "Connection Retry",
+                       CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Try to load persisted values from config (if any)
+    double dval = 0;
+    if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_RETRIES].name, &dval) == 0)
+    {
+        RetryN[TCP::RETRY_RETRIES].value = dval;
+        m_ConnectRetries = static_cast<int>(dval);
+    }
+    if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_BACKOFF_MS].name, &dval) == 0)
+    {
+        RetryN[TCP::RETRY_BACKOFF_MS].value = dval;
+        m_BackoffBaseMs = static_cast<int>(dval);
+    }
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,6 +153,41 @@ bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             else if (wasEnabled && LANSearchS[1].s == ISS_ON)
                 LOG_INFO("Auto search is disabled.");
             IDSetSwitch(&LANSearchSP, nullptr);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool TCP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (!strcmp(dev, m_Device->getDeviceName()))
+    {
+        // Connection retry/backoff configuration
+        if (!strcmp(name, RetryNP.name))
+        {
+            IUUpdateNumber(&RetryNP, values, names, n);
+            RetryNP.s = IPS_OK;
+
+            // Update runtime values
+            m_ConnectRetries = static_cast<int>(RetryN[TCP::RETRY_RETRIES].value);
+            m_BackoffBaseMs = static_cast<int>(RetryN[TCP::RETRY_BACKOFF_MS].value);
+
+            // Persist the change
+            m_Device->saveConfig(true, RetryNP.name);
+
+            // Log the new configuration for visibility
+            LOGF_INFO("Connection retry configuration updated: CONNECT_RETRIES=%d, BACKOFF_BASE_MS=%d",
+                      m_ConnectRetries, m_BackoffBaseMs);
+
+            // Notify clients of the change if initialization is complete
+            if (m_Device->isInitializationComplete())
+                IDSetNumber(&RetryNP, nullptr);
 
             return true;
         }
@@ -219,41 +276,66 @@ bool TCP::Connect()
         return false;
     }
 
-    bool handshakeResult = true;
+    bool handshakeResult = false;
     std::string hostname = AddressT[0].text;
     std::string port = AddressT[1].text;
 
-    // Should just call handshake on simulation
-    if (m_Device->isSimulation())
-        handshakeResult = Handshake();
+    // Use runtime-configurable retry/backoff parameters (can be changed via the Connection Retry property)
+    int connectRetries = m_ConnectRetries > 0 ? m_ConnectRetries : 1;
+    int backoffBaseMs = m_BackoffBaseMs > 0 ? m_BackoffBaseMs : 200;
 
+    // Simulation devices bypass connection/retry logic and simply call the handshake
+    if (m_Device->isSimulation())
+    {
+        handshakeResult = Handshake();
+    }
     else
     {
-        handshakeResult = false;
         std::regex ipv4("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
         const auto isIPv4 = regex_match(hostname, ipv4);
 
-        // Establish connection to host:port
-        if (establishConnection(hostname, port))
+        // Try a small number of retries on the requested address before falling back to LAN search
+        for (int attempt = 1; attempt <= connectRetries; ++attempt)
         {
-            PortFD = m_SockFD;
-            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
-            handshakeResult = Handshake();
-
-            // Auto search is disabled.
-            if (handshakeResult == false && LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+            if (establishConnection(hostname, port))
             {
-                LOG_DEBUG("Handshake failed.");
-                return false;
+                PortFD = m_SockFD;
+                LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
+                handshakeResult = Handshake();
+
+                if (handshakeResult)
+                    break;
+
+                // Handshake failed, close and retry according to policy (unless LAN search is disabled)
+                close(m_SockFD);
+                m_SockFD = -1;
+                PortFD = -1;
+                if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+                {
+                    LOGF_DEBUG("Handshake failed on attempt %d/%d to %s@%s, will retry.", attempt, connectRetries, hostname.c_str(), port.c_str());
+                }
+                else
+                {
+                    LOGF_DEBUG("Handshake failed on attempt %d/%d to %s@%s, will retry before attempting LAN search.", attempt, connectRetries, hostname.c_str(), port.c_str());
+                }
+            }
+            else
+            {
+                LOGF_DEBUG("Connection attempt %d/%d to %s@%s failed.", attempt, CONNECT_RETRIES, hostname.c_str(), port.c_str());
+            }
+
+            if (attempt < connectRetries)
+            {
+                // backoff before retrying
+                int backoff = backoffBaseMs * (1 << (attempt - 1));
+                LOGF_DEBUG("Waiting %d ms before next connect attempt.", backoff);
+                usleep(static_cast<useconds_t>(backoff * 1000));
             }
         }
 
-        // If connection failed; or
-        // handshake failed; then we can search LAN if the IP address is v4
-        // LAN search is enabled.
-        if (handshakeResult == false &&
-                LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON &&
-                isIPv4)
+        // If all direct retries failed and LAN search is enabled and the provided address looks like an IPv4,
+        // proceed with the existing LAN search fallback behavior.
+        if (!handshakeResult && LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON && isIPv4)
         {
             size_t found = hostname.find_last_of(".");
 
@@ -300,13 +382,16 @@ bool TCP::Connect()
                         if (establishConnection(newAddress, port, 1))
                         {
                             PortFD = m_SockFD;
-                            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
+                            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", newAddress.c_str(), port.c_str());
                             handshakeResult = Handshake();
                             if (handshakeResult)
                             {
                                 hostname = newAddress;
                                 break;
                             }
+                            close(m_SockFD);
+                            m_SockFD = -1;
+                            PortFD = -1;
                         }
                     }
 
@@ -363,6 +448,7 @@ void TCP::Activated()
     {
         m_Device->defineProperty(&TcpUdpSP);
         m_Device->defineProperty(&LANSearchSP);
+        m_Device->defineProperty(&RetryNP);
     }
 }
 
@@ -376,6 +462,7 @@ void TCP::Deactivated()
     {
         m_Device->deleteProperty(TcpUdpSP.name);
         m_Device->deleteProperty(LANSearchSP.name);
+        m_Device->deleteProperty(RetryNP.name);
     }
 }
 
@@ -389,6 +476,7 @@ bool TCP::saveConfigItems(FILE * fp)
         IUSaveConfigText(fp, &AddressTP);
         IUSaveConfigSwitch(fp, &TcpUdpSP);
         IUSaveConfigSwitch(fp, &LANSearchSP);
+        IUSaveConfigNumber(fp, &RetryNP);
     }
 
     return true;

@@ -47,6 +47,7 @@ class TCP : public Interface
         virtual ~TCP() = default;
 
         virtual bool Connect() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         virtual bool Disconnect() override;
 
@@ -113,14 +114,27 @@ class TCP : public Interface
         // Auto search
         ISwitch LANSearchS[2];
         ISwitchVectorProperty LANSearchSP;
+        // Retry/backoff configuration
+        enum RetryIndex
+        {
+            RETRY_RETRIES = 0,
+            RETRY_BACKOFF_MS = 1,
+        };
+        INumber RetryN[2];
+        INumberVectorProperty RetryNP;
 
         // Variables
         IPerm m_Permission = IP_RW;
         std::string m_ConfigHost;
         std::string m_ConfigPort;
         int m_ConfigConnectionType {-1};
+        int m_ConfigConnectRetries {-1};
+        int m_ConfigBackoffBaseMs {-1};
         int m_SockFD {-1};
         int PortFD = -1;
         static constexpr uint8_t SOCKET_TIMEOUT {5};
+        // Runtime-configurable connection retry parameters
+        int m_ConnectRetries {3};
+        int m_BackoffBaseMs {500}; // milliseconds
 };
 }
