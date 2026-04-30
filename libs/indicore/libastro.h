@@ -33,8 +33,8 @@
 namespace INDI
 {
 
-#define RAD_TO_DEG(rad) (rad * 180.0/M_PI)
-#define DEG_TO_RAD(deg) (deg * M_PI/180.0)
+#define RAD_TO_DEG(rad) ((rad) * 180.0/M_PI)
+#define DEG_TO_RAD(deg) ((deg) * M_PI/180.0)
 
 /**
  * \defgroup Position Structures
