@@ -321,7 +321,7 @@ bool TCP::Connect()
             }
             else
             {
-                LOGF_DEBUG("Connection attempt %d/%d to %s@%s failed.", attempt, CONNECT_RETRIES, hostname.c_str(), port.c_str());
+                LOGF_DEBUG("Connection attempt %d/%d to %s@%s failed.", attempt, connectRetries, hostname.c_str(), port.c_str());
             }
 
             if (attempt < connectRetries)
