@@ -51,17 +51,18 @@ AlpacaCCD::AlpacaCCD()
 
 void AlpacaCCD::setDefaultServerAddress(const char *host, const char *port, bool force)
 {
+    // Only apply defaults if no value was loaded from saved config (mirrors TCP plugin pattern).
+    // m_ConfigHost/m_ConfigPort are empty when no config file entry exists for this device,
+    // meaning this is either a first run or the user has never saved settings.
     if (host != nullptr)
     {
-        const char *currentHost = ServerAddressTP[0].getText();
-        if (force || currentHost == nullptr || strlen(currentHost) == 0)
+        if (force || m_ConfigHost.empty())
             ServerAddressTP[0].setText(host);
     }
 
     if (port != nullptr)
     {
-        const char *currentPort = ServerAddressTP[1].getText();
-        if (force || currentPort == nullptr || strlen(currentPort) == 0)
+        if (force || m_ConfigPort.empty())
             ServerAddressTP[1].setText(port);
     }
 }
@@ -76,11 +77,21 @@ bool AlpacaCCD::initProperties()
     CoolerSP[INDI_DISABLED].fill("COOLER_OFF", "OFF", ISS_ON);
     CoolerSP.fill(getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Setup server address properties
-    ServerAddressTP[0].fill("HOST", "Host", "");
-    ServerAddressTP[1].fill("PORT", "Port", "11111");
+    // Try to load server address from saved config (mirrors TCP plugin pattern).
+    // m_ConfigHost/m_ConfigPort are empty if no config was previously saved.
+    char configHost[MAXINDINAME] = {0};
+    char configPort[MAXINDINAME] = {0};
+    if (IUGetConfigText(getDeviceName(), "SERVER_ADDRESS", "HOST", configHost, MAXINDINAME) == 0)
+        m_ConfigHost = configHost;
+    if (IUGetConfigText(getDeviceName(), "SERVER_ADDRESS", "PORT", configPort, MAXINDINAME) == 0)
+        m_ConfigPort = configPort;
+
+    // Setup server address properties using config values (empty string if no config saved).
+    // Subclasses call setDefaultServerAddress() after initProperties() to set their own defaults,
+    // which will only take effect if m_ConfigHost/m_ConfigPort are still empty.
+    ServerAddressTP[0].fill("HOST", "Host", m_ConfigHost.c_str());
+    ServerAddressTP[1].fill("PORT", "Port", m_ConfigPort.c_str());
     ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
-    ServerAddressTP.load();
 
     // Setup device number property
     DeviceNumberNP[0].fill("DEVICE_NUMBER", "Device Number", "%.0f", 0, 10, 1, 0);
@@ -1015,12 +1026,7 @@ bool AlpacaCCD::sendAlpacaPUT(const std::string& endpoint, const nlohmann::json&
     std::string url = getAlpacaURL(endpoint);
     std::string form_data = buildAlpacaFormData(request);
 
-    httplib::Headers headers =
-    {
-        {"Content-Type", "application/x-www-form-urlencoded"}
-    };
-
-    auto result = httpClient->Put(url.c_str(), headers, form_data, "application/x-www-form-urlencoded");
+    auto result = httpClient->Put(url, form_data, "application/x-www-form-urlencoded");
 
     if (!result)
     {

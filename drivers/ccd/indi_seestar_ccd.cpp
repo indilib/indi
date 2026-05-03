@@ -58,15 +58,15 @@ bool SeestarCCD::initProperties()
 {
     // Call parent class first
     AlpacaCCD::initProperties();
-    
+
     // Set Seestar-specific default connection parameters
-    setDefaultServerAddress("seestar.local", "32323");
-    
+    setDefaultServerAddress("SeeStar.local", "32323");
+
     // Remove cooler capability (Seestar doesn't have active cooling)
     uint32_t cap = GetCCDCapability();
     cap &= ~CCD_HAS_COOLER;
     SetCCDCapability(cap);
-    
+
     return true;
 }
 
@@ -78,13 +78,13 @@ bool SeestarCCD::Connect()
     // Call base class Connect
     if (!AlpacaCCD::Connect())
         return false;
-    
+
     // Force remove cooler capability after base class may have added it
     // (Seestar reports cansetccdtemperature=true but we don't want to expose cooler controls)
     uint32_t cap = GetCCDCapability();
     cap &= ~CCD_HAS_COOLER;
     SetCCDCapability(cap);
-    
+
     return true;
 }
 
@@ -95,7 +95,7 @@ bool SeestarCCD::updateProperties()
 {
     // Call base class first
     AlpacaCCD::updateProperties();
-    
+
     // Remove cooler properties if they were added by base class
     if (isConnected())
     {
@@ -103,7 +103,7 @@ bool SeestarCCD::updateProperties()
         deleteProperty("CCD_TEMPERATURE");
         deleteProperty("CCD_COOLER_POWER");
     }
-    
+
     return true;
 }
 
@@ -125,7 +125,7 @@ std::string SeestarCCD::buildAlpacaFormData(const nlohmann::json& request)
     // Seestar requires method parameters FIRST, then ClientID/ClientTransactionID
     // This is opposite of standard Alpaca ordering
     std::string form_data;
-    
+
     // Add method-specific parameters first
     for (auto& [key, value] : request.items())
     {
@@ -177,8 +177,8 @@ bool SeestarCCD::parseImageBytesMetadata(ImageBytesMetadata* metadata, size_t bo
 
     // Log the raw metadata before corrections
     LOGF_INFO("Seestar raw metadata: Rank=%d, Dim1=%d, Dim2=%d, Dim3=%d, TransType=%d, DataStart=%d",
-               metadata->Rank, metadata->Dimension1, metadata->Dimension2, metadata->Dimension3,
-               metadata->TransmissionElementType, metadata->DataStart);
+              metadata->Rank, metadata->Dimension1, metadata->Dimension2, metadata->Dimension3,
+              metadata->TransmissionElementType, metadata->DataStart);
 
     // Apply Seestar-specific workarounds
     // Bug #1: Dimension1 and Dimension2 are swapped

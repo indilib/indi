@@ -1,6 +1,6 @@
 /*
     INDI alpaca Focuser Driver
-    
+
     Copyright (C) 2024 Gord Tulloch
 
     This library is free software; you can redistribute it and/or
@@ -29,13 +29,11 @@ AlpacaFocuser::AlpacaFocuser()
 {
     setVersion(1, 0);
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT);
-    
-    tcpConnection = new Connection::TCP(this);
+    setSupportedConnections(CONNECTION_TCP);
 }
 
 AlpacaFocuser::~AlpacaFocuser()
 {
-    delete tcpConnection;
 }
 
 const char *AlpacaFocuser::getDefaultName()
@@ -48,11 +46,12 @@ bool AlpacaFocuser::initProperties()
     INDI::Focuser::initProperties();
 
     // Use built-in TCP connection with default alpaca.local:32323
-    setActiveConnection(tcpConnection);
     tcpConnection->setDefaultHost("alpaca.local");
     tcpConnection->setDefaultPort(32323);
-    tcpConnection->registerHandshake([&]() { return Handshake(); });
-    registerConnection(tcpConnection);
+    tcpConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
 
     // Device information
     DeviceInfoTP[DESCRIPTION].fill("DESCRIPTION", "Description", "");
@@ -241,7 +240,7 @@ IPState AlpacaFocuser::MoveAbsFocuser(uint32_t targetTicks)
     // Validate range
     if (targetTicks > FocusMaxPosNP[0].getValue())
     {
-        LOGF_ERROR("Target position %u exceeds maximum %u", targetTicks, 
+        LOGF_ERROR("Target position %u exceeds maximum %u", targetTicks,
                    static_cast<uint32_t>(FocusMaxPosNP[0].getValue()));
         return IPS_ALERT;
     }
@@ -250,7 +249,7 @@ IPState AlpacaFocuser::MoveAbsFocuser(uint32_t targetTicks)
 
     nlohmann::json response;
     std::string data = "Position=" + std::to_string(targetTicks);
-    
+
     if (!sendAlpacaPUT("/move", data, response))
     {
         LOGF_ERROR("Failed to move to position %u", targetTicks);
@@ -263,8 +262,8 @@ IPState AlpacaFocuser::MoveAbsFocuser(uint32_t targetTicks)
         int errorNum = response["ErrorNumber"].get<int>();
         if (errorNum != 0)
         {
-            std::string errorMsg = response.contains("ErrorMessage") ? 
-                                 response["ErrorMessage"].get<std::string>() : "Unknown error";
+            std::string errorMsg = response.contains("ErrorMessage") ?
+                                   response["ErrorMessage"].get<std::string>() : "Unknown error";
             LOGF_ERROR("Error moving focuser: %d - %s", errorNum, errorMsg.c_str());
             return IPS_ALERT;
         }
@@ -272,7 +271,7 @@ IPState AlpacaFocuser::MoveAbsFocuser(uint32_t targetTicks)
 
     m_TargetPosition = targetTicks;
     m_Moving = true;
-    
+
     return IPS_BUSY;
 }
 
@@ -281,7 +280,7 @@ bool AlpacaFocuser::AbortFocuser()
     LOG_INFO("Aborting focuser movement");
 
     nlohmann::json response;
-    
+
     if (!sendAlpacaPUT("/halt", "", response))
     {
         LOG_ERROR("Failed to halt focuser");
@@ -291,7 +290,7 @@ bool AlpacaFocuser::AbortFocuser()
     m_Moving = false;
     FocusAbsPosNP.setState(IPS_IDLE);
     FocusAbsPosNP.apply();
-    
+
     LOG_INFO("Focuser movement halted");
     return true;
 }
@@ -317,12 +316,12 @@ void AlpacaFocuser::TimerHit()
     if (m_Moving)
     {
         bool moving = isMoving();
-        
+
         if (!moving)
         {
             // Movement completed
             m_Moving = false;
-            
+
             // Update current position
             int currentPos = getPosition();
             if (currentPos >= 0)
@@ -330,7 +329,7 @@ void AlpacaFocuser::TimerHit()
                 FocusAbsPosNP[0].setValue(currentPos);
                 FocusAbsPosNP.setState(IPS_OK);
                 FocusAbsPosNP.apply();
-                
+
                 LOGF_INFO("Focuser reached position: %d", currentPos);
             }
         }
@@ -352,7 +351,7 @@ void AlpacaFocuser::TimerHit()
 bool AlpacaFocuser::isMoving()
 {
     nlohmann::json response;
-    
+
     if (!sendAlpacaGET("/ismoving", response))
     {
         return false;
@@ -369,7 +368,7 @@ bool AlpacaFocuser::isMoving()
 int AlpacaFocuser::getPosition()
 {
     nlohmann::json response;
-    
+
     if (!sendAlpacaGET("/position", response))
     {
         return -1;
@@ -399,11 +398,11 @@ bool AlpacaFocuser::sendAlpacaGET(const std::string &endpoint, nlohmann::json &r
         return false;
 
     std::string url = "/api/v1/focuser/" + std::to_string(m_DeviceNumber) + endpoint;
-    
+
     LOGF_DEBUG("GET %s", url.c_str());
-    
+
     auto res = m_AlpacaClient->Get(url.c_str());
-    
+
     if (!res)
     {
         LOGF_ERROR("HTTP GET failed for %s", url.c_str());
@@ -419,20 +418,20 @@ bool AlpacaFocuser::sendAlpacaGET(const std::string &endpoint, nlohmann::json &r
     try
     {
         response = nlohmann::json::parse(res->body);
-        
+
         // Check for Alpaca errors
         if (response.contains("ErrorNumber"))
         {
             int errorNum = response["ErrorNumber"].get<int>();
             if (errorNum != 0)
             {
-                std::string errorMsg = response.contains("ErrorMessage") ? 
-                                     response["ErrorMessage"].get<std::string>() : "Unknown error";
+                std::string errorMsg = response.contains("ErrorMessage") ?
+                                       response["ErrorMessage"].get<std::string>() : "Unknown error";
                 LOGF_WARN("Alpaca error %d: %s", errorNum, errorMsg.c_str());
                 return false;
             }
         }
-        
+
         return true;
     }
     catch (const nlohmann::json::exception &e)
@@ -448,18 +447,18 @@ bool AlpacaFocuser::sendAlpacaPUT(const std::string &endpoint, const std::string
         return false;
 
     std::string url = "/api/v1/focuser/" + std::to_string(m_DeviceNumber) + endpoint;
-    
+
     // Add client info to data
     std::string fullData = data;
     if (!fullData.empty())
         fullData += "&";
     fullData += "ClientID=" + std::to_string(m_ClientID);
     fullData += "&ClientTransactionID=" + std::to_string(++m_TransactionID);
-    
+
     LOGF_DEBUG("PUT %s: %s", url.c_str(), fullData.c_str());
-    
+
     auto res = m_AlpacaClient->Put(url.c_str(), fullData, "application/x-www-form-urlencoded");
-    
+
     if (!res)
     {
         LOGF_ERROR("HTTP PUT failed for %s", url.c_str());
@@ -475,20 +474,20 @@ bool AlpacaFocuser::sendAlpacaPUT(const std::string &endpoint, const std::string
     try
     {
         response = nlohmann::json::parse(res->body);
-        
+
         // Check for Alpaca errors
         if (response.contains("ErrorNumber"))
         {
             int errorNum = response["ErrorNumber"].get<int>();
             if (errorNum != 0)
             {
-                std::string errorMsg = response.contains("ErrorMessage") ? 
-                                     response["ErrorMessage"].get<std::string>() : "Unknown error";
+                std::string errorMsg = response.contains("ErrorMessage") ?
+                                       response["ErrorMessage"].get<std::string>() : "Unknown error";
                 LOGF_WARN("Alpaca error %d: %s", errorNum, errorMsg.c_str());
                 return false;
             }
         }
-        
+
         return true;
     }
     catch (const nlohmann::json::exception &e)

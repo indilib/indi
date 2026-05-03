@@ -103,6 +103,10 @@ class AlpacaCCD : public INDI::CCD
         void setDefaultServerAddress(const char *host, const char *port, bool force = false);
 
     private:
+        // Config-loaded values (empty = no saved config, mirrors TCP plugin pattern)
+        std::string m_ConfigHost;
+        std::string m_ConfigPort;
+
         // Internal state variables
         bool m_ExposureInProgress {false};
         std::string m_CurrentReadoutModeName {"0"}; // Default to mode 0
