@@ -75,7 +75,8 @@ sudo apt-get install -y \
   libboost-regex-dev \
   libcurl4-gnutls-dev \
   libtheora-dev \
-  libxisf-dev
+  libxisf-dev \
+  liberfa-dev
 
 ```
 
@@ -97,7 +98,8 @@ sudo pacman -S --needed \
   curl \
   libtiff \
   fftw \
-  libxisf
+  libxisf \
+  erfa
 ```
 
 ## Create Project Directory
