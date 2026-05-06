@@ -26,6 +26,14 @@ add_executable(indi_wanderer_eclipse ${indi_wanderer_eclipse_SRC})
 target_link_libraries(indi_wanderer_eclipse indidriver)
 install(TARGETS indi_wanderer_eclipse RUNTIME DESTINATION bin)
 
+# ########## Wanderer ETA M54###############
+SET(indi_wanderer_eta_SRC
+    wanderer_eta.cpp)
+
+add_executable(indi_wanderer_eta ${indi_wanderer_eta_SRC})
+target_link_libraries(indi_wanderer_eta indidriver)
+install(TARGETS indi_wanderer_eta RUNTIME DESTINATION bin)
+
 # ########## Astrolink-4###############
 SET(indi_astrolink4_SRC
     indi_astrolink4.cpp)
