@@ -993,6 +993,10 @@
             <driver name="DomePro2">indi_domepro2_dome</driver>
             <version>1.0</version>
         </device>
+        <device label="RTI Dome" manufacturer="DIY">
+            <driver name="RTI Dome">indi_rti_dome</driver>
+            <version>1.0</version>
+        </device>
         <device label="NexDome Beaver" manufacturer="Lunatico">
             <driver name="NexDome Beaver">indi_nexdome_beaver</driver>
             <version>1.0</version>
