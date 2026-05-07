@@ -53,19 +53,20 @@ bool AlpacaDome::initProperties()
     ServerAddressTP[0].fill("HOST", "Host", "");  // Empty default to force configuration
     ServerAddressTP[1].fill("PORT", "Port", "");
     ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "Server", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    ServerAddressTP.load();
 
     // Setup device number property
     DeviceNumberNP[0].fill("DEVICE_NUMBER", "Device Number", "%.0f", 0, 10, 1, 0);
     DeviceNumberNP.fill(getDeviceName(), "DEVICE_NUMBER", "Alpaca Device", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    DeviceNumberNP.load();
 
     // Setup connection settings properties
     ConnectionSettingsNP[0].fill("TIMEOUT", "Timeout (sec)", "%.0f", 1, 30, 1, 5);
     ConnectionSettingsNP[1].fill("RETRIES", "Max Retries", "%.0f", 1, 10, 1, 3);
     ConnectionSettingsNP[2].fill("RETRY_DELAY", "Retry Delay (ms)", "%.0f", 100, 5000, 100, 1000);
     ConnectionSettingsNP.fill(getDeviceName(), "CONNECTION_SETTINGS", "Connection", SITE_TAB, IP_RW, 60, IPS_IDLE);
+    ConnectionSettingsNP.load();
 
-    // Load config before setting any defaults
-    loadConfig(true);
 
     SetParkDataType(PARK_NONE);
     addAuxControls();
@@ -93,7 +94,8 @@ bool AlpacaDome::Connect()
 
     // Test connection by getting dome status
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/connected";
         return makeAlpacaRequest(path, response);
     });
@@ -163,28 +165,12 @@ void AlpacaDome::TimerHit()
 bool AlpacaDome::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
-    
+
     ServerAddressTP.save(fp);
     DeviceNumberNP.save(fp);
     ConnectionSettingsNP.save(fp);
-    
+
     return true;
-}
-
-bool AlpacaDome::loadConfig(bool silent, const char *property)
-{
-    // Charger d'abord la configuration parent
-    bool result = INDI::Dome::loadConfig(silent, property);
-
-    // Si aucune propriété spécifique n'est demandée, charger toutes nos propriétés
-    if (property == nullptr)
-    {
-        result &= ServerAddressTP.load();
-        result &= DeviceNumberNP.load();
-        result &= ConnectionSettingsNP.load();
-    }
-    
-    return result;
 }
 
 IPState AlpacaDome::Move(DomeDirection dir, DomeMotionCommand operation)
@@ -229,7 +215,7 @@ bool AlpacaDome::makeAlpacaRequest(const std::string& path, nlohmann::json& resp
         cli.set_read_timeout(static_cast<int>(ConnectionSettingsNP[0].getValue()));
 
         auto result = isPut ? cli.Put(path.c_str()) : cli.Get(path.c_str());
-        
+
         if (!result)
         {
             LOG_ERROR("Failed to connect to Alpaca server.");
@@ -243,13 +229,13 @@ bool AlpacaDome::makeAlpacaRequest(const std::string& path, nlohmann::json& resp
         }
 
         response = nlohmann::json::parse(result->body);
-        
+
         if (response["ErrorNumber"].get<int>() != 0)
         {
             LOGF_ERROR("Alpaca error: %s", response["ErrorMessage"].get<std::string>().c_str());
             return false;
         }
-        
+
         return true;
     }
     catch(const std::exception &e)
@@ -259,7 +245,7 @@ bool AlpacaDome::makeAlpacaRequest(const std::string& path, nlohmann::json& resp
     }
 }
 
-bool AlpacaDome::retryRequest(const std::function<bool()>& request)
+bool AlpacaDome::retryRequest(const std::function<bool()> &request)
 {
     int maxRetries = static_cast<int>(ConnectionSettingsNP[1].getValue());
     int retryDelay = static_cast<int>(ConnectionSettingsNP[2].getValue());
@@ -278,8 +264,8 @@ bool AlpacaDome::retryRequest(const std::function<bool()>& request)
 
         if (attempt < maxRetries)
         {
-            LOGF_DEBUG("Retrying request in %d ms (attempt %d/%d)", 
-                      retryDelay, attempt, maxRetries);
+            LOGF_DEBUG("Retrying request in %d ms (attempt %d/%d)",
+                       retryDelay, attempt, maxRetries);
             std::this_thread::sleep_for(std::chrono::milliseconds(retryDelay));
         }
     }
@@ -289,9 +275,10 @@ bool AlpacaDome::retryRequest(const std::function<bool()>& request)
 void AlpacaDome::updateStatus()
 {
     nlohmann::json response;
-    
+
     // Get shutter status with retry
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/shutterstatus";
         return makeAlpacaRequest(path, response);
     });
@@ -299,7 +286,7 @@ void AlpacaDome::updateStatus()
     if (success)
     {
         int shutterStatus = response["Value"].get<int>();
-        
+
         // Alpaca shutter states:
         // 0 = Open
         // 1 = Closed
@@ -315,7 +302,7 @@ void AlpacaDome::updateStatus()
                     setDomeState(DOME_UNPARKED);
                 }
                 break;
-                
+
             case 1: // Closed
                 if (getDomeState() != DOME_PARKED)
                 {
@@ -323,7 +310,7 @@ void AlpacaDome::updateStatus()
                     setDomeState(DOME_PARKED);
                 }
                 break;
-                
+
             case 2: // Opening
                 if (getDomeState() != DOME_UNPARKING)
                 {
@@ -331,7 +318,7 @@ void AlpacaDome::updateStatus()
                     setDomeState(DOME_UNPARKING);
                 }
                 break;
-                
+
             case 3: // Closing
                 if (getDomeState() != DOME_PARKING)
                 {
@@ -339,7 +326,7 @@ void AlpacaDome::updateStatus()
                     setDomeState(DOME_PARKING);
                 }
                 break;
-                
+
             case 4: // Error
                 if (getDomeState() != DOME_ERROR)
                 {
@@ -351,7 +338,8 @@ void AlpacaDome::updateStatus()
     }
 
     // Get at home status (optional)
-    success = retryRequest([this, &response]() {
+    success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/athome";
         return makeAlpacaRequest(path, response);
     });
@@ -366,7 +354,8 @@ void AlpacaDome::updateStatus()
 void AlpacaDome::openRoof()
 {
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/openshutter";
         return makeAlpacaRequest(path, response, true);  // true for PUT request
     });
@@ -381,7 +370,8 @@ void AlpacaDome::openRoof()
 void AlpacaDome::closeRoof()
 {
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/closeshutter";
         return makeAlpacaRequest(path, response, true);  // true for PUT request
     });
@@ -396,7 +386,8 @@ void AlpacaDome::closeRoof()
 void AlpacaDome::stopRoof()
 {
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/abortslew";
         return makeAlpacaRequest(path, response, true);  // true for PUT request
     });
@@ -411,7 +402,8 @@ void AlpacaDome::stopRoof()
 IPState AlpacaDome::Park()
 {
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/closeshutter";
         return makeAlpacaRequest(path, response, true);
     });
@@ -422,7 +414,7 @@ IPState AlpacaDome::Park()
         setDomeState(DOME_PARKING);
         return IPS_BUSY;
     }
-    
+
     LOG_ERROR("Failed to park dome");
     return IPS_ALERT;
 }
@@ -430,7 +422,8 @@ IPState AlpacaDome::Park()
 IPState AlpacaDome::UnPark()
 {
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/openshutter";
         return makeAlpacaRequest(path, response, true);
     });
@@ -449,7 +442,8 @@ IPState AlpacaDome::UnPark()
 bool AlpacaDome::Abort()
 {
     nlohmann::json response;
-    bool success = retryRequest([this, &response]() {
+    bool success = retryRequest([this, &response]()
+    {
         std::string path = "/api/v1/dome/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + "/abortslew";
         return makeAlpacaRequest(path, response, true);
     });
@@ -486,7 +480,7 @@ bool AlpacaDome::ISNewNumber(const char *dev, const char *name, double values[],
                 LOG_WARN("Cannot change device number while connected.");
                 return false;
             }
-            
+
             DeviceNumberNP.update(values, names, n);
             DeviceNumberNP.setState(IPS_OK);
             DeviceNumberNP.apply();
@@ -498,4 +492,4 @@ bool AlpacaDome::ISNewNumber(const char *dev, const char *name, double values[],
     }
 
     return INDI::Dome::ISNewNumber(dev, name, values, names, n);
-} 
+}
