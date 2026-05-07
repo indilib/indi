@@ -56,6 +56,10 @@ class RTIDome : public INDI::Dome
     private:
 
         double m_TargetAz {0};
+        // True when the shutter controller has responded to a ping (H#/o# check)
+        bool   m_bShutterPresent {false};
+        // Counter used to schedule periodic shutter-presence re-checks
+        int    m_nShutterPollCounter {0};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Setup Functions
@@ -80,6 +84,10 @@ class RTIDome : public INDI::Dome
         bool getRainAction(int &action);
         bool getRainStatus(bool &raining);
         bool getShutterVoltage(double &voltage, double &cutoff);
+        /// Send H# to wake up the shutter XBee radio
+        bool sendShutterHello();
+        /// Query o# to check whether shutter controller has responded to pings
+        bool getShutterPresent(bool &present);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Set / Action Functions

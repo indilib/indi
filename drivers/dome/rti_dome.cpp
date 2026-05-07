@@ -28,6 +28,7 @@
 #include <cstring>
 #include <memory>
 #include <termios.h>
+#include <unistd.h>
 
 static std::unique_ptr<RTIDome> rtidome(new RTIDome());
 
@@ -99,7 +100,15 @@ bool RTIDome::initProperties()
     ShutterVoltsNP[SHUTTER_VOLTAGE_CUTOFF].fill("SHUTTER_VOLTAGE_CUTOFF",  "Cutoff (V)", "%.2f", 0, 20, 0, 0);
     ShutterVoltsNP.fill(getDeviceName(), "SHUTTER_VOLTAGE", "Shutter Voltage", INFO_TAB, IP_RW, 60, IPS_IDLE);
 
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+    // RTI dome USB serial is 115200 8N1 by default
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+
+    // RTI dome defaults to 192.168.1.9:2323 when no DHCP server is available
+    tcpConnection->setDefaultHost("192.168.1.9");
+    tcpConnection->setDefaultPort(2323);
+
+    // Default to TCP (network) connection since that's the most common usage
+    setActiveConnection(tcpConnection);
 
     SetParkDataType(PARK_AZ);
     addAuxControls();
@@ -122,12 +131,10 @@ bool RTIDome::setupInitialParameters()
         SetAxis1ParkDefault(0);
     }
 
-    // Get rotation firmware
+    // Get rotation firmware only (shutter firmware is fetched later, after
+    // we confirm the shutter controller is reachable via H#/o#).
     if (getFirmwareVersion())
         FirmwareTP[FIRMWARE_ROTATION].setText(FirmwareTP[FIRMWARE_ROTATION].getText());
-
-    // Get shutter firmware (best-effort, shutter may not be connected)
-    getShutterFirmwareVersion();
 
     FirmwareTP.setState(IPS_OK);
     FirmwareTP.apply();
@@ -189,14 +196,56 @@ bool RTIDome::setupInitialParameters()
         RainActionSP.apply();
     }
 
-    // Get shutter voltage (best-effort)
-    double voltage = 0, cutoff = 0;
-    if (getShutterVoltage(voltage, cutoff))
+    // Ping the shutter XBee radio, wait briefly, then check if it responded.
+    // If the shutter controller is absent (no XBee link), m_bShutterPresent stays
+    // false and we will never try to send M# — avoiding constant 3-second timeouts.
+    sendShutterHello();
+    usleep(250000); // 250 ms — same delay as the X2 plugin
+    getShutterPresent(m_bShutterPresent);
+    if (m_bShutterPresent)
     {
-        ShutterVoltsNP[SHUTTER_VOLTAGE_CURRENT].setValue(voltage);
-        ShutterVoltsNP[SHUTTER_VOLTAGE_CUTOFF].setValue(cutoff);
-        ShutterVoltsNP.setState(IPS_OK);
-        ShutterVoltsNP.apply();
+        LOG_INFO("Shutter controller detected.");
+        // Fetch shutter firmware and initial state only when actually present
+        getShutterFirmwareVersion();
+        FirmwareTP.apply();
+
+        int shutterStatus = 0;
+        if (queryShutterState(shutterStatus))
+        {
+            // Map raw state to INDI ShutterState
+            ShutterState ss = SHUTTER_UNKNOWN;
+            switch (shutterStatus)
+            {
+                case 0:
+                    ss = SHUTTER_OPENED;
+                    break;
+                case 1:
+                    ss = SHUTTER_CLOSED;
+                    break;
+                case 2:
+                case 3:
+                    ss = SHUTTER_MOVING;
+                    break;
+                default:
+                    ss = SHUTTER_UNKNOWN;
+                    break;
+            }
+            setShutterState(ss);
+        }
+
+        // Get shutter voltage
+        double voltage = 0, cutoff = 0;
+        if (getShutterVoltage(voltage, cutoff))
+        {
+            ShutterVoltsNP[SHUTTER_VOLTAGE_CURRENT].setValue(voltage);
+            ShutterVoltsNP[SHUTTER_VOLTAGE_CUTOFF].setValue(cutoff);
+            ShutterVoltsNP.setState(IPS_OK);
+            ShutterVoltsNP.apply();
+        }
+    }
+    else
+    {
+        LOG_INFO("No shutter controller detected. Shutter commands will be skipped.");
     }
 
     return true;
@@ -495,46 +544,87 @@ void RTIDome::TimerHit()
         }
     }
 
-    // Poll shutter state (best-effort — shutter controller may not always be reachable)
-    int shutterStatus = 0;
-    if (queryShutterState(shutterStatus))
+    // Periodically re-check shutter presence (every ~10 ticks ≈ 10 s at 1 s poll)
+    // This handles the case where the shutter XBee link comes up after the driver
+    // was already connected, or drops out during a session.
+    ++m_nShutterPollCounter;
+    if (m_nShutterPollCounter >= 10)
     {
-        const char *shutterText = nullptr;
-        ShutterState newShutterState = getShutterState();
+        m_nShutterPollCounter = 0;
+        bool wasPresent = m_bShutterPresent;
+        sendShutterHello();
+        getShutterPresent(m_bShutterPresent);
+        if (m_bShutterPresent && !wasPresent)
+            LOG_INFO("Shutter controller detected.");
+        else if (!m_bShutterPresent && wasPresent)
+            LOG_WARN("Shutter controller lost.");
+    }
 
-        switch (shutterStatus)
+    // Only poll shutter state when the shutter controller is reachable.
+    // Without this guard, every M# would block for DRIVER_TIMEOUT seconds
+    // when the XBee link is absent, causing visible lag in the timer loop.
+    if (m_bShutterPresent)
+    {
+        int shutterStatus = 0;
+        if (queryShutterState(shutterStatus))
         {
-            case 0:
-                shutterText    = "Open";
-                newShutterState = SHUTTER_OPENED;
-                break;
-            case 1:
-                shutterText    = "Closed";
-                newShutterState = SHUTTER_CLOSED;
-                break;
-            case 2:
-                shutterText    = "Opening";
-                newShutterState = SHUTTER_MOVING;
-                break;
-            case 3:
-                shutterText    = "Closing";
-                newShutterState = SHUTTER_MOVING;
-                break;
-            default:
-                shutterText    = "Unknown";
-                newShutterState = SHUTTER_UNKNOWN;
-                break;
-        }
+            // Full 11-state mapping from the RTI firmware enum:
+            //   0=OPEN, 1=CLOSED, 2=OPENING, 3=CLOSING,
+            //   4=BOTTOM_OPEN, 5=BOTTOM_CLOSED, 6=BOTTOM_OPENING, 7=BOTTOM_CLOSING,
+            //   8=SHUTTER_ERROR, 9=FINISHING_OPEN, 10=FINISHING_CLOSE
+            const char *shutterText = nullptr;
+            ShutterState newShutterState = getShutterState();
 
-        if (strcmp(StatusTP[STATUS_SHUTTER].getText(), shutterText) != 0)
-        {
-            StatusTP[STATUS_SHUTTER].setText(shutterText);
-            StatusTP.setState(IPS_OK);
-            StatusTP.apply();
-        }
+            switch (shutterStatus)
+            {
+                case 0:
+                    shutterText     = "Open";
+                    newShutterState = SHUTTER_OPENED;
+                    break;
+                case 1:
+                    shutterText     = "Closed";
+                    newShutterState = SHUTTER_CLOSED;
+                    break;
+                case 2:
+                case 6:
+                case 9:
+                    shutterText     = "Opening";
+                    newShutterState = SHUTTER_MOVING;
+                    break;
+                case 3:
+                case 7:
+                case 10:
+                    shutterText     = "Closing";
+                    newShutterState = SHUTTER_MOVING;
+                    break;
+                case 4:
+                    shutterText     = "Bottom Open";
+                    newShutterState = SHUTTER_OPENED;
+                    break;
+                case 5:
+                    shutterText     = "Bottom Closed";
+                    newShutterState = SHUTTER_CLOSED;
+                    break;
+                case 8:
+                    shutterText     = "Error";
+                    newShutterState = SHUTTER_UNKNOWN;
+                    break;
+                default:
+                    shutterText     = "Unknown";
+                    newShutterState = SHUTTER_UNKNOWN;
+                    break;
+            }
 
-        if (newShutterState != getShutterState())
-            setShutterState(newShutterState);
+            if (strcmp(StatusTP[STATUS_SHUTTER].getText(), shutterText) != 0)
+            {
+                StatusTP[STATUS_SHUTTER].setText(shutterText);
+                StatusTP.setState(IPS_OK);
+                StatusTP.apply();
+            }
+
+            if (newShutterState != getShutterState())
+                setShutterState(newShutterState);
+        }
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -615,6 +705,13 @@ IPState RTIDome::UnPark()
 ////////////////////////////////////////////////////////////////////////////////////////////////
 IPState RTIDome::ControlShutter(ShutterOperation operation)
 {
+    // Refuse immediately if the shutter XBee link is not established
+    if (!m_bShutterPresent)
+    {
+        LOG_ERROR("Cannot control shutter: shutter controller not detected.");
+        return IPS_ALERT;
+    }
+
     if (operation == SHUTTER_OPEN)
     {
         if (openShutter())
@@ -1119,6 +1216,45 @@ bool RTIDome::closeShutter()
     if (!sendCommand("C", res))
         return false;
     return (res[0] == 'C');
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send shutter hello (H#)
+/// Broadcasts a ping over the rotation controller's XBee radio to wake up
+/// the shutter controller. No response is expected — this is fire-and-forget.
+/// The X2 plugin calls this on connect and before each shutter operation to
+/// ensure the XBee link is established before querying shutter state (o#).
+/////////////////////////////////////////////////////////////////////////////
+bool RTIDome::sendShutterHello()
+{
+    // H# is sent without waiting for a response; the shutter controller
+    // will reply to the rotation controller internally via XBee.
+    return sendCommand("H", nullptr);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Check whether the shutter controller is reachable (o#)
+/// The rotation controller tracks whether the shutter controller has
+/// responded to XBee pings. Response: o0# = not present, o1# = present.
+/////////////////////////////////////////////////////////////////////////////
+bool RTIDome::getShutterPresent(bool &present)
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("o", res))
+    {
+        present = false;
+        return false;
+    }
+
+    // Response: o0# or o1#
+    if (res[0] != 'o')
+    {
+        present = false;
+        return false;
+    }
+
+    present = (res[1] == '1');
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
