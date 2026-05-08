@@ -148,12 +148,10 @@ bool NearestMathPlugin::TransformCelestialToTelescopeJD(double RightAscension, d
     if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
-    double JDD = JulianDate;
-
     // Compute CURRENT horizontal coords.
     INDI::IEquatorialCoordinates CelestialRADE {RightAscension, Declination};
     INDI::IHorizontalCoordinates CelestialAltAz;
-    EquatorialToHorizontal(&CelestialRADE, &Position, JDD, &CelestialAltAz);
+    EquatorialToHorizontal(&CelestialRADE, &Position, JulianDate, &CelestialAltAz);
 
     // Return Telescope Direction Vector directly from Celestial coordinates if we
     // do not have any sync points.
@@ -206,7 +204,7 @@ bool NearestMathPlugin::TransformCelestialToTelescopeJD(double RightAscension, d
     if (ApproximateMountAlignment == ZENITH)
     {
         INDI::IHorizontalCoordinates TransformedTelescopeAltAz;
-        EquatorialToHorizontal(&TransformedTelescopeRADE, &Position, JDD, &TransformedTelescopeAltAz);
+        EquatorialToHorizontal(&TransformedTelescopeRADE, &Position, JulianDate, &TransformedTelescopeAltAz);
         ApparentTelescopeDirectionVector = TelescopeDirectionVectorFromAltitudeAzimuth(TransformedTelescopeAltAz);
     }
     // Equatorial?
@@ -235,8 +233,6 @@ bool NearestMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirection
     if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
-    double JDD = JulianDate;
-
     // Telescope Equatorial Coordinates
     INDI::IEquatorialCoordinates TelescopeRADE;
 
@@ -248,7 +244,7 @@ bool NearestMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirection
         {
             INDI::IHorizontalCoordinates TelescopeAltAz;
             AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, TelescopeAltAz);
-            HorizontalToEquatorial(&TelescopeAltAz, &Position, JDD, &TelescopeRADE);
+            HorizontalToEquatorial(&TelescopeAltAz, &Position, JulianDate, &TelescopeRADE);
         }
         // Equatorial?
         else
@@ -267,13 +263,13 @@ bool NearestMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirection
     if (ApproximateMountAlignment == ZENITH)
     {
         AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, TelescopeAltAz);
-        HorizontalToEquatorial(&TelescopeAltAz, &Position, JDD, &TelescopeRADE);
+        HorizontalToEquatorial(&TelescopeAltAz, &Position, JulianDate, &TelescopeRADE);
     }
     // Equatorial?
     else
     {
         EquatorialCoordinatesFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, TelescopeRADE);
-        EquatorialToHorizontal(&TelescopeRADE, &Position, JDD, &TelescopeAltAz);
+        EquatorialToHorizontal(&TelescopeRADE, &Position, JulianDate, &TelescopeAltAz);
     }
 
     // Find the nearest point to our telescope now

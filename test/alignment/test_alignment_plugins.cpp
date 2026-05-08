@@ -24,6 +24,7 @@
 #include <alignment/TelescopeDirectionVectorSupportFunctions.h>
 #include "../../drivers/telescope/scopesim_helper.h"
 
+#include <libnova/julian_day.h>
 #include <libnova/sidereal_time.h>
 
 using namespace INDI::AlignmentSubsystem;
@@ -442,7 +443,7 @@ protected:
             TelescopeDirectionVector noisyV;
             ASSERT_TRUE(noisyPlugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, noisyV));
 
-            // Reference (noiseless) plugin's predicted direction — same JD
+            // Reference (noiseless) plugin's predicted direction - same JD
             TelescopeDirectionVector refV;
             ASSERT_TRUE(refPlugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, refV));
 
@@ -2249,6 +2250,78 @@ TEST_F(DriverPipelineTest, AltAz_InstrumentRoundTrip_Southern)
         EXPECT_NEAR(testRA,  recoveredRA,    0.001) << "RA round-trip failed";
         EXPECT_NEAR(testDec, instDec.Degrees(), 0.001) << "Dec round-trip failed";
     }
+}
+
+// ---------------------------------------------------------------------------
+// LegacyPlugin fallback: verifies MathPlugin::TransformCelestialToTelescopeJD
+// default converts absolute JD -> correct JulianOffset for legacy external plugins.
+//
+// A legacy plugin implements only the old pure-virtual methods and does not
+// override the new *JD methods.  The base-class default must compute
+//   JulianOffset = JulianDate - ln_get_julian_from_sys()
+// so that when the legacy plugin adds ln_get_julian_from_sys() internally it
+// recovers the original absolute JD.  Passing 0.0 (the old bug) would give
+// the wrong time to any legacy plugin.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+struct LegacyPlugin : public MathPlugin
+{
+    double lastOffset = 999.0;  // sentinel; 0.0 would mask the old bug
+
+    bool TransformCelestialToTelescope(const double, const double,
+                                        double JulianOffset,
+                                        TelescopeDirectionVector &) override
+    {
+        lastOffset = JulianOffset;
+        return true;
+    }
+
+    bool TransformTelescopeToCelestial(const TelescopeDirectionVector &,
+                                        double &, double &, double JulianOffset) override
+    {
+        lastOffset = JulianOffset;
+        return true;
+    }
+};
+
+} // namespace
+
+TEST_F(AlignmentPluginTest, LegacyPlugin_JD_Fallback_CelestialToTelescope)
+{
+    LegacyPlugin plugin;
+    InMemoryDatabase db;
+    plugin.Initialise(&db);
+
+    TelescopeDirectionVector tdv;
+    double t1 = ln_get_julian_from_sys();
+    plugin.TransformCelestialToTelescopeJD(1.0, 45.0, fixedJD, tdv);
+    double t2 = ln_get_julian_from_sys();
+
+    // The default fallback computes offset = fixedJD - ln_get_julian_from_sys().
+    // Bracket with t1/t2 to tolerate any wall-clock delta during the call:
+    //   fixedJD - t2  <=  capturedOffset  <=  fixedJD - t1
+    // With the old 0.0 bug, capturedOffset == 0.0 which fails EXPECT_LE when
+    // fixedJD != now (i.e., always in practice).
+    EXPECT_GE(plugin.lastOffset, fixedJD - t2) << "offset too small";
+    EXPECT_LE(plugin.lastOffset, fixedJD - t1) << "offset too large (was 0.0 before fix)";
+}
+
+TEST_F(AlignmentPluginTest, LegacyPlugin_JD_Fallback_TelescopeToCelestial)
+{
+    LegacyPlugin plugin;
+    InMemoryDatabase db;
+    plugin.Initialise(&db);
+
+    TelescopeDirectionVector tdv{0.0, 0.0, 1.0};
+    double ra = 0, dec = 0;
+    double t1 = ln_get_julian_from_sys();
+    plugin.TransformTelescopeToCelestialJD(tdv, ra, dec, fixedJD);
+    double t2 = ln_get_julian_from_sys();
+
+    EXPECT_GE(plugin.lastOffset, fixedJD - t2) << "offset too small";
+    EXPECT_LE(plugin.lastOffset, fixedJD - t1) << "offset too large (was 0.0 before fix)";
 }
 
 int main(int argc, char **argv)

@@ -97,10 +97,8 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
                 case NORTH_CELESTIAL_POLE:
                 {
                     INDI::IEquatorialCoordinates DummyRaDec;
-                    //INDI::IHorizontalCoordinates DummyAltAz;
                     DummyRaDec.rightascension  = 0.0;
                     DummyRaDec.declination = 90.0;
-                    //EquatorialToHorizontal(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
                     DummyActualDirectionCosine2   = TelescopeDirectionVectorFromEquatorialCoordinates(DummyRaDec);
                     DummyApparentDirectionCosine2 = DummyActualDirectionCosine2;
                     break;
@@ -108,10 +106,8 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
                 case SOUTH_CELESTIAL_POLE:
                 {
                     INDI::IEquatorialCoordinates DummyRaDec;
-                    //INDI::IHorizontalCoordinates DummyAltAz;
                     DummyRaDec.rightascension  = 0.0;
                     DummyRaDec.declination = -90.0;
-                    //EquatorialToHorizontal(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
                     DummyActualDirectionCosine2   = TelescopeDirectionVectorFromEquatorialCoordinates(DummyRaDec);
                     DummyApparentDirectionCosine2 = DummyActualDirectionCosine2;
                     break;

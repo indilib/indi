@@ -21,8 +21,6 @@ MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
     pGetApproximateMountAlignment(&MathPlugin::GetApproximateMountAlignment),
     pInitialise(&MathPlugin::Initialise),
     pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
-    pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
-    pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
     pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
 {
     memset(&AlignmentSubsystemCurrentMathPlugin, 0, sizeof(IText));

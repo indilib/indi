@@ -19,7 +19,7 @@ namespace AlignmentSubsystem
  * \class MathPlugin
  * \brief Provides alignment subsystem functions to INDI alignment math plugins
  *
- * \note This class is intended to be implemented within a dynamic shared object. If the
+ * \note This class is intended to be implemented within an external plugin. If the
  * implementation of this class uses a standard 3 by 3 transformation matrix to convert between coordinate systems
  * then it will not normally need to know the handedness of either the celestial or telescope coordinate systems, as the
  * necessary rotations and scaling will be handled in the derivation of the matrix coefficients. This will normally
@@ -65,8 +65,9 @@ class MathPlugin
         /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
         /// \return True if successful
         /// \note Built-in plugins override this method and use JulianDate directly without reading the system clock.
-        /// External DSO plugins that have not yet adopted this interface use the default implementation, which
-        /// ignores JulianDate and delegates to TransformCelestialToTelescope with JulianOffset=0.
+        /// External plugins that have not yet adopted this interface use the default implementation, which
+        /// computes JulianOffset = JulianDate - ln_get_julian_from_sys() and delegates to
+        /// TransformCelestialToTelescope, so the plugin recovers the correct absolute JD internally.
         virtual bool TransformCelestialToTelescopeJD(double RightAscension, double Declination,
                 double JulianDate,
                 TelescopeDirectionVector &ApparentTelescopeDirectionVector);
@@ -78,7 +79,7 @@ class MathPlugin
         /// \param[in] JulianDate Absolute Julian Date (days).
         /// \return True if successful
         /// \note Built-in plugins override this method and use JulianDate directly without reading the system clock.
-        /// External DSO plugins that have not yet adopted this interface use the default implementation, which
+        /// External plugins that have not yet adopted this interface use the default implementation, which
         /// ignores JulianDate and delegates to TransformTelescopeToCelestial with JulianOffset=0.
         virtual bool TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                 double &RightAscension, double &Declination, double JulianDate);

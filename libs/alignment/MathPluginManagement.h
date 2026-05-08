@@ -136,7 +136,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
                                              double &RightAscension, double &Declination, double JulianDate);
 
         /**
-         * @brief TransformCelestialToTelescope Compat shim — resolves JD and delegates to TransformCelestialToTelescopeJD
+         * @brief TransformCelestialToTelescope Compat shim - resolves JD and delegates to TransformCelestialToTelescopeJD
          * @param RightAscension Sky Right Ascension in hours.
          * @param Declination Sky Declination in degrees
          * @param JulianOffset Julian time Offset in days added to ln_get_julian_from_sys()
@@ -147,7 +147,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
                                            TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
         /**
-         * @brief TransformTelescopeToCelestial Compat shim — resolves JD and delegates to TransformTelescopeToCelestialJD
+         * @brief TransformTelescopeToCelestial Compat shim - resolves JD and delegates to TransformTelescopeToCelestialJD
          * @param ApparentTelescopeDirectionVector Input Apparent Telescope Direction Vector
          * @param RightAscension Output Celestial Right Ascension
          * @param Declination Output Celestial Declination
@@ -181,11 +181,6 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
         MountAlignment_t (MathPlugin::*pGetApproximateMountAlignment)();
         bool (MathPlugin::*pInitialise)(InMemoryDatabase *pInMemoryDatabase);
         void (MathPlugin::*pSetApproximateMountAlignment)(MountAlignment_t ApproximateAlignment);
-        bool (MathPlugin::*pTransformCelestialToTelescope)(const double RightAscension, const double Declination,
-                double JulianOffset,
-                TelescopeDirectionVector &TelescopeDirectionVector);
-        bool (MathPlugin::*pTransformTelescopeToCelestial)(const TelescopeDirectionVector &TelescopeDirectionVector,
-                double &RightAscension, double &Declination, double JulianOffset);
         MathPlugin *pLoadedMathPlugin;
         void *LoadedMathPluginHandle;
 
