@@ -16,6 +16,18 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
+bool MathPlugin::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double /*JulianDate*/, TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
+    return TransformCelestialToTelescope(RightAscension, Declination, 0.0, ApparentTelescopeDirectionVector);
+}
+
+bool MathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+        double &RightAscension, double &Declination, double /*JulianDate*/)
+{
+    return TransformTelescopeToCelestial(ApparentTelescopeDirectionVector, RightAscension, Declination, 0.0);
+}
+
 bool MathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     MathPlugin::pInMemoryDatabase = pInMemoryDatabase;

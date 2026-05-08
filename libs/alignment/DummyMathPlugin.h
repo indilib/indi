@@ -16,6 +16,13 @@ class DummyMathPlugin : public AlignmentSubsystemForMathPlugins
 
         virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
 
+        virtual bool TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+                double JulianDate,
+                TelescopeDirectionVector &ApparentTelescopeDirectionVector);
+
+        virtual bool TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                double &RightAscension, double &Declination, double JulianDate);
+
         virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
                 double JulianOffset,
                 TelescopeDirectionVector &ApparentTelescopeDirectionVector);

@@ -366,6 +366,15 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
         double JulianOffset,
         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
+    return TransformCelestialToTelescopeJD(RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset,
+                                           ApparentTelescopeDirectionVector);
+}
+
+bool BasicMathPlugin::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double JulianDate,
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
     INDI::IEquatorialCoordinates ActualRaDec;
     ActualRaDec.rightascension  = RightAscension;
     ActualRaDec.declination = Declination;
@@ -385,7 +394,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
             {
                 case ZENITH:
                     INDI::IHorizontalCoordinates ActualAltAz;
-                    EquatorialToHorizontal(&ActualRaDec, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualAltAz);
+                    EquatorialToHorizontal(&ActualRaDec, &Position, JulianDate, &ActualAltAz);
                     ApparentTelescopeDirectionVector = TelescopeDirectionVectorFromAltitudeAzimuth(ActualAltAz);
                     ASSDEBUGF("Celestial to telescope - Actual Az %lf Alt %lf", ActualAltAz.azimuth, ActualAltAz.altitude);
                     break;
@@ -411,7 +420,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
             if (ApproximateMountAlignment == ZENITH)
             {
                 INDI::IHorizontalCoordinates ActualAltAz;
-                EquatorialToHorizontal(&ActualRaDec, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualAltAz);
+                EquatorialToHorizontal(&ActualRaDec, &Position, JulianDate, &ActualAltAz);
                 ActualVector = TelescopeDirectionVectorFromAltitudeAzimuth(ActualAltAz);
             }
             else
@@ -439,7 +448,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
             if (ApproximateMountAlignment == ZENITH)
             {
                 INDI::IHorizontalCoordinates ActualAltAz;
-                EquatorialToHorizontal(&ActualRaDec, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualAltAz);
+                EquatorialToHorizontal(&ActualRaDec, &Position, JulianDate, &ActualAltAz);
                 ActualVector = TelescopeDirectionVectorFromAltitudeAzimuth(ActualAltAz);
             }
             else
@@ -593,6 +602,13 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
         double &RightAscension, double &Declination, double JulianOffset)
 {
+    return TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset);
+}
+
+bool BasicMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+        double &RightAscension, double &Declination, double JulianDate)
+{
     IGeographicCoordinates Position;
 
     //INDI::IHorizontalCoordinates ApparentAltAz;
@@ -625,7 +641,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                               ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
                     //ASSDEBUGF("ActualVector x %lf y %lf z %lf", RotatedTDV.x, RotatedTDV.y, RotatedTDV.z);
                     AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ActualAltAz);
-                    HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualRaDec);
+                    HorizontalToEquatorial(&ActualAltAz, &Position, JulianDate, &ActualRaDec);
                 }
                 break;
 
@@ -663,7 +679,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             if (ApproximateMountAlignment == ZENITH)
             {
                 AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
-                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualRaDec);
+                HorizontalToEquatorial(&ActualAltAz, &Position, JulianDate, &ActualRaDec);
             }
             else
             {
@@ -796,7 +812,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             if (ApproximateMountAlignment == ZENITH)
             {
                 AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
-                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualRaDec);
+                HorizontalToEquatorial(&ActualAltAz, &Position, JulianDate, &ActualRaDec);
             }
             else
             {

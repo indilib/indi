@@ -33,11 +33,20 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
         virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
 
         /// \brief Override for the base class virtual function
+        virtual bool TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+                double JulianDate,
+                TelescopeDirectionVector &ApparentTelescopeDirectionVector);
+
+        /// \brief Override for the base class virtual function
+        virtual bool TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                double &RightAscension, double &Declination, double JulianDate);
+
+        /// \brief Compat shim — resolves JD and delegates to TransformCelestialToTelescopeJD
         virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
                 double JulianOffset,
                 TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
-        /// \brief Override for the base class virtual function
+        /// \brief Compat shim — resolves JD and delegates to TransformTelescopeToCelestialJD
         virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                 double &RightAscension, double &Declination, double JulianOffset = 0);
 

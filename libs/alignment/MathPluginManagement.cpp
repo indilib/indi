@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <cerrno>
+#include <libnova/julian_day.h>
 
 namespace INDI
 {
@@ -386,26 +387,43 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
     (pLoadedMathPlugin->*pSetApproximateMountAlignment)(ApproximateAlignment);
 }
 
+bool MathPluginManagement::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double JulianDate,
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
+    if (AlignmentSubsystemActive.s == ISS_ON)
+        return pLoadedMathPlugin->TransformCelestialToTelescopeJD(RightAscension, Declination, JulianDate,
+                ApparentTelescopeDirectionVector);
+    else
+        return false;
+}
+
+bool MathPluginManagement::TransformTelescopeToCelestialJD(
+    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination,
+    double JulianDate)
+{
+    if (AlignmentSubsystemActive.s == ISS_ON)
+        return pLoadedMathPlugin->TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension,
+                Declination, JulianDate);
+    else
+        return false;
+}
+
 bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination,
         double JulianOffset,
         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
-    if (AlignmentSubsystemActive.s == ISS_ON)
-        return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset,
-                ApparentTelescopeDirectionVector);
-    else
-        return false;
+    return TransformCelestialToTelescopeJD(RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset,
+                                           ApparentTelescopeDirectionVector);
 }
 
 bool MathPluginManagement::TransformTelescopeToCelestial(
     const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination,
     double JulianOffset)
 {
-    if (AlignmentSubsystemActive.s == ISS_ON)
-        return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension,
-                Declination, JulianOffset);
-    else
-        return false;
+    return TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset);
 }
 
 void MathPluginManagement::EnumeratePlugins()

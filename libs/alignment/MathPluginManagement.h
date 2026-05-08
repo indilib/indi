@@ -114,10 +114,32 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
         void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment);
 
         /**
-         * @brief TransformCelestialToTelescope Transforms Celestial (Sky) Coords to Mount Coordinates
+         * @brief TransformCelestialToTelescopeJD Transforms Celestial (Sky) Coords to Mount Coordinates
          * @param RightAscension Sky Right Ascension in hours.
          * @param Declination Sky Declination in degrees
-         * @param JulianOffset Julian time Offset in days
+         * @param JulianDate Absolute Julian Date (days)
+         * @param ApparentTelescopeDirectionVector Output Apparent Telescope Direction Vector
+         * @return True if transformation is successful, false otherwise.
+         */
+        bool TransformCelestialToTelescopeJD(double RightAscension, double Declination, double JulianDate,
+                                             TelescopeDirectionVector &ApparentTelescopeDirectionVector);
+
+        /**
+         * @brief TransformTelescopeToCelestialJD Transforms Mount Coords to Celestial (Sky) Coordinates
+         * @param ApparentTelescopeDirectionVector Input Apparent Telescope Direction Vector
+         * @param RightAscension Output Celestial Right Ascension
+         * @param Declination Output Celestial Declination
+         * @param JulianDate Absolute Julian Date (days)
+         * @return True if transformation is successful, false otherwise.
+         */
+        bool TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                                             double &RightAscension, double &Declination, double JulianDate);
+
+        /**
+         * @brief TransformCelestialToTelescope Compat shim — resolves JD and delegates to TransformCelestialToTelescopeJD
+         * @param RightAscension Sky Right Ascension in hours.
+         * @param Declination Sky Declination in degrees
+         * @param JulianOffset Julian time Offset in days added to ln_get_julian_from_sys()
          * @param ApparentTelescopeDirectionVector Output Apparent Telescope Direction Vector
          * @return True if transformation is successful, false otherwise.
          */
@@ -125,10 +147,11 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
                                            TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
         /**
-         * @brief TransformTelescopeToCelestial Transforms Mount Coords to Celestial (Sky) Coordinates
+         * @brief TransformTelescopeToCelestial Compat shim — resolves JD and delegates to TransformTelescopeToCelestialJD
          * @param ApparentTelescopeDirectionVector Input Apparent Telescope Direction Vector
          * @param RightAscension Output Celestial Right Ascension
          * @param Declination Output Celestial Declination
+         * @param JulianOffset Julian time Offset in days added to ln_get_julian_from_sys() (default 0)
          * @return True if transformation is successful, false otherwise.
          */
         bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,

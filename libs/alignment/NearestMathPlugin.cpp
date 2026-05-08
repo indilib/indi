@@ -135,13 +135,20 @@ bool NearestMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 bool NearestMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
         double JulianOffset, TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
+    return TransformCelestialToTelescopeJD(RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset,
+                                           ApparentTelescopeDirectionVector);
+}
+
+bool NearestMathPlugin::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double JulianDate, TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
     // Get Position
     IGeographicCoordinates Position;
     if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
-    // Get Julian date from system and apply Julian Offset if any.
-    double JDD = ln_get_julian_from_sys() + JulianOffset;
+    double JDD = JulianDate;
 
     // Compute CURRENT horizontal coords.
     INDI::IEquatorialCoordinates CelestialRADE {RightAscension, Declination};
@@ -217,11 +224,18 @@ bool NearestMathPlugin::TransformCelestialToTelescope(const double RightAscensio
 bool NearestMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
         double &RightAscension, double &Declination, double JulianOffset)
 {
+    return TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset);
+}
+
+bool NearestMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+        double &RightAscension, double &Declination, double JulianDate)
+{
     IGeographicCoordinates Position;
     if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
-    double JDD = ln_get_julian_from_sys() + JulianOffset;
+    double JDD = JulianDate;
 
     // Telescope Equatorial Coordinates
     INDI::IEquatorialCoordinates TelescopeRADE;

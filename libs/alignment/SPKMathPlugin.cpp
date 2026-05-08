@@ -164,8 +164,17 @@ bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, c
         double JulianOffset,
         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
+    return TransformCelestialToTelescopeJD(RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset,
+                                           ApparentTelescopeDirectionVector);
+}
+
+bool SPKMathPlugin::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double JulianDate,
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
     if (!UpdateObsConfig()) return false;
-    UpdateAstrometry(ln_get_julian_from_sys() + JulianOffset);
+    UpdateAstrometry(JulianDate);
 
     spkTAR tar;
     // Input RA/Dec is in INDI's "observed" (= SOFA's "apparent") form: precession,
@@ -209,8 +218,15 @@ bool SPKMathPlugin::TransformCelestialToTelescope(const double RightAscension, c
 bool SPKMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
         double &RightAscension, double &Declination, double JulianOffset)
 {
+    return TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset);
+}
+
+bool SPKMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+        double &RightAscension, double &Declination, double JulianDate)
+{
     if (!UpdateObsConfig()) return false;
-    UpdateAstrometry(ln_get_julian_from_sys() + JulianOffset);
+    UpdateAstrometry(JulianDate);
 
     spkAX3 ax3;
     double roll, pitch;
