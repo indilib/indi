@@ -36,7 +36,7 @@ static std::unique_ptr<PegasusPPBA> ppba(new PegasusPPBA());
 
 PegasusPPBA::PegasusPPBA() : INDI::DefaultDevice(), FI(this), WI(this), PI(this)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
     lastSensorData.reserve(PA_N);
     lastConsumptionData.reserve(PS_N);
     lastMetricsData.reserve(PC_N);
@@ -407,7 +407,7 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             PowerOnBootSP.update(states, names, n);
             PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
             PowerOnBootSP.apply();
-            saveConfig(true, PowerOnBootSP.getName());
+            saveConfig(PowerOnBootSP);
             return true;
         }
 
@@ -630,15 +630,21 @@ bool PegasusPPBA::setDewPWM(uint8_t id, uint8_t value)
 bool PegasusPPBA::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+
+    AdjOutVoltSP.save(fp);
+    PowerOnBootSP.save(fp);
+    AutoDewSettingsNP.save(fp);
+
     if (m_HasExternalMotor)
     {
         FI::saveConfigItems(fp);
         FocuserSettingsNP.save(fp);
         FocuserDriveSP.save(fp);
     }
+
     WI::saveConfigItems(fp);
-    PI::saveConfigItems(fp); // Save power properties
-    AutoDewSettingsNP.save(fp); // This is a custom property, not part of INDI::PowerInterface
+    PI::saveConfigItems(fp);
+
     return true;
 }
 

@@ -816,6 +816,7 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
         AutoDewAggNP.save(fp);
     }
     FocuserSettingsNP.save(fp);
+    PowerOnBootSP.save(fp);
     return true;
 }
 

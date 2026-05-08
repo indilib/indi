@@ -219,7 +219,7 @@ bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             PowerOnBootSP.update(states, names, n);
             PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
             PowerOnBootSP.apply();
-            saveConfig(true, PowerOnBootSP.getName());
+            saveConfig(PowerOnBootSP);
             return true;
         }
 
@@ -351,6 +351,9 @@ bool PegasusPPB::setDewPWM(uint8_t id, uint8_t value)
 bool PegasusPPB::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+
+    PowerOnBootSP.save(fp);
+
     WI::saveConfigItems(fp);
     PI::saveConfigItems(fp);
 
@@ -405,7 +408,7 @@ bool PegasusPPB::getSensorData()
                 PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
                 PI::PowerSensorsNP.setState(IPS_OK);
                 if (lastSensorData.size() > PA_CURRENT &&
-                    (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT]))
+                        (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT]))
                     PI::PowerSensorsNP.apply();
             }
 
@@ -416,9 +419,9 @@ bool PegasusPPB::getSensorData()
                 setParameterValue("WEATHER_HUMIDITY", std::stod(result[PA_HUMIDITY]));
                 setParameterValue("WEATHER_DEWPOINT", std::stod(result[PA_DEW_POINT]));
                 if (lastSensorData.size() > PA_DEW_POINT &&
-                    (lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
-                     lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
-                     lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT]))
+                        (lastSensorData[PA_TEMPERATURE] != result[PA_TEMPERATURE] ||
+                         lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
+                         lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT]))
                 {
                     if (WI::syncCriticalParameters())
                         critialParametersLP.apply();
@@ -458,7 +461,7 @@ bool PegasusPPB::getSensorData()
                 if (PI::DewChannelDutyCycleNP.size() >= 2)
                     PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
                 if (lastSensorData.size() > PA_DEW_2 &&
-                    (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2]))
+                        (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2]))
                     PI::DewChannelDutyCycleNP.apply();
             }
 
