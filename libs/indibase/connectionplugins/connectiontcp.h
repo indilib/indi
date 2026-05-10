@@ -141,8 +141,6 @@ class TCP : public Interface
         static constexpr uint8_t SOCKET_TIMEOUT {5};
         // Runtime-configurable connection retry parameters
         int m_ConnectRetries {3};
-        int m_BackoffBaseMs {500}; // milliseconds
-        // Flag to defer config persistence (avoid frequent saveConfig calls)
-        bool m_RetryConfigDirty {false};
-};
+        int m_BackoffBaseMs {500}; // milliseconds};
+  };
 }

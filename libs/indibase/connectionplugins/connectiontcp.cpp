@@ -191,8 +191,8 @@ bool TCP::ISNewNumber(const char *dev, const char *name, double values[], char *
             m_ConnectRetries = static_cast<int>(RetryN[TCP::RETRY_RETRIES].value);
             m_BackoffBaseMs = static_cast<int>(RetryN[TCP::RETRY_BACKOFF_MS].value);
 
-            // Mark config as dirty; actual save will be deferred
-            m_RetryConfigDirty = true;
+            // Persist the change
+            m_Device->saveConfig(true, RetryNP.name);
 
             // Log the new configuration for visibility
             LOGF_INFO("Connection retry configuration updated: CONNECT_RETRIES=%d, BACKOFF_BASE_MS=%d",
