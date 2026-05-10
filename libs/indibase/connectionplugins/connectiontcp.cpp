@@ -445,7 +445,7 @@ bool TCP::Connect()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::Disconnect()
 {
-    if (m_SockFD > 0)
+    if (m_SockFD != -1)
     {
         close(m_SockFD);
         m_SockFD = PortFD = -1;
