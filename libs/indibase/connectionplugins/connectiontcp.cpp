@@ -93,14 +93,14 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_RETRIES].name, &dval) == 0)
     {
         // Clamp CONNECT_RETRIES to valid range [0, 100]
-        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_CONNECT_RETRIES)));
+        dval = std::max(0.0, std::min(dval, TCP::MAX_CONNECT_RETRIES));
         RetryN[TCP::RETRY_RETRIES].value = dval;
         m_ConnectRetries = static_cast<int>(dval);
     }
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_BACKOFF_MS].name, &dval) == 0)
     {
         // Clamp BACKOFF_BASE_MS to valid range [0, 60000]
-        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_BACKOFF_BASE_DELAY)));
+        dval = std::max(0.0, std::min(dval, TCP::MAX_BACKOFF_BASE_DELAY));
         RetryN[TCP::RETRY_BACKOFF_MS].value = dval;
         m_BackoffBaseMs = static_cast<int>(dval);
     }
