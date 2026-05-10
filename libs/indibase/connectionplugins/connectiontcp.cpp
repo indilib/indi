@@ -83,7 +83,7 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
     // Default values
     IUFillNumber(&RetryN[TCP::RETRY_RETRIES], "CONNECT_RETRIES", "Connection retries", "%.0f", 0, TCP::MAX_CONNECT_RETRIES, 1,
                  static_cast<double>(m_ConnectRetries));
-    IUFillNumber(&RetryN[TCP::RETRY_BACKOFF_MS], "BACKOFF_BASE_MS", "Backoff base (ms)", "%.0f", 0, TCP::MAX_BACKOFF_DELAY, 1,
+    IUFillNumber(&RetryN[TCP::RETRY_BACKOFF_MS], "BACKOFF_BASE_MS", "Backoff base (ms)", "%.0f", 0, TCP::MAX_BACKOFF_BASE_DELAY, 1,
                  static_cast<double>(m_BackoffBaseMs));
     IUFillNumberVector(&RetryNP, RetryN, 2, getDeviceName(), "CONNECTION_RETRY", "Connection Retry",
                        CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
@@ -100,7 +100,7 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_BACKOFF_MS].name, &dval) == 0)
     {
         // Clamp BACKOFF_BASE_MS to valid range [0, 60000]
-        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_BACKOFF_DELAY)));
+        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_BACKOFF_BASE_DELAY)));
         RetryN[TCP::RETRY_BACKOFF_MS].value = dval;
         m_BackoffBaseMs = static_cast<int>(dval);
     }
@@ -182,17 +182,17 @@ bool TCP::ISNewNumber(const char *dev, const char *name, double values[], char *
             RetryNP.s = IPS_OK;
 
             // Validate and clamp CONNECT_RETRIES to [0, 100]
-            RetryN[TCP::RETRY_RETRIES].value = std::max(0.0, std::min(RetryN[TCP::RETRY_RETRIES].value, 100.0));
+            RetryN[TCP::RETRY_RETRIES].value = std::max(0.0, std::min(RetryN[TCP::RETRY_RETRIES].value, TCP::MAX_CONNECT_RETRIES));
             // Validate and clamp BACKOFF_BASE_MS to [0, 60000]
             RetryN[TCP::RETRY_BACKOFF_MS].value = std::max(0.0, std::min(RetryN[TCP::RETRY_BACKOFF_MS].value,
-                                                                            static_cast<double>(TCP::MAX_BACKOFF_DELAY)));
+                                                                            static_cast<double>(TCP::MAX_BACKOFF_BASE_DELAY)));
 
             // Update runtime values
             m_ConnectRetries = static_cast<int>(RetryN[TCP::RETRY_RETRIES].value);
             m_BackoffBaseMs = static_cast<int>(RetryN[TCP::RETRY_BACKOFF_MS].value);
 
-            // Persist the change
-            m_Device->saveConfig(true, RetryNP.name);
+            // Mark config as dirty; actual save will be deferred
+            m_RetryConfigDirty = true;
 
             // Log the new configuration for visibility
             LOGF_INFO("Connection retry configuration updated: CONNECT_RETRIES=%d, BACKOFF_BASE_MS=%d",
@@ -308,7 +308,10 @@ bool TCP::Connect()
         const auto isIPv4 = regex_match(hostname, ipv4);
 
         // Try a small number of retries on the requested address before falling back to LAN search
-        for (int attempt = 1; attempt <= connectRetries; ++attempt)
+        auto start_time = std::chrono::steady_clock::now();
+        long long total_elapsed_ms = 0;
+
+        for (int attempt = 1; attempt <= connectRetries && total_elapsed_ms < MAX_TOTAL_RETRY_TIME_MS; ++attempt)
         {
             if (establishConnection(hostname, port))
             {
@@ -337,15 +340,29 @@ bool TCP::Connect()
                 LOGF_DEBUG("Connection attempt %d/%d to %s@%s failed.", attempt, connectRetries, hostname.c_str(), port.c_str());
             }
 
-            if (attempt < connectRetries)
+            if (attempt < connectRetries && total_elapsed_ms < MAX_TOTAL_RETRY_TIME_MS)
             {
-                // backoff before retrying
-                int shift = std::min(attempt - 1, 30);
+                // Calculate backoff with capped exponential growth
+                int shift = std::min(attempt - 1, MAX_CONNECT_RETRIES);
                 long long backoff_ms = static_cast<long long>(backoffBaseMs) * (1LL << shift);
-                // Clamp to maximum
+                // Cap individual backoff
                 backoff_ms = std::min(backoff_ms, MAX_BACKOFF_DELAY);
-                LOGF_DEBUG("Waiting %lld ms before next connect attempt.", backoff_ms);
-                std::this_thread::sleep_for(std::chrono::milliseconds(backoff_ms));
+
+                // Ensure we don't exceed total retry time limit
+                long long remaining_time_ms = MAX_TOTAL_RETRY_TIME_MS - total_elapsed_ms;
+                backoff_ms = std::min(backoff_ms, remaining_time_ms);
+
+                if (backoff_ms > 0)
+                {
+                    LOGF_DEBUG("Waiting %lld ms before next connect attempt (total elapsed: %lld ms).", backoff_ms, total_elapsed_ms);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(backoff_ms));
+                    total_elapsed_ms += backoff_ms;
+                }
+                else
+                {
+                    LOGF_DEBUG("Skipping backoff - total retry time limit reached.");
+                    break;
+                }
             }
         }
 

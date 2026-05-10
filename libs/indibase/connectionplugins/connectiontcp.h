@@ -37,8 +37,14 @@ namespace Connection
 class TCP : public Interface
 {
     public:
-        static const long long MAX_BACKOFF_DELAY = 60000LL;
-        static const int MAX_CONNECT_RETRIES = 100;
+        // Max base delay for the exponential backoff retry
+        static const long long MAX_BACKOFF_BASE_DELAY = 10000LL;
+        // Max delay to wait for the next backoff retry
+        static const long long MAX_BACKOFF_DELAY = 30000LL;
+        // Max retry time
+        static const long long MAX_TOTAL_RETRY_TIME_MS = 300000LL; // 5 minutes
+
+        static const int MAX_CONNECT_RETRIES = 10;
         enum ConnectionType
         {
             TYPE_TCP = 0,
@@ -130,13 +136,13 @@ class TCP : public Interface
         std::string m_ConfigHost;
         std::string m_ConfigPort;
         int m_ConfigConnectionType {-1};
-        int m_ConfigConnectRetries {-1};
-        int m_ConfigBackoffBaseMs {-1};
         int m_SockFD {-1};
         int PortFD = -1;
         static constexpr uint8_t SOCKET_TIMEOUT {5};
         // Runtime-configurable connection retry parameters
         int m_ConnectRetries {3};
         int m_BackoffBaseMs {500}; // milliseconds
+        // Flag to defer config persistence (avoid frequent saveConfig calls)
+        bool m_RetryConfigDirty {false};
 };
 }
