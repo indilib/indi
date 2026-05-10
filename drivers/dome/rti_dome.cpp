@@ -756,10 +756,20 @@ bool RTIDome::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
 
-    SettingsNP.save(fp);
-    HomePositionNP.save(fp);
-    RainActionSP.save(fp);
-    ReversedSP.save(fp);
+    // Only persist properties whose state is IPS_OK — meaning they were either
+    // successfully read from the device in setupInitialParameters() or explicitly
+    // set by the user. This prevents default zero values (IPS_IDLE) from being
+    // written to the config file and then applied back to the device on the next
+    // connection, which would send invalid t0#/r0#/e0# commands and corrupt the
+    // serial receive buffer by interleaving with the normal poll sequence.
+    if (SettingsNP.getState() == IPS_OK)
+        SettingsNP.save(fp);
+    if (HomePositionNP.getState() == IPS_OK)
+        HomePositionNP.save(fp);
+    if (RainActionSP.getState() == IPS_OK)
+        RainActionSP.save(fp);
+    if (ReversedSP.getState() == IPS_OK)
+        ReversedSP.save(fp);
 
     return true;
 }
@@ -1221,15 +1231,16 @@ bool RTIDome::closeShutter()
 /////////////////////////////////////////////////////////////////////////////
 /// Send shutter hello (H#)
 /// Broadcasts a ping over the rotation controller's XBee radio to wake up
-/// the shutter controller. No response is expected — this is fire-and-forget.
-/// The X2 plugin calls this on connect and before each shutter operation to
-/// ensure the XBee link is established before querying shutter state (o#).
+/// the shutter controller. The rotation controller echoes H# back to the
+/// client (response: H#). We MUST read this response; leaving it unread in
+/// the RX buffer causes the very next command (o# / getShutterPresent) to
+/// consume the stale 'H' byte instead of its own response, producing a
+/// cascade of mis-matched read results and eventually serial timeout errors.
 /////////////////////////////////////////////////////////////////////////////
 bool RTIDome::sendShutterHello()
 {
-    // H# is sent without waiting for a response; the shutter controller
-    // will reply to the rotation controller internally via XBee.
-    return sendCommand("H", nullptr);
+    char res[DRIVER_LEN] = {0};
+    return sendCommand("H", res);
 }
 
 /////////////////////////////////////////////////////////////////////////////
