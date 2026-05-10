@@ -27,6 +27,9 @@
 #include <cstring>
 #include <unistd.h>
 #include <regex>
+#include <algorithm>
+#include <chrono>
+#include <thread>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <arpa/inet.h>
@@ -327,9 +330,12 @@ bool TCP::Connect()
             if (attempt < connectRetries)
             {
                 // backoff before retrying
-                int backoff = backoffBaseMs * (1 << (attempt - 1));
-                LOGF_DEBUG("Waiting %d ms before next connect attempt.", backoff);
-                usleep(static_cast<useconds_t>(backoff * 1000));
+                int shift = std::min(attempt - 1, 30);
+                long long backoff_ms = static_cast<long long>(backoffBaseMs) * (1LL << shift);
+                // Clamp to maximum
+                backoff_ms = std::min(backoff_ms, MAX_BACKOFF_DELAY);
+                LOGF_DEBUG("Waiting %lld ms before next connect attempt.", backoff_ms);
+                std::this_thread::sleep_for(std::chrono::milliseconds(backoff_ms));
             }
         }
 
