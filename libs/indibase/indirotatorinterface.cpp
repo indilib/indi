@@ -253,9 +253,9 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (ReverseRotatorSP.isNameMatch(name))
         {
-            m_defaultDevice->updateProperty(ReverseRotatorSP, states, names, n, [this, states]()
+            m_defaultDevice->updateProperty(ReverseRotatorSP, states, names, n, [this, names]()
             {
-                bool enabled = states[0] == ISS_ON;
+                bool enabled = ReverseRotatorSP[0].isNameMatch(names[0]) == ISS_ON;
 
                 if (ReverseRotator(enabled))
                 {
@@ -274,9 +274,9 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (RotatorBacklashSP.isNameMatch(name))
         {
-            m_defaultDevice->updateProperty(RotatorBacklashSP, states, names, n, [this, states]()
+            m_defaultDevice->updateProperty(RotatorBacklashSP, states, names, n, [this, names]()
             {
-                bool enabled = states[0] == ISS_ON;
+                bool enabled = RotatorBacklashSP[0].isNameMatch(names[0]) == ISS_ON;
 
                 if (SetRotatorBacklashEnabled(enabled))
                 {
