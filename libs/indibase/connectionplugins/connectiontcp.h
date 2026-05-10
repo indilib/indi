@@ -38,6 +38,7 @@ class TCP : public Interface
 {
     public:
         static const long long MAX_BACKOFF_DELAY = 60000LL;
+        static const int MAX_CONNECT_RETRIES = 100;
         enum ConnectionType
         {
             TYPE_TCP = 0,

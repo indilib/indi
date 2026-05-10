@@ -81,9 +81,9 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
 
     // Retry/backoff configuration: number vector property
     // Default values
-    IUFillNumber(&RetryN[TCP::RETRY_RETRIES], "CONNECT_RETRIES", "Connection retries", "%.0f", 0, 100, 1,
+    IUFillNumber(&RetryN[TCP::RETRY_RETRIES], "CONNECT_RETRIES", "Connection retries", "%.0f", 0, TCP::MAX_CONNECT_RETRIES, 1,
                  static_cast<double>(m_ConnectRetries));
-    IUFillNumber(&RetryN[TCP::RETRY_BACKOFF_MS], "BACKOFF_BASE_MS", "Backoff base (ms)", "%.0f", 0, 60000, 1,
+    IUFillNumber(&RetryN[TCP::RETRY_BACKOFF_MS], "BACKOFF_BASE_MS", "Backoff base (ms)", "%.0f", 0, TCP::MAX_BACKOFF_DELAY, 1,
                  static_cast<double>(m_BackoffBaseMs));
     IUFillNumberVector(&RetryNP, RetryN, 2, getDeviceName(), "CONNECTION_RETRY", "Connection Retry",
                        CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
@@ -92,11 +92,15 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
     double dval = 0;
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_RETRIES].name, &dval) == 0)
     {
+        // Clamp CONNECT_RETRIES to valid range [0, 100]
+        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_CONNECT_RETRIES)));
         RetryN[TCP::RETRY_RETRIES].value = dval;
         m_ConnectRetries = static_cast<int>(dval);
     }
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_BACKOFF_MS].name, &dval) == 0)
     {
+        // Clamp BACKOFF_BASE_MS to valid range [0, 60000]
+        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_BACKOFF_DELAY)));
         RetryN[TCP::RETRY_BACKOFF_MS].value = dval;
         m_BackoffBaseMs = static_cast<int>(dval);
     }
@@ -176,6 +180,12 @@ bool TCP::ISNewNumber(const char *dev, const char *name, double values[], char *
         {
             IUUpdateNumber(&RetryNP, values, names, n);
             RetryNP.s = IPS_OK;
+
+            // Validate and clamp CONNECT_RETRIES to [0, 100]
+            RetryN[TCP::RETRY_RETRIES].value = std::max(0.0, std::min(RetryN[TCP::RETRY_RETRIES].value, 100.0));
+            // Validate and clamp BACKOFF_BASE_MS to [0, 60000]
+            RetryN[TCP::RETRY_BACKOFF_MS].value = std::max(0.0, std::min(RetryN[TCP::RETRY_BACKOFF_MS].value,
+                                                                            static_cast<double>(TCP::MAX_BACKOFF_DELAY)));
 
             // Update runtime values
             m_ConnectRetries = static_cast<int>(RetryN[TCP::RETRY_RETRIES].value);
