@@ -37,6 +37,7 @@ namespace Connection
 class TCP : public Interface
 {
     public:
+        static const long long MAX_BACKOFF_DELAY = 60000LL;
         enum ConnectionType
         {
             TYPE_TCP = 0,
