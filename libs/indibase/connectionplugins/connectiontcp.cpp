@@ -92,15 +92,15 @@ TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION
     double dval = 0;
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_RETRIES].name, &dval) == 0)
     {
-        // Clamp CONNECT_RETRIES to valid range [0, 100]
+        // Clamp CONNECT_RETRIES to valid range
         dval = std::max(0.0, std::min(dval, TCP::MAX_CONNECT_RETRIES));
         RetryN[TCP::RETRY_RETRIES].value = dval;
         m_ConnectRetries = static_cast<int>(dval);
     }
     if (IUGetConfigNumber(dev->getDeviceName(), RetryNP.name, RetryN[TCP::RETRY_BACKOFF_MS].name, &dval) == 0)
     {
-        // Clamp BACKOFF_BASE_MS to valid range [0, 60000]
-        dval = std::max(0.0, std::min(dval, TCP::MAX_BACKOFF_BASE_DELAY));
+        // Clamp BACKOFF_BASE_MS to valid range
+        dval = std::max(0.0, std::min(dval, static_cast<double>(TCP::MAX_BACKOFF_BASE_DELAY)));
         RetryN[TCP::RETRY_BACKOFF_MS].value = dval;
         m_BackoffBaseMs = static_cast<int>(dval);
     }
@@ -181,9 +181,9 @@ bool TCP::ISNewNumber(const char *dev, const char *name, double values[], char *
             IUUpdateNumber(&RetryNP, values, names, n);
             RetryNP.s = IPS_OK;
 
-            // Validate and clamp CONNECT_RETRIES to [0, 100]
+            // Validate and clamp CONNECT_RETRIES to valid range
             RetryN[TCP::RETRY_RETRIES].value = std::max(0.0, std::min(RetryN[TCP::RETRY_RETRIES].value, TCP::MAX_CONNECT_RETRIES));
-            // Validate and clamp BACKOFF_BASE_MS to [0, 60000]
+            // Validate and clamp BACKOFF_BASE_MS to valid range
             RetryN[TCP::RETRY_BACKOFF_MS].value = std::max(0.0, std::min(RetryN[TCP::RETRY_BACKOFF_MS].value,
                                                                             static_cast<double>(TCP::MAX_BACKOFF_BASE_DELAY)));
 
@@ -361,10 +361,10 @@ bool TCP::Connect()
             if (attempt < connectRetries && total_elapsed_ms < MAX_TOTAL_RETRY_TIME_MS)
             {
                 // Calculate backoff with capped exponential growth
-                int shift = std::min(attempt - 1, MAX_BACKOFF_SHIFT);
+                int shift = std::min(attempt - 1, static_cast<int>(MAX_BACKOFF_SHIFT));
                 long long backoff_ms = static_cast<long long>(backoffBaseMs) * (1LL << shift);
                 // Cap individual backoff
-                backoff_ms = std::min(backoff_ms, MAX_BACKOFF_DELAY);
+                backoff_ms = std::min(backoff_ms, static_cast<long long>(MAX_BACKOFF_DELAY));
 
                 // Ensure we don't exceed total retry time limit
                 long long remaining_time_ms = MAX_TOTAL_RETRY_TIME_MS - total_elapsed_ms;
