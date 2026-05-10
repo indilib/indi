@@ -317,7 +317,7 @@ void ScopeSim::updateCurrentCoordsFromAxes()
             INDI::IEquatorialCoordinates raCoords{ encoderRA, instDec.Degrees() };
             TelescopeDirectionVector tdv =
                 TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
-            corrected = TransformTelescopeToCelestial(tdv, corrRA, corrDec);
+            corrected = TransformTelescopeToCelestialJD(tdv, corrRA, corrDec, ln_get_julian_from_sys());
         }
         if (corrected)
         {
@@ -571,7 +571,7 @@ bool ScopeSim::Goto(double r, double d)
     if (GetAlignmentDatabase().size() >= 1)
     {
         TelescopeDirectionVector tdv;
-        if (TransformCelestialToTelescope(r, d, 0.0, tdv))
+        if (TransformCelestialToTelescopeJD(r, d, ln_get_julian_from_sys(), tdv))
         {
             // The TDV now encodes encoder RA (time-stable), so decode with
             // EquatorialCoordinatesFromTelescopeDirectionVector — no LST conversion needed.

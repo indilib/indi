@@ -142,7 +142,9 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
          * @param JulianOffset Julian time Offset in days added to ln_get_julian_from_sys()
          * @param ApparentTelescopeDirectionVector Output Apparent Telescope Direction Vector
          * @return True if transformation is successful, false otherwise.
+         * @deprecated Use TransformCelestialToTelescopeJD with an explicit Julian Date
          */
+        [[deprecated("Use TransformCelestialToTelescopeJD with an explicit Julian Date")]]
         bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
                                            TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
@@ -153,7 +155,9 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
          * @param Declination Output Celestial Declination
          * @param JulianOffset Julian time Offset in days added to ln_get_julian_from_sys() (default 0)
          * @return True if transformation is successful, false otherwise.
+         * @deprecated Use TransformTelescopeToCelestialJD with an explicit Julian Date
          */
+        [[deprecated("Use TransformTelescopeToCelestialJD with an explicit Julian Date")]]
         bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                            double &RightAscension, double &Declination, double JulianOffset = 0);
 
