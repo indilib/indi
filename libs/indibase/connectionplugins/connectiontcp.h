@@ -44,7 +44,8 @@ class TCP : public Interface
         // Max retry time
         static const long long MAX_TOTAL_RETRY_TIME_MS = 300000LL; // 5 minutes
 
-        static const int MAX_CONNECT_RETRIES = 10;
+        static constexpr double MAX_CONNECT_RETRIES = 10;
+        static constexpr double MAX_BACKOFF_SHIFT = 10;
         enum ConnectionType
         {
             TYPE_TCP = 0,

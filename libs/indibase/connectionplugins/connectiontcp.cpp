@@ -308,12 +308,25 @@ bool TCP::Connect()
         const auto isIPv4 = regex_match(hostname, ipv4);
 
         // Try a small number of retries on the requested address before falling back to LAN search
-        auto start_time = std::chrono::steady_clock::now();
-        long long total_elapsed_ms = 0;
+        auto retry_start_time = std::chrono::steady_clock::now();
 
-        for (int attempt = 1; attempt <= connectRetries && total_elapsed_ms < MAX_TOTAL_RETRY_TIME_MS; ++attempt)
+        for (int attempt = 1; attempt <= connectRetries; ++attempt)
         {
-            if (establishConnection(hostname, port))
+            // Check if we've exceeded total retry time before starting this attempt
+            auto attempt_start = std::chrono::steady_clock::now();
+            long long total_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                attempt_start - retry_start_time).count();
+
+            if (total_elapsed_ms >= MAX_TOTAL_RETRY_TIME_MS)
+            {
+                LOGF_DEBUG("Total retry time limit (%lld ms) exceeded, stopping retry loop.", MAX_TOTAL_RETRY_TIME_MS);
+                break;
+            }
+
+            // Attempt connection
+            bool connection_succeeded = establishConnection(hostname, port);
+
+            if (connection_succeeded)
             {
                 PortFD = m_SockFD;
                 LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
@@ -340,10 +353,15 @@ bool TCP::Connect()
                 LOGF_DEBUG("Connection attempt %d/%d to %s@%s failed.", attempt, connectRetries, hostname.c_str(), port.c_str());
             }
 
+            // Calculate elapsed time including connection/handshake attempt
+            auto attempt_end = std::chrono::steady_clock::now();
+            total_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                attempt_end - retry_start_time).count();
+
             if (attempt < connectRetries && total_elapsed_ms < MAX_TOTAL_RETRY_TIME_MS)
             {
                 // Calculate backoff with capped exponential growth
-                int shift = std::min(attempt - 1, MAX_CONNECT_RETRIES);
+                int shift = std::min(attempt - 1, MAX_BACKOFF_SHIFT);
                 long long backoff_ms = static_cast<long long>(backoffBaseMs) * (1LL << shift);
                 // Cap individual backoff
                 backoff_ms = std::min(backoff_ms, MAX_BACKOFF_DELAY);
@@ -356,7 +374,6 @@ bool TCP::Connect()
                 {
                     LOGF_DEBUG("Waiting %lld ms before next connect attempt (total elapsed: %lld ms).", backoff_ms, total_elapsed_ms);
                     std::this_thread::sleep_for(std::chrono::milliseconds(backoff_ms));
-                    total_elapsed_ms += backoff_ms;
                 }
                 else
                 {
