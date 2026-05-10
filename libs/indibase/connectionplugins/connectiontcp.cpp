@@ -377,7 +377,7 @@ bool TCP::Connect()
                 }
                 else
                 {
-                    LOGF_DEBUG("Skipping backoff - total retry time limit reached.");
+                    LOG_DEBUG("Skipping backoff - total retry time limit reached.");
                     break;
                 }
             }
