@@ -180,18 +180,20 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
 
     if (AZReverseSP.isNameMatch(name))
     {
-        m_DefaultDevice->updateProperty(AZReverseSP, states, names, n, [this, states]()
+        m_DefaultDevice->updateProperty(AZReverseSP, states, names, n, [this, names]()
         {
-            return ReverseAZ(states[0] == ISS_ON);
+            bool enabled = AZReverseSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+            return ReverseAZ(enabled);
         }, true);
         return true;
     }
 
     if (ALTReverseSP.isNameMatch(name))
     {
-        m_DefaultDevice->updateProperty(ALTReverseSP, states, names, n, [this, states]()
+        m_DefaultDevice->updateProperty(ALTReverseSP, states, names, n, [this, names]()
         {
-            return ReverseALT(states[0] == ISS_ON);
+            bool enabled = ALTReverseSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+            return ReverseALT(enabled);
         }, true);
         return true;
     }
@@ -246,9 +248,10 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
 
     if (HasBacklash() && BacklashSP.isNameMatch(name))
     {
-        m_DefaultDevice->updateProperty(BacklashSP, states, names, n, [this, states]()
+        m_DefaultDevice->updateProperty(BacklashSP, states, names, n, [this, names]()
         {
-            return SetBacklashEnabled(states[0] == ISS_ON);
+            bool enabled = BacklashSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+            return SetBacklashEnabled(enabled);
         }, true);
         return true;
     }

@@ -557,9 +557,10 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // LED Control
         if (HasLEDToggle() && LEDControlSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(LEDControlSP, states, names, n, [this, states]()
+            return m_defaultDevice->updateProperty(LEDControlSP, states, names, n, [this, names]()
             {
-                return SetLEDEnabled(states[0] == ISS_ON);
+                bool enabled = LEDControlSP[0].isNameMatch(names[0]) == ISS_ON;
+                return SetLEDEnabled(enabled);
             }, true);
         }
 
