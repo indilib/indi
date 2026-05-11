@@ -468,7 +468,7 @@ INDI::IEquatorialCoordinates DSC::TelescopeEquatorialToSky()
         eq.declination = encoderEquatorialCoordinates.declination;
         TDV    = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
 
-        if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
+        if (!TransformTelescopeToCelestialJD(TDV, RightAscension, Declination, ln_get_julian_from_sys()))
         {
             RightAscension = encoderEquatorialCoordinates.rightascension;
             Declination    = encoderEquatorialCoordinates.declination;
@@ -493,7 +493,7 @@ INDI::IEquatorialCoordinates DSC::TelescopeHorizontalToSky()
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(encoderHorizontalCoordinates);
     double RightAscension, Declination;
 
-    if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
+    if (!TransformTelescopeToCelestialJD(TDV, RightAscension, Declination, ln_get_julian_from_sys()))
     {
         INDI::IEquatorialCoordinates EquatorialCoordinates {0, 0};
         TelescopeDirectionVector RotatedTDV(TDV);

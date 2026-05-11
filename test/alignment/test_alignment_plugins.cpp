@@ -24,8 +24,8 @@
 #include <alignment/TelescopeDirectionVectorSupportFunctions.h>
 #include "../../drivers/telescope/scopesim_helper.h"
 
-#include <libnova/sidereal_time.h>
 #include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -268,13 +268,12 @@ protected:
 
         double testRA  = 12.0;
         double testDec = (mountType == ::Alignment::ALTAZ) ? 60.0 : 45.0;
-        double joff    = fixedJD - ln_get_julian_from_sys();
 
         TelescopeDirectionVector resultV;
-        ASSERT_TRUE(plugin.TransformCelestialToTelescope(testRA, testDec, joff, resultV));
+        ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(testRA, testDec, fixedJD, resultV));
 
         double outRA, outDec;
-        plugin.TransformTelescopeToCelestial(resultV, outRA, outDec, joff);
+        plugin.TransformTelescopeToCelestialJD(resultV, outRA, outDec, fixedJD);
 
         ASSERT_NEAR(testRA,  outRA,  kRoundTripTolHours);
         ASSERT_NEAR(testDec, outDec, kRoundTripTolDeg);
@@ -328,8 +327,6 @@ protected:
 
         ASSERT_TRUE(plugin.Initialise(&alignDb));
 
-        double joff = fixedJD - ln_get_julian_from_sys();
-
         // Validation layer: Halton(5, 7)
         HaltonSequence validateSeq(5, 7);
         std::vector<double> residuals;
@@ -341,10 +338,10 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             TelescopeDirectionVector resultV;
-            ASSERT_TRUE(plugin.TransformCelestialToTelescope(ra, dec, joff, resultV));
+            ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, resultV));
 
             double outRA, outDec;
-            plugin.TransformTelescopeToCelestial(resultV, outRA, outDec, joff);
+            plugin.TransformTelescopeToCelestialJD(resultV, outRA, outDec, fixedJD);
 
             double dRA  = DEG_TO_ARCSEC(rangeHA(outRA - ra) * 15.0) * std::cos(DEG_TO_RAD(dec));
             double dDec = DEG_TO_ARCSEC(outDec - dec);
@@ -433,8 +430,6 @@ protected:
         ASSERT_TRUE(refPlugin.Initialise(&cleanDb));
         ASSERT_TRUE(noisyPlugin.Initialise(&noisyDb));
 
-        double joff = fixedJD - ln_get_julian_from_sys();
-
         HaltonSequence validateSeq(5, 7);
         std::vector<double> residuals;
 
@@ -446,11 +441,11 @@ protected:
 
             // Noisy plugin's predicted direction
             TelescopeDirectionVector noisyV;
-            ASSERT_TRUE(noisyPlugin.TransformCelestialToTelescope(ra, dec, joff, noisyV));
+            ASSERT_TRUE(noisyPlugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, noisyV));
 
-            // Reference (noiseless) plugin's predicted direction — same joff
+            // Reference (noiseless) plugin's predicted direction - same JD
             TelescopeDirectionVector refV;
-            ASSERT_TRUE(refPlugin.TransformCelestialToTelescope(ra, dec, joff, refV));
+            ASSERT_TRUE(refPlugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, refV));
 
             // Angular separation in arcseconds
             double dot = noisyV.x * refV.x + noisyV.y * refV.y + noisyV.z * refV.z;
@@ -518,7 +513,6 @@ protected:
 
         // Validation Phase: JD = fixedJD + shiftHours/24
         double valJD = fixedJD + shiftHours / 24.0;
-        double joff = valJD - ln_get_julian_from_sys();
 
         HaltonSequence validateSeq(5, 7);
         std::vector<double> residuals;
@@ -530,11 +524,10 @@ protected:
             getSkyPoint(raw.first, raw.second, minDec, maxDec, ra, dec);
 
             TelescopeDirectionVector resultV;
-            // The plugin must correctly interpret ra, dec relative to the new joff (time)
-            ASSERT_TRUE(plugin.TransformCelestialToTelescope(ra, dec, joff, resultV));
+            ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(ra, dec, valJD, resultV));
 
             double outRA, outDec;
-            plugin.TransformTelescopeToCelestial(resultV, outRA, outDec, joff);
+            plugin.TransformTelescopeToCelestialJD(resultV, outRA, outDec, valJD);
 
             double dRA  = DEG_TO_ARCSEC(rangeHA(outRA - ra) * 15.0) * std::cos(DEG_TO_RAD(dec));
             double dDec = DEG_TO_ARCSEC(outDec - dec);
@@ -593,8 +586,6 @@ protected:
         }
         ASSERT_TRUE(plugin.Initialise(&db));
 
-        double joff = fixedJD - ln_get_julian_from_sys();
-
         // Ground truth encoder position
         Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
         Angle adec(valDec);
@@ -603,7 +594,7 @@ protected:
 
         // Plugin C->T prediction, decoded to Az/Alt without T->C
         TelescopeDirectionVector tdv;
-        ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+        ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(valRA, valDec, fixedJD, tdv));
         INDI::IHorizontalCoordinates hor;
         pSupport->AltitudeAzimuthFromTelescopeDirectionVector(tdv, hor);
 
@@ -651,8 +642,6 @@ protected:
         }
         ASSERT_TRUE(plugin.Initialise(&db));
 
-        double joff = fixedJD - ln_get_julian_from_sys();
-
         // Ground truth encoder position (RA/Dec) from scopesim
         Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
         Angle adec(valDec);
@@ -662,7 +651,7 @@ protected:
 
         // Plugin C->T prediction, decoded to RA/Dec without T->C
         TelescopeDirectionVector tdv;
-        ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+        ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(valRA, valDec, fixedJD, tdv));
         INDI::IEquatorialCoordinates raCoords;
         pSupport->EquatorialCoordinatesFromTelescopeDirectionVector(tdv, raCoords);
 
@@ -714,8 +703,6 @@ protected:
         }
         ASSERT_TRUE(plugin.Initialise(&db));
 
-        double joff = fixedJD - ln_get_julian_from_sys();
-
         // Ground truth encoder position (Alt/Az) from scopesim
         Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
         Angle adec(valDec);
@@ -724,7 +711,7 @@ protected:
 
         // Plugin C->T prediction, decoded to Alt/Az without T->C
         TelescopeDirectionVector tdv;
-        ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+        ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(valRA, valDec, fixedJD, tdv));
         INDI::IHorizontalCoordinates horCoords;
         pSupport->AltitudeAzimuthFromTelescopeDirectionVector(tdv, horCoords);
 
@@ -777,8 +764,6 @@ protected:
 
         ASSERT_TRUE(plugin.Initialise(&alignDb));
 
-        double joff = fixedJD - ln_get_julian_from_sys();
-
         // 100-point validation set for flip tests
         HaltonSequence validateSeq(5, 7);
         std::vector<double> residuals;
@@ -790,10 +775,10 @@ protected:
             getSkyPoint(raw.first, raw.second, kEQ_MinDec, kEQ_MaxDec, ra, dec);
 
             TelescopeDirectionVector resultV;
-            ASSERT_TRUE(plugin.TransformCelestialToTelescope(ra, dec, joff, resultV));
+            ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, resultV));
 
             double outRA, outDec;
-            plugin.TransformTelescopeToCelestial(resultV, outRA, outDec, joff);
+            plugin.TransformTelescopeToCelestialJD(resultV, outRA, outDec, fixedJD);
 
             double dRA  = DEG_TO_ARCSEC(rangeHA(outRA - ra) * 15.0) * std::cos(DEG_TO_RAD(dec));
             double dDec = DEG_TO_ARCSEC(outDec - dec);
@@ -866,7 +851,6 @@ protected:
     void verifyHotMatchesCold(SPKMathPlugin &hotPlugin, SPKMathPlugin &coldPlugin,
                                ::Alignment::MOUNT_TYPE mountType = ::Alignment::EQ_GEM)
     {
-        double joff = fixedJD - ln_get_julian_from_sys();
         // Hot path uses pm=0 as the linearization point (Pmfit iteration-0);
         // Pmfit iterates to convergence.  With arcminute-level mount errors
         // the difference is a few arcseconds in angle space (~5e-5 in
@@ -881,8 +865,8 @@ protected:
             for (double testDec : decs)
             {
                 TelescopeDirectionVector hotV, coldV;
-                ASSERT_TRUE(hotPlugin.TransformCelestialToTelescope(testRA, testDec, joff, hotV));
-                ASSERT_TRUE(coldPlugin.TransformCelestialToTelescope(testRA, testDec, joff, coldV));
+                ASSERT_TRUE(hotPlugin.TransformCelestialToTelescopeJD(testRA, testDec, fixedJD, hotV));
+                ASSERT_TRUE(coldPlugin.TransformCelestialToTelescopeJD(testRA, testDec, fixedJD, coldV));
                 EXPECT_NEAR(hotV.x, coldV.x, tol) << "RA=" << testRA << " Dec/El=" << testDec;
                 EXPECT_NEAR(hotV.y, coldV.y, tol) << "RA=" << testRA << " Dec/El=" << testDec;
                 EXPECT_NEAR(hotV.z, coldV.z, tol) << "RA=" << testRA << " Dec/El=" << testDec;
@@ -1166,15 +1150,13 @@ TEST_F(AlignmentPluginTest, Nearest_AltAz_Goto_Convention_Regression)
     }
     ASSERT_TRUE(plugin.Initialise(&db));
 
-    double joff = fixedJD - ln_get_julian_from_sys();
-
     Angle ha(get_local_hour_angle(lst, valRA), Angle::HOURS);
     Angle adec(valDec);
     Angle encAz, encAlt;
     gen.apparentHaDecToMount(ha, adec, &encAz, &encAlt);
 
     TelescopeDirectionVector tdv;
-    ASSERT_TRUE(plugin.TransformCelestialToTelescope(valRA, valDec, joff, tdv));
+    ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(valRA, valDec, fixedJD, tdv));
     INDI::IHorizontalCoordinates hor;
     pSupport->AltitudeAzimuthFromTelescopeDirectionVector(tdv, hor);
 
@@ -1230,8 +1212,6 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_ConvexHullFallback)
 
     ASSERT_TRUE(plugin.Initialise(&alignDb));
 
-    double joff = fixedJD - ln_get_julian_from_sys();
-
     // Validation from western sky: RA in [6h, 18h) -- outside the convex hull
     int validateCount = 0;
     for (int i = 1; validateCount < 6; ++i)
@@ -1245,10 +1225,10 @@ TEST_F(AlignmentPluginTest, SVD_AlignValidate_ConvexHullFallback)
 
         TelescopeDirectionVector resultV;
         // Must not crash or fail; fallback should return a usable (if coarse) TDV
-        ASSERT_TRUE(plugin.TransformCelestialToTelescope(ra, dec, joff, resultV));
+        ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(ra, dec, fixedJD, resultV));
 
         double outRA, outDec;
-        plugin.TransformTelescopeToCelestial(resultV, outRA, outDec, joff);
+        plugin.TransformTelescopeToCelestialJD(resultV, outRA, outDec, fixedJD);
 
         double dRA  = DEG_TO_ARCSEC(rangeHA(outRA - ra) * 15.0) * std::cos(DEG_TO_RAD(dec));
         double dDec = DEG_TO_ARCSEC(outDec - dec);
@@ -1815,14 +1795,12 @@ static void RunPolarDegeneracyTestImpl(
 
     ASSERT_TRUE(plugin.Initialise(&db));
 
-    double joff = fixedJD - ln_get_julian_from_sys();
-
     // Target far from the pole/zenith
     double testRA  = 12.0;
     double testDec = (mountType == ::Alignment::ALTAZ) ? 30.0 : 45.0;
 
     TelescopeDirectionVector resultV;
-    ASSERT_TRUE(plugin.TransformCelestialToTelescope(testRA, testDec, joff, resultV));
+    ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(testRA, testDec, fixedJD, resultV));
 
     // Decode the TDV to encoder coordinates and sanity-check
     if (mountType == ::Alignment::ALTAZ)
@@ -2001,11 +1979,10 @@ TEST_F(AlignmentPluginTest, SPK_Incremental_InvalidStateNotUsed)
         ASSERT_TRUE(plugin.Initialise(&db));
     }
 
-    double joff = fixedJD - ln_get_julian_from_sys();
     TelescopeDirectionVector v;
-    ASSERT_TRUE(plugin.TransformCelestialToTelescope(12.0, 45.0, joff, v));
+    ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(12.0, 45.0, fixedJD, v));
     double outRA, outDec;
-    plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff);
+    plugin.TransformTelescopeToCelestialJD(v, outRA, outDec, fixedJD);
     EXPECT_NEAR(12.0, outRA,  kRoundTripTolHours);
     EXPECT_NEAR(45.0, outDec, kRoundTripTolDeg);
 }
@@ -2024,11 +2001,10 @@ TEST_F(AlignmentPluginTest, SPK_Incremental_MountTypeChange)
     auto generatorAz = buildIncrementalDb(plugin, kMixed, 7, dbAz, ::Alignment::ALTAZ);
     (void)generatorAz;
 
-    double joff = fixedJD - ln_get_julian_from_sys();
     TelescopeDirectionVector v;
-    ASSERT_TRUE(plugin.TransformCelestialToTelescope(12.0, 60.0, joff, v));
+    ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(12.0, 60.0, fixedJD, v));
     double outRA, outDec;
-    plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff);
+    plugin.TransformTelescopeToCelestialJD(v, outRA, outDec, fixedJD);
     EXPECT_NEAR(12.0, outRA,  kRoundTripTolHours);
     EXPECT_NEAR(60.0, outDec, kRoundTripTolDeg);
 }
@@ -2047,14 +2023,13 @@ TEST_F(AlignmentPluginTest, SPK_Lifecycle_NoLocation_TransformsFail)
     plugin.Initialise(&db);
     plugin.SetApproximateMountAlignment(ZENITH);
 
-    double joff = fixedJD - ln_get_julian_from_sys();
     TelescopeDirectionVector v;
-    EXPECT_FALSE(plugin.TransformCelestialToTelescope(12.0, 45.0, joff, v));
+    EXPECT_FALSE(plugin.TransformCelestialToTelescopeJD(12.0, 45.0, fixedJD, v));
 
     // Provide a dummy TDV and confirm T->C also fails without a location.
     v = TelescopeDirectionVector{0, 0, 1};
     double outRA, outDec;
-    EXPECT_FALSE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+    EXPECT_FALSE(plugin.TransformTelescopeToCelestialJD(v, outRA, outDec, fixedJD));
 }
 
 // Initialise without a location must not crash and must return true
@@ -2078,11 +2053,10 @@ TEST_F(AlignmentPluginTest, SPK_Lifecycle_LateLocation_TransformsSucceed)
     // Location arrives late (e.g. from a saved config property).
     db.SetDatabaseReferencePosition(kLosAngeles);
 
-    double joff = fixedJD - ln_get_julian_from_sys();
     TelescopeDirectionVector v;
-    EXPECT_TRUE(plugin.TransformCelestialToTelescope(12.0, 45.0, joff, v));
+    EXPECT_TRUE(plugin.TransformCelestialToTelescopeJD(12.0, 45.0, fixedJD, v));
     double outRA, outDec;
-    EXPECT_TRUE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+    EXPECT_TRUE(plugin.TransformTelescopeToCelestialJD(v, outRA, outDec, fixedJD));
 }
 
 // Mount type set after Initialise must be picked up on the next transform call,
@@ -2103,18 +2077,17 @@ TEST_F(AlignmentPluginTest, SPK_Lifecycle_MountTypeAfterInit_PickedUpByTransform
     plugin.SetApproximateMountAlignment(ZENITH);
 
     // Transform should use ALTAZ formulas.  Verify by round-trip: C->T->C.
-    double joff = fixedJD - ln_get_julian_from_sys();
     TelescopeDirectionVector v;
-    ASSERT_TRUE(plugin.TransformCelestialToTelescope(12.0, 30.0, joff, v));
+    ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(12.0, 30.0, fixedJD, v));
     double outRA, outDec;
-    ASSERT_TRUE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+    ASSERT_TRUE(plugin.TransformTelescopeToCelestialJD(v, outRA, outDec, fixedJD));
     EXPECT_NEAR(12.0, outRA,  kRoundTripTolHours);
     EXPECT_NEAR(30.0, outDec, kRoundTripTolDeg);
 
     // Now switch to EQUAT without Initialise — must also be picked up.
     plugin.SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
-    ASSERT_TRUE(plugin.TransformCelestialToTelescope(6.0, 45.0, joff, v));
-    ASSERT_TRUE(plugin.TransformTelescopeToCelestial(v, outRA, outDec, joff));
+    ASSERT_TRUE(plugin.TransformCelestialToTelescopeJD(6.0, 45.0, fixedJD, v));
+    ASSERT_TRUE(plugin.TransformTelescopeToCelestialJD(v, outRA, outDec, fixedJD));
     EXPECT_NEAR(6.0,  outRA,  kRoundTripTolHours);
     EXPECT_NEAR(45.0, outDec, kRoundTripTolDeg);
 }
@@ -2277,6 +2250,78 @@ TEST_F(DriverPipelineTest, AltAz_InstrumentRoundTrip_Southern)
         EXPECT_NEAR(testRA,  recoveredRA,    0.001) << "RA round-trip failed";
         EXPECT_NEAR(testDec, instDec.Degrees(), 0.001) << "Dec round-trip failed";
     }
+}
+
+// ---------------------------------------------------------------------------
+// LegacyPlugin fallback: verifies MathPlugin::TransformCelestialToTelescopeJD
+// default converts absolute JD -> correct JulianOffset for legacy external plugins.
+//
+// A legacy plugin implements only the old pure-virtual methods and does not
+// override the new *JD methods.  The base-class default must compute
+//   JulianOffset = JulianDate - ln_get_julian_from_sys()
+// so that when the legacy plugin adds ln_get_julian_from_sys() internally it
+// recovers the original absolute JD.  Passing 0.0 (the old bug) would give
+// the wrong time to any legacy plugin.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+struct LegacyPlugin : public MathPlugin
+{
+    double lastOffset = 999.0;  // sentinel; 0.0 would mask the old bug
+
+    bool TransformCelestialToTelescope(const double, const double,
+                                        double JulianOffset,
+                                        TelescopeDirectionVector &) override
+    {
+        lastOffset = JulianOffset;
+        return true;
+    }
+
+    bool TransformTelescopeToCelestial(const TelescopeDirectionVector &,
+                                        double &, double &, double JulianOffset) override
+    {
+        lastOffset = JulianOffset;
+        return true;
+    }
+};
+
+} // namespace
+
+TEST_F(AlignmentPluginTest, LegacyPlugin_JD_Fallback_CelestialToTelescope)
+{
+    LegacyPlugin plugin;
+    InMemoryDatabase db;
+    plugin.Initialise(&db);
+
+    TelescopeDirectionVector tdv;
+    double t1 = ln_get_julian_from_sys();
+    plugin.TransformCelestialToTelescopeJD(1.0, 45.0, fixedJD, tdv);
+    double t2 = ln_get_julian_from_sys();
+
+    // The default fallback computes offset = fixedJD - ln_get_julian_from_sys().
+    // Bracket with t1/t2 to tolerate any wall-clock delta during the call:
+    //   fixedJD - t2  <=  capturedOffset  <=  fixedJD - t1
+    // With the old 0.0 bug, capturedOffset == 0.0 which fails EXPECT_LE when
+    // fixedJD != now (i.e., always in practice).
+    EXPECT_GE(plugin.lastOffset, fixedJD - t2) << "offset too small";
+    EXPECT_LE(plugin.lastOffset, fixedJD - t1) << "offset too large (was 0.0 before fix)";
+}
+
+TEST_F(AlignmentPluginTest, LegacyPlugin_JD_Fallback_TelescopeToCelestial)
+{
+    LegacyPlugin plugin;
+    InMemoryDatabase db;
+    plugin.Initialise(&db);
+
+    TelescopeDirectionVector tdv{0.0, 0.0, 1.0};
+    double ra = 0, dec = 0;
+    double t1 = ln_get_julian_from_sys();
+    plugin.TransformTelescopeToCelestialJD(tdv, ra, dec, fixedJD);
+    double t2 = ln_get_julian_from_sys();
+
+    EXPECT_GE(plugin.lastOffset, fixedJD - t2) << "offset too small";
+    EXPECT_LE(plugin.lastOffset, fixedJD - t1) << "offset too large (was 0.0 before fix)";
 }
 
 int main(int argc, char **argv)

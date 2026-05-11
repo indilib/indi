@@ -9,6 +9,7 @@
 #include "MathPlugin.h"
 
 #include <indicom.h>
+#include <libnova/julian_day.h>
 
 #include <cmath>
 
@@ -16,6 +17,20 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
+bool MathPlugin::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double JulianDate, TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
+    return TransformCelestialToTelescope(RightAscension, Declination,
+                                         JulianDate - ln_get_julian_from_sys(), ApparentTelescopeDirectionVector);
+}
+
+bool MathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+        double &RightAscension, double &Declination, double JulianDate)
+{
+    return TransformTelescopeToCelestial(ApparentTelescopeDirectionVector, RightAscension, Declination,
+                                         JulianDate - ln_get_julian_from_sys());
+}
+
 bool MathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     MathPlugin::pInMemoryDatabase = pInMemoryDatabase;
