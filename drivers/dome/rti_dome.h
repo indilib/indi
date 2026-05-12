@@ -31,7 +31,6 @@ class RTIDome : public INDI::Dome
         virtual const char *getDefaultName() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual bool saveConfigItems(FILE *fp) override;
 
     protected:
         virtual bool initProperties() override;

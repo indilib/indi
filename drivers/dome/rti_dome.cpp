@@ -752,31 +752,6 @@ bool RTIDome::Abort()
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////
-bool RTIDome::saveConfigItems(FILE *fp)
-{
-    INDI::Dome::saveConfigItems(fp);
-
-    // Only persist properties whose state is IPS_OK — meaning they were either
-    // successfully read from the device in setupInitialParameters() or explicitly
-    // set by the user. This prevents default zero values (IPS_IDLE) from being
-    // written to the config file and then applied back to the device on the next
-    // connection, which would send invalid t0#/r0#/e0# commands and corrupt the
-    // serial receive buffer by interleaving with the normal poll sequence.
-    if (SettingsNP.getState() == IPS_OK)
-        SettingsNP.save(fp);
-    if (HomePositionNP.getState() == IPS_OK)
-        HomePositionNP.save(fp);
-    if (RainActionSP.getState() == IPS_OK)
-        RainActionSP.save(fp);
-    if (ReversedSP.getState() == IPS_OK)
-        ReversedSP.save(fp);
-
-    return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////
 bool RTIDome::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosNP[0].getValue());
