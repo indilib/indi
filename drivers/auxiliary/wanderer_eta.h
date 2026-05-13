@@ -86,6 +86,14 @@ class WandererETA : public INDI::DefaultDevice
             ZERO_ALL,
         };
 
+        // Backfocus offset - apply uniform offset to all points
+        INDI::PropertyNumber BackfocusOffsetNP{1};
+        INDI::PropertySwitch ApplyOffsetSP{1};
+        enum
+        {
+            APPLY_OFFSET,
+        };
+
         int PortFD{ -1 };
         Connection::Serial *serialConnection{ nullptr };
 
