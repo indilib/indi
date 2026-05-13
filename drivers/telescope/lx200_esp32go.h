@@ -48,40 +48,46 @@ class LX200_esp32go : public LX200Generic
         bool initProperties() override;
         bool updateProperties() override;
         void ISGetProperties(const char *dev) override;
-        //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n); //override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
-        virtual bool UnPark() override;
 
-        
+        virtual bool UnPark() override;
+        virtual bool Park() override;
         virtual bool ReadScopeStatus() override;
         virtual void getBasicData() override;
         virtual bool SetTrackEnabled(bool enabled) override;
         virtual bool SetTrackMode(uint8_t mode) override;
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
+
+        bool goHome();
+        bool setHome();
 
         INDI::PropertyText VersionTP {5};
         INDI::PropertyNumber GuideRateNP {2};
-        bool guideUpdate = false;
-        bool trackmodeUpdate = false;
-        bool picgotoMode = false;
-        bool activeFocus = true;
+    
+        bool guideUpdate = false; // support for :cg# / :cj# commands
+        bool trackmodeUpdate = false;  // 
+        bool picgotoMode = false; // old boards
+        bool activeFocus = true; // support for stepper focuser
+        bool canGetStatus = false; // support for status (:GU#) and trackMode (:T*#) commands
         enum TelescopeTrackMode
         {
             TRACK_SIDEREAL,
             TRACK_SOLAR,
             TRACK_LUNAR,
-            TRACK_KING
+            TRACK_CUSTOM
         };
 
         long int OSTimeoutSeconds = 0;
         long int OSTimeoutMicroSeconds = 100000;
+        long int longPollCounter = 0;
+        long int longPollCycle = 30;
         
         int flushIO(int fd); // copied from LX200_OnStep driver
-        int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd); // copied from LX200_OnStep driver
+        int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd, bool shortTimeout); // copied from LX200_OnStep driver
         bool sendCommandBlind(const char *cmd); // copied from LX200_OnStep driver
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd);
-
         void splitString(const char *str, char array[][100], int *count);
 
         // ------------ FocuserInterface
