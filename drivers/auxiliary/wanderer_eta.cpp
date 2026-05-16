@@ -87,6 +87,14 @@ bool WandererETA::initProperties()
     ZeroAllSP[ZERO_ALL].fill("ZERO_ALL", "Zero All Points", ISS_OFF);
     ZeroAllSP.fill(getDeviceName(), "ZERO_ALL_CMD", "Zero All", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // Backfocus offset - apply uniform offset to all 3 points simultaneously
+    BackfocusOffsetNP[0].fill("OFFSET_MM", "Offset (mm)", "%.3f", -1.200, 1.200, 0.010, 0.000);
+    BackfocusOffsetNP.fill(getDeviceName(), "BACKFOCUS_OFFSET", "Backfocus Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    ApplyOffsetSP[APPLY_OFFSET].fill("APPLY_OFFSET", "Apply Offset", ISS_OFF);
+    ApplyOffsetSP.fill(getDeviceName(), "APPLY_OFFSET_CMD", "Apply Offset", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
+
     setDefaultPollingPeriod(2000);
 
     serialConnection = new Connection::Serial(this);
@@ -120,6 +128,8 @@ bool WandererETA::updateProperties()
         defineProperty(PositionReadNP);
         defineProperty(FirmwareTP);
         defineProperty(ZeroAllSP);
+        defineProperty(BackfocusOffsetNP);
+        defineProperty(ApplyOffsetSP);
     }
     else
     {
@@ -129,6 +139,8 @@ bool WandererETA::updateProperties()
         deleteProperty(PositionReadNP);
         deleteProperty(FirmwareTP);
         deleteProperty(ZeroAllSP);
+        deleteProperty(BackfocusOffsetNP);
+        deleteProperty(ApplyOffsetSP);
     }
 
     return true;
@@ -299,6 +311,15 @@ bool WandererETA::ISNewNumber(const char *dev, const char *name, double values[]
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
+        // Handle backfocus offset value change (just stores the value)
+        if (BackfocusOffsetNP.isNameMatch(name))
+        {
+            BackfocusOffsetNP.update(values, names, n);
+            BackfocusOffsetNP.setState(IPS_OK);
+            BackfocusOffsetNP.apply();
+            return true;
+        }
+
         // Determine which point is being commanded
         int pointIndex = -1;
 
@@ -381,6 +402,106 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
+        // Apply backfocus offset to all 3 points equally
+        if (ApplyOffsetSP.isNameMatch(name))
+        {
+            double offset = BackfocusOffsetNP[0].getValue();
+
+            if (std::abs(offset) < 0.001)
+            {
+                LOG_WARN("Offset is zero, nothing to apply");
+                ApplyOffsetSP.setState(IPS_IDLE);
+                ApplyOffsetSP[APPLY_OFFSET].setState(ISS_OFF);
+                ApplyOffsetSP.apply();
+                return true;
+            }
+
+            // Read current positions from readback
+            double pos1 = PositionReadNP[POINT_1].getValue();
+            double pos2 = PositionReadNP[POINT_2].getValue();
+            double pos3 = PositionReadNP[POINT_3].getValue();
+
+            // Calculate new targets
+            double newPos1 = pos1 + offset;
+            double newPos2 = pos2 + offset;
+            double newPos3 = pos3 + offset;
+
+            // Validate all within range
+            if (newPos1 < 0.0 || newPos1 > 1.2 ||
+                newPos2 < 0.0 || newPos2 > 1.2 ||
+                newPos3 < 0.0 || newPos3 > 1.2)
+            {
+                LOGF_ERROR("Offset %.3f mm would move one or more points out of range (0.000 - 1.200 mm). "
+                           "Current positions: P1=%.3f, P2=%.3f, P3=%.3f",
+                           offset, pos1, pos2, pos3);
+                ApplyOffsetSP.setState(IPS_ALERT);
+                ApplyOffsetSP[APPLY_OFFSET].setState(ISS_OFF);
+                ApplyOffsetSP.apply();
+                return true;
+            }
+
+            LOGF_INFO("Applying backfocus offset %.3f mm to all points (P1: %.3f→%.3f, P2: %.3f→%.3f, P3: %.3f→%.3f)",
+                      offset, pos1, newPos1, pos2, newPos2, pos3, newPos3);
+
+            bool success = true;
+            m_SendingCommand = true;
+            usleep(200000);
+            tcflush(PortFD, TCIOFLUSH);
+            usleep(100000);
+
+            double targets[3] = {newPos1, newPos2, newPos3};
+            for (int i = 0; i < 3; i++)
+            {
+                char cmd[32];
+                snprintf(cmd, sizeof(cmd), "%d%.3f\n", i + 1, targets[i]);
+
+                tcflush(PortFD, TCIOFLUSH);
+                usleep(100000);
+
+                int nbytes_written = 0, rc = -1;
+                if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+                {
+                    char errorMessage[MAXRBUF];
+                    tty_error_msg(rc, errorMessage, MAXRBUF);
+                    LOGF_ERROR("Serial write error on Point %d: %s", i + 1, errorMessage);
+                    success = false;
+                    break;
+                }
+                tcdrain(PortFD);
+
+                if (!waitForPosition(i, targets[i], 15000))
+                {
+                    LOGF_WARN("Point %d did not reach target %.3f within timeout", i + 1, targets[i]);
+                }
+            }
+
+            m_SendingCommand = false;
+
+            if (success)
+            {
+                // Update target properties to reflect new positions
+                Position1NP[0].setValue(newPos1);
+                Position1NP.setState(IPS_OK);
+                Position1NP.apply();
+                Position2NP[0].setValue(newPos2);
+                Position2NP.setState(IPS_OK);
+                Position2NP.apply();
+                Position3NP[0].setValue(newPos3);
+                Position3NP.setState(IPS_OK);
+                Position3NP.apply();
+
+                // Reset offset field to zero after successful application
+                BackfocusOffsetNP[0].setValue(0.0);
+                BackfocusOffsetNP.setState(IPS_OK);
+                BackfocusOffsetNP.apply();
+            }
+
+            ApplyOffsetSP.setState(success ? IPS_OK : IPS_ALERT);
+            ApplyOffsetSP[APPLY_OFFSET].setState(ISS_OFF);
+            ApplyOffsetSP.apply();
+            return true;
+        }
+
         if (ZeroAllSP.isNameMatch(name))
         {
             bool success = true;
