@@ -422,14 +422,12 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
             double pos3 = PositionReadNP[POINT_3].getValue();
 
             // Calculate new targets
-            double newPos1 = pos1 + offset;
-            double newPos2 = pos2 + offset;
-            double newPos3 = pos3 + offset;
+            double targets[3] = {pos1 + offset, pos2 + offset, pos3 + offset};
 
             // Validate all within range
-            if (newPos1 < 0.0 || newPos1 > 1.2 ||
-                newPos2 < 0.0 || newPos2 > 1.2 ||
-                newPos3 < 0.0 || newPos3 > 1.2)
+            if (targets[0] < 0.0 || targets[0] > 1.2 ||
+                targets[1] < 0.0 || targets[1] > 1.2 ||
+                targets[2] < 0.0 || targets[2] > 1.2)
             {
                 LOGF_ERROR("Offset %.3f mm would move one or more points out of range (0.000 - 1.200 mm). "
                            "Current positions: P1=%.3f, P2=%.3f, P3=%.3f",
@@ -441,56 +439,13 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
             }
 
             LOGF_INFO("Applying backfocus offset %.3f mm to all points (P1: %.3f→%.3f, P2: %.3f→%.3f, P3: %.3f→%.3f)",
-                      offset, pos1, newPos1, pos2, newPos2, pos3, newPos3);
+                      offset, pos1, targets[0], pos2, targets[1], pos3, targets[2]);
 
-            bool success = true;
-            m_SendingCommand = true;
-            usleep(200000);
-            tcflush(PortFD, TCIOFLUSH);
-            usleep(100000);
-
-            double targets[3] = {newPos1, newPos2, newPos3};
-            for (int i = 0; i < 3; i++)
-            {
-                char cmd[32];
-                snprintf(cmd, sizeof(cmd), "%d%.3f\n", i + 1, targets[i]);
-
-                tcflush(PortFD, TCIOFLUSH);
-                usleep(100000);
-
-                int nbytes_written = 0, rc = -1;
-                if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
-                {
-                    char errorMessage[MAXRBUF];
-                    tty_error_msg(rc, errorMessage, MAXRBUF);
-                    LOGF_ERROR("Serial write error on Point %d: %s", i + 1, errorMessage);
-                    success = false;
-                    break;
-                }
-                tcdrain(PortFD);
-
-                if (!waitForPosition(i, targets[i], 15000))
-                {
-                    LOGF_WARN("Point %d did not reach target %.3f within timeout", i + 1, targets[i]);
-                }
-            }
-
-            m_SendingCommand = false;
+            bool success = moveAllPoints(targets);
 
             if (success)
             {
-                // Update target properties to reflect new positions
-                Position1NP[0].setValue(newPos1);
-                Position1NP.setState(IPS_OK);
-                Position1NP.apply();
-                Position2NP[0].setValue(newPos2);
-                Position2NP.setState(IPS_OK);
-                Position2NP.apply();
-                Position3NP[0].setValue(newPos3);
-                Position3NP.setState(IPS_OK);
-                Position3NP.apply();
-
-                // Reset offset field to zero after successful application
+                updateAllTargets(targets);
                 BackfocusOffsetNP[0].setValue(0.0);
                 BackfocusOffsetNP.setState(IPS_OK);
                 BackfocusOffsetNP.apply();
@@ -504,53 +459,13 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
 
         if (ZeroAllSP.isNameMatch(name))
         {
-            bool success = true;
+            double targets[3] = {0.0, 0.0, 0.0};
+            LOG_INFO("Moving all points to zero position");
 
-            m_SendingCommand = true;
-            usleep(200000);
-            tcflush(PortFD, TCIOFLUSH);
-            usleep(100000);
-
-            // Send zero command for each point with flush and wait
-            for (int i = 0; i < 3; i++)
-            {
-                char cmd[32];
-                snprintf(cmd, sizeof(cmd), "%d0.000\n", i + 1);
-
-                tcflush(PortFD, TCIOFLUSH);
-                usleep(100000);
-
-                int nbytes_written = 0, rc = -1;
-                if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
-                {
-                    success = false;
-                    break;
-                }
-                tcdrain(PortFD);
-                LOGF_INFO("Zeroing Point %d", i + 1);
-
-                if (!waitForPosition(i, 0.0, 15000))
-                {
-                    LOGF_WARN("Point %d did not reach zero within timeout", i + 1);
-                }
-            }
-
-            m_SendingCommand = false;
+            bool success = moveAllPoints(targets);
 
             if (success)
-            {
-                LOG_INFO("Moving all points to zero position");
-                // Update targets to reflect zero
-                Position1NP[0].setValue(0.0);
-                Position1NP.setState(IPS_OK);
-                Position1NP.apply();
-                Position2NP[0].setValue(0.0);
-                Position2NP.setState(IPS_OK);
-                Position2NP.apply();
-                Position3NP[0].setValue(0.0);
-                Position3NP.setState(IPS_OK);
-                Position3NP.apply();
-            }
+                updateAllTargets(targets);
 
             ZeroAllSP.setState(success ? IPS_OK : IPS_ALERT);
             ZeroAllSP[ZERO_ALL].setState(ISS_OFF);
@@ -560,6 +475,63 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Move all 3 points to specified targets (shared logic for ZeroAll and ApplyOffset)
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WandererETA::moveAllPoints(double targets[3])
+{
+    m_SendingCommand = true;
+    usleep(200000);
+    tcflush(PortFD, TCIOFLUSH);
+    usleep(100000);
+
+    bool success = true;
+    for (int i = 0; i < 3; i++)
+    {
+        char cmd[32];
+        snprintf(cmd, sizeof(cmd), "%d%.3f\n", i + 1, targets[i]);
+
+        tcflush(PortFD, TCIOFLUSH);
+        usleep(100000);
+
+        int nbytes_written = 0, rc = -1;
+        if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+        {
+            char errorMessage[MAXRBUF];
+            tty_error_msg(rc, errorMessage, MAXRBUF);
+            LOGF_ERROR("Serial write error on Point %d: %s", i + 1, errorMessage);
+            success = false;
+            break;
+        }
+        tcdrain(PortFD);
+        LOGF_INFO("Moving Point %d to %.3f mm", i + 1, targets[i]);
+
+        if (!waitForPosition(i, targets[i], 15000))
+        {
+            LOGF_WARN("Point %d did not reach target %.3f within timeout", i + 1, targets[i]);
+        }
+    }
+
+    m_SendingCommand = false;
+    return success;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Update all 3 target position properties after a successful multi-point move
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void WandererETA::updateAllTargets(double targets[3])
+{
+    Position1NP[0].setValue(targets[0]);
+    Position1NP.setState(IPS_OK);
+    Position1NP.apply();
+    Position2NP[0].setValue(targets[1]);
+    Position2NP.setState(IPS_OK);
+    Position2NP.apply();
+    Position3NP[0].setValue(targets[2]);
+    Position3NP.setState(IPS_OK);
+    Position3NP.apply();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
