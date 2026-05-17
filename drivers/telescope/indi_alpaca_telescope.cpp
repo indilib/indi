@@ -269,6 +269,24 @@ bool alpacaTelescopeDriver::Handshake()
         LOGF_INFO("Site location set: Lat=%.6f° Long=%.6f°", latitude, longitude);
     }
 
+    // Query tracking capability
+    if (sendAlpacaGET("/cansettracking", response) && response.contains("Value"))
+    {
+        if (response["Value"].get<bool>())
+        {
+            SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK, 4);
+            LOG_INFO("Telescope supports tracking control - TELESCOPE_TRACK_STATE enabled");
+        }
+        else
+        {
+            LOG_INFO("Telescope does not support tracking control");
+        }
+    }
+    else
+    {
+        LOG_WARN("Failed to query tracking capability from device");
+    }
+
     // Get initial coordinates
     ReadScopeStatus();
 
