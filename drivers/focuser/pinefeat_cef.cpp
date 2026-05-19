@@ -103,13 +103,15 @@ bool PinefeatCEF::updateProperties()
         defineProperty(ApertureAbsNP);
         defineProperty(ApertureRelNP);
 
-        int32_t pos;
+        int32_t pos, max;
         std::string dist, aper;
-        if (readFocusPosition(pos) &&
-                readFocusDistance(dist) &&
-                readApertureRange(aper) &&
-                updateProperties(pos, dist, aper))
+        if (readFocusPosition(pos)
+                && (max = pos, 1)
+                && readFocusMaxPosition(max)
+                && readFocusDistance(dist)
+                && readApertureRange(aper))
         {
+            updateProperties(pos, max, dist, aper);
             LOG_INFO("Parameters updated, the controller is ready for use.");
         }
     }
@@ -125,7 +127,7 @@ bool PinefeatCEF::updateProperties()
     return true;
 }
 
-bool PinefeatCEF::updateProperties(const int32_t pos, const std::string dist, const std::string aper)
+void PinefeatCEF::updateProperties(const int32_t pos, const int32_t max, const std::string dist, const std::string aper)
 {
     FocusAbsPosNP[0].setValue(pos);
     FocusAbsPosNP.setState(IPS_OK);
@@ -139,7 +141,7 @@ bool PinefeatCEF::updateProperties(const int32_t pos, const std::string dist, co
 
     if (FocusMaxPosNP.getState() == IPS_BUSY)
     {
-        FocusMaxPosNP[0].setValue(pos);
+        FocusMaxPosNP[0].setValue(max);
         FocusMaxPosNP.setState(IPS_IDLE);
         FocusMaxPosNP.apply();
 
@@ -153,8 +155,6 @@ bool PinefeatCEF::updateProperties(const int32_t pos, const std::string dist, co
 
     ApertureRangeTP[0].setText(aper);
     ApertureRangeTP.apply();
-
-    return true;
 }
 
 bool PinefeatCEF::Handshake()
@@ -180,6 +180,12 @@ bool PinefeatCEF::readFirmwareVersion()
     if (!sendCommand("v\n", res))
         return false;
 
+    int major, minor;
+    if (sscanf(res, "%d.%d", &major, &minor) == 2)
+    {
+        setVersion(major, minor);
+    }
+
     LOGF_INFO("Detected firmware version %s.", res);
 
     return true;
@@ -196,6 +202,28 @@ bool PinefeatCEF::readFocusPosition(int32_t &pos)
     if (rc <= 0)
     {
         LOGF_ERROR("Can't read focus position: %s.", ERR_NC(res));
+        return false;
+    }
+
+    return true;
+}
+
+bool PinefeatCEF::readFocusMaxPosition(int32_t &pos)
+{
+    if (getMinorVersion() < 3)
+    {
+        return true;
+    }
+
+    char res[CEF_BUF] = {0};
+
+    if (!sendCommand("r\n", res))
+        return false;
+
+    int rc = sscanf(res, "%*d-%d", &pos);
+    if (rc <= 0)
+    {
+        LOGF_ERROR("Can't read max focus position: %s.", ERR_NC(res));
         return false;
     }
 
@@ -350,6 +378,9 @@ bool PinefeatCEF::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             if (calibrate())
             {
+                // Delay further update until calibration starter
+                lastUpdate = std::chrono::steady_clock::now();
+
                 FocusAbsPosNP.setState(IPS_BUSY);
                 FocusAbsPosNP.apply();
 
@@ -434,18 +465,18 @@ void PinefeatCEF::TimerHit()
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - lastUpdate).count();
 
-    if ((elapsed >= 1 ||
-            FocusAbsPosNP.getState() == IPS_BUSY ||
-            FocusRelPosNP.getState() == IPS_BUSY ||
-            FocusMaxPosNP.getState() == IPS_BUSY) &&
-            isNotMoving())
+    if (elapsed >= 1 && isNotMoving())
     {
-        int32_t pos;
+        int32_t pos, max;
         std::string dist, aper;
         if (readFocusPosition(pos)
+                && (max = pos, 1)
+                && readFocusMaxPosition(max)
                 && readFocusDistance(dist)
                 && readApertureRange(aper))
-            updateProperties(pos, dist, aper);
+        {
+            updateProperties(pos, max, dist, aper);
+        }
     }
 
     SetTimer(getCurrentPollingPeriod());
