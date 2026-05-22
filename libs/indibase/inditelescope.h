@@ -985,6 +985,11 @@ class Telescope : public DefaultDevice
         float motionDirNSValue {0};
         float motionDirWEValue {0};
 
+        /// True when ready to act on the next SLEWPRESET joystick press.
+        /// Set back to true when mag drops to 0 (joystick released).
+        /// Prevents repeated slew-rate changes caused by jitter while the joystick is held.
+        bool m_slewPresetArmed {true};
+
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
 
         // 100 millisecond of arc or time.

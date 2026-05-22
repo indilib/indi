@@ -694,7 +694,7 @@ void Telescope::NewRaDec(double ra, double dec)
     }
 
     // RA is in hours, so change the arc-second threshold accordingly.
-    constexpr double RA_NOTIFY_THRESHOLD = EQ_NOTIFY_THRESHOLD/15.0;
+    constexpr double RA_NOTIFY_THRESHOLD = EQ_NOTIFY_THRESHOLD / 15.0;
     if (std::abs(EqNP[AXIS_RA].getValue() - ra) > RA_NOTIFY_THRESHOLD ||
             std::abs(EqNP[AXIS_DE].getValue() - dec) > EQ_NOTIFY_THRESHOLD ||
             EqNP.getState() != lastEqState)
@@ -2420,11 +2420,13 @@ void Telescope::processButton(const char *button_n, ISState state)
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
     {
-        processSlewPresets(1, 270);
+        // angle=90 (RIGHT) falls in the (45°,225°] "increase-index" branch
+        processSlewPresets(1, 90);
     }
     else if (!strcmp(button_n, "SLEWPRESETDOWN"))
     {
-        processSlewPresets(1, 90);
+        // angle=270 (LEFT) falls in the "decrease-index" branch
+        processSlewPresets(1, 270);
     }
 }
 
@@ -2639,30 +2641,46 @@ void Telescope::processNSWE(double mag, double angle)
 
 void Telescope::processSlewPresets(double mag, double angle)
 {
-    // high threshold, only 1 is accepted
-    if (mag != 1)
+    // mag >= 0.9  → joystick fully deflected → eligible to fire once
+    // mag <  0.5  → joystick near centre     → re-arm for next press
+    // 0.5 ≤ mag < 0.9 → transitional zone   → do nothing
+    if (mag < 0.9)
+    {
+        if (mag < 0.5 && !m_slewPresetArmed)
+            m_slewPresetArmed = true;
         return;
+    }
+
+    // Already fired once for this press – ignore jitter until released.
+    if (!m_slewPresetArmed)
+        return;
+
+    m_slewPresetArmed = false;
 
     size_t currentIndex = SlewRateSP.findOnSwitchIndex();
 
-    // Up
-    if (angle > 0 && angle < 180)
+    // Direction convention (compass angles, N=0°):
+    //   RIGHT (90°) / DOWN (180°)  → angle in (45°, 225°] → increase index
+    //   UP    (0°)  / LEFT (270°)  → angle outside that range → decrease index
+    //
+    // This matches the standard GUI list convention where RIGHT/DOWN moves to
+    // the next (higher-index) item and UP/LEFT moves to the previous item.
+    if (angle > 45 && angle <= 225)
     {
-        if (currentIndex <= 0)
-            return;
-
-        SlewRateSP.reset();
-        SlewRateSP[currentIndex - 1].setState(ISS_ON);
-        SetSlewRate(currentIndex - 1);
-    }
-    // Down
-    else
-    {
+        // Increase index → next (faster) slew rate
         if (currentIndex >= SlewRateSP.count() - 1)
             return;
-
         SlewRateSP.reset();
         SlewRateSP[currentIndex + 1].setState(ISS_ON);
+        SetSlewRate(currentIndex + 1);
+    }
+    else
+    {
+        // Decrease index → previous (slower) slew rate
+        if (currentIndex <= 0)
+            return;
+        SlewRateSP.reset();
+        SlewRateSP[currentIndex - 1].setState(ISS_ON);
         SetSlewRate(currentIndex - 1);
     }
 
