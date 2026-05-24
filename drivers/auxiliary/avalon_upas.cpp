@@ -37,7 +37,7 @@ static std::unique_ptr<AvalonUPAS> upas(new AvalonUPAS());
 AvalonUPAS::AvalonUPAS()
     : PACInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     SetCapability(PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION);
 }
 
@@ -60,8 +60,9 @@ bool AvalonUPAS::initProperties()
 
     // Gear ratio: mm of motor travel per degree of polar-axis correction.
     // Default 1.0 mm/deg; user should calibrate for their specific hardware.
-    GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/deg)", "%.4f", 0.001, 1000, 0.1, 1.0);
-    GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/deg)", "%.4f", 0.001, 1000, 0.1, 1.0);
+    // Avalon Default is 1.0 mm/arcmin 
+    GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 1.0);
+    GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 1.0);
     GearRatioNP.fill(getDeviceName(), "PAC_GEAR_RATIO", "Gear Ratio", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Firmware (read-only, populated in Handshake)
@@ -211,7 +212,8 @@ bool AvalonUPAS::parseStatus(const char *response)
 
 IPState AvalonUPAS::MoveAZ(double degrees)
 {
-    const double mm       = degrees * GearRatioNP[GEAR_AZ].getValue();
+    // incluce conversion from arcminutes to degrees in the gear ratio, so users can calibrate in more intuitive mm/arcmin instead of mm/degree.
+    const double mm       = degrees * 60 * GearRatioNP[GEAR_AZ].getValue();
     const double feedRate = SpeedNP[0].getValue();
 
     char cmd[DRIVER_LEN] = {0};
@@ -235,7 +237,8 @@ IPState AvalonUPAS::MoveAZ(double degrees)
 
 IPState AvalonUPAS::MoveALT(double degrees)
 {
-    const double mm       = degrees * GearRatioNP[GEAR_ALT].getValue();
+    // incluce conversion from arcminutes to degrees in the gear ratio, so users can calibrate in more intuitive mm/arcmin instead of mm/degree.
+    const double mm       = degrees * 60 *GearRatioNP[GEAR_ALT].getValue();
     const double feedRate = SpeedNP[0].getValue();
 
     char cmd[DRIVER_LEN] = {0};
@@ -261,8 +264,8 @@ IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
     // GRBL supports multi-axis jog in a single command: X (AZ) and Y (ALT) together.
     // This moves both axes simultaneously, which is more efficient and accurate than
     // two separate jog commands.
-    const double mmAZ    = azDegrees  * GearRatioNP[GEAR_AZ].getValue();
-    const double mmALT   = altDegrees * GearRatioNP[GEAR_ALT].getValue();
+    const double mmAZ    = azDegrees  * 60 * GearRatioNP[GEAR_AZ].getValue();
+    const double mmALT   = altDegrees * 60 * GearRatioNP[GEAR_ALT].getValue();
     const double feedRate = SpeedNP[0].getValue();
 
     char cmd[DRIVER_LEN] = {0};
