@@ -189,8 +189,8 @@ bool AvalonUPAS::parseStatus(const char *response)
     const double gearAZ  = GearRatioNP[GEAR_AZ].getValue();
     const double gearALT = GearRatioNP[GEAR_ALT].getValue();
 
-    PositionNP[POSITION_AZ].setValue(gearAZ  > 0 ? azMM  / gearAZ  : 0);
-    PositionNP[POSITION_ALT].setValue(gearALT > 0 ? altMM / gearALT : 0);
+    PositionNP[POSITION_AZ].setValue(gearAZ  > 0 ? azMM  / (60 * gearAZ)  : 0);
+    PositionNP[POSITION_ALT].setValue(gearALT > 0 ? altMM / (60 * gearALT) : 0);
 
     // Determine if the device is still jogging.
     bool wasMoving = m_IsMoving;
