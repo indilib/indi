@@ -355,6 +355,14 @@ add_executable(indi_pegasus_flatmaster ${pegasus_flatmaster_SRC})
 target_link_libraries(indi_pegasus_flatmaster indidriver)
 install(TARGETS indi_pegasus_flatmaster RUNTIME DESTINATION bin)
 
+# ########## Pegasus Flatmaster Neo ###############
+SET(pegasus_flatmaster_neo_SRC
+    pegasus_flatmaster_neo.cpp)
+
+add_executable(indi_pegasus_flatmaster_neo ${pegasus_flatmaster_neo_SRC})
+target_link_libraries(indi_pegasus_flatmaster_neo indidriver)
+install(TARGETS indi_pegasus_flatmaster_neo RUNTIME DESTINATION bin)
+
 # ########## StarTech 7-Port Managed USB Hub ###############
 SET(startech_hub_SRC
     startech_hub.cpp)
