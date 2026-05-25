@@ -51,7 +51,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 26);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 27);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -1988,6 +1988,46 @@ void LX200_OnStep::getBasicData()
             LOG_INFO("OnStep/OnStepX version could not be detected");
             OSHighPrecision = false;
             OnStepMountVersion = OSV_UNKNOWN;
+        }
+
+        // Query mount type via :GXEM# - more reliable than ACK (0x06) which has a known bug in OnStepX
+        // :GXEM# returns a string where the first character indicates mount type:
+        //   E = GEM, K = Fork, k = Fork Alt, A = AltAz
+        char mountTypeResponse[RB_MAX_LEN] = {0};
+        int gxem_error = getCommandSingleCharErrorOrLongResponse(PortFD, mountTypeResponse, ":GXEM#");
+        if (gxem_error > 0)
+        {
+            MountTypeSP.reset();
+            switch (mountTypeResponse[0])
+            {
+                case 'A':
+                    OSMountType = MOUNTTYPE_ALTAZ;
+                    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+                    LOG_INFO("Mount type detected: AltAz");
+                    break;
+                case 'K':
+                    OSMountType = MOUNTTYPE_FORK;
+                    MountTypeSP[MOUNT_EQ_FORK].setState(ISS_ON);
+                    LOG_INFO("Mount type detected: Fork (Equatorial)");
+                    break;
+                case 'k':
+                    OSMountType = MOUNTTYPE_FORK_ALT;
+                    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+                    LOG_INFO("Mount type detected: Fork Alt (AltAz)");
+                    break;
+                case 'E':
+                default:
+                    OSMountType = MOUNTTYPE_GEM;
+                    MountTypeSP[MOUNT_EQ_GEM].setState(ISS_ON);
+                    LOG_INFO("Mount type detected: GEM");
+                    break;
+            }
+            MountTypeSP.setState(IPS_OK);
+            MountTypeSP.apply();
+        }
+        else
+        {
+            LOGF_WARN("Could not query mount type via :GXEM# (error %d), defaulting to GEM", gxem_error);
         }
 
         if (InitPark())
