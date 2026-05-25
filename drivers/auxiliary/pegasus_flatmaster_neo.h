@@ -28,9 +28,10 @@
 
 #include "indilightboxinterface.h"
 #include "defaultdevice.h"
+#include "indidustcapinterface.h"
 
 
-class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxInterface
+class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
     public:
         PegasusFlatMasterNeo();
@@ -51,6 +52,8 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         virtual bool EnableLightBox(bool enable) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
+        virtual IPState ParkCap() override;
+        virtual IPState UnParkCap() override;
 
     private:
         bool Ack();

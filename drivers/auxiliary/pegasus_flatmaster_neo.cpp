@@ -40,10 +40,10 @@
 #include <math.h>
 
 
-static std::unique_ptr<PegasusFlatMasterNeoNeo> flatmaster(new PegasusFlatMasterNeoNeo());
+static std::unique_ptr<PegasusFlatMasterNeo> flatmaster(new PegasusFlatMasterNeo());
 
 
-PegasusFlatMasterNeoNeo::PegasusFlatMasterNeoNeo() : LightBoxInterface(this)
+PegasusFlatMasterNeo::PegasusFlatMasterNeo() : LightBoxInterface(this), DustCapInterface(this)
 {
     setVersion(1, 0);
 }
@@ -56,10 +56,11 @@ bool PegasusFlatMasterNeo::initProperties()
     IUFillText(&FirmwareT[0], "Version", "Version", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
+    LI::initProperties(MAIN_CONTROL_TAB, LI::CAN_DIM);
+    DI::initProperties(MAIN_CONTROL_TAB, DI::CAN_ABORT);
 
-    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
-
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+    
     LightIntensityNP[0].setMin(0);
     LightIntensityNP[0].setMax(100);
     LightIntensityNP[0].setStep(1);
@@ -85,6 +86,7 @@ void PegasusFlatMasterNeo::ISGetProperties(const char *dev)
 
     // Get Light box properties
     LI::ISGetProperties(dev);
+    
 }
 
 bool PegasusFlatMasterNeo::updateProperties()
@@ -101,6 +103,8 @@ bool PegasusFlatMasterNeo::updateProperties()
     }
 
     LI::updateProperties();
+    DI::updateProperties();
+    
     return true;
 }
 
@@ -114,7 +118,8 @@ void PegasusFlatMasterNeo::updateFirmwareVersion()
     char response[16] = {0};
 
     if(sendCommand("FV", response))
-    {
+    {   
+
         IUSaveText(&FirmwareT[0], response);
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
@@ -133,11 +138,11 @@ bool PegasusFlatMasterNeo::Ack()
     char response[16] = {0};
     if(sendCommand("F#", response))
     {
-       if(strstr("FMNEO", response) != nullptr)
-       {
+      //if(strstr("FMNEO", response) != nullptr)
+      //{
             updateFirmwareVersion();
             return  true;
-       }
+       //}
     }
     else
     {
@@ -157,9 +162,10 @@ bool PegasusFlatMasterNeo::EnableLightBox(bool enable)
 
     if(sendCommand(cmd, response))
     {
-        if(strstr(cmd, response) != nullptr)
+        // Device should echo the command or return acknowledgment
+        if(strstr(response, "FE:") != nullptr)
         {
-            return  true;
+            return true;
         }
     }
     else
@@ -172,12 +178,6 @@ bool PegasusFlatMasterNeo::EnableLightBox(bool enable)
 
 bool PegasusFlatMasterNeo::SetLightBoxBrightness(uint16_t value)
 {
-    if(LightSP[FLAT_LIGHT_ON].getState() != ISS_ON)
-    {
-        LOG_ERROR("You must set On the Flat Light first.");
-        return false;
-    }
-
     char response[16] = {0};
     char cmd[16] = {0};
 
@@ -185,9 +185,10 @@ bool PegasusFlatMasterNeo::SetLightBoxBrightness(uint16_t value)
 
     if(sendCommand(cmd, response))
     {
-        if(strstr(cmd, response) != nullptr)
+        // Device should echo the command or return acknowledgment
+        if(strstr(response, "FL:") != nullptr)
         {
-            return  true;
+            return true;
         }
     }
     else
@@ -221,6 +222,9 @@ bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISStat
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (DI::processSwitch(dev, name, states, names, n))
+            return true;
+
         if (LI::processSwitch(dev, name, states, names, n))
             return true;
     }
@@ -279,4 +283,50 @@ bool PegasusFlatMasterNeo::sendCommand(const char *command, char *res)
     tcflush(PortFD, TCIOFLUSH);
 
     return true;
+}
+
+IPState PegasusFlatMasterNeo::ParkCap()
+{
+    char response[16] = {0};
+    char cmd[16] = {0};
+
+    snprintf(cmd, 16, "FS:0");
+
+    if(sendCommand(cmd, response))
+    {
+        // Device should echo the command or return acknowledgment
+        if(strstr(response, "FS:") != nullptr)
+        {
+            return IPS_OK;
+        }
+    }
+    else
+    {
+        LOGF_ERROR("Error on ParkCap. %s", response);
+        return IPS_ALERT;
+    }
+    return IPS_ALERT;
+}
+
+IPState PegasusFlatMasterNeo::UnParkCap()
+{
+    char response[16] = {0};
+    char cmd[16] = {0};
+
+    snprintf(cmd, 16, "FS:1");
+
+    if(sendCommand(cmd, response))
+    {
+        // Device should echo the command or return acknowledgment
+        if(strstr(response, "FS:") != nullptr)
+        {
+            return IPS_OK;
+        }
+    }
+    else
+    {
+        LOGF_ERROR("Error on UnParkCap. %s", response);
+        return IPS_ALERT;
+    }
+    return IPS_ALERT;
 }
