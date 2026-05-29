@@ -29,9 +29,14 @@
 #include "indilightboxinterface.h"
 #include "defaultdevice.h"
 #include "indidustcapinterface.h"
+#include "indiweatherinterface.h"
+
+#include <vector>
+#include <string>
 
 
-class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
+class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface,
+    public INDI::WeatherInterface
 {
     public:
         PegasusFlatMasterNeo();
@@ -54,9 +59,23 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
 
         virtual IPState ParkCap() override;
         virtual IPState UnParkCap() override;
+        virtual IPState AbortCap() override;
+
+        virtual IPState updateWeather() override { return IPS_OK; }
+        virtual void TimerHit() override;
 
     private:
         bool Ack();
+        bool getStatusData();
+        bool getWeatherData();
+        bool getWeatherOffsets();
+        bool setTemperatureOffset(double value);
+        bool setHumidityOffset(double value);
+        bool setDewHeater(uint8_t value);
+        bool setAutoDew(bool enable);
+        bool setCapAngle(uint16_t angle);
+        std::vector<std::string> split(const std::string &input, const std::string &sep);
+
         int PortFD{ -1 };
         bool sendCommand(const char* cmd, char* response);
         void updateFirmwareVersion();
@@ -65,5 +84,84 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1] {};
 
+        // Dew Control
+        INDI::PropertyNumber DewHeaterNP {1};
+        INDI::PropertySwitch AutoDewSP {2};
+
+        // Cap angle
+        INDI::PropertyNumber CapAngleNP {1};
+
+        // Weather offsets (CT / CH / CR)
+        INDI::PropertyNumber WeatherOffsetNP {2};
+
+        // Device overview status (FA command)
+        INDI::PropertyNumber DeviceStatusNP {9};
+
         Connection::Serial *serialConnection{ nullptr };
+
+        std::vector<std::string> lastWeatherData;
+        std::vector<std::string> lastStatusData;
+
+        static constexpr const char *ENVIRONMENT_TAB {"Environment"};
+        static constexpr const char *LIGHTBOX_TAB {"Light Box"};
+        static constexpr const char *DUSTCAP_TAB {"Dust Cap"};
+        static constexpr const char *DEW_TAB {"Dew Control"};
+        static constexpr const char *STATUS_TAB {"Overview"};
+        static constexpr const uint8_t NEO_LEN {64};
+
+        // FA response field indices
+        enum
+        {
+            FA_NAME = 0,
+            FA_LIGHT_INTENSITY,
+            FA_LIGHT_ACTIVE,
+            FA_CAP_TARGET_ANGLE,
+            FA_CAP_ACTUAL_ANGLE,
+            FA_VALUE_5,
+            FA_VALUE_6,
+            FA_VALUE_7,
+            FA_VALUE_8,
+            FA_VALUE_9,
+            FA_N,
+        };
+
+        // DeviceStatusNP indices (FA[1..9])
+        enum
+        {
+            STATUS_LIGHT_INTENSITY = 0,
+            STATUS_LIGHT_ACTIVE,
+            STATUS_CAP_TARGET_ANGLE,
+            STATUS_CAP_ACTUAL_ANGLE,
+            STATUS_VALUE_5,
+            STATUS_VALUE_6,
+            STATUS_VALUE_7,
+            STATUS_VALUE_8,
+            STATUS_VALUE_9,
+        };
+
+        // ES response field indices
+        enum
+        {
+            WI_NAME = 0,
+            WI_TEMPERATURE,
+            WI_HUMIDITY,
+            WI_DEWPOINT,
+            WI_N,
+        };
+
+        // CR response field indices
+        enum
+        {
+            CR_PREFIX = 0,
+            CR_TEMP_OFFSET,
+            CR_HUM_OFFSET,
+            CR_N,
+        };
+
+        // WeatherOffsetNP indices
+        enum
+        {
+            OFFSET_TEMPERATURE = 0,
+            OFFSET_HUMIDITY,
+        };
 };
