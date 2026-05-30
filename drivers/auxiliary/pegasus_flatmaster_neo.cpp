@@ -93,7 +93,7 @@ bool PegasusFlatMasterNeo::initProperties()
     DeviceStatusNP[STATUS_LIGHT_ACTIVE].fill(   "STATUS_LIGHT_ACTIVE",     "Light Active",          "%.0f", 0, 1,    1, 0);
     DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].fill("STATUS_CAP_TARGET",      "Cap Target Angle (°)",  "%.0f", 0, 270,  1, 0);
     DeviceStatusNP[STATUS_CAP_ACTUAL_ANGLE].fill("STATUS_CAP_ACTUAL",      "Cap Actual Angle (°)",  "%.0f", 0, 270,  1, 0);
-    DeviceStatusNP[STATUS_VALUE_5].fill(        "STATUS_VALUE_5",          "Value 5",               "%.0f", 0, 9999, 1, 0);
+    DeviceStatusNP[STATUS_CAP_STATUS].fill(      "STATUS_CAP_STATUS",       "Cap Status",            "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_6].fill(        "STATUS_VALUE_6",          "Value 6",               "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_7].fill(        "STATUS_VALUE_7",          "Value 7",               "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_8].fill(        "STATUS_VALUE_8",          "Value 8",               "%.0f", 0, 9999, 1, 0);
@@ -183,20 +183,15 @@ bool PegasusFlatMasterNeo::Ack()
     PortFD = serialConnection->getPortFD();
 
     char response[16] = {0};
-    if(sendCommand("F#", response))
+    if (sendCommand("F#", response))
     {
-      //if(strstr("FMNEO", response) != nullptr)
-      //{
+        if (strstr(response, "FMNEO") != nullptr)
+        {
             updateFirmwareVersion();
-            return  true;
-       //}
+            return true;
+        }
     }
-    else
-    {
-        LOG_ERROR("Ack failed.");
-        return false;
-    }
-
+    LOGF_ERROR("Ack failed: unexpected response '%s'", response);
     return false;
 }
 
@@ -411,47 +406,49 @@ bool PegasusFlatMasterNeo::sendCommand(const char *command, char *res)
 IPState PegasusFlatMasterNeo::ParkCap()
 {
     char response[16] = {0};
-    char cmd[16] = {0};
 
-    snprintf(cmd, 16, "FS:0");
-
-    if(sendCommand(cmd, response))
-    {
-        // Device should echo the command or return acknowledgment
-        if(strstr(response, "FS:") != nullptr)
-        {
-            return IPS_OK;
-        }
-    }
-    else
+    if (!sendCommand("FS:0", response))
     {
         LOGF_ERROR("Error on ParkCap. %s", response);
         return IPS_ALERT;
     }
-    return IPS_ALERT;
+
+    // Device should echo the command or return acknowledgment
+    if (strstr(response, "FS:") == nullptr)
+        return IPS_ALERT;
+
+    if (!getStatusData())
+    {
+        LOG_ERROR("Unable to refresh status after ParkCap command.");
+        return IPS_ALERT;
+    }
+
+    const bool capParked = (DeviceStatusNP[STATUS_CAP_STATUS].getValue() == 1);
+    return capParked ? IPS_OK : IPS_ALERT;
 }
 
 IPState PegasusFlatMasterNeo::UnParkCap()
 {
     char response[16] = {0};
-    char cmd[16] = {0};
 
-    snprintf(cmd, 16, "FS:1");
-
-    if(sendCommand(cmd, response))
-    {
-        // Device should echo the command or return acknowledgment
-        if(strstr(response, "FS:") != nullptr)
-        {
-            return IPS_OK;
-        }
-    }
-    else
+    if (!sendCommand("FS:1", response))
     {
         LOGF_ERROR("Error on UnParkCap. %s", response);
         return IPS_ALERT;
     }
-    return IPS_ALERT;
+
+    // Device should echo the command or return acknowledgment
+    if (strstr(response, "FS:") == nullptr)
+        return IPS_ALERT;
+
+    if (!getStatusData())
+    {
+        LOG_ERROR("Unable to refresh status after UnParkCap command.");
+        return IPS_ALERT;
+    }
+
+    const bool capUnparked = (DeviceStatusNP[STATUS_CAP_STATUS].getValue() == 3);
+    return capUnparked ? IPS_OK : IPS_ALERT;
 }
 
 IPState PegasusFlatMasterNeo::AbortCap()
@@ -534,13 +531,14 @@ bool PegasusFlatMasterNeo::getStatusData()
         const double lightActive     = std::stod(result[FA_LIGHT_ACTIVE]);
         const double capTargetAngle  = std::stod(result[FA_CAP_TARGET_ANGLE]);
         const double capActualAngle  = std::stod(result[FA_CAP_ACTUAL_ANGLE]);
+        const double capStatus       = std::stod(result[FA_CAP_STATUS]);
 
         // --- Overview tab ---
         DeviceStatusNP[STATUS_LIGHT_INTENSITY].setValue(lightIntensity);
         DeviceStatusNP[STATUS_LIGHT_ACTIVE].setValue(lightActive);
         DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].setValue(capTargetAngle);
         DeviceStatusNP[STATUS_CAP_ACTUAL_ANGLE].setValue(capActualAngle);
-        DeviceStatusNP[STATUS_VALUE_5].setValue(std::stod(result[FA_VALUE_5]));
+        DeviceStatusNP[STATUS_CAP_STATUS].setValue(capStatus);
         DeviceStatusNP[STATUS_VALUE_6].setValue(std::stod(result[FA_VALUE_6]));
         DeviceStatusNP[STATUS_VALUE_7].setValue(std::stod(result[FA_VALUE_7]));
         DeviceStatusNP[STATUS_VALUE_8].setValue(std::stod(result[FA_VALUE_8]));
@@ -565,7 +563,7 @@ bool PegasusFlatMasterNeo::getStatusData()
         }
 
         // --- DustCap interface ---
-        const bool capParked = (capActualAngle == 0);
+        const bool capParked = (capStatus == 1);
         if (ParkCapSP[CAP_PARK].getState() != (capParked ? ISS_ON : ISS_OFF))
         {
             ParkCapSP.reset();
