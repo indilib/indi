@@ -75,7 +75,6 @@ bool GeminiFlatpanel::updateProperties()
 
         defineProperty(StatusTP);
         defineProperty(ConfigurationTP);
-        updateConfigStatus();
 
         // Only register advanced features if supported by the current adapter
         if (adapter && adapter->supportsBeep())
@@ -401,11 +400,6 @@ void GeminiFlatpanel::TimerHit()
 
     if (error)
     {
-        // Keep polling active after transient communication errors.
-        if (configStatus == GEMINI_CONFIG_READY)
-        {
-            SetTimer(getCurrentPollingPeriod());
-        }
         return;
     }
 
@@ -622,6 +616,7 @@ bool GeminiFlatpanel::Handshake()
     if (adapter->getConfigStatus(&adapterConfigStatus))
     {
         configStatus = adapterConfigStatus;
+        updateConfigStatus();
         return true;
     }
 
@@ -705,12 +700,9 @@ bool GeminiFlatpanel::updateCoverStatus(char coverStatus)
         {
             case GEMINI_COVER_STATUS_MOVING:
                 StatusTP[STATUS_COVER].setText("Moving");
-                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
-                {
                     ParkCapSP.reset();
                     ParkCapSP.setState(IPS_BUSY);
                     ParkCapSP.apply();
-                }
                 break;
             case GEMINI_COVER_STATUS_CLOSED:
                 StatusTP[STATUS_COVER].setText("Closed");
@@ -736,13 +728,10 @@ bool GeminiFlatpanel::updateCoverStatus(char coverStatus)
                 break;
             case GEMINI_COVER_STATUS_TIMED_OUT:
                 StatusTP[STATUS_COVER].setText("Timed Out");
-                if (ParkCapSP.getState() == IPS_BUSY)
-                {
                     ParkCapSP.reset();
                     ParkCapSP.setState(IPS_ALERT);
                     LOG_ERROR("Cover operation timed out.");
                     ParkCapSP.apply();
-                }
                 break;
         }
     }
