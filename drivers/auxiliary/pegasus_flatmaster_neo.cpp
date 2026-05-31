@@ -1,10 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2021 Chrysikos Efstathios. All rights reserved.
+  Copyright(c) 2026 Dominik Merkel. All rights reserved.
 
-  Pegasus FlatMaster
-
-  2022-06-07 Jasem Mutlaq: Use lightbox interface properly.
-  2026-05-24 Dominik Merkel: Adaption for FlatMaster Neo.
+  Pegasus FlatMaster Neo
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
