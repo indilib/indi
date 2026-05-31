@@ -48,6 +48,7 @@ bool GeminiFlatpanel::initProperties()
     DeviceTypeSP[DEVICE_REV1].fill("REV1", "Revision 1", ISS_OFF);
     DeviceTypeSP[DEVICE_REV2].fill("REV2", "Revision 2", ISS_OFF);
     DeviceTypeSP[DEVICE_LITE].fill("LITE", "Lite", ISS_OFF);
+    DeviceTypeSP[DEVICE_PRO].fill("PRO", "Pro", ISS_OFF);
     DeviceTypeSP.load();
 
     addAuxControls();
@@ -416,8 +417,9 @@ void GeminiFlatpanel::TimerHit()
         StatusTP.apply();
     }
 
+    const bool isPro = (adapter && adapter->getRevision() == GEMINI_REVISION_PRO);
     if (motorStatus == GEMINI_MOTOR_STATUS_RUNNING && (coverStatus == GEMINI_COVER_STATUS_TIMED_OUT
-            || coverStatus == GEMINI_COVER_STATUS_MOVING))
+            || (!isPro && coverStatus == GEMINI_COVER_STATUS_MOVING)))
     {
         LOG_WARN("Motor running with unknown cover status.");
         configStatus = GEMINI_CONFIG_NOTREADY;
@@ -460,7 +462,7 @@ IPState GeminiFlatpanel::ParkCap()
     ParkCapSP.apply();
     if (closeCover())
     {
-        return IPS_OK;
+        return (adapter && adapter->getRevision() == GEMINI_REVISION_PRO) ? IPS_BUSY : IPS_OK;
     }
     return IPS_ALERT;
 }
@@ -475,13 +477,18 @@ IPState GeminiFlatpanel::UnParkCap()
     ParkCapSP.apply();
     if (openCover())
     {
-        return IPS_OK;
+        return (adapter && adapter->getRevision() == GEMINI_REVISION_PRO) ? IPS_BUSY : IPS_OK;
     }
     return IPS_ALERT;
 }
 
 IPState GeminiFlatpanel::AbortCap()
 {
+    if (adapter && adapter->getRevision() == GEMINI_REVISION_PRO)
+    {
+        return IPS_OK;
+    }
+
     return IPS_ALERT;
 }
 
@@ -536,7 +543,8 @@ bool GeminiFlatpanel::Handshake()
         {
             {[]() { return std::make_unique<GeminiFlatpanelRev1Adapter>(); }, "Rev1", DEVICE_REV1},
             {[]() { return std::make_unique<GeminiFlatpanelRev2Adapter>(); }, "Rev2", DEVICE_REV2},
-            {[]() { return std::make_unique<GeminiFlatpanelLiteAdapter>(); }, "Lite", DEVICE_LITE}
+            {[]() { return std::make_unique<GeminiFlatpanelLiteAdapter>(); }, "Lite", DEVICE_LITE},
+            {[]() { return std::make_unique<GeminiFlatpanelProAdapter>(); }, "Pro", DEVICE_PRO}
         };
     }
     else
@@ -552,6 +560,9 @@ bool GeminiFlatpanel::Handshake()
                 break;
             case DEVICE_LITE:
                 adapterTypes = {{[]() { return std::make_unique<GeminiFlatpanelLiteAdapter>(); }, "Lite", DEVICE_LITE}};
+                break;
+            case DEVICE_PRO:
+                adapterTypes = {{[]() { return std::make_unique<GeminiFlatpanelProAdapter>(); }, "Pro", DEVICE_PRO}};
                 break;
         }
     }
@@ -689,9 +700,9 @@ bool GeminiFlatpanel::updateCoverStatus(char coverStatus)
         {
             case GEMINI_COVER_STATUS_MOVING:
                 StatusTP[STATUS_COVER].setText("Moving");
-                ParkCapSP.reset();
-                ParkCapSP.setState(IPS_BUSY);
-                ParkCapSP.apply();
+                    ParkCapSP.reset();
+                    ParkCapSP.setState(IPS_BUSY);
+                    ParkCapSP.apply();
                 break;
             case GEMINI_COVER_STATUS_CLOSED:
                 StatusTP[STATUS_COVER].setText("Closed");
@@ -717,10 +728,10 @@ bool GeminiFlatpanel::updateCoverStatus(char coverStatus)
                 break;
             case GEMINI_COVER_STATUS_TIMED_OUT:
                 StatusTP[STATUS_COVER].setText("Timed Out");
-                ParkCapSP.reset();
-                ParkCapSP.setState(IPS_ALERT);
-                LOG_ERROR("Cover operation timed out.");
-                ParkCapSP.apply();
+                    ParkCapSP.reset();
+                    ParkCapSP.setState(IPS_ALERT);
+                    LOG_ERROR("Cover operation timed out.");
+                    ParkCapSP.apply();
                 break;
         }
     }
