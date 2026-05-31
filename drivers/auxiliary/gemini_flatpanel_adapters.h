@@ -19,7 +19,8 @@ enum GeminiRevision
     GEMINI_REVISION_UNKNOWN = 0,
     GEMINI_REVISION_1 = 1,
     GEMINI_REVISION_2 = 2,
-    GEMINI_REVISION_LITE = 3
+    GEMINI_REVISION_LITE = 3,
+    GEMINI_REVISION_PRO = 4
 };
 
 enum GeminiConfigStatus
@@ -549,6 +550,106 @@ class GeminiFlatpanelLiteAdapter : public GeminiFlatpanelAdapter
 };
 
 /**
+ * @brief Concrete adapter implementation for Gemini Pro firmware
+ *
+ * This adapter handles the specific protocol and commands for Pro devices:
+ * - Command format: >X# (no value) or >Xnnn# (with value)
+ * - Command terminator: '#'
+ * - Response format: *X<variable_length_number># or *X<text>#
+ * - Features: light control, beep control, brightness mode selection
+ * - No dust cap/motor support (lite version is not motorized)
+ */
+class GeminiFlatpanelProAdapter : public GeminiFlatpanelAdapter
+{
+    private:
+        int portFD;
+
+        // Internal helper methods for Pro protocol
+
+        /**
+         * @brief Format a command according to Pro protocol
+         * @param commandLetter the command character (B, L, D, etc.)
+         * @param commandString buffer to store the formatted command
+         * @param value optional value to include (NO_VALUE if not needed)
+         * @return true if successful, false otherwise
+         */
+        bool formatCommand(char commandLetter, char *commandString, int value = NO_VALUE);
+
+        /**
+         * @brief Send a command to the device and receive response
+         * @param command command string to send
+         * @param response buffer to store response (can be nullptr if no response expected)
+         * @param timeout timeout in seconds
+         * @param log whether to log errors
+         * @return true if successful, false otherwise
+         */
+        bool sendCommand(const char *command, char *response, int timeout = SERIAL_TIMEOUT_SEC, bool log = true);
+
+        /**
+         * @brief Extract integer value from Lite response format
+         * @param response response string from device
+         * @param startPos position to start extracting from
+         * @param value pointer to store extracted value
+         * @return true if successful, false otherwise
+         */
+        bool extractIntValue(const char *response, int startPos, int *value);
+
+    public:
+        GeminiFlatpanelProAdapter() : portFD(-1) {}
+
+        // Device detection and identification
+        bool ping() override;
+        int getRevision() const override
+        {
+            return GEMINI_REVISION_PRO;
+        }
+        bool getFirmwareVersion(int *version) override;
+
+        // Capability checks
+        bool supportsBeep() const override
+        {
+            return false;
+        }
+        bool supportsDustCap() const override
+        {
+            return true; 
+        }
+        bool supportsBrightnessMode() const override
+        {
+            return false;
+        }
+
+        // Basic device commands
+        bool getConfigStatus(int *status) override;
+        bool getBrightness(int *brightness) override;
+        bool setBrightness(int value) override;
+        bool lightOn() override;
+        bool lightOff() override;
+        bool openCover() override;   // Not supported, always returns false
+        bool closeCover() override;  // Not supported, always returns false
+        bool getStatus(int *coverStatus, int *lightStatus, int *motorStatus) override;
+
+        // Motion/calibration commands
+        bool move(uint16_t value, int direction) override;
+        bool setClosePosition() override;
+        bool setOpenPosition() override;
+
+        // Advanced commands (fully supported by Pro)
+        bool setBeep(bool enable) override;
+        bool setBrightnessMode(int mode) override;
+
+        // Communication setup
+        char getCommandTerminator() const override
+        {
+            return '#';
+        }
+        void setupCommunication(int portFD) override
+        {
+            this->portFD = portFD;
+        }
+};
+
+/**
  * @brief Simulation adapter for testing and development
  *
  * This adapter simulates device behavior without requiring actual hardware.
@@ -611,3 +712,4 @@ class GeminiFlatpanelSimulationAdapter : public GeminiFlatpanelAdapter
         int simulatedRevision;
         int simulatedFirmwareVersion;
 };
+

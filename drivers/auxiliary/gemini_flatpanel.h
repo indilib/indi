@@ -146,6 +146,7 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
             DEVICE_REV1,
             DEVICE_REV2,
             DEVICE_LITE,
+            DEVICE_PRO,
             DEVICE_N
         };
         INDI::PropertySwitch DeviceTypeSP{DEVICE_N};

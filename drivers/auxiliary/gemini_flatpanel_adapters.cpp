@@ -1204,6 +1204,418 @@ bool GeminiFlatpanelLiteAdapter::sendCommand(const char *command, char *response
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// GeminiFlatpanelProAdapter Implementation
+//////////////////////////////////////////////////////////////////////////////
+
+// Device detection and identification
+bool GeminiFlatpanelProAdapter::ping()
+{
+    // This command is only supported by Pro devices
+    // It is used to check if the device is a Pro device
+    char response[MAXRBUF] = {0};
+
+    if (!sendCommand(">H#", response, SERIAL_TIMEOUT_SEC, false))
+    {
+        return false;
+    }
+
+    if (strcmp(response, "*HGeminiFlatPanelPro#") != 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool GeminiFlatpanelProAdapter::getFirmwareVersion(int *version)
+{
+    // This command is supported by Pro devices
+    // It is used to get the firmware version
+    char response[MAXRBUF] = {0};
+
+    // Initialize version to 0 in case of errors
+    *version = 0;
+
+    if (!sendCommand(">V#", response))
+    {
+        return false;
+    }
+
+    if (strlen(response) < 3)
+    {
+        return false;
+    }
+
+    if (response[0] != '*' || response[1] != 'V')
+    {
+        return false;
+    }
+
+    int firmwareVersion;
+    if (!extractIntValue(response, 2, &firmwareVersion))
+    {
+        return false;
+    }
+
+    *version = firmwareVersion;
+    return true;
+}
+
+bool GeminiFlatpanelProAdapter::getConfigStatus(int *status)
+{
+    // Pro devices don't have a separate config status command
+    *status = GEMINI_CONFIG_READY;
+    return true;
+}
+
+bool GeminiFlatpanelProAdapter::getBrightness(int *brightness)
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('J', command))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response))
+    {
+        return false;
+    }
+
+    if (strlen(response) < 4)
+    {
+        return false;
+    }
+
+    if (response[0] != '*' || response[1] != 'J')
+    {
+        return false;
+    }
+
+    // Lite brightness response index is at position 2
+    return extractIntValue(response, 2, brightness);
+}
+
+bool GeminiFlatpanelProAdapter::setBrightness(int value)
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (value > GEMINI_MAX_BRIGHTNESS)
+    {
+        value = GEMINI_MAX_BRIGHTNESS;
+    }
+
+    if (value < GEMINI_MIN_BRIGHTNESS)
+    {
+        value = GEMINI_MIN_BRIGHTNESS;
+    }
+
+    if (!formatCommand('B', command, value))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response))
+    {
+        return false;
+    }
+
+    if (strlen(response) < 3)
+    {
+        return false;
+    }
+
+    if (response[0] != '*' || response[1] != 'B')
+    {
+        return false;
+    }
+
+    int response_value;
+    if (!extractIntValue(response, 2, &response_value))
+    {
+        return false;
+    }
+
+    return (response_value == value);
+}
+
+bool GeminiFlatpanelProAdapter::lightOn()
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('L', command))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response))
+    {
+        return false;
+    }
+
+    return (strlen(response) >= 3 && response[0] == '*' && response[1] == 'L');
+}
+
+bool GeminiFlatpanelProAdapter::lightOff()
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('D', command))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response))
+    {
+        return false;
+    }
+
+    return (strlen(response) >= 3 && response[0] == '*' && response[1] == 'D');
+}
+
+bool GeminiFlatpanelProAdapter::openCover()
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('O', command))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response, SERIAL_TIMEOUT_SEC_LONG))
+    {
+        return false;
+    }
+
+    // Pro firmware can acknowledge with variants like *O, *O#, or *OOpened#
+    return (response[0] == '*' && response[1] == 'O');
+}
+
+bool GeminiFlatpanelProAdapter::closeCover()
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('C', command))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response, SERIAL_TIMEOUT_SEC_LONG))
+    {
+        return false;
+    }
+
+    // Pro firmware can acknowledge with variants like *C, *C#, or *CClosed#
+    return (response[0] == '*' && response[1] == 'C');
+}
+
+bool GeminiFlatpanelProAdapter::getStatus(int *coverStatus, int *lightStatus, int *motorStatus)
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('S', command))
+    {
+        return false;
+    }
+
+    if (!sendCommand(command, response))
+    {
+        return false;
+    }
+
+    if (response[0] != '*' || response[1] != 'S')
+    {
+        return false;
+    }
+
+    if (strlen(response) < 7)
+    {
+        return false;
+    }
+
+    *motorStatus = response[2] - '0';
+    *lightStatus = response[4] - '0';
+    *coverStatus = response[6] - '0';
+
+    if (*motorStatus < GEMINI_MOTOR_STATUS_STOPPED || *motorStatus > GEMINI_MOTOR_STATUS_RUNNING)
+    {
+        return false;
+    }
+    if (*lightStatus < GEMINI_LIGHT_STATUS_OFF || *lightStatus > GEMINI_LIGHT_STATUS_ON)
+    {
+        return false;
+    }
+    if (*coverStatus < GEMINI_COVER_STATUS_MOVING || *coverStatus > GEMINI_COVER_STATUS_TIMED_OUT)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// Motion/calibration commands
+bool GeminiFlatpanelProAdapter::move(uint16_t value, int direction)
+{
+    char command[MAXRBUF] = {0};
+
+    if (direction == -1)
+    {
+        snprintf(command, sizeof(command), ">M-%02d#", value);
+    }
+    else
+    {
+        snprintf(command, sizeof(command), ">M%03d#", value);
+    }
+
+    char response[MAXRBUF] = {0};
+
+    return sendCommand(command, response, 30);
+}
+
+bool GeminiFlatpanelProAdapter::setClosePosition()
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('F', command))
+    {
+        return false;
+    }
+
+    return sendCommand(command, response);
+}
+
+bool GeminiFlatpanelProAdapter::setOpenPosition()
+{
+    char command[MAXRBUF] = {0};
+    char response[MAXRBUF] = {0};
+
+    if (!formatCommand('E', command))
+    {
+        return false;
+    }
+
+    return sendCommand(command, response);
+}
+
+bool GeminiFlatpanelProAdapter::setBeep(bool enable)
+{
+    (void) enable;
+    return false;
+}
+
+bool GeminiFlatpanelProAdapter::setBrightnessMode(int mode)
+{
+    (void) mode;
+    return false;
+}
+
+// Helper methods for Pro
+bool GeminiFlatpanelProAdapter::formatCommand(char commandLetter, char *commandString, int value)
+{
+    if (commandString == nullptr)
+    {
+        return false;
+    }
+
+    // Pro format: >X# (no value) or >Xnnn# (with value) where X is command letter and nnn is value
+    if (value == NO_VALUE)
+    {
+        // No value provided
+        snprintf(commandString, MAXRBUF, ">%c#", commandLetter);
+    }
+    else
+    {
+        // Value provided
+        snprintf(commandString, MAXRBUF, ">%c%d#", commandLetter, value);
+    }
+
+    return true;
+}
+
+bool GeminiFlatpanelProAdapter::extractIntValue(const char *response, int startPos, int *value)
+{
+    if (response == nullptr || value == nullptr)
+    {
+        return false;
+    }
+
+    const char *terminator = strchr(response, '#');
+    if (terminator == nullptr)
+    {
+        return false;
+    }
+
+    // Calculate the length of the numeric part
+    int length = terminator - (response + startPos);
+
+    if (length <= 0)
+    {
+        return false;
+    }
+
+    // Extract the numeric part
+    char value_str[MAXRBUF] = {0};
+    strncpy(value_str, response + startPos, length);
+    *value = atoi(value_str);
+
+    return true;
+}
+
+bool GeminiFlatpanelProAdapter::sendCommand(const char *command, char *response, int timeout, bool log)
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+
+    tcflush(portFD, TCIOFLUSH);
+    if ((rc = tty_write_string(portFD, command, &nbytes_written)) != TTY_OK)
+    {
+        if (log)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            // Note: Cannot use LOGF_ERROR here as we don't have access to logging
+            // The main driver should handle logging of errors
+        }
+        return false;
+    }
+
+    if (response == nullptr)
+        return true;
+
+    if ((rc = tty_nread_section(portFD, response, MAXRBUF, getCommandTerminator(), timeout, &nbytes_read)) != TTY_OK)
+    {
+        if (log)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            // Note: Cannot use LOGF_ERROR here as we don't have access to logging
+        }
+        return false;
+    }
+
+    // Remove trailing newline character if present
+    if (nbytes_read > 0 && response[nbytes_read - 1] == '\n')
+    {
+        response[nbytes_read - 1] = '\0';
+    }
+    tcflush(portFD, TCIOFLUSH);
+
+    if (response[0] != '*' || response[1] != command[1])
+    {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // GeminiFlatpanelSimulationAdapter Implementation
 //////////////////////////////////////////////////////////////////////////////
 
