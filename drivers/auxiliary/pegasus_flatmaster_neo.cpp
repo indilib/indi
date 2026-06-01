@@ -92,7 +92,7 @@ bool PegasusFlatMasterNeo::initProperties()
     DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].fill("STATUS_CAP_TARGET",      "Cap Target Angle (°)",  "%.0f", 0, 270,  1, 0);
     DeviceStatusNP[STATUS_CAP_STATUS].fill(      "STATUS_CAP_STATUS",      "Cap Status",            "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_6].fill(        "STATUS_VALUE_6",          "Value 6",               "%.0f", 0, 9999, 1, 0);
-    DeviceStatusNP[STATUS_VALUE_7].fill(        "STATUS_VALUE_7",          "Value 7",               "%.0f", 0, 9999, 1, 0);
+    DeviceStatusNP[STATUS_AUTO_DEW].fill(        "STATUS_AUTO_DEW",         "Auto Dew Active",       "%.0f", 0, 1,    1, 0);
     DeviceStatusNP[STATUS_VALUE_8].fill(        "STATUS_VALUE_8",          "Value 8",               "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_9].fill(        "STATUS_VALUE_9",          "Value 9",               "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP.fill(getDeviceName(), "DEVICE_STATUS", "Device Status", STATUS_TAB, IP_RO, 60, IPS_IDLE);
@@ -459,9 +459,21 @@ bool PegasusFlatMasterNeo::setAutoDew(bool enable)
     char cmd[16] = {0};
     char response[16] = {0};
     snprintf(cmd, 16, "PD:%d", enable ? 1 : 0);
-    if (sendCommand(cmd, response))
-        return strstr(response, "PD:") != nullptr;
-    return false;
+
+    if (!sendCommand(cmd, response) || strstr(response, "PD:") == nullptr)
+        return false;
+
+    if (!getStatusData())
+        return false;
+
+    const bool actual = (DeviceStatusNP[STATUS_AUTO_DEW].getValue() == 1);
+    if (actual != enable)
+    {
+        LOGF_ERROR("AutoDew %s failed: device reports %s.", enable ? "enable" : "disable", actual ? "enabled" : "disabled");
+        return false;
+    }
+
+    return true;
 }
 
 bool PegasusFlatMasterNeo::setCapAngle(uint16_t angle)
@@ -498,7 +510,7 @@ bool PegasusFlatMasterNeo::getStatusData()
         return false;
     }
 
-    // FA response: "FMNEO:lightIntensity:lightActive:capActual:capTarget:capStatus:v6:v7:v8:v9"
+    // FA response: "FMNEO:lightIntensity:lightActive:capActual:capTarget:capStatus:v6:autoDew:v8:v9"
     std::vector<std::string> result = split(response, ":");
 
     if (result.size() < FA_N)
@@ -527,7 +539,7 @@ bool PegasusFlatMasterNeo::getStatusData()
         DeviceStatusNP[STATUS_CAP_ACTUAL_ANGLE].setValue(capActualAngle);
         DeviceStatusNP[STATUS_CAP_STATUS].setValue(capStatus);
         DeviceStatusNP[STATUS_VALUE_6].setValue(std::stod(result[FA_VALUE_6]));
-        DeviceStatusNP[STATUS_VALUE_7].setValue(std::stod(result[FA_VALUE_7]));
+        DeviceStatusNP[STATUS_AUTO_DEW].setValue(std::stod(result[FA_AUTO_DEW_STATUS]));
         DeviceStatusNP[STATUS_VALUE_8].setValue(std::stod(result[FA_VALUE_8]));
         DeviceStatusNP[STATUS_VALUE_9].setValue(std::stod(result[FA_VALUE_9]));
         DeviceStatusNP.setState(IPS_OK);
