@@ -149,6 +149,11 @@ bool PegasusFlatMasterNeo::updateProperties()
     DI::updateProperties();
     WI::updateProperties();
 
+    // Fetch current device state immediately after all properties are defined
+    // so the UI reflects the actual hardware state on connection.
+    if (isConnected())
+        getStatusData();
+
     return true;
 }
 
@@ -163,8 +168,7 @@ void PegasusFlatMasterNeo::updateFirmwareVersion()
 
     if(sendCommand("FV", response))
     {   
-
-        IUSaveText(&FirmwareT[0], response);
+        IUSaveText(&FirmwareT[0], response + 3);
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
     }
@@ -199,20 +203,19 @@ bool PegasusFlatMasterNeo::EnableLightBox(bool enable)
 
     snprintf(cmd, 16, "FE:%d", enable ? 1 : 0);
 
-    if(sendCommand(cmd, response))
+    if (!sendCommand(cmd, response))
     {
-        // Device should echo the command or return acknowledgment
-        if(strstr(response, "FE:") != nullptr)
-        {
-            return true;
-        }
-    }
-    else
-    {
-        LOGF_ERROR("Error on EnableLightBox. %s", response);
+        LOGF_ERROR("EnableLightBox: send failed. %s", response);
         return false;
     }
-    return false;
+
+    if (strstr(response, "FE:") == nullptr)
+    {
+        LOGF_ERROR("EnableLightBox: unexpected response '%s'", response);
+        return false;
+    }
+
+    return true;
 }
 
 bool PegasusFlatMasterNeo::SetLightBoxBrightness(uint16_t value)
@@ -222,20 +225,19 @@ bool PegasusFlatMasterNeo::SetLightBoxBrightness(uint16_t value)
 
     snprintf(cmd, 16, "FL:%d", value);
 
-    if(sendCommand(cmd, response))
+    if (!sendCommand(cmd, response))
     {
-        // Device should echo the command or return acknowledgment
-        if(strstr(response, "FL:") != nullptr)
-        {
-            return true;
-        }
-    }
-    else
-    {
-        LOGF_ERROR("Error on SetLightBoxBrightness. %s", response);
+        LOGF_ERROR("SetLightBoxBrightness: send failed. %s", response);
         return false;
     }
-    return false;
+
+    if (strstr(response, "FL:") == nullptr)
+    {
+        LOGF_ERROR("SetLightBoxBrightness: unexpected response '%s'", response);
+        return false;
+    }
+
+    return true;
 }
 
 bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -410,18 +412,11 @@ IPState PegasusFlatMasterNeo::ParkCap()
         return IPS_ALERT;
     }
 
-    // Device should echo the command or return acknowledgment
     if (strstr(response, "FS:") == nullptr)
         return IPS_ALERT;
 
-    if (!getStatusData())
-    {
-        LOG_ERROR("Unable to refresh status after ParkCap command.");
-        return IPS_ALERT;
-    }
-
-    const bool capParked = (DeviceStatusNP[STATUS_CAP_STATUS].getValue() == 1);
-    return capParked ? IPS_OK : IPS_ALERT;
+    // Command accepted — cap is now moving; TimerHit will finalize the state
+    return IPS_BUSY;
 }
 
 IPState PegasusFlatMasterNeo::UnParkCap()
@@ -434,18 +429,11 @@ IPState PegasusFlatMasterNeo::UnParkCap()
         return IPS_ALERT;
     }
 
-    // Device should echo the command or return acknowledgment
     if (strstr(response, "FS:") == nullptr)
         return IPS_ALERT;
 
-    if (!getStatusData())
-    {
-        LOG_ERROR("Unable to refresh status after UnParkCap command.");
-        return IPS_ALERT;
-    }
-
-    const bool capUnparked = (DeviceStatusNP[STATUS_CAP_STATUS].getValue() == 3);
-    return capUnparked ? IPS_OK : IPS_ALERT;
+    // Command accepted — cap is now moving; TimerHit will finalize the state
+    return IPS_BUSY;
 }
 
 IPState PegasusFlatMasterNeo::AbortCap()
@@ -519,7 +507,9 @@ bool PegasusFlatMasterNeo::getStatusData()
         return false;
     }
 
-    if (result == lastStatusData)
+    // Skip update if nothing changed, but always re-evaluate when a park/unpark is in progress
+    // to ensure IPS_BUSY is resolved even if the cap was already at the target position.
+    if (result == lastStatusData && ParkCapSP.getState() != IPS_BUSY)
         return true;
 
     try
@@ -560,13 +550,28 @@ bool PegasusFlatMasterNeo::getStatusData()
         }
 
         // --- DustCap interface ---
-        const bool capParked = (capStatus == 1);
-        if (ParkCapSP[CAP_PARK].getState() != (capParked ? ISS_ON : ISS_OFF))
+        // Known status values: 1 = parked (closed), 3 = unparked (open).
+        // Any other value (e.g. in-motion) leaves IPS_BUSY in place until the
+        // final state arrives; the switch selection is not changed mid-motion.
+        if (capStatus == 1)
         {
-            ParkCapSP.reset();
-            ParkCapSP[capParked ? CAP_PARK : CAP_UNPARK].setState(ISS_ON);
-            ParkCapSP.setState(IPS_OK);
-            ParkCapSP.apply();
+            if (ParkCapSP[CAP_PARK].getState() != ISS_ON || ParkCapSP.getState() != IPS_OK)
+            {
+                ParkCapSP.reset();
+                ParkCapSP[CAP_PARK].setState(ISS_ON);
+                ParkCapSP.setState(IPS_OK);
+                ParkCapSP.apply();
+            }
+        }
+        else if (capStatus == 3)
+        {
+            if (ParkCapSP[CAP_UNPARK].getState() != ISS_ON || ParkCapSP.getState() != IPS_OK)
+            {
+                ParkCapSP.reset();
+                ParkCapSP[CAP_UNPARK].setState(ISS_ON);
+                ParkCapSP.setState(IPS_OK);
+                ParkCapSP.apply();
+            }
         }
         if (CapAngleNP[0].getValue() != capTargetAngle)
         {
