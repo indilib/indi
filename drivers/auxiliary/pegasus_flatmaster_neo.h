@@ -108,6 +108,7 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         static constexpr const uint8_t NEO_LEN {64};
 
         // FA response field indices
+        // FA response: "FMNEO:lightIntensity:lightActive:capActual:capTarget:capStatus:v6:v7:v8:v9"
         enum
         {
             FA_NAME = 0,
@@ -121,6 +122,12 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
             FA_VALUE_8,
             FA_VALUE_9,
             FA_N,
+        };
+
+        enum CapMotionStatus
+        {
+            CAP_STATUS_PARKED   = 1,
+            CAP_STATUS_UNPARKED = 3,
         };
 
         // DeviceStatusNP indices (FA[1..9])

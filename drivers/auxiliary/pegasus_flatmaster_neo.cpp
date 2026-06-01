@@ -86,11 +86,11 @@ bool PegasusFlatMasterNeo::initProperties()
     CapAngleNP.fill(getDeviceName(), "CAP_ANGLE", "Opening Angle", DUSTCAP_TAB, IP_RW, 60, IPS_IDLE);
 
     // Device overview (FA)
-    DeviceStatusNP[STATUS_LIGHT_INTENSITY].fill("STATUS_LIGHT_INTENSITY",  "Light Intensity",       "%.0f", 0, 100,  1, 0);
-    DeviceStatusNP[STATUS_LIGHT_ACTIVE].fill(   "STATUS_LIGHT_ACTIVE",     "Light Active",          "%.0f", 0, 1,    1, 0);
-    DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].fill("STATUS_CAP_TARGET",      "Cap Target Angle (°)",  "%.0f", 0, 270,  1, 0);
+    DeviceStatusNP[STATUS_LIGHT_INTENSITY].fill( "STATUS_LIGHT_INTENSITY", "Light Intensity",       "%.0f", 0, 100,  1, 0);
+    DeviceStatusNP[STATUS_LIGHT_ACTIVE].fill(    "STATUS_LIGHT_ACTIVE",    "Light Active",          "%.0f", 0, 1,    1, 0);
     DeviceStatusNP[STATUS_CAP_ACTUAL_ANGLE].fill("STATUS_CAP_ACTUAL",      "Cap Actual Angle (°)",  "%.0f", 0, 270,  1, 0);
-    DeviceStatusNP[STATUS_CAP_STATUS].fill(      "STATUS_CAP_STATUS",       "Cap Status",            "%.0f", 0, 9999, 1, 0);
+    DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].fill("STATUS_CAP_TARGET",      "Cap Target Angle (°)",  "%.0f", 0, 270,  1, 0);
+    DeviceStatusNP[STATUS_CAP_STATUS].fill(      "STATUS_CAP_STATUS",      "Cap Status",            "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_6].fill(        "STATUS_VALUE_6",          "Value 6",               "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_7].fill(        "STATUS_VALUE_7",          "Value 7",               "%.0f", 0, 9999, 1, 0);
     DeviceStatusNP[STATUS_VALUE_8].fill(        "STATUS_VALUE_8",          "Value 8",               "%.0f", 0, 9999, 1, 0);
@@ -498,7 +498,7 @@ bool PegasusFlatMasterNeo::getStatusData()
         return false;
     }
 
-    // FA response: "FMNEO:lightIntensity:lightActive:capTarget:capActual:v5:v6:v7:v8:v9"
+    // FA response: "FMNEO:lightIntensity:lightActive:capActual:capTarget:capStatus:v6:v7:v8:v9"
     std::vector<std::string> result = split(response, ":");
 
     if (result.size() < FA_N)
@@ -550,10 +550,9 @@ bool PegasusFlatMasterNeo::getStatusData()
         }
 
         // --- DustCap interface ---
-        // Known status values: 1 = parked (closed), 3 = unparked (open).
         // Any other value (e.g. in-motion) leaves IPS_BUSY in place until the
         // final state arrives; the switch selection is not changed mid-motion.
-        if (capStatus == 1)
+        if (capStatus == CAP_STATUS_PARKED)
         {
             if (ParkCapSP[CAP_PARK].getState() != ISS_ON || ParkCapSP.getState() != IPS_OK)
             {
@@ -563,7 +562,7 @@ bool PegasusFlatMasterNeo::getStatusData()
                 ParkCapSP.apply();
             }
         }
-        else if (capStatus == 3)
+        else if (capStatus == CAP_STATUS_UNPARKED)
         {
             if (ParkCapSP[CAP_UNPARK].getState() != ISS_ON || ParkCapSP.getState() != IPS_OK)
             {
