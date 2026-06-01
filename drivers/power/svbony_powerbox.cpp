@@ -188,6 +188,7 @@ bool SVBONYPowerBox::Handshake()
             return false;
         }
         std::string response(buf);
+        LOGF_DEBUG("Handshake response: %s", response.c_str());
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // wait 50 ms
 
         /*
@@ -217,9 +218,20 @@ bool SVBONYPowerBox::Handshake()
 
         ++retryCount;
     }
-    tcflush(PortFD, TCIOFLUSH);  // Flush both input and output buffers
-    // Send commands to the SV241 Pro and verify the response
-    if (sendCommand((const unsigned char*)"\x08", 1, nullptr, 10) == false)
+    /*
+     After resetting the device, issue a status request command and verify that the device enters the idle state.
+    */
+    int enterIdelRetryCount = 10;
+    while (enterIdelRetryCount-- > 0)
+    {
+        tcflush(PortFD, TCIOFLUSH);  // Flush both input and output buffers
+        // Send commands to the SV241 Pro and verify the response
+        if (sendCommand((const unsigned char*)"\x08", 1, nullptr, 10)) {
+            break; // Handshake successful
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // wait 1,000 ms
+    }
+    if (enterIdelRetryCount<= 0)
     {
         LOG_ERROR("Handshake failed.");
         return false;
