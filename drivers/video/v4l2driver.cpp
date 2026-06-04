@@ -1726,6 +1726,8 @@ void V4L2_Driver::newFrame()
                         guard.unlock();
                     }
                 }
+
+                PrimaryCCD.binFrame();
             }
             PrimaryCCD.setImageExtension("fits");
         }
