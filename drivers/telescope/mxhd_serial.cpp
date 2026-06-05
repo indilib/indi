@@ -17,14 +17,30 @@
 *******************************************************************************/
 #include "mxhd_serial.h"
 
+#include <indicom.h>
+
 #include <cerrno>
-#include <chrono>
 #include <cstring>
-#include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 
 MXHDSerial::MXHDSerial(int fd) : m_fd(fd) {}
+
+static void setTTYError(int rc, std::string &err)
+{
+    char msg[1024] = {0};
+    tty_error_msg(rc, msg, sizeof(msg));
+    err = msg;
+}
+
+static void splitTimeoutMs(int timeoutMs, long &seconds, long &microseconds)
+{
+    if (timeoutMs < 0)
+        timeoutMs = 0;
+
+    seconds      = timeoutMs / 1000;
+    microseconds = static_cast<long>(timeoutMs % 1000) * 1000L;
+}
 
 bool MXHDSerial::discardInput(std::string &err)
 {
@@ -38,62 +54,41 @@ bool MXHDSerial::discardInput(std::string &err)
 
 bool MXHDSerial::writeRaw(const void *data, size_t len, std::string &err)
 {
-    const uint8_t *p = static_cast<const uint8_t *>(data);
-    size_t written = 0;
-    while (written < len)
+    int nbytesWritten = 0;
+    const auto *buffer = static_cast<const char *>(data);
+    const int rc = tty_write(m_fd, buffer, static_cast<int>(len), &nbytesWritten);
+    if (rc != TTY_OK)
     {
-        const ssize_t n = ::write(m_fd, p + written, len - written);
-        if (n < 0)
-        {
-            if (errno == EINTR) continue;
-            err = std::string("write failed: ") + std::strerror(errno);
-            return false;
-        }
-        written += static_cast<size_t>(n);
+        setTTYError(rc, err);
+        return false;
     }
+
+    if (static_cast<size_t>(nbytesWritten) != len)
+    {
+        err = "short write";
+        return false;
+    }
+
     return true;
 }
 
 bool MXHDSerial::writeString(const std::string &s, std::string &err)
 {
-    return writeRaw(s.data(), s.size(), err);
-}
-
-static bool waitReadable(int fd, int timeoutMs, std::string &err)
-{
-    while (true)
+    int nbytesWritten = 0;
+    const int rc = tty_write_string(m_fd, s.c_str(), &nbytesWritten);
+    if (rc != TTY_OK)
     {
-        fd_set rfds;
-        FD_ZERO(&rfds);
-        FD_SET(fd, &rfds);
-
-        timeval tv;
-        tv.tv_sec = timeoutMs / 1000;
-        tv.tv_usec = (timeoutMs % 1000) * 1000;
-
-        const int r = ::select(fd + 1, &rfds, nullptr, nullptr, &tv);
-        if (r < 0)
-        {
-            if (errno == EINTR)
-                continue;
-            err = std::string("select failed: ") + std::strerror(errno);
-            return false;
-        }
-        if (r == 0)
-        {
-            err = "read timeout";
-            return false;
-        }
-        return true;
+        setTTYError(rc, err);
+        return false;
     }
-}
 
-static int remainingTimeoutMs(std::chrono::steady_clock::time_point deadline)
-{
-    const auto now = std::chrono::steady_clock::now();
-    if (now >= deadline)
-        return 0;
-    return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+    if (nbytesWritten != static_cast<int>(s.size()))
+    {
+        err = "short write";
+        return false;
+    }
+
+    return true;
 }
 
 bool MXHDSerial::readExact(std::vector<uint8_t> &out, size_t n, int timeoutMs, std::string &err)
@@ -101,38 +96,25 @@ bool MXHDSerial::readExact(std::vector<uint8_t> &out, size_t n, int timeoutMs, s
     out.clear();
     out.resize(n);
 
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-    size_t got = 0;
-    while (got < n)
-    {
-        const int leftMs = remainingTimeoutMs(deadline);
-        const int slice = leftMs > 200 ? 200 : leftMs;
-        if (slice <= 0)
-        {
-            err = "read timeout";
-            return false;
-        }
-        std::string werr;
-        if (!waitReadable(m_fd, slice, werr))
-        {
-            err = werr;
-            return false;
-        }
+    long seconds = 0;
+    long microseconds = 0;
+    splitTimeoutMs(timeoutMs, seconds, microseconds);
 
-        const ssize_t r = ::read(m_fd, out.data() + got, n - got);
-        if (r < 0)
-        {
-            if (errno == EINTR) continue;
-            err = std::string("read failed: ") + std::strerror(errno);
-            return false;
-        }
-        if (r == 0)
-        {
-            err = "read returned EOF";
-            return false;
-        }
-        got += static_cast<size_t>(r);
+    int nbytesRead = 0;
+    const int rc = tty_read_expanded(m_fd, reinterpret_cast<char *>(out.data()), static_cast<int>(n), seconds, microseconds,
+                                     &nbytesRead);
+    if (rc != TTY_OK)
+    {
+        setTTYError(rc, err);
+        return false;
     }
+
+    if (static_cast<size_t>(nbytesRead) != n)
+    {
+        err = "short read";
+        return false;
+    }
+
     return true;
 }
 
@@ -150,44 +132,25 @@ bool MXHDSerial::readChar(char &ch, int timeoutMs, std::string &err)
 bool MXHDSerial::readHashTerminated(std::string &out, int timeoutMs, std::string &err)
 {
     out.clear();
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-    while (true)
+
+    long seconds = 0;
+    long microseconds = 0;
+    splitTimeoutMs(timeoutMs, seconds, microseconds);
+
+    char buffer[1024] = {0};
+    int nbytesRead = 0;
+    const int rc = tty_nread_section_expanded(m_fd, buffer, sizeof(buffer), '#', seconds, microseconds, &nbytesRead);
+    if (rc != TTY_OK)
     {
-        const int leftMs = remainingTimeoutMs(deadline);
-        const int slice = leftMs > 200 ? 200 : leftMs;
-        if (slice <= 0)
-        {
-            err = "read timeout";
-            return false;
-        }
-        std::string werr;
-        if (!waitReadable(m_fd, slice, werr))
-        {
-            err = werr;
-            return false;
-        }
-
-        uint8_t ch = 0;
-        const ssize_t r = ::read(m_fd, &ch, 1);
-        if (r < 0)
-        {
-            if (errno == EINTR) continue;
-            err = std::string("read failed: ") + std::strerror(errno);
-            return false;
-        }
-        if (r == 0)
-        {
-            err = "read returned EOF";
-            return false;
-        }
-
-        if (ch == '#')
-        {
-            return true;
-        }
-
-        out.push_back(static_cast<char>(ch));
+        setTTYError(rc, err);
+        return false;
     }
+
+    out.assign(buffer, nbytesRead);
+    if (!out.empty() && out.back() == '#')
+        out.pop_back();
+
+    return true;
 }
 
 bool MXHDSerial::queryHash(const std::string &cmd, std::string &response, int timeoutMs, std::string &err)
