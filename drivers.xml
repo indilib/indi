@@ -387,6 +387,11 @@
             <driver name="LX200 ESP32go">indi_lx200_esp32go</driver>
             <version>1.0</version>
         </device>
+        <device label="MX-HD Telescope" manufacturer="GOTO INC">
+           <driver name="MX-HD Telescope">indi_mxhd_telescope</driver>
+           <version>1.0</version>
+        </device>
+        
     </devGroup>
     <devGroup group="Rotators">
         <device label="Rigelsys nFrame" manufacturer="Rigel Systems">
