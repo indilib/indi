@@ -997,31 +997,8 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         goto error;
     }
 
-    // To set the modem handshake lines, use the following ioctls.
-    // See tty(4) ("man 4 tty") and ioctl(2) ("man 2 ioctl") for details.
-
-    if (ioctl(t_fd, TIOCSDTR) == -1) // Assert Data Terminal Ready (DTR)
-    {
-        IDLog("Error asserting DTR %s - %s(%d).\n", device, strerror(errno), errno);
-    }
-
-    if (ioctl(t_fd, TIOCCDTR) == -1) // Clear Data Terminal Ready (DTR)
-    {
-        IDLog("Error clearing DTR %s - %s(%d).\n", device, strerror(errno), errno);
-    }
-
-    handshake = TIOCM_DTR | TIOCM_RTS | TIOCM_CTS | TIOCM_DSR;
-    if (ioctl(t_fd, TIOCMSET, &handshake) == -1)
-        // Set the modem lines depending on the bits set in handshake
-    {
-        IDLog("Error setting handshake lines %s - %s(%d).\n", device, strerror(errno), errno);
-    }
-
-    // To read the state of the modem lines, use the following ioctl.
-    // See tty(4) ("man 4 tty") and ioctl(2) ("man 2 ioctl") for details.
-
+    // Read current modem line state for diagnostic purposes only.
     if (ioctl(t_fd, TIOCMGET, &handshake) == -1)
-        // Store the state of the modem lines in handshake
     {
         IDLog("Error getting handshake lines %s - %s(%d).\n", device, strerror(errno), errno);
     }
