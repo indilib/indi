@@ -810,11 +810,11 @@
         <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
             <version>1.2</version>
-        </device>        
+        </device>
         <device label="Pegasus FlatMaster Neo" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster Neo">indi_pegasus_flatmaster_neo</driver>
             <version>1.0</version>
-        </device>  
+        </device>
         <device label="PlaneWave Delta-T" manufacturer="Planewave Instruments">
             <driver name="PlaneWave Delta-T">indi_planewave_deltat</driver>
             <version>1.1</version>
