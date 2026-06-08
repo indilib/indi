@@ -276,3 +276,12 @@ add_executable(indi_alpaca_telescope
 target_link_libraries(indi_alpaca_telescope indidriver ${HTTPLIB_LIBRARY})
 
 install(TARGETS indi_alpaca_telescope RUNTIME DESTINATION bin)
+
+# ########## MX-HD Telescope ##############
+add_executable(indi_mxhd_telescope
+    mxhd_telescope.cpp
+    mxhd_serial.cpp)
+
+target_link_libraries(indi_mxhd_telescope indidriver)
+
+install(TARGETS indi_mxhd_telescope RUNTIME DESTINATION bin)
