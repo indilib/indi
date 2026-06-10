@@ -60,7 +60,7 @@ IF (UNIX OR APPLE OR ANDROID)
 ENDIF ()
 
 # Warning, debug and linker flags
-SET(FIX_WARNINGS OFF CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
+SET(FIX_WARNINGS ON CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
 IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")
