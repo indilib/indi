@@ -60,13 +60,7 @@ IF (UNIX OR APPLE OR ANDROID)
 ENDIF ()
 
 # Warning, debug and linker flags
-# Default to strict on Clang/AppleClang (matches CI); GCC builds vary too much across distros.
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    SET(FIX_WARNINGS_DEFAULT ON)
-ELSE ()
-    SET(FIX_WARNINGS_DEFAULT OFF)
-ENDIF ()
-SET(FIX_WARNINGS ${FIX_WARNINGS_DEFAULT} CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
+SET(FIX_WARNINGS ON CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
 IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")

@@ -82,7 +82,10 @@ chmod -x drivers/telescope/pmc8driver.cpp
 # Disable LTO
 %define _lto_cflags %{nil}
 
-%cmake .
+# TODO: fix pre-existing GCC -Wstringop-truncation warnings in
+# libs/indibase/webcam/v4l2_base.cpp (strncpy bound == destination size),
+# then remove -DFIX_WARNINGS=OFF to build with -Werror like CI does.
+%cmake . -DFIX_WARNINGS=OFF
 make VERBOSE=1 %{?_smp_mflags}
 
 %install
