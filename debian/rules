@@ -12,4 +12,8 @@ export DEB_CXXFLAGS_MAINT_APPEND = -Wall -fno-strict-aliasing
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
+		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+		-DFIX_WARNINGS=OFF
+# TODO: fix pre-existing GCC -Wstringop-truncation warnings in
+# libs/indibase/webcam/v4l2_base.cpp (strncpy bound == destination size),
+# then remove -DFIX_WARNINGS=OFF to build with -Werror like CI does.

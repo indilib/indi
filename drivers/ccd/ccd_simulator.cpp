@@ -20,8 +20,6 @@
 #include "indicom.h"
 #include "stream/streammanager.h"
 
-#include "locale_compat.h"
-
 #include <libnova/julian_day.h>
 #include <libastro.h>
 
@@ -396,23 +394,6 @@ bool CCDSim::AbortGuideExposure()
     return true;
 }
 
-float CCDSim::CalcTimeLeft(timeval start, float req)
-{
-    double timesince;
-    double timeleft;
-    struct timeval now
-    {
-        0, 0
-    };
-    gettimeofday(&now, nullptr);
-
-    timesince =
-        (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
-    timesince = timesince / 1000;
-    timeleft  = req - timesince;
-    return timeleft;
-}
-
 void CCDSim::TimerHit()
 {
     uint32_t nextTimer = getCurrentPollingPeriod();
@@ -525,18 +506,8 @@ void CCDSim::TimerHit()
     SetTimer(nextTimer);
 }
 
-double CCDSim::flux(double mag) const
-{
-    // The limiting magnitude provides zero ADU whatever the exposure
-    // The saturation magnitude provides max ADU in one second
-    double const z = m_LimitingMag;
-    double const k = 2.5 * log10(m_MaxVal) / (m_LimitingMag - m_SaturationMag);
-    return pow(10, (z - mag) * k / 2.5);
-}
-
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
-    //  CCD frame is 16 bit data
     float exposure_time;
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
@@ -556,103 +527,29 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     if (ShowStarField)
     {
         float PEOffset {0};
-        float decDrift {0};
-        //  telescope ra in degrees
-        double rad {0};
-        //  telescope ra in radians
-        double rar {0};
-        //  telescope dec in radians;
-        double decr {0};
-        int nwidth = 0, nheight = 0;
 
         if (m_PEPeriod > 0)
         {
-            double timesince;
             time_t now;
             time(&now);
-
-            //  Lets figure out where we are on the pe curve
-            timesince = difftime(now, RunStart);
-            //  This is our spot in the curve
-            double PESpot = timesince / m_PEPeriod;
-            //  Now convert to radians
-            PESpot = PESpot * 2.0 * 3.14159;
-
-            PEOffset = m_PEMax * std::sin(PESpot);
-            //  convert to degrees
-            PEOffset = PEOffset / 3600;
+            double timesince = difftime(now, RunStart);
+            double PESpot = timesince / m_PEPeriod * 2.0 * 3.14159;
+            PEOffset = m_PEMax * std::sin(PESpot) / 3600.0f;
         }
 
-        //  Spin up a set of plate constants that will relate
-        //  ra/dec of stars, to our fictitious ccd layout
-
-        //  to account for various rotations etc
-        //  we should spin up some plate constants here
-        //  then we can use these constants to rotate and offset
-        //  the standard co-ordinates on each star for drawing
-        //  a ccd frame;
-        double pa, pb, pc, pd, pe, pf;
-        // Pixels per radian
-        double pprx, ppry;
-        // Scale in arcsecs per pixel
-        double Scalex;
-        double Scaley;
-        // CCD width in pixels
-        double ccdW = targetChip->getXRes();
-
-        // Pixels per radian
-        pprx = targetFocalLength / targetChip->getPixelSizeX() * 1000;
-        ppry = targetFocalLength / targetChip->getPixelSizeY() * 1000;
-
-        //  we do a simple scale for x and y locations
-        //  based on the focal length and pixel size
-        //  focal length in mm, pixels in microns
-        // JM: 2015-03-17: Using a simpler formula, Scalex and Scaley are in arcsecs/pixel
-        Scalex = (targetChip->getPixelSizeX() / targetFocalLength) * 206.3;
-        Scaley = (targetChip->getPixelSizeY() / targetFocalLength) * 206.3;
-
-#if 0
-        DEBUGF(
-            INDI::Logger::DBG_DEBUG,
-            "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
-            pprx, ppry, Scalex, Scaley);
-#endif
+        // Camera rotation: manual offset + snooped rotator + pier flip
         m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
         double theta = m_RotationOffset;
-        // With a rotator device "RotatorAngle" is snooped and defined, so the
-        // resulting camera rotation is the addition of offset and rotator angle.
         if (!std::isnan(RotatorAngle))
             theta += RotatorAngle;
-        // Without a rotator device ("Manual Rotator") the rotator angle is
-        // considered fixed to 0° and the camera rotation is equal to offset
         if (pierSide == 1)
-            theta -= 180;       // rotate 180 if on East
+            theta -= 180;
         theta = range360(theta);
         LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, theta);
-
-        // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
-        // TS: 2025-06-09: Below we have "Invert horizontally" and in the end
-        // this produces a rotation CCW with origin N (TODO: adjust matrix?)
-        pa = pprx * cos(theta * M_PI / 180.0);
-        pb = ppry * sin(theta * M_PI / 180.0);
-
-        pd = pprx * -sin(theta * M_PI / 180.0);
-        pe = ppry * cos(theta * M_PI / 180.0);
-
-        nwidth = targetChip->getXRes();
-        pc     = nwidth / 2;
-
-        nheight = targetChip->getYRes();
-        pf      = nheight / 2;
-
-        ImageScalex = Scalex;
-        ImageScaley = Scaley;
 
 #ifdef USE_EQUATORIAL_PE
         if (usePE)
         {
-            // Use the true pointing position (Wallace errors applied) published as
-            // EQUATORIAL_PE by the telescope simulator.  raPE/decPE are J2000.
             currentRA = raPE + guideWEOffset;
             currentDE = decPE + guideNSOffset;
         }
@@ -661,7 +558,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             static bool s_warnedNoSnoop = false;
             if (!s_warnedNoSnoop)
             {
-                LOG_WARN("EQUATORIAL_PE not yet snooped — rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
+                LOG_WARN("EQUATORIAL_PE not yet snooped -- rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
                 s_warnedNoSnoop = true;
             }
 #endif
@@ -674,17 +571,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                 currentDE = 0;
             }
 
-            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-
-            double jd = ln_get_julian_from_sys();
-
-            epochPos.rightascension  = currentRA;
-            epochPos.declination = currentDE;
-
-            // Convert from JNow to J2000
-            INDI::ObservedToJ2000(&epochPos, jd, &J2000Pos);
-
-            currentRA  = J2000Pos.rightascension;
+            INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
 
             currentDE += guideNSOffset;
@@ -693,221 +582,43 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         }
 #endif
 
-        //  calc this now, we will use it a lot later
-        rad = currentRA * 15.0 + PEOffset;
-        rar = rad * 0.0174532925;
-        //  offsetting the dec by the guide head offset
-        float cameradec;
-        cameradec = currentDE + m_OAGOffset / 60;
-        decr      = cameradec * 0.0174532925;
+        // Field center: RA in degrees (with PE), Dec with OAG offset and polar drift
+        double ra_deg     = currentRA * 15.0 + PEOffset;
+        double cameradec  = currentDE + m_OAGOffset / 60.0;
+        double decr       = cameradec * 0.0174532925;
+        double decDrift   = (m_PolarDrift * m_PolarError * cos(decr)) / 3.81;
+        double dec_deg    = cameradec + decDrift / 3600.0;
 
-        decDrift = (m_PolarDrift * m_PolarError * cos(decr)) / 3.81;
-
-        // Add declination drift, if any.
-        decr += decDrift / 3600.0 * 0.0174532925;
-
-        //  now lets calculate the radius we need to fetch
-        double radius = sqrt((Scalex * Scalex * targetChip->getXRes() / 2.0 * targetChip->getXRes() / 2.0) +
-                             (Scaley * Scaley * targetChip->getYRes() / 2.0 * targetChip->getYRes() / 2.0));
-        //  we have radius in arcseconds now
-        //  convert to arcminutes
-        radius = radius / 60;
-#if 0
-        LOGF_DEBUG("Lookup radius %4.2f", radius);
-#endif
-
-        //  A saturationmag star saturates in one second
-        //  and a limitingmag produces a one adu level in one second
-        //  solve for zero point and system gain
-
-        //k = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
-        //z = m_SaturationMag - k * (-2.5 * log(m_MaxVal));
-
-        //  Should probably do some math here to figure out the dimmest
-        //  star we can see on this exposure
-        //  and only fetch to that magnitude
-        //  for now, just use the limiting mag number with some room to spare
-        double lookuplimit = m_LimitingMag;
-
-        if (radius > 60)
-            lookuplimit = 11;
-
-        //  if this is a light frame, we need a star field drawn
         INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
+        bool const isLight = (ftype == INDI::CCDChip::LIGHT_FRAME);
+        bool const isFlat  = (ftype == INDI::CCDChip::FLAT_FRAME);
+
+        RenderConfig cfg;
+        cfg.maxVal        = m_MaxVal;
+        cfg.limitingMag   = m_LimitingMag;
+        cfg.saturationMag = m_SaturationMag;
+        cfg.seeing        = m_Seeing;
+        // Sky glow: 30% boost for realistic light-frame backgrounds; flat frames use diffuser daylight level
+        cfg.skyGlow = isLight ? m_SkyGlow * 1.3f : m_SkyGlow / 10.0f;
+        m_Renderer.setConfig(cfg);
 
         std::unique_lock<std::mutex> guard(ccdBufferLock);
 
-        //  Start by clearing the frame buffer
-        memset(targetChip->getFrameBuffer(), 0, targetChip->getFrameBufferSize());
-
-        if (ftype == INDI::CCDChip::LIGHT_FRAME)
+        if (isLight || isFlat)
         {
-            AutoCNumeric locale;
-            char gsccmd[250];
-            FILE * pp;
-            int drawn = 0;
-
-            sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",
-                    range360(rad),
-                    rangeDec(cameradec),
-                    radius,
-                    lookuplimit);
-
-            pp = popen(gsccmd, "r");
-            if (pp != nullptr)
-            {
-                char line[256];
-
-                while (fgets(line, 256, pp) != nullptr)
-                {
-                    //  ok, lets parse this line for specifics we want
-                    char id[20];
-                    char plate[6];
-                    char ob[6];
-                    float mag;
-                    float mage;
-                    float ra;
-                    float dec;
-                    float pose;
-                    int band;
-                    float dist;
-                    int dir;
-                    int c;
-
-                    int rc = sscanf(line, "%10s %f %f %f %f %f %d %d %4s %2s %f %d", id, &ra, &dec, &pose, &mag, &mage,
-                                    &band, &c, plate, ob, &dist, &dir);
-                    if (rc == 12)
-                    {
-                        //  Convert the ra/dec to standard co-ordinates
-                        double sx;    //  standard co-ords
-                        double sy;    //
-                        double srar;  //  star ra in radians
-                        double sdecr; //  star dec in radians;
-                        double ccdx;
-                        double ccdy;
-
-                        srar  = ra * 0.0174532925;
-                        sdecr = dec * 0.0174532925;
-
-                        //  Handbook of astronomical image processing
-                        //  page 253
-                        //  equations 9.1 and 9.2
-                        //  convert ra/dec to standard co-ordinates
-
-                        sx = cos(sdecr) * sin(srar - rar) /
-                             (cos(decr) * cos(sdecr) * cos(srar - rar) + sin(decr) * sin(sdecr));
-                        sy = (sin(decr) * cos(sdecr) * cos(srar - rar) - cos(decr) * sin(sdecr)) /
-                             (cos(decr) * cos(sdecr) * cos(srar - rar) + sin(decr) * sin(sdecr));
-
-                        //  now convert to pixels
-                        ccdx = pa * sx + pb * sy + pc;
-                        ccdy = pd * sx + pe * sy + pf;
-
-                        // Invert horizontally and transform CW to CCW (see above)
-                        ccdx = ccdW - ccdx;
-
-                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time);
-                        drawn += rc;
-#ifdef __DEV__
-                        if (rc == 1)
-                        {
-                            LOGF_DEBUG("star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f", id, rad, currentDE, ra, dec, ccdx, ccdy);
-                            LOGF_DEBUG("star %s ccd %6.2f %6.2f", id, ccdx, ccdy);
-                        }
-#endif
-                    }
-                }
-                pclose(pp);
-            }
-            else
-            {
-                LOG_ERROR("Error looking up stars, is gsc installed with appropriate environment variables set ??");
-            }
-            if (drawn == 0)
-            {
-                LOG_ERROR("Got no stars, is gsc installed with appropriate environment variables set ??");
-            }
+            int drawn = m_Renderer.renderFrame(targetChip, ra_deg, dec_deg,
+                                               targetFocalLength, theta, exposure_time, isLight);
+            if (isLight && drawn < 0)
+                LOG_ERROR("Error launching gsc, is it installed with appropriate environment variables set?");
+            else if (isLight && drawn == 0)
+                LOG_WARN("No stars found in field -- check gsc catalog coverage for this region.");
+        }
+        else
+        {
+            memset(targetChip->getFrameBuffer(), 0, targetChip->getFrameBufferSize());
         }
 
-        //  now we need to add background sky glow, with vignetting
-        //  this is essentially the same math as drawing a dim star with
-        //  fwhm equivalent to the full field of view
-
-        if (ftype == INDI::CCDChip::LIGHT_FRAME || ftype == INDI::CCDChip::FLAT_FRAME)
-        {
-            //  calculate flux from our zero point and gain values
-            float glow = m_SkyGlow * 1.3;
-
-            if (ftype == INDI::CCDChip::FLAT_FRAME)
-            {
-                //  Assume flats are done with a diffuser
-                //  in broad daylight, so, the sky magnitude
-                //  is much brighter than at night
-                glow = m_SkyGlow / 10;
-            }
-
-            // Flux represents one second, scale up linearly for exposure time
-            float const skyflux = flux(glow) * exposure_time;
-
-            uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
-
-            nheight = targetChip->getSubH();
-            nwidth  = targetChip->getSubW();
-
-            for (int y = 0; y < nheight; y++)
-            {
-                float const sy = nheight / 2 - y;
-
-                for (int x = 0; x < nwidth; x++)
-                {
-                    float const sx = nwidth / 2 - x;
-
-                    // Vignetting parameter in arcsec
-                    float const vig = std::min(nwidth, nheight) * ImageScalex;
-
-                    // Squared distance to center in arcsec (need to make this account for actual pixel size)
-                    float const dc2 = sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley;
-
-                    // Gaussian falloff to the edges of the frame
-                    float const fa = exp(-2.0 * 0.7 * dc2 / (vig * vig));
-
-                    // Get the current value of the pixel, add the sky glow and scale for vignetting
-                    float fp = (pt[0] + skyflux) * fa;
-
-                    // Clamp to limits, store minmax
-                    if (fp > m_MaxVal) fp = m_MaxVal;
-                    if (fp < pt[0]) fp = pt[0];
-                    if (fp > maxpix) maxpix = fp;
-                    if (fp < minpix) minpix = fp;
-
-                    // And put it back
-                    pt[0] = fp;
-                    pt++;
-                }
-            }
-        }
-
-        //  Now we add some bias and read noise
-        int subX = targetChip->getSubX();
-        int subY = targetChip->getSubY();
-        int subW = targetChip->getSubW() + subX;
-        int subH = targetChip->getSubH() + subY;
-
-        if (m_MaxNoise > 0)
-        {
-            for (int x = subX; x < subW; x++)
-            {
-                for (int y = subY; y < subH; y++)
-                {
-                    int noise;
-
-                    noise = random();
-                    noise = noise % m_MaxNoise; //
-
-                    AddToPixel(targetChip, x, y, m_Bias + noise);
-                }
-            }
-        }
+        m_Renderer.applyReadoutNoise(targetChip, m_Bias, m_MaxNoise);
     }
     else
     {
@@ -927,112 +638,16 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     return 0;
 }
 
-int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float exposure_time)
+float CCDSim::CalcTimeLeft(timeval start, float req)
 {
-    int sx, sy;
-    int drew     = 0;
-    //int boxsizex = 5;
-    int boxsizey = 5;
-    float flux;
-
-    int subX = targetChip->getSubX();
-    int subY = targetChip->getSubY();
-    int subW = targetChip->getSubW() + subX;
-    int subH = targetChip->getSubH() + subY;
-
-    if ((x < subX) || (x > subW || (y < subY) || (y > subH)))
+    struct timeval now
     {
-        //  this star is not on the ccd frame anyways
-        return 0;
-    }
-
-    //  calculate flux from our zero point and gain values
-    flux = this->flux(mag);
-
-    //  ok, flux represents one second now
-    //  scale up linearly for exposure time
-    flux = flux * exposure_time;
-
-    //  we need a box size that gives a radius at least 3 times fwhm
-    //qx       = seeing / ImageScalex;
-    //qx       = qx * 3;
-    //boxsizex = (int)qx;
-    //boxsizex++;
-    auto qx = seeing / ImageScaley;
-    qx = qx * 3;
-    boxsizey = static_cast<int>(qx);
-    boxsizey++;
-
-    //IDLog("BoxSize %d %d\n",boxsizex,boxsizey);
-
-    for (sy = -boxsizey; sy <= boxsizey; sy++)
-    {
-        for (sx = -boxsizey; sx <= boxsizey; sx++)
-        {
-            int rc;
-
-            // Squared distance to center in arcsec (need to make this account for actual pixel size)
-            float const dc2 = sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley;
-
-            // Use a gaussian of unitary integral, scale it with the source flux
-            // f(x) = 1/(sqrt(2*pi)*sigma) * exp( -x² / (2*sigma²) )
-            // FWHM = 2*sqrt(2*log(2))*sigma => sigma = seeing/(2*sqrt(2*log(2)))
-            float const sigma = seeing / ( 2 * sqrt(2 * log(2)));
-            float const fa = 1 / (sigma * sqrt(2 * 3.1416)) * exp( -dc2 / (2 * sigma * sigma));
-
-            // The source contribution is the gaussian value, stretched by seeing/FWHM
-            float fp = fa * flux;
-
-            if (fp < 0)
-                fp = 0;
-
-            rc = AddToPixel(targetChip, x + sx, y + sy, fp);
-            if (rc != 0)
-                drew = 1;
-        }
-    }
-    return drew;
-}
-
-int CCDSim::AddToPixel(INDI::CCDChip * targetChip, int x, int y, int val)
-{
-    int nwidth  = targetChip->getSubW();
-    int nheight = targetChip->getSubH();
-
-    x -= targetChip->getSubX();
-    y -= targetChip->getSubY();
-
-    int drew = 0;
-    if (x >= 0)
-    {
-        if (x < nwidth)
-        {
-            if (y >= 0)
-            {
-                if (y < nheight)
-                {
-                    unsigned short * pt;
-                    int newval;
-                    drew++;
-
-                    pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
-
-                    pt += (y * nwidth);
-                    pt += x;
-                    newval = pt[0];
-                    newval += val;
-                    if (newval > m_MaxVal)
-                        newval = m_MaxVal;
-                    if (newval > maxpix)
-                        maxpix = newval;
-                    if (newval < minpix)
-                        minpix = newval;
-                    pt[0] = newval;
-                }
-            }
-        }
-    }
-    return drew;
+        0, 0
+    };
+    gettimeofday(&now, nullptr);
+    double const timesince = (now.tv_sec  * 1000.0 + now.tv_usec  / 1000.0)
+                             - (start.tv_sec * 1000.0 + start.tv_usec / 1000.0);
+    return static_cast<float>(req - timesince / 1000.0);
 }
 
 IPState CCDSim::GuideNorth(uint32_t v)
@@ -1320,7 +935,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
         // we calculate the FWHM and do not snoop it from the focus simulator
-        // seeing = FWHMNP.np[0].value;
+        // m_Seeing = FWHMNP.np[0].value;
         return true;
     }
 
@@ -1345,7 +960,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
                 // limit to +/- 10
                 double ticks = 20 * (FocuserPos - focus) / max;
 
-                seeing = 0.5625 * ticks * ticks + optimalFWHM;
+                m_Seeing = 0.5625 * ticks * ticks + optimalFWHM;
                 return true;
             }
         }
