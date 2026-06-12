@@ -255,50 +255,39 @@ void RigelDome::TimerHit()
         Pulsar Dome Drive workaround to fix issue where the motor seems to
         be struggling as it tries to get to the final position.
         This improved version tracks consecutive cycles with no angle change
-        and only stops the motor after multiple cycles if we're close to target.
+        and only stops the motor after multiple cycles.
     */
     double currentAngle = DomeAbsPosNP[0].getValue();
 
-    if (previousAngle >= 0 && isMoving)
+    // Check if angle has changed within tolerance and stop if stuck for threshold
+    if (std::abs(currentAngle - previousAngle) < ANGLE_TOLERANCE && isMoving)
     {
-        // Check if angle has changed (with small tolerance for floating point comparison)
-        if (std::abs(currentAngle - previousAngle) < 0.01)
-        {
-            stuckAngleCounter++;
-            LOGF_DEBUG("Angle unchanged for %d consecutive cycle(s): %.3f degrees", stuckAngleCounter, currentAngle);
+        stuckAngleCounter++;
 
-            // Only stop if stuck for multiple cycles AND close to target
-            if (stuckAngleCounter >= STUCK_THRESHOLD)
+        if  (stuckAngleCounter >= STUCK_THRESHOLD)
+        {
+            stuckAngleCounter = 0;
+            char res[DRIVER_LEN] = {0};
+
+            if (sendCommand("STOP", res))
             {
                 double diff = std::abs(targetAz - currentAngle);
                 // Account for wrap-around (e.g., target 1, current 359)
                 if (diff > 180)
                     diff = 360.0 - diff;
 
-                if (diff < ANGLE_TOLERANCE)
-                {
-                    char res[DRIVER_LEN] = {0};
-                    if (sendCommand("STOP", res))
-                    {
-                        LOGF_INFO("Motor stopped: position unchanged for %d cycles, within %.1f° of target",
-                                  STUCK_THRESHOLD, ANGLE_TOLERANCE);
-                        stuckAngleCounter = 0;
-                        setDomeState(DOME_SYNCED);
-                        SetTimer(getCurrentPollingPeriod());
-                        return;
-                    }
-                }
-                else
-                {
-                    LOGF_WARN("Motor stuck but %.1f° away from target - allowing more time", diff);
-                }
+                LOGF_INFO("Motor stopped after %d cycles with no movement. Current: %.3f°, Target: %.3f°, Difference: %.3f°",
+                          STUCK_THRESHOLD, currentAngle, targetAz, diff);
+                setDomeState(DOME_SYNCED);
+                SetTimer(getCurrentPollingPeriod());
+                return;
             }
         }
-        else
-        {
-            // Angle changed, reset counter
-            stuckAngleCounter = 0;
-        }
+    }
+    else
+    {
+        // Angle changed, reset counter
+        stuckAngleCounter = 0;
     }
 
     previousAngle = currentAngle;
@@ -366,6 +355,7 @@ IPState RigelDome::MoveAbs(double az)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
+    targetAz = az;
     snprintf(cmd, DRIVER_LEN, "GO %3.1f", az);
     if (sendCommand(cmd, res) == false)
         return IPS_ALERT;
@@ -393,6 +383,7 @@ bool RigelDome::Sync(double az)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
+    targetAz = az;
     snprintf(cmd, DRIVER_LEN, "ANGLE K %3.1f", az);
     if (sendCommand(cmd, res) == false)
         return false;
@@ -437,6 +428,7 @@ bool RigelDome::home()
 {
     // Reset stuck counter for homing movement
     stuckAngleCounter = 0;
+    targetAz = HomePositionNP[0].getValue();
 
     char res[DRIVER_LEN] = {0};
     if (sendCommand("GO H", res) == false)
@@ -467,6 +459,7 @@ bool RigelDome::setHome(double az)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
+    targetAz = az;
     snprintf(cmd, DRIVER_LEN, "HOME %3.1f", az);
     if (sendCommand(cmd, res) == false)
         return false;
