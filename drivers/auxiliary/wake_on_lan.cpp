@@ -24,12 +24,8 @@
 
 #include "wake_on_lan.h"
 
-#include <arpa/inet.h>
 #include <cstring>
-#include <netinet/in.h>
 #include <string>
-#include <sys/socket.h>
-#include <unistd.h>
 
 // We declare an auto pointer to WakeOnLAN.
 std::unique_ptr<WakeOnLAN> wakeonlan(new WakeOnLAN());
@@ -308,146 +304,35 @@ bool WakeOnLAN::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (Send1SP.isNameMatch(name))
+        auto handleSend = [&](INDI::PropertyText &devTP, INDI::PropertySwitch &sendSP, int num) -> bool
         {
-            if (Device1TP[0].getText() == nullptr || strlen(Device1TP[0].getText()) == 0)
+            if (!sendSP.isNameMatch(name))
+                return false;
+            if (devTP[0].getText() == nullptr || strlen(devTP[0].getText()) == 0)
             {
-                LOG_ERROR("MAC address 1 not configured.");
-                Send1SP.setState(IPS_ALERT);
-                Send1SP.apply();
-                return true;
+                LOGF_ERROR("MAC address %d not configured.", num);
+                sendSP.setState(IPS_ALERT);
             }
-
-            if (sendWakeOnLan(Device1TP[0].getText()))
+            else if (sendWakeOnLan(devTP[0].getText()))
             {
-                LOGF_INFO("Wake On Lan packet sent to %s (%s)", Device1TP[1].getText(), Device1TP[0].getText());
-                // Start pinging if an IP is configured; button turns green when device responds
-                const char *ip1 = Device1TP[2].getText();
-                if (ip1 && strlen(ip1) > 0)
-                {
-                    Send1SP.setState(IPS_BUSY);
-                    Send1SP.apply();
-                }
-                else
-                {
-                    Send1SP.setState(IPS_OK);
-                    Send1SP.apply();
-                }
+                LOGF_INFO("Wake On Lan packet sent to %s (%s)", devTP[1].getText(), devTP[0].getText());
+                const char *ip = devTP[2].getText();
+                sendSP.setState((ip && strlen(ip) > 0) ? IPS_BUSY : IPS_OK);
             }
             else
             {
-                LOGF_ERROR("Failed to send Wake On Lan packet for %s (%s)", Device1TP[1].getText(), Device1TP[0].getText());
-                Send1SP.setState(IPS_ALERT);
-                Send1SP.apply();
+                LOGF_ERROR("Failed to send Wake On Lan packet for %s (%s)", devTP[1].getText(), devTP[0].getText());
+                sendSP.setState(IPS_ALERT);
             }
-            Send1SP.reset();
+            sendSP.reset();
+            sendSP.apply();
             return true;
-        }
+        };
 
-        if (Send2SP.isNameMatch(name))
-        {
-            if (Device2TP[0].getText() == nullptr || strlen(Device2TP[0].getText()) == 0)
-            {
-                LOG_ERROR("MAC address 2 not configured.");
-                Send2SP.setState(IPS_ALERT);
-                Send2SP.apply();
-                return true;
-            }
-
-            if (sendWakeOnLan(Device2TP[0].getText()))
-            {
-                LOGF_INFO("Wake On Lan packet sent to %s (%s)", Device2TP[1].getText(), Device2TP[0].getText());
-                const char *ip2 = Device2TP[2].getText();
-                if (ip2 && strlen(ip2) > 0)
-                {
-                    Send2SP.setState(IPS_BUSY);
-                    Send2SP.apply();
-                }
-                else
-                {
-                    Send2SP.setState(IPS_OK);
-                    Send2SP.apply();
-                }
-            }
-            else
-            {
-                LOGF_ERROR("Failed to send Wake On Lan packet for %s (%s)", Device2TP[1].getText(), Device2TP[0].getText());
-                Send2SP.setState(IPS_ALERT);
-                Send2SP.apply();
-            }
-            Send2SP.reset();
-            return true;
-        }
-
-        if (Send3SP.isNameMatch(name))
-        {
-            if (Device3TP[0].getText() == nullptr || strlen(Device3TP[0].getText()) == 0)
-            {
-                LOG_ERROR("MAC address 3 not configured.");
-                Send3SP.setState(IPS_ALERT);
-                Send3SP.apply();
-                return true;
-            }
-
-            if (sendWakeOnLan(Device3TP[0].getText()))
-            {
-                LOGF_INFO("Wake On Lan packet sent to %s (%s)", Device3TP[1].getText(), Device3TP[0].getText());
-                const char *ip3 = Device3TP[2].getText();
-                if (ip3 && strlen(ip3) > 0)
-                {
-                    Send3SP.setState(IPS_BUSY);
-                    Send3SP.apply();
-                }
-                else
-                {
-                    Send3SP.setState(IPS_OK);
-                    Send3SP.apply();
-                }
-            }
-            else
-            {
-                LOGF_ERROR("Failed to send Wake On Lan packet for %s (%s)", Device3TP[1].getText(), Device3TP[0].getText());
-                Send3SP.setState(IPS_ALERT);
-                Send3SP.apply();
-            }
-            Send3SP.reset();
-            return true;
-        }
-
-        if (Send4SP.isNameMatch(name))
-        {
-            if (Device4TP[0].getText() == nullptr || strlen(Device4TP[0].getText()) == 0)
-            {
-                LOG_ERROR("MAC address 4 not configured.");
-                Send4SP.setState(IPS_ALERT);
-                Send4SP.apply();
-                return true;
-            }
-
-            if (sendWakeOnLan(Device4TP[0].getText()))
-            {
-                LOGF_INFO("Wake On Lan packet sent to %s (%s)", Device4TP[1].getText(), Device4TP[0].getText());
-                const char *ip4 = Device4TP[2].getText();
-                if (ip4 && strlen(ip4) > 0)
-                {
-                    Send4SP.setState(IPS_BUSY);
-                    Send4SP.apply();
-                }
-                else
-                {
-                    Send4SP.setState(IPS_OK);
-                    Send4SP.apply();
-                }
-            }
-            else
-            {
-                LOGF_ERROR("Failed to send Wake On Lan packet for %s (%s)", Device4TP[1].getText(), Device4TP[0].getText());
-                Send4SP.setState(IPS_ALERT);
-                Send4SP.apply();
-            }
-            Send4SP.reset();
-            return true;
-        }
+        if (handleSend(Device1TP, Send1SP, 1)) return true;
+        if (handleSend(Device2TP, Send2SP, 2)) return true;
+        if (handleSend(Device3TP, Send3SP, 3)) return true;
+        if (handleSend(Device4TP, Send4SP, 4)) return true;
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -474,70 +359,18 @@ bool WakeOnLAN::sendWakeOnLan(const char *macAddress)
         return false;
     }
 
-    // Parse MAC address: "AA:BB:CC:DD:EE:FF" or "AABBCCDDEEFF"
-    unsigned char mac[6];
-    int macElements = sscanf(macAddress, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                             &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
-
-    // Try without colons if first attempt failed
-    if (macElements != 6)
+    std::string cmd = "wakeonlan " + std::string(macAddress);
+    int ret = system(cmd.c_str());
+    if (ret == 0)
     {
-        macElements = sscanf(macAddress, "%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
-                             &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+        LOGF_INFO("Wake on LAN packet sent to %s", macAddress);
+        return true;
     }
-
-    if (macElements != 6)
+    if (ret == 127)
     {
-        LOGF_ERROR("Invalid MAC address format: %s (use AA:BB:CC:DD:EE:FF or AABBCCDDEEFF)", macAddress);
+        LOG_ERROR("WoL: wakeonlan tool not found. Please install it on your system.");
         return false;
     }
-
-    // Create magic packet: 6 bytes of 0xFF + 16 repetitions of the MAC address
-    unsigned char packet[102];
-
-    // Fill with 0xFF
-    for (int i = 0; i < 6; i++)
-        packet[i] = 0xFF;
-
-    // Fill with MAC address repeated 16 times
-    for (int i = 0; i < 16; i++)
-        for (int j = 0; j < 6; j++)
-            packet[6 + i * 6 + j] = mac[j];
-
-    // Create UDP socket for broadcast
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0)
-    {
-        LOGF_ERROR("Failed to create socket: %s", strerror(errno));
-        return false;
-    }
-
-    // Enable broadcast option
-    int broadcast = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0)
-    {
-        LOGF_ERROR("Failed to set broadcast option: %s", strerror(errno));
-        close(sock);
-        return false;
-    }
-
-    // Set destination address to broadcast
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("255.255.255.255");
-    addr.sin_port = htons(9);  // WoL standard port
-
-    // Send magic packet
-    ssize_t sent = sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *)&addr, sizeof(addr));
-    close(sock);
-
-    if (sent != sizeof(packet))
-    {
-        LOGF_ERROR("Failed to send WoL packet: %s", strerror(errno));
-        return false;
-    }
-
-    LOGF_INFO("Wake on LAN packet sent to %s", macAddress);
-    return true;
+    LOG_ERROR("WoL: wakeonlan failed to send the packet.");
+    return false;
 }

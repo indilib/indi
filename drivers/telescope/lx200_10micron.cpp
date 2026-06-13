@@ -31,13 +31,10 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
-#include <cerrno>
 #include <cstring>
-#include <netinet/in.h>
+#include <string>
 #include <strings.h>
-#include <sys/socket.h>
 #include <termios.h>
-#include <unistd.h>
 #include <math.h>
 #include <libnova/libnova.h>
 
@@ -1512,56 +1509,18 @@ bool LX200_10MICRON::sendWakeOnLanPacket()
         return false;
     }
 
-    // Parse MAC — supports both XX:XX:XX:XX:XX:XX and XX-XX-XX-XX-XX-XX
-    unsigned char mac[6];
-    if (sscanf(macStr, "%hhx%*c%hhx%*c%hhx%*c%hhx%*c%hhx%*c%hhx",
-               &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6)
+    std::string cmd = "wakeonlan " + std::string(macStr);
+    int ret = system(cmd.c_str());
+    if (ret == 0)
     {
-        LOGF_ERROR("WoL: Invalid MAC address '%s'. Expected XX:XX:XX:XX:XX:XX.", macStr);
+        LOGF_INFO("WoL: magic packet sent to %s", macStr);
+        return true;
+    }
+    if (ret == 127)
+    {
+        LOG_ERROR("WoL: wakeonlan tool not found. Please install it on your system.");
         return false;
     }
-
-    // Build 102-byte magic packet: 6×0xFF followed by 16 repetitions of the MAC
-    unsigned char packet[102];
-    memset(packet, 0xFF, 6);
-    for (int i = 0; i < 16; i++)
-        memcpy(packet + 6 + i * 6, mac, 6);
-
-    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sock < 0)
-    {
-        LOGF_ERROR("WoL: socket() failed: %s", strerror(errno));
-        return false;
-    }
-
-    int bcast = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bcast, sizeof(bcast)) < 0)
-    {
-        LOGF_ERROR("WoL: setsockopt SO_BROADCAST failed: %s", strerror(errno));
-        close(sock);
-        return false;
-    }
-
-    bool success = false;
-
-    // 1. Global broadcast 255.255.255.255:9
-    {
-        struct sockaddr_in addr {};
-        addr.sin_family      = AF_INET;
-        addr.sin_port        = htons(9);
-        addr.sin_addr.s_addr = INADDR_BROADCAST;
-        if (sendto(sock, packet, sizeof(packet), 0,
-                   reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) >= 0)
-        {
-            LOGF_INFO("WoL: magic packet sent to 255.255.255.255:9 (MAC: %s)", WoLMacT[0].text);
-            success = true;
-        }
-        else
-        {
-            LOGF_WARN("WoL: global broadcast failed: %s", strerror(errno));
-        }
-    }
-
-    close(sock);
-    return success;
+    LOG_ERROR("WoL: wakeonlan failed to send the packet.");
+    return false;
 }
