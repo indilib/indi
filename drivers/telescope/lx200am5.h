@@ -61,6 +61,9 @@ class LX200AM5 : public LX200Generic
         // Home
         virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
+        // Config
+        virtual bool saveConfigItems(FILE *fp) override;
+
     private:
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
