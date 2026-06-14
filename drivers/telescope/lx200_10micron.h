@@ -183,11 +183,16 @@ class LX200_10MICRON : public LX200Generic
         ISwitch WoLSendS[1];
         ISwitchVectorProperty WoLSendSP;
 
+        // Shutdown
+        INDI::PropertySwitch MountShutdownSP {1};
+
     private:
         int fd = -1; // short notation for PortFD/sockfd
         bool getMountInfo();
         bool flip();
         bool sendWakeOnLanPacket();
+        bool m_ShutdownPending { false };
+        void TimerHit() override;
 
         int OldGstat = GSTAT_UNSET;
         struct _Ginfo
