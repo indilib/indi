@@ -2,12 +2,12 @@
 %define __cmake_in_source_build %{_vpath_builddir}
 
 Name: indi
-Version: 2.2.2.git
+Version: 2.2.3.git
 Release: %(date -u +%%Y%%m%%d%%H%%M%%S)%{?dist}
 Summary: Instrument Neutral Distributed Interface
 
 License: LGPLv2+ and GPLv2+
-# See COPYRIGHT file for a description of the licenses and files covered
+# See COPYRIGHT file for a descriptions of the licenses and files covered
 
 Provides: libindi = %{version}-%{release}
 
