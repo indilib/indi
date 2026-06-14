@@ -112,7 +112,7 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
 bool ScopeScript::RunScript(int script, ...)
 {
     char tmp[256];
-    strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+    snprintf(tmp, sizeof(tmp), "%s", ScriptsT[script].text);
 
     char **args = (char **)malloc(MAXARGS * sizeof(char *));
     int arg     = 1;

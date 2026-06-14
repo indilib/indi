@@ -139,7 +139,7 @@ void CCDChip::setBin(uint8_t hor, uint8_t ver)
 void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
                             bool sendToClient)
 {
-    auto updateMinMaxStep = [element, min, max, step, sendToClient](INDI::PropertyNumber &oneProperty)
+    auto updateMinMaxStep = [element, min, max, step, sendToClient](INDI::PropertyNumber & oneProperty)
     {
         auto oneElement = oneProperty.findWidgetByName(element);
         if(oneElement)
@@ -197,13 +197,13 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
 
     RawFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(RawFrame, RawFrameSize));
     if (RawFrame == nullptr)
-        RawFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+        RawFrame = static_cast<uint8_t * >(IDSharedBlobAlloc(RawFrameSize));
 
     if (BinFrame)
     {
         BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
         if (BinFrame == nullptr)
-            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+            BinFrame = static_cast<uint8_t * >(IDSharedBlobAlloc(RawFrameSize));
     }
 }
 
@@ -277,7 +277,7 @@ void CCDChip::setNAxis(int value)
 
 void CCDChip::setImageExtension(const char *ext)
 {
-    strncpy(ImageExtention, ext, MAXINDIBLOBFMT);
+    snprintf(ImageExtention, MAXINDIBLOBFMT, "%s", ext);
 }
 
 void CCDChip::binFrame()
@@ -287,12 +287,12 @@ void CCDChip::binFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+        BinFrame = static_cast<uint8_t * >(IDSharedBlobAlloc(RawFrameSize));
     else
     {
         BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
         if (BinFrame == nullptr)
-            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+            BinFrame = static_cast<uint8_t * >(IDSharedBlobAlloc(RawFrameSize));
     }
 
     memset(BinFrame, 0, RawFrameSize);
@@ -380,12 +380,12 @@ void CCDChip::binBayerFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+        BinFrame = static_cast<uint8_t * >(IDSharedBlobAlloc(RawFrameSize));
     else
     {
         BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
         if (BinFrame == nullptr)
-            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+            BinFrame = static_cast<uint8_t * >(IDSharedBlobAlloc(RawFrameSize));
     }
 
     memset(BinFrame, 0, RawFrameSize);

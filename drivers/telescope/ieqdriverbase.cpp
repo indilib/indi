@@ -104,8 +104,8 @@ bool Base::getMainFirmware()
     {
         char board[8] = {0}, controller[8] = {0};
 
-        strncpy(board, res, 6);
-        strncpy(controller, res + 6, 6);
+        snprintf(board, sizeof(board), "%.6s", res);
+        snprintf(controller, sizeof(controller), "%.6s", res + 6);
 
         m_FirmwareInfo.MainBoardFirmware.assign(board, 6);
         m_FirmwareInfo.ControllerFirmware.assign(controller, 6);
@@ -124,8 +124,8 @@ bool Base::getRADEFirmware()
     {
         char ra[8] = {0}, de[8] = {0};
 
-        strncpy(ra, res, 6);
-        strncpy(de, res + 6, 6);
+        snprintf(ra, sizeof(ra), "%.6s", res);
+        snprintf(de, sizeof(de), "%.6s", res + 6);
 
         m_FirmwareInfo.RAFirmware.assign(ra, 6);
         m_FirmwareInfo.DEFirmware.assign(de, 6);
@@ -651,9 +651,9 @@ bool Base::getStatus(Info *info)
     {
         char longitude[8] = {0}, latitude[8] = {0}, status[8] = {0};
 
-        strncpy(longitude, res, 7);
-        strncpy(latitude, res + 7, 6);
-        strncpy(status, res + 13, 6);
+        snprintf(longitude, sizeof(longitude), "%.7s", res);
+        snprintf(latitude, sizeof(latitude), "%.6s", res + 7);
+        snprintf(status, sizeof(status), "%.6s", res + 13);
 
         info->longitude     = DecodeString(res, 7, 3600.0);
         info->latitude      = DecodeString(res + 7, 6, 3600.0) - 90;
@@ -891,7 +891,7 @@ double Base::DecodeString(const char * data, size_t size, double factor)
 int Base::DecodeString(const char *data, size_t size)
 {
     char str[DRIVER_LEN / 2] = {0};
-    strncpy(str, data, size);
+    snprintf(str, sizeof(str), "%.*s", static_cast<int>(size), data);
 
     int iVal = atoi(str);
     return iVal;

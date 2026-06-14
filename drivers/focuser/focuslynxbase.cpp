@@ -1432,7 +1432,8 @@ bool FocusLynxBase::getFocusStatus()
 
         // If reverse is enable and switch shows disabled, let's change that
         // same thing is reverse is disabled but switch is enabled
-        if ((reverse && FocusReverseSP[INDI_DISABLED].getState() == ISS_ON) || (!reverse && FocusReverseSP[INDI_ENABLED].getState() == ISS_ON))
+        if ((reverse && FocusReverseSP[INDI_DISABLED].getState() == ISS_ON) || (!reverse
+                && FocusReverseSP[INDI_ENABLED].getState() == ISS_ON))
         {
             FocusReverseSP.reset();
             FocusReverseSP[INDI_ENABLED].setState((reverse == 1) ? ISS_ON : ISS_OFF);
@@ -3402,7 +3403,7 @@ float FocusLynxBase::calcTimeLeft(timeval start, float req)
 
     timesince =
         static_cast<int>((now.tv_sec * 1000.0 + now.tv_usec / 1000)) - static_cast<int>((start.tv_sec * 1000.0 + start.tv_usec /
-                1000));
+            1000));
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
@@ -3476,7 +3477,7 @@ void FocusLynxBase::debugTriggered(bool enable)
 void FocusLynxBase::setFocusTarget(const char *target)
 // Use to set the string of the private char[] focusTarget
 {
-    strncpy(focusTarget, target, 8);
+    snprintf(focusTarget, 8, "%s", target);
 }
 
 /************************************************************************************

@@ -1026,7 +1026,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             FITSHeaderTP.update(texts, names, n);
 
             std::string name = FITSHeaderTP[KEYWORD_NAME].getText();
-            std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return std::toupper(c); });
+            std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c)
+            {
+                return std::toupper(c);
+            });
             std::string value = FITSHeaderTP[KEYWORD_VALUE].getText();
             std::string comment = FITSHeaderTP[KEYWORD_COMMENT].getText();
 
@@ -2062,7 +2065,7 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
     uint32_t subBinX = targetChip->getBinX();
     uint32_t subBinY = targetChip->getBinY();
 
-    strncpy(dev_name, getDeviceName(), MAXINDINAME);
+    snprintf(dev_name, sizeof(dev_name), "%s", getDeviceName());
 
     fitsKeywords.push_back({"EXPTIME", exposureDuration, 6, "Total Exposure Time (s)"});
 
@@ -2347,7 +2350,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     // save information used for the fits header
     exposureDuration = targetChip->getExposureDuration();
-    strncpy(exposureStartTime, targetChip->getExposureStartTime(), MAXINDINAME);
+    snprintf(exposureStartTime, sizeof(exposureStartTime), "%s", targetChip->getExposureStartTime());
 
     if(HasDSP())
     {
@@ -3083,10 +3086,7 @@ int CCD::getFileIndex(const std::string &dir, const std::string &prefix, const s
         }
     }
     else
-    {
-        closedir(dpdf);
         return -1;
-    }
     int maxIndex = 0;
 
     for (uint32_t i = 0; i < files.size(); i++)

@@ -338,7 +338,7 @@ bool GeminiFlatpanelRev1Adapter::extractIntValue(const char *response, int start
 
     // Extract the numeric part
     char value_str[MAXRBUF] = {0};
-    strncpy(value_str, response + startPos, length);
+    snprintf(value_str, sizeof(value_str), "%.*s", static_cast<int>(length), response + startPos);
     *value = atoi(value_str);
 
     return true;
@@ -790,7 +790,7 @@ bool GeminiFlatpanelRev2Adapter::extractIntValue(const char *response, int start
 
     // Extract the numeric part
     char value_str[MAXRBUF] = {0};
-    strncpy(value_str, response + startPos, length);
+    snprintf(value_str, sizeof(value_str), "%.*s", length, response + startPos);
     *value = atoi(value_str);
 
     return true;

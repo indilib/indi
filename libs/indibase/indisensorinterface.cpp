@@ -200,9 +200,9 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            strncpy(LocationNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            snprintf(EqNP.device, MAXINDIDEVICE, "%s", ActiveDeviceT[0].text);
+            snprintf(LocationNP.device, MAXINDIDEVICE, "%s", ActiveDeviceT[0].text);
+            snprintf(ScopeParametersNP.device, MAXINDIDEVICE, "%s", ActiveDeviceT[0].text);
 
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
@@ -627,7 +627,7 @@ void SensorInterface::setNAxis(int value)
 
 void SensorInterface::setIntegrationFileExtension(const char *ext)
 {
-    strncpy(integrationExtention, ext, MAXINDIBLOBFMT);
+    snprintf(integrationExtention, MAXINDIBLOBFMT, "%s", ext);
     if(HasDSP())
         DSP->setCaptureFileExtension(ext);
 }
@@ -656,25 +656,25 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     char fitsString[MAXINDIDEVICE];
 
     // SENSOR
-    strncpy(fitsString, getDeviceName(), MAXINDIDEVICE);
+    snprintf(fitsString, MAXINDIDEVICE, "%s", getDeviceName());
     fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "Sensor Name", &status);
 
     // Telescope
-    strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
+    snprintf(fitsString, MAXINDIDEVICE, "%s", ActiveDeviceT[0].text);
     fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
 
     // Observer
-    strncpy(fitsString, FITSHeaderT[FITS_OBSERVER].text, MAXINDIDEVICE);
+    snprintf(fitsString, MAXINDIDEVICE, "%s", FITSHeaderT[FITS_OBSERVER].text);
     fits_update_key_s(fptr, TSTRING, "OBSERVER", fitsString, "Observer name", &status);
 
     // Object
-    strncpy(fitsString, FITSHeaderT[FITS_OBJECT].text, MAXINDIDEVICE);
+    snprintf(fitsString, MAXINDIDEVICE, "%s", FITSHeaderT[FITS_OBJECT].text);
     fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name", &status);
 
     integrationTime = getIntegrationTime();
 
-    strncpy(dev_name, getDeviceName(), 32);
-    strncpy(exp_start, getIntegrationStartTime(), 32);
+    snprintf(dev_name, 32, "%s", getDeviceName());
+    snprintf(exp_start, 32, "%s", getIntegrationStartTime());
     snprintf(timestamp, 32, "%lf", startIntegrationTime);
 
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);

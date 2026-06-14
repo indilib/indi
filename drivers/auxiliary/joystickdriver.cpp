@@ -311,7 +311,7 @@ void JoyStickDriver::setButtonCallback(buttonFunc f)
 
 void JoyStickDriver::setPort(const char *port)
 {
-    strncpy(dev_path, port, 256);
+    snprintf(dev_path, 256, "%s", port);
 }
 void JoyStickDriver::setPoll(int ms)
 {

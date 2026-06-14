@@ -63,7 +63,7 @@ void set_ieqpro_simulation(bool enable)
 
 void set_ieqpro_device(const char *name)
 {
-    strncpy(ieqpro_device, name, MAXINDIDEVICE);
+    snprintf(ieqpro_device, MAXINDIDEVICE, "%s", name);
 }
 
 void set_sim_gps_status(IEQ_GPS_STATUS value)
@@ -368,8 +368,8 @@ bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info)
         {
             char board[8] = {0}, controller[8] = {0};
 
-            strncpy(board, response, 6);
-            strncpy(controller, response + 6, 6);
+            snprintf(board, sizeof(board), "%.6s", response);
+            snprintf(controller, sizeof(controller), "%.6s", response + 6);
 
             info->MainBoardFirmware.assign(board, 6);
             info->ControllerFirmware.assign(controller, 6);
@@ -428,8 +428,8 @@ bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info)
         {
             char ra[8] = {0}, dec[8] = {0};
 
-            strncpy(ra, response, 6);
-            strncpy(dec, response + 6, 6);
+            snprintf(ra, sizeof(ra), "%.6s", response);
+            snprintf(dec, sizeof(dec), "%.6s", response + 6);
 
             info->RAFirmware.assign(ra, 6);
             info->DEFirmware.assign(dec, 6);
@@ -1022,8 +1022,8 @@ bool get_ieqpro_guide_rate(int fd, double *raRate, double *deRate)
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         char raRateStr[8] = {0}, deRateStr[8] = {0};
-        strncpy(response, raRateStr, 2);
-        strncpy(response + 2, deRateStr, 2);
+        snprintf(raRateStr, sizeof(raRateStr), "%.2s", response);
+        snprintf(deRateStr, sizeof(deRateStr), "%.2s", response + 2);
         *raRate = atoi(raRateStr) / 100.0;
         *deRate = atoi(deRateStr) / 100.0;
         tcflush(fd, TCIFLUSH);
@@ -2014,8 +2014,8 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
 
         char ra_str[16] = {0}, dec_str[16] = {0};
 
-        strncpy(dec_str, response, 9);
-        strncpy(ra_str, response + 9, 8);
+        snprintf(dec_str, sizeof(dec_str), "%.9s", response);
+        snprintf(ra_str, sizeof(ra_str), "%.8s", response + 9);
 
         int ieqDEC = atoi(dec_str);
         int ieqRA  = atoi(ra_str);
@@ -2047,7 +2047,7 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
     // Where x is either 0 or 1 denoting daying savings
     if (ieqpro_simulation)
     {
-        strncpy(response, "+1800150321173000#", 32);
+        snprintf(response, sizeof(response), "%s", "+1800150321173000#");
         nbytes_read = strlen(response);
     }
     else
@@ -2079,21 +2079,21 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
                                            dst_str[8] = {0};
 
         // UTC Offset
-        strncpy(utc_str, response, 4);
+        snprintf(utc_str, sizeof(utc_str), "%.4s", response);
         // Daylight savings
-        strncpy(dst_str, response + 4, 1);
+        snprintf(dst_str, sizeof(dst_str), "%.1s", response + 4);
         // Year
-        strncpy(yy_str, response + 5, 2);
+        snprintf(yy_str, sizeof(yy_str), "%.2s", response + 5);
         // Month
-        strncpy(mm_str, response + 7, 2);
+        snprintf(mm_str, sizeof(mm_str), "%.2s", response + 7);
         // Day
-        strncpy(dd_str, response + 9, 2);
+        snprintf(dd_str, sizeof(dd_str), "%.2s", response + 9);
         // Hour
-        strncpy(hh_str, response + 11, 2);
+        snprintf(hh_str, sizeof(hh_str), "%.2s", response + 11);
         // Minute
-        strncpy(minute_str, response + 13, 2);
+        snprintf(minute_str, sizeof(minute_str), "%.2s", response + 13);
         // Second
-        strncpy(ss_str, response + 15, 2);
+        snprintf(ss_str, sizeof(ss_str), "%.2s", response + 15);
 
         *utc_hours = atoi(utc_str) / 60.0;
         *yy        = atoi(yy_str) + 2000;

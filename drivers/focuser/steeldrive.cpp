@@ -280,13 +280,13 @@ bool SteelDrive::updateVersion()
 
     if (rc > 0)
     {
-        strncpy(hwrev, hardware_string, 3);
-        strncpy(hwdate, hardware_string + 3, 4);
+        snprintf(hwrev, sizeof(hwrev), "%.3s", hardware_string);
+        snprintf(hwdate, sizeof(hwdate), "%.4s", hardware_string + 3);
         char mon[3], year[3];
         memset(mon, 0, sizeof(mon));
         memset(year, 0, sizeof(year));
-        strncpy(mon, hwdate, 2);
-        strncpy(year, hwdate + 2, 2);
+        snprintf(mon, sizeof(mon), "%.2s", hwdate);
+        snprintf(year, sizeof(year), "%.2s", hwdate + 2);
         snprintf(hardware_string, MAXRBUF, "Version: %s Date: %s.%s", hwrev, mon, year);
         IUSaveText(&VersionT[0], hardware_string);
     }
@@ -309,7 +309,7 @@ bool SteelDrive::updateVersion()
 
     if (sim)
     {
-        strncpy(resp, ":FN2.21012#", STEELDRIVE_CMD_LONG + 1);
+        snprintf(resp, STEELDRIVE_CMD_LONG + 1, "%.13s", ":FN2.21012#");
         nbytes_read = STEELDRIVE_CMD_LONG;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -327,13 +327,13 @@ bool SteelDrive::updateVersion()
 
     if (rc > 0)
     {
-        strncpy(fwrev, firmware_string, 3);
-        strncpy(fwdate, firmware_string + 3, 4);
+        snprintf(fwrev, sizeof(fwrev), "%.3s", firmware_string);
+        snprintf(fwdate, sizeof(fwdate), "%.4s", firmware_string + 3);
         char mon[3], year[3];
         memset(mon, 0, sizeof(mon));
         memset(year, 0, sizeof(year));
-        strncpy(mon, fwdate, 2);
-        strncpy(year, fwdate + 2, 2);
+        snprintf(mon, sizeof(mon), "%.2s", fwdate);
+        snprintf(year, sizeof(year), "%.2s", fwdate + 2);
         snprintf(firmware_string, MAXRBUF, "Version: %s Date: %s.%s", fwrev, mon, year);
         IUSaveText(&VersionT[1], firmware_string);
     }
@@ -620,9 +620,9 @@ bool SteelDrive::updateTemperatureSettings()
 
     if (rc > 0)
     {
-        strncpy(coeff, tResp, 3);
-        strncpy(enabled, tResp + 3, 1);
-        strncpy(selectedFocuser, tResp + 4, 1);
+        snprintf(coeff, sizeof(coeff), "%.3s", tResp);
+        snprintf(enabled, sizeof(enabled), "%.1s", tResp + 3);
+        snprintf(selectedFocuser, sizeof(selectedFocuser), "%.1s", tResp + 4);
 
         TemperatureSettingN[FOCUS_T_COEFF].value = atof(coeff) / 1000.0;
 
@@ -726,8 +726,8 @@ bool SteelDrive::updateCustomSettings()
 
     if (rc > 0)
     {
-        strncpy(selectedFocuser, tResp, 1);
-        strncpy(maxTrip, tResp + 1, 7);
+        snprintf(selectedFocuser, sizeof(selectedFocuser), "%.1s", tResp);
+        snprintf(maxTrip, sizeof(maxTrip), "%.7s", tResp + 1);
 
         int sFocuser = atoi(selectedFocuser);
 

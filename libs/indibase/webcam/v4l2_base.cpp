@@ -203,12 +203,12 @@ bool V4L2_Base::is_compressed() const
     /* See note at top of this file */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
     switch (fmt.fmt.pix.pixelformat)
-    {
-        case V4L2_PIX_FMT_JPEG:
-        case V4L2_PIX_FMT_MJPEG:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: format %c%c%c%c patched to be considered compressed",
-                         __FUNCTION__, fmt.fmt.pix.pixelformat, fmt.fmt.pix.pixelformat >> 8,
-                         fmt.fmt.pix.pixelformat >> 16, fmt.fmt.pix.pixelformat >> 24);
+{
+    case V4L2_PIX_FMT_JPEG:
+    case V4L2_PIX_FMT_MJPEG:
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: format %c%c%c%c patched to be considered compressed",
+                     __FUNCTION__, fmt.fmt.pix.pixelformat, fmt.fmt.pix.pixelformat >> 8,
+                     fmt.fmt.pix.pixelformat >> 16, fmt.fmt.pix.pixelformat >> 24);
             return true;
 
         default:
@@ -220,14 +220,14 @@ bool V4L2_Base::is_compressed() const
     }
 #else
     switch (fmt.fmt.pix.pixelformat)
-    {
-        case V4L2_PIX_FMT_GREY:
-            /* case V4L2_PIX_FMT... add other uncompressed and supported formats here */
-            return false;
+{
+    case V4L2_PIX_FMT_GREY:
+        /* case V4L2_PIX_FMT... add other uncompressed and supported formats here */
+        return false;
 
-        default:
-            return true;
-    }
+    default:
+        return true;
+}
 #endif
 }
 
@@ -1347,7 +1347,7 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
 {
     struct stat st;
 
-    strncpy(dev_name, devpath, 64);
+    snprintf(dev_name, 64, "%s", devpath);
 
     if (-1 == stat(dev_name, &st))
     {
@@ -2215,8 +2215,8 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
                             (unsigned int *)malloc(sizeof(unsigned int)) :
                             (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
-                strncpy(numbers[nnum].name, (const char *)entityXML((char *)queryctrl.name), MAXINDINAME);
-                strncpy(numbers[nnum].label, (const char *)entityXML((char *)queryctrl.name), MAXINDILABEL);
+                snprintf(numbers[nnum].name, MAXINDINAME, "%s", (const char *)entityXML((char *)queryctrl.name));
+                snprintf(numbers[nnum].label, MAXINDILABEL, "%s", (const char *)entityXML((char *)queryctrl.name));
                 strncpy(numbers[nnum].format, "%0.f", MAXINDIFORMAT);
                 numbers[nnum].min   = queryctrl.minimum;
                 numbers[nnum].max   = queryctrl.maximum;
@@ -2369,8 +2369,8 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
                             (unsigned int *)malloc(sizeof(unsigned int)) :
                             (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
-                strncpy(numbers[nnum].name, (const char *)entityXML((char *)queryctrl.name), MAXINDINAME);
-                strncpy(numbers[nnum].label, (const char *)entityXML((char *)queryctrl.name), MAXINDILABEL);
+                snprintf(numbers[nnum].name, MAXINDINAME, "%s", (const char *)entityXML((char *)queryctrl.name));
+                snprintf(numbers[nnum].label, MAXINDILABEL, "%s", (const char *)entityXML((char *)queryctrl.name));
                 strncpy(numbers[nnum].format, "%0.f", MAXINDIFORMAT);
                 numbers[nnum].min   = queryctrl.minimum;
                 numbers[nnum].max   = queryctrl.maximum;
@@ -2808,8 +2808,8 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnu
             num_ctrls = (num_ctrls == nullptr) ? (unsigned int *)malloc(sizeof(unsigned int)) :
                         (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
-            strncpy(numbers[nnum].name, (const char *)entityXML((char *)queryctrl.name), MAXINDINAME);
-            strncpy(numbers[nnum].label, (const char *)entityXML((char *)queryctrl.name), MAXINDILABEL);
+            snprintf(numbers[nnum].name, MAXINDINAME, "%s", (const char *)entityXML((char *)queryctrl.name));
+            snprintf(numbers[nnum].label, MAXINDILABEL, "%s", (const char *)entityXML((char *)queryctrl.name));
             strncpy(numbers[nnum].format, "%0.f", MAXINDIFORMAT);
             numbers[nnum].min   = queryctrl.minimum;
             numbers[nnum].max   = queryctrl.maximum;
@@ -2977,7 +2977,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnu
 
 void V4L2_Base::setDeviceName(const char * name)
 {
-    strncpy(deviceName, name, MAXINDIDEVICE);
+    snprintf(deviceName, MAXINDIDEVICE, "%s", name);
 }
 
 

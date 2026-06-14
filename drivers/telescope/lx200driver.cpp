@@ -57,7 +57,7 @@ std::mutex lx200CommsLock;
 
 void setLX200Debug(const char *deviceName, unsigned int debug_level)
 {
-    strncpy(lx200Name, deviceName, MAXINDIDEVICE);
+    snprintf(lx200Name, MAXINDIDEVICE, "%s", deviceName);
     DBG_SCOPE = debug_level;
 }
 
@@ -1692,10 +1692,11 @@ int SendPulseCmd(int fd, int direction, int duration_msec, bool wait_after_comma
 
     tcflush(fd, TCIFLUSH);
 
-    if(wait_after_command){
+    if(wait_after_command)
+    {
         if (duration_msec > max_wait_ms)
             duration_msec = max_wait_ms;
-        struct timespec duration_ns = {.tv_sec = 0,.tv_nsec = duration_msec*1000000};
+        struct timespec duration_ns = {.tv_sec = 0, .tv_nsec = duration_msec * 1000000};
         nanosleep(&duration_ns, NULL);
     }
     return 0;
