@@ -59,7 +59,6 @@ bool WandererRotatorBase::initProperties()
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
-
     return true;
 }
 
@@ -82,7 +81,6 @@ bool WandererRotatorBase::updateProperties()
 
 bool WandererRotatorBase::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if (dev && !strcmp(dev, getDeviceName()))
     {
         if (SetZeroSP.isNameMatch(name))
@@ -105,15 +103,13 @@ bool WandererRotatorBase::ISNewNumber(const char * dev, const char * name, doubl
         // backlash
         if (BacklashNP.isNameMatch(name))
         {
-            bool rc1 = false;
             BacklashNP.update(values, names, n);
             backlash = BacklashNP[BACKLASH].value;
 
             char cmd[16];
             snprintf(cmd, 16, "%d", (int)(backlash * 10 + 1600000));
-            rc1 = sendCommand(cmd);
 
-            BacklashNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
+            BacklashNP.setState(sendCommand(cmd) ? IPS_OK : IPS_ALERT);
             if (BacklashNP.getState() == IPS_OK)
                 BacklashNP.update(values, names, n);
             BacklashNP.apply();
@@ -132,23 +128,17 @@ bool WandererRotatorBase::Handshake()
     int nbytes_read_name = 0, nbytes_written = 0, rc = -1;
     char name[64] = {0};
 
-    if ((rc = tty_write_string(PortFD, "1500001", &nbytes_written)) != TTY_OK)
+    if (!sendCommand("1500001"))
     {
-        char errorMessage[MAXRBUF];
-        tty_error_msg(rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
         return false;
     }
 
-    //Device Model//////////////////////////////////////////////////////////////////////////////////////////////////////
+    //Device Model//////////////////////////////////////////////////////////////
     if ((rc = tty_read_section(PortFD, name, 'A', 3, &nbytes_read_name)) != TTY_OK)
     {
         tcflush(PortFD, TCIOFLUSH);
-        if ((rc = tty_write_string(PortFD, "1500001", &nbytes_written)) != TTY_OK)
+        if (!sendCommand("1500001"))
         {
-            char errorMessage[MAXRBUF];
-            tty_error_msg(rc, errorMessage, MAXRBUF);
-            LOGF_ERROR("Serial write error: %s", errorMessage);
             return false;
         }
         if ((rc = tty_read_section(PortFD, name, 'A', 3, &nbytes_read_name)) != TTY_OK)
@@ -177,8 +167,8 @@ bool WandererRotatorBase::Handshake()
     firmware = std::atoi(version);
     if(firmware < getMinimumCompatibleFirmwareVersion())
     {
-        LOG_ERROR("The firmware is outdated, please upgrade to the latest firmware!");
-        LOGF_ERROR("The current firmware is %s.", firmware);
+        LOG_ERROR("Firmware is outdated, please upgrade to latest firmware!");
+        LOGF_ERROR("Current firmware is %s.", firmware);
         return false;
     }
 
@@ -254,11 +244,8 @@ bool WandererRotatorBase::AbortRotator()
         haltcommand = true;
         int nbytes_written = 0, rc = -1;
         tcflush(PortFD, TCIOFLUSH);
-        if ((rc = tty_write_string(PortFD, "Stop", &nbytes_written)) != TTY_OK)
+        if (!sendCommand("Stop"))
         {
-            char errorMessage[MAXRBUF];
-            tty_error_msg(rc, errorMessage, MAXRBUF);
-            LOGF_ERROR("Serial write error: %s", errorMessage);
             return false;
         }
         SetTimer(100);
@@ -294,9 +281,8 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
     {
         char cmd[16];
         snprintf(cmd, 16, "%d", 1700001);
-        if (sendCommand(cmd) != true)
+        if (!sendCommand(cmd))
         {
-            LOG_ERROR("Serial write error.");
             return false;
         }
         ReverseState = true;
@@ -306,9 +292,8 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
     {
         char cmd[16];
         snprintf(cmd, 16, "%d", 1700000);
-        if (sendCommand(cmd) != true)
+        if (!sendCommand(cmd))
         {
-            LOG_ERROR("Serial write error.");
             return false;
         }
         ReverseState = false;
@@ -321,10 +306,8 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
 
 void WandererRotatorBase::TimerHit()
 {
-
     if (GotoRotatorNP.getState() == IPS_BUSY || haltcommand == true)
     {
-
         if(nowtime < estime && haltcommand == false)
         {
             GotoRotatorNP[0].setValue(GotoRotatorNP[0].getValue() + 1 * positionhistory / abs(positionhistory));
@@ -360,22 +343,16 @@ void WandererRotatorBase::TimerHit()
         }
     }
 
-
     SetTimer(2000);
 }
-
-
 
 bool WandererRotatorBase::Move(const char *cmd)
 {
     initangle = GotoRotatorNP[0].getValue();
     int nbytes_written = 0, rc = -1;
     LOGF_DEBUG("CMD <%s>", cmd);
-    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    if (!sendCommand(cmd))
     {
-        char errorMessage[MAXRBUF];
-        tty_error_msg(rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
         return false;
     }
     SetTimer(2000);
@@ -384,13 +361,13 @@ bool WandererRotatorBase::Move(const char *cmd)
     return true;
 }
 
-
 bool WandererRotatorBase::sendCommand(std::string command)
 {
     int nbytes_written = 0, rc = -1;
     std::string command_termination = "\n";
     LOGF_DEBUG("CMD: %s", command.c_str());
-    if ((rc = tty_write_string(PortFD, (command + command_termination).c_str(), &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, (command + command_termination).c_str(),
+                               &nbytes_written)) != TTY_OK)
     {
         char errorMessage[MAXRBUF];
         tty_error_msg(rc, errorMessage, MAXRBUF);
@@ -399,5 +376,3 @@ bool WandererRotatorBase::sendCommand(std::string command)
     }
     return true;
 }
-
-
