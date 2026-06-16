@@ -101,3 +101,11 @@ SET(wanderer_snowflake_wheel_SRC
 add_executable(indi_wanderer_snowflake_wheel ${wanderer_snowflake_wheel_SRC})
 target_link_libraries(indi_wanderer_snowflake_wheel indidriver)
 install(TARGETS indi_wanderer_snowflake_wheel RUNTIME DESTINATION bin)
+
+# ############### RASA FilterCube Filter Wheel ################
+SET(rasa_filtercube_SRC
+    rasa_filtercube.cpp)
+
+add_executable(indi_rasa_filtercube_wheel ${rasa_filtercube_SRC})
+target_link_libraries(indi_rasa_filtercube_wheel indidriver)
+install(TARGETS indi_rasa_filtercube_wheel RUNTIME DESTINATION bin)

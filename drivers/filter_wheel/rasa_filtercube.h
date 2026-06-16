@@ -1,8 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2026 Jérémie Klein. All rights reserved.
-  Copyright(c) 2026 WandererAstro. All rights reserved. (modifications)
+  Copyright(c) 2026 WandererAstro. All rights reserved.
 
-  Wanderer Snowflake Filter Wheel Driver
+  RASA FilterCube Filter Wheel Driver
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Library General Public
@@ -23,10 +22,12 @@
 
 #include "indifilterwheel.h"
 
-class WandererSnowflakeFW : public INDI::FilterWheel
+static constexpr int FILTERCUBE_MAX_FILTERS = 5;
+
+class RasaFilterCube : public INDI::FilterWheel
 {
     public:
-        WandererSnowflakeFW();
+        RasaFilterCube();
 
     protected:
 
@@ -34,34 +35,26 @@ class WandererSnowflakeFW : public INDI::FilterWheel
         bool initProperties() override;
         bool updateProperties() override;
         bool Handshake() override;
-        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         int QueryFilter() override;
         bool SelectFilter(int position) override;
         bool GetFilterNames() override;
         bool SetFilterNames() override;
-        bool saveConfigItems(FILE *fp) override;
 
     private:
         bool readCurrentFilterFromStatus(int &position);
         bool sendCommand(const char *command, char *response, int responseLen, int timeoutSeconds);
-        bool sendAutomaticCalibration();
-        bool sendZeroDetection();
 
-        ISwitch CalibrationCmdS[2] {};
-        ISwitchVectorProperty CalibrationCmdSP {};
-
+        char mFirmware[32] {};
+        char mModel[16] {};
         int mDeviceID {0};
+        char mFilterLetters[FILTERCUBE_MAX_FILTERS] {};
+
         INumber DeviceIDN[1] {};
         INumberVectorProperty DeviceIDNP {};
 
-        char mFilterLetters[8] {};
-
-        char mModel[16] {};
-        char mFirmware[16] {};
         IText DeviceInfoT[2] {};
         ITextVectorProperty DeviceInfoTP {};
 };
-
 

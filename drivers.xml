@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <driversList>
     <devGroup group="Spectrographs">
         <device label="Shelyak Usis" manufacturer="Shelyak">
@@ -796,6 +796,10 @@
         </device>
         <device label="Wanderer Snowflake" manufacturer="Wanderer Astro">
             <driver name="Wanderer Snowflake Filter Wheel">indi_wanderer_snowflake_wheel</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Wanderer FilterCube" manufacturer="Wanderer Astro">
+            <driver name="RASA FilterCube Filter Wheel">indi_rasa_filtercube_wheel</driver>
             <version>1.0</version>
         </device>
     </devGroup>
