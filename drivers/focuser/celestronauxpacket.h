@@ -110,7 +110,7 @@ class Packet
         Packet(Target source, Target destination, Command command);
 
         // packet contents
-        static const uint8_t AUX_HDR = 0x3b;
+        static constexpr uint8_t AUX_HDR = 0x3b;
         uint32_t length;
         Target source;
         Target destination;
