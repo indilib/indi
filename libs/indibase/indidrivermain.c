@@ -254,29 +254,35 @@ static void waitPingReplyFromEventLoopThread(const char * uid) {
 }
 
 static void waitPingReplyFromOtherThread(const char * uid) {
-    int fd = 0;
-    fd_set rfd;
+    struct timespec startTime, currentTime;
+    const int maxWaitSeconds = 5;
+
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
 
     messageHandling = PROCEED_DEFERRED;
     pthread_mutex_lock(&pingReplyMutex);
     while(!consumePingReply(uid))
     {
-
-        pthread_mutex_unlock(&pingReplyMutex);
-
-        FD_ZERO(&rfd);
-        FD_SET(fd, &rfd);
-
-        int ns = select(fd + 1, &rfd, NULL, NULL, NULL);
-        if (ns < 0)
+        // Check total elapsed time — break if we've been waiting too long.
+        // Do NOT call clientMsgCB here — reading from fd 0 in a worker thread
+        // races with the event loop thread also reading from the same fd,
+        // causing split reads and XML parse corruption.
+        clock_gettime(CLOCK_MONOTONIC, &currentTime);
+        double elapsed = (currentTime.tv_sec - startTime.tv_sec)
+                         + (currentTime.tv_nsec - startTime.tv_nsec) / 1e9;
+        if (elapsed >= maxWaitSeconds)
         {
-            perror("select");
-            exit(1);
+            fprintf(stderr, "waitPingReply: timeout (%.1fs) waiting for ack of %s, proceeding\n", elapsed, uid);
+            pthread_mutex_unlock(&pingReplyMutex);
+            messageHandling = PROCEED_IMMEDIATE;
+            return;
         }
 
-        clientMsgCB(0, NULL);
-
-        pthread_mutex_lock(&pingReplyMutex);
+        // Wait on condvar with timeout instead of reading from fd
+        struct timespec absTimeout;
+        clock_gettime(CLOCK_REALTIME, &absTimeout);
+        absTimeout.tv_sec += 1;
+        pthread_cond_timedwait(&pingReplyCond, &pingReplyMutex, &absTimeout);
     }
     pthread_mutex_unlock(&pingReplyMutex);
     messageHandling = PROCEED_IMMEDIATE;
