@@ -149,7 +149,10 @@ bool WandererBoxPlusV3::getData()
             return false;
         }
         if(strcmp(name, "ZXWBPlusV3")!=0)
-            throw std::exception();
+        {
+            LOGF_ERROR("Device is not WandererBox Plus V3 (got '%s'). Wrong port or device.", name);
+            return false;
+        }
         // Frimware version/////////////////////////////////////////////////////////////////////////////////////////////
         int nbytes_read_version = 0;
         char version[64] = {0};
