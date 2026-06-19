@@ -75,6 +75,8 @@ private:
     INDI::PropertyText TelescopeNameTP{1};
     // Current-conditions summary shown in Main Control tab.
     INDI::PropertyText WeatherSummaryTP{1};
+    // Timestamp of the last successful API fetch.
+    INDI::PropertyText LastUpdateTP{1};
 
     // Forecast tab properties: next 24 hours in 3-hour steps (8 elements each).
     INDI::PropertyNumber ForecastCloudCoverNP{8};

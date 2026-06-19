@@ -131,6 +131,11 @@ bool AstrosphericWeather::initProperties()
     WeatherSummaryTP.fill(getDeviceName(), "WEATHER_SUMMARY", "Status", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
     defineProperty(WeatherSummaryTP);
 
+    // Last successful API fetch timestamp (always visible in Main Control tab).
+    LastUpdateTP[0].fill("TIMESTAMP", "Last API Fetch", "Never");
+    LastUpdateTP.fill(getDeviceName(), "WEATHER_LAST_UPDATE", "Last Update", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    defineProperty(LastUpdateTP);
+
     // Forecast tab: 8 steps × 3 h = 24-hour lookahead.
     static const char *stepNames[]  = {"HOUR_0",  "HOUR_3",  "HOUR_6",  "HOUR_9",
                                         "HOUR_12", "HOUR_15", "HOUR_18", "HOUR_21"};
@@ -238,8 +243,8 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
 
         if (latFound && lonFound)
         {
-            LocationNP[LOCATION_LATITUDE].value = lat;
-            LocationNP[LOCATION_LONGITUDE].value = lon;
+            LocationNP[LOCATION_LATITUDE].setValue(lat);
+            LocationNP[LOCATION_LONGITUDE].setValue(lon);
             LocationNP.setState(IPS_OK);
             LocationNP.apply();
             locationReceived = true;
@@ -348,6 +353,8 @@ bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
     std::string jsonDataString = payload.dump();
 
     httplib::Client client(host.c_str());
+    client.set_connection_timeout(15, 0);
+    client.set_read_timeout(30, 0);
     auto res = client.Post(endpoint.c_str(), jsonDataString, "application/json");
     if (!res || res->status != 200)
     {
@@ -408,6 +415,15 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
         forecastHours = static_cast<int>(cloudCover.size());
         forecastValid = true;
         lastFetchTime = time(nullptr);
+
+        char timeBuf[32];
+        struct tm tmInfo = {};
+        gmtime_r(&lastFetchTime, &tmInfo);
+        strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M UTC", &tmInfo);
+        LastUpdateTP[0].setText(timeBuf);
+        LastUpdateTP.setState(IPS_OK);
+        LastUpdateTP.apply();
+
         LOGF_INFO("Parsed forecast for %d hours starting at %s.", forecastHours, utcStartTimeStr.c_str());
         return true;
     }
@@ -538,7 +554,7 @@ IPState AstrosphericWeather::updateWeather()
 
 std::string AstrosphericWeather::buildWeatherSummary(double cloud, double temp, double wind, double dew, double dir, double see, double trans)
 {
-    char buf[128];
+    char buf[256];
     snprintf(buf, sizeof(buf),
              "Cloud: %.2f%%, Temp: %.2fC, Wind: %.2fkph, Dew: %.2fC, Dir: %.2f°, See: %.2f, Trans: %.2f",
              cloud, temp, wind, dew, dir, see, trans);
