@@ -64,9 +64,6 @@ protected:
     // Override of updateWeather to fetch and update weather forecast data.
     virtual IPState updateWeather() override;
 
-    // Timer callback for periodic weather updates.
-    void TimerHit();
-
 private:
     // Property for the API key, a text input required for Astrospheric API access.
     INDI::PropertyText APIKeyTP{1};
@@ -76,10 +73,15 @@ private:
     INDI::PropertySwitch ModeSP{2};
     // Property to specify the telescope device to snoop for location.
     INDI::PropertyText TelescopeNameTP{1};
-    // Custom property for refresh period.
-    INDI::PropertyNumber WeatherRefreshNP{1};
-    // Property for weather summary in the Main Control tab.
+    // Current-conditions summary shown in Main Control tab.
     INDI::PropertyText WeatherSummaryTP{1};
+
+    // Forecast tab properties: next 24 hours in 3-hour steps (8 elements each).
+    INDI::PropertyNumber ForecastCloudCoverNP{8};
+    INDI::PropertyNumber ForecastTemperatureNP{8};
+    INDI::PropertyNumber ForecastWindSpeedNP{8};
+    INDI::PropertyNumber ForecastSeeingNP{8};
+    INDI::PropertyNumber ForecastTransparencyNP{8};
 
     // Enumeration for the indices of the LocationNP property.
     enum
@@ -96,7 +98,6 @@ private:
     time_t lastFetchTime;      // Last time data was fetched from the API
     int apiCreditsUsed;        // Number of API credits used in the last 24 hours
     bool locationReceived;     // Flag to track if location data was received via snooping
-    int timerID;               // Timer ID for periodic updates
 
     // Method to sync location by snooping on a telescope device.
     void syncLocationFromSite();
@@ -109,6 +110,7 @@ private:
 
     std::string buildWeatherSummary(double cloud, double temp, double wind, double dew, double dir, double see, double trans);
     void updateSummaryText(const std::string &text);
+    void updateForecastProperties(int offset);
 };
 
 #endif // INDI_ASTROSPHERIC_WEATHER_H

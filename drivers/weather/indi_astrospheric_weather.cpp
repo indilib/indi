@@ -31,7 +31,6 @@
 #endif
 using json = nlohmann::json;
 
-#include <algorithm>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
@@ -39,8 +38,11 @@ using json = nlohmann::json;
 #include <cstdlib>
 
 static constexpr size_t EXPECTED_FORECAST_HOURS = 82;
-static constexpr int FORECAST_CACHE_TTL_SECS = 6 * 3600;
-static constexpr int MIN_TIMER_PERIOD_MS = 1000;
+static constexpr int    FORECAST_CACHE_TTL_SECS  = 6 * 3600;
+static constexpr int    FORECAST_STEPS            = 8;
+static constexpr int    FORECAST_STEP_HOURS       = 3;
+
+#define FORECAST_TAB "Forecast"
 
 // Constructor for AstrosphericWeather.
 AstrosphericWeather::AstrosphericWeather()
@@ -56,7 +58,6 @@ AstrosphericWeather::AstrosphericWeather()
     forecastStartTime = 0;
     apiCreditsUsed = 0;
     locationReceived = false;
-    timerID = -1;
 }
 
 // Returns the default name of the device.
@@ -73,10 +74,8 @@ bool AstrosphericWeather::Connect()
     setConnected(true);
     // Attempt to sync location from telescope.
     syncLocationFromSite();
-    // Update properties for the client.
+    // Update properties for the client; this also triggers the base-class timer via WI::updateProperties().
     updateProperties();
-    // Start the timer for periodic updates.
-    timerID = SetTimer(std::max(MIN_TIMER_PERIOD_MS, static_cast<int>(WeatherRefreshNP[0].getValue() * 1000)));
     return true;
 }
 
@@ -84,13 +83,6 @@ bool AstrosphericWeather::Connect()
 bool AstrosphericWeather::Disconnect()
 {
     LOG_INFO("AstrosphericWeather: Disconnecting...");
-    // Stop the timer.
-    if (timerID >= 0)
-    {
-        RemoveTimer(timerID);
-        timerID = -1;
-    }
-    // Mark device as disconnected.
     setConnected(false);
     // Update properties for the client.
     updateProperties();
@@ -137,25 +129,42 @@ bool AstrosphericWeather::initProperties()
     // Set cloud cover as the critical parameter for weather alerts.
     setCriticalParameter("WEATHER_CLOUD_COVER");
 
-    // Define custom refresh period: max 3600 seconds (1 hour), default 1800 seconds (30 minutes).
-    WeatherRefreshNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 0, 1800);
-    WeatherRefreshNP.fill(getDeviceName(), "WEATHER_UPDATE_PERIOD", "Refresh Period", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-    defineProperty(WeatherRefreshNP);
+    // Override the base-class default update period from 60 s to 30 minutes.
+    UpdatePeriodNP[0].setValue(1800);
 
-    // Define weather summary property in the Main Control tab.
+    // Current-conditions summary (always visible in Main Control tab).
     WeatherSummaryTP[0].fill("SUMMARY", "Weather Summary", "N/A");
     WeatherSummaryTP.fill(getDeviceName(), "WEATHER_SUMMARY", "Status", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
     defineProperty(WeatherSummaryTP);
 
+    // Forecast tab: 8 steps × 3 h = 24-hour lookahead.
+    static const char *stepNames[]  = {"HOUR_0",  "HOUR_3",  "HOUR_6",  "HOUR_9",
+                                        "HOUR_12", "HOUR_15", "HOUR_18", "HOUR_21"};
+    static const char *stepLabels[] = {"Now",  "+3h",  "+6h",  "+9h",
+                                        "+12h", "+15h", "+18h", "+21h"};
+    for (int i = 0; i < FORECAST_STEPS; i++)
+    {
+        ForecastCloudCoverNP[i].fill(stepNames[i],  stepLabels[i], "%.1f",  0,   100, 0, 0);
+        ForecastTemperatureNP[i].fill(stepNames[i], stepLabels[i], "%.1f", -50,   50, 0, 0);
+        ForecastWindSpeedNP[i].fill(stepNames[i],   stepLabels[i], "%.1f",  0,   200, 0, 0);
+        ForecastSeeingNP[i].fill(stepNames[i],      stepLabels[i], "%.2f",  0,     5, 0, 0);
+        ForecastTransparencyNP[i].fill(stepNames[i],stepLabels[i], "%.1f",  0,    30, 0, 0);
+    }
+    ForecastCloudCoverNP.fill(getDeviceName(),  "FORECAST_CLOUD_COVER",  "Cloud Cover (%)",    FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastTemperatureNP.fill(getDeviceName(), "FORECAST_TEMPERATURE",  "Temperature (C)",    FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastWindSpeedNP.fill(getDeviceName(),   "FORECAST_WIND_SPEED",   "Wind Speed (kph)",   FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastSeeingNP.fill(getDeviceName(),      "FORECAST_SEEING",       "Seeing (0-5)",       FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastTransparencyNP.fill(getDeviceName(),"FORECAST_TRANSPARENCY", "Transparency (0-27+)",FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+
     // Add debug control for logging.
     addDebugControl();
 
-    // Load saved configuration for API key, location, telescope name, mode, and refresh period.
+    // Load saved configuration.
     loadConfig(true, "ASTROSPHERIC_API_KEY");
     loadConfig(true, "LOCATION");
     loadConfig(true, "TELESCOPE_NAME");
     loadConfig(true, "WEATHER_MODE");
-    loadConfig(true, "WEATHER_UPDATE_PERIOD");
+    loadConfig(true, "WEATHER_UPDATE");
 
     // Start snooping on the telescope for location data.
     if (TelescopeNameTP[0].getText() && strlen(TelescopeNameTP[0].getText()) > 0)
@@ -170,8 +179,25 @@ bool AstrosphericWeather::initProperties()
 // Updates properties based on connection state.
 bool AstrosphericWeather::updateProperties()
 {
-    // Let the base class handle standard property updates.
     INDI::Weather::updateProperties();
+
+    if (isConnected())
+    {
+        defineProperty(ForecastCloudCoverNP);
+        defineProperty(ForecastTemperatureNP);
+        defineProperty(ForecastWindSpeedNP);
+        defineProperty(ForecastSeeingNP);
+        defineProperty(ForecastTransparencyNP);
+    }
+    else
+    {
+        deleteProperty(ForecastCloudCoverNP);
+        deleteProperty(ForecastTemperatureNP);
+        deleteProperty(ForecastWindSpeedNP);
+        deleteProperty(ForecastSeeingNP);
+        deleteProperty(ForecastTransparencyNP);
+    }
+
     return true;
 }
 
@@ -192,21 +218,6 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
             // Invalidate forecast when location changes.
             forecastValid = false;
             locationReceived = true; // Consider manually set location as received
-            return true;
-        }
-        // Handle updates to the custom refresh period.
-        if (WeatherRefreshNP.isNameMatch(name))
-        {
-            WeatherRefreshNP.update(values, names, n);
-            WeatherRefreshNP.setState(IPS_OK);
-            WeatherRefreshNP.apply();
-            LOGF_INFO("Refresh period updated to %.f seconds", WeatherRefreshNP[0].getValue());
-            // Restart the timer with the new period.
-            if (timerID >= 0)
-            {
-                RemoveTimer(timerID);
-                timerID = SetTimer(std::max(MIN_TIMER_PERIOD_MS, static_cast<int>(WeatherRefreshNP[0].getValue() * 1000)));
-            }
             return true;
         }
     }
@@ -314,7 +325,6 @@ bool AstrosphericWeather::saveConfigItems(FILE *fp)
     LocationNP.save(fp);
     TelescopeNameTP.save(fp);
     ModeSP.save(fp);
-    WeatherRefreshNP.save(fp);
     return true;
 }
 
@@ -498,12 +508,12 @@ IPState AstrosphericWeather::updateWeather()
             cloudCover[hourOffset], temperature[hourOffset], windSpeed[hourOffset],
             dewPoint[hourOffset], windDirection[hourOffset], seeing[hourOffset], transparency[hourOffset]));
 
+        updateForecastProperties(hourOffset);
+
         LOGF_INFO("Weather updated for hour %d: Cloud=%.2f%%, Temp=%.2fC, Wind=%.2fkph",
                   hourOffset, cloudCover[hourOffset], temperature[hourOffset], windSpeed[hourOffset]);
 
-        ParametersNP.setState(IPS_OK);
-        ParametersNP.apply();
-
+        // Return IPS_OK — checkWeatherUpdate() applies ParametersNP state and fires syncCriticalParameters().
         return IPS_OK;
     }
     else // Simulated Mode
@@ -519,8 +529,20 @@ IPState AstrosphericWeather::updateWeather()
 
         updateSummaryText(buildWeatherSummary(50.0, 20.0, 10.0, 10.0, 180.0, 2.5, 15.0));
 
-        ParametersNP.setState(IPS_OK);
-        ParametersNP.apply();
+        // Simulated forecast: constant values across all steps.
+        for (int i = 0; i < FORECAST_STEPS; i++)
+        {
+            ForecastCloudCoverNP[i].setValue(50.0);
+            ForecastTemperatureNP[i].setValue(20.0);
+            ForecastWindSpeedNP[i].setValue(10.0);
+            ForecastSeeingNP[i].setValue(2.5);
+            ForecastTransparencyNP[i].setValue(15.0);
+        }
+        ForecastCloudCoverNP.setState(IPS_OK);   ForecastCloudCoverNP.apply();
+        ForecastTemperatureNP.setState(IPS_OK);  ForecastTemperatureNP.apply();
+        ForecastWindSpeedNP.setState(IPS_OK);    ForecastWindSpeedNP.apply();
+        ForecastSeeingNP.setState(IPS_OK);       ForecastSeeingNP.apply();
+        ForecastTransparencyNP.setState(IPS_OK); ForecastTransparencyNP.apply();
 
         return IPS_OK;
     }
@@ -542,16 +564,22 @@ void AstrosphericWeather::updateSummaryText(const std::string &text)
     WeatherSummaryTP.apply();
 }
 
-// Timer callback for periodic updates.
-void AstrosphericWeather::TimerHit()
+void AstrosphericWeather::updateForecastProperties(int offset)
 {
-    if (!isConnected())
-        return;
-
-    updateWeather();
-
-    // Reschedule the next update.
-    timerID = SetTimer(std::max(MIN_TIMER_PERIOD_MS, static_cast<int>(WeatherRefreshNP[0].getValue() * 1000)));
+    for (int i = 0; i < FORECAST_STEPS; i++)
+    {
+        int h = offset + i * FORECAST_STEP_HOURS;
+        ForecastCloudCoverNP[i].setValue(h < forecastHours ? cloudCover[h]    : 0.0);
+        ForecastTemperatureNP[i].setValue(h < forecastHours ? temperature[h]  : 0.0);
+        ForecastWindSpeedNP[i].setValue(h < forecastHours ? windSpeed[h]      : 0.0);
+        ForecastSeeingNP[i].setValue(h < forecastHours ? seeing[h]            : 0.0);
+        ForecastTransparencyNP[i].setValue(h < forecastHours ? transparency[h]: 0.0);
+    }
+    ForecastCloudCoverNP.setState(IPS_OK);   ForecastCloudCoverNP.apply();
+    ForecastTemperatureNP.setState(IPS_OK);  ForecastTemperatureNP.apply();
+    ForecastWindSpeedNP.setState(IPS_OK);    ForecastWindSpeedNP.apply();
+    ForecastSeeingNP.setState(IPS_OK);       ForecastSeeingNP.apply();
+    ForecastTransparencyNP.setState(IPS_OK); ForecastTransparencyNP.apply();
 }
 
 // Global unique pointer to the AstrosphericWeather instance.
