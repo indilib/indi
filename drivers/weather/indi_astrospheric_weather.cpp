@@ -31,11 +31,16 @@
 #endif
 using json = nlohmann::json;
 
+#include <algorithm>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <cstdlib>
+
+static constexpr size_t EXPECTED_FORECAST_HOURS = 82;
+static constexpr int FORECAST_CACHE_TTL_SECS = 6 * 3600;
+static constexpr int MIN_TIMER_PERIOD_MS = 1000;
 
 // Constructor for AstrosphericWeather.
 AstrosphericWeather::AstrosphericWeather()
@@ -71,7 +76,7 @@ bool AstrosphericWeather::Connect()
     // Update properties for the client.
     updateProperties();
     // Start the timer for periodic updates.
-    timerID = SetTimer(static_cast<int>(WeatherRefreshN[0].value * 1000)); // Convert seconds to milliseconds
+    timerID = SetTimer(std::max(MIN_TIMER_PERIOD_MS, static_cast<int>(WeatherRefreshNP[0].getValue() * 1000)));
     return true;
 }
 
@@ -133,23 +138,24 @@ bool AstrosphericWeather::initProperties()
     setCriticalParameter("WEATHER_CLOUD_COVER");
 
     // Define custom refresh period: max 3600 seconds (1 hour), default 1800 seconds (30 minutes).
-    IUFillNumber(&WeatherRefreshN[0], "PERIOD", "Period (s)", "%.f", 0, 3600, 0, 1800);
-    IUFillNumberVector(&WeatherRefreshNP, WeatherRefreshN, 1, getDeviceName(), "WEATHER_UPDATE_PERIOD", "Refresh Period", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-    defineProperty(&WeatherRefreshNP);
+    WeatherRefreshNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 0, 1800);
+    WeatherRefreshNP.fill(getDeviceName(), "WEATHER_UPDATE_PERIOD", "Refresh Period", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    defineProperty(WeatherRefreshNP);
 
     // Define weather summary property in the Main Control tab.
-    IUFillText(&WeatherSummaryT[0], "SUMMARY", "Weather Summary", "N/A");
-    IUFillTextVector(&WeatherSummaryTP, WeatherSummaryT, 1, getDeviceName(), "WEATHER_SUMMARY", "Status", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-    defineProperty(&WeatherSummaryTP);
+    WeatherSummaryTP[0].fill("SUMMARY", "Weather Summary", "N/A");
+    WeatherSummaryTP.fill(getDeviceName(), "WEATHER_SUMMARY", "Status", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    defineProperty(WeatherSummaryTP);
 
     // Add debug control for logging.
     addDebugControl();
 
-    // Load saved configuration for API key, location, telescope name, and mode.
+    // Load saved configuration for API key, location, telescope name, mode, and refresh period.
     loadConfig(true, "ASTROSPHERIC_API_KEY");
     loadConfig(true, "LOCATION");
     loadConfig(true, "TELESCOPE_NAME");
     loadConfig(true, "WEATHER_MODE");
+    loadConfig(true, "WEATHER_UPDATE_PERIOD");
 
     // Start snooping on the telescope for location data.
     if (TelescopeNameTP[0].getText() && strlen(TelescopeNameTP[0].getText()) > 0)
@@ -189,23 +195,24 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
             return true;
         }
         // Handle updates to the custom refresh period.
-        if (strcmp(name, "WEATHER_UPDATE_PERIOD") == 0)
+        if (WeatherRefreshNP.isNameMatch(name))
         {
-            IUUpdateNumber(&WeatherRefreshNP, values, names, n);
-            WeatherRefreshNP.s = IPS_OK;
-            IDSetNumber(&WeatherRefreshNP, nullptr);
-            LOGF_INFO("Refresh period updated to %.f seconds", WeatherRefreshN[0].value);
+            WeatherRefreshNP.update(values, names, n);
+            WeatherRefreshNP.setState(IPS_OK);
+            WeatherRefreshNP.apply();
+            LOGF_INFO("Refresh period updated to %.f seconds", WeatherRefreshNP[0].getValue());
             // Restart the timer with the new period.
             if (timerID >= 0)
             {
                 RemoveTimer(timerID);
-                timerID = SetTimer(static_cast<int>(WeatherRefreshN[0].value * 1000)); // Convert seconds to milliseconds
+                timerID = SetTimer(std::max(MIN_TIMER_PERIOD_MS, static_cast<int>(WeatherRefreshNP[0].getValue() * 1000)));
             }
             return true;
         }
     }
-    // Handle snooped GEOGRAPHIC_COORD data from the telescope.
-    if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+    // Handle snooped GEOGRAPHIC_COORD data from the configured telescope only.
+    if (strcmp(name, "GEOGRAPHIC_COORD") == 0 &&
+        dev && TelescopeNameTP[0].getText() && strcmp(dev, TelescopeNameTP[0].getText()) == 0)
     {
         double lat = 0.0, lon = 0.0;
         bool latFound = false, lonFound = false;
@@ -258,7 +265,7 @@ bool AstrosphericWeather::ISNewText(const char *dev, const char *name, char *tex
             APIKeyTP.apply();
             saveConfig(true, APIKeyTP.getName());
             forecastValid = false;
-            LOGF_INFO("API Key updated: %s", APIKeyTP[0].getText());
+            LOG_INFO("API Key updated.");
             return true;
         }
         // Handle updates to the telescope name for snooping.
@@ -307,6 +314,7 @@ bool AstrosphericWeather::saveConfigItems(FILE *fp)
     LocationNP.save(fp);
     TelescopeNameTP.save(fp);
     ModeSP.save(fp);
+    WeatherRefreshNP.save(fp);
     return true;
 }
 
@@ -328,7 +336,7 @@ void AstrosphericWeather::syncLocationFromSite()
 // Fetches data from the Astrospheric API.
 bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
 {
-    LOG_INFO("Fetching data from Astrospheric API...");
+    LOG_DEBUG("Fetching data from Astrospheric API...");
     const std::string endpoint = "/api/GetForecastData_V1";
     const std::string host = "astrosphericpublicaccess.azurewebsites.net";
 
@@ -366,7 +374,7 @@ bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
 // Parses the JSON response from the API.
 bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
 {
-    LOG_INFO("Parsing JSON response...");
+    LOG_DEBUG("Parsing JSON response...");
     try
     {
         json j = json::parse(jsonResponse);
@@ -397,12 +405,13 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
         for (const auto &hour : j["Astrospheric_Seeing"]) seeing.push_back(hour["Value"]["ActualValue"].get<double>());
         for (const auto &hour : j["Astrospheric_Transparency"]) transparency.push_back(hour["Value"]["ActualValue"].get<double>());
 
-        forecastHours = cloudCover.size();
-        if (forecastHours != 82 || temperature.size() != 82 || windSpeed.size() != 82 ||
-            dewPoint.size() != 82 || windDirection.size() != 82 || seeing.size() != 82 ||
-            transparency.size() != 82)
+        forecastHours = static_cast<int>(cloudCover.size());
+        if (cloudCover.size() != EXPECTED_FORECAST_HOURS || temperature.size() != EXPECTED_FORECAST_HOURS ||
+            windSpeed.size() != EXPECTED_FORECAST_HOURS || dewPoint.size() != EXPECTED_FORECAST_HOURS ||
+            windDirection.size() != EXPECTED_FORECAST_HOURS || seeing.size() != EXPECTED_FORECAST_HOURS ||
+            transparency.size() != EXPECTED_FORECAST_HOURS)
         {
-            LOGF_ERROR("Forecast data length mismatch: %d hours.", forecastHours);
+            LOGF_ERROR("Forecast data length mismatch: %d hours (expected %zu).", forecastHours, EXPECTED_FORECAST_HOURS);
             return false;
         }
 
@@ -435,7 +444,7 @@ time_t AstrosphericWeather::parseUTCDateTime(const std::string &dateTimeStr)
 // Updates weather data based on mode (API or Simulated).
 IPState AstrosphericWeather::updateWeather()
 {
-    LOG_INFO("Updating weather...");
+    LOG_DEBUG("Updating weather...");
     if (!isConnected())
     {
         LOG_ERROR("Not connected. Please connect the device first.");
@@ -456,14 +465,8 @@ IPState AstrosphericWeather::updateWeather()
             LOG_ERROR("API key is not set. Set it in the Options tab.");
             return IPS_ALERT;
         }
-        if (LocationNP[LOCATION_LATITUDE].getValue() == 0.0 && LocationNP[LOCATION_LONGITUDE].getValue() == 0.0)
-        {
-            LOG_ERROR("Location is not set. Set it in the Options tab or ensure a telescope is providing location data.");
-            return IPS_ALERT;
-        }
-
         time_t currentTime = time(nullptr);
-        if (!forecastValid || (currentTime - lastFetchTime) > (6 * 3600))
+        if (!forecastValid || (currentTime - lastFetchTime) > FORECAST_CACHE_TTL_SECS)
         {
             LOG_INFO("Fetching new forecast data...");
             std::string responseBody;
@@ -491,20 +494,13 @@ IPState AstrosphericWeather::updateWeather()
         setParameterValue("WEATHER_SEEING", seeing[hourOffset]);
         setParameterValue("WEATHER_TRANSPARENCY", transparency[hourOffset]);
 
-        // Update the weather summary in the Main Control tab
-        char summary[128];
-        snprintf(summary, sizeof(summary),
-                 "Cloud: %.2f%%, Temp: %.2fC, Wind: %.2fkph, Dew: %.2fC, Dir: %.2f°, See: %.2f, Trans: %.2f",
-                 cloudCover[hourOffset], temperature[hourOffset], windSpeed[hourOffset],
-                 dewPoint[hourOffset], windDirection[hourOffset], seeing[hourOffset], transparency[hourOffset]);
-        IUSaveText(&WeatherSummaryT[0], summary);
-        WeatherSummaryTP.s = IPS_OK;
-        IDSetText(&WeatherSummaryTP, nullptr);
+        updateSummaryText(buildWeatherSummary(
+            cloudCover[hourOffset], temperature[hourOffset], windSpeed[hourOffset],
+            dewPoint[hourOffset], windDirection[hourOffset], seeing[hourOffset], transparency[hourOffset]));
 
         LOGF_INFO("Weather updated for hour %d: Cloud=%.2f%%, Temp=%.2fC, Wind=%.2fkph",
                   hourOffset, cloudCover[hourOffset], temperature[hourOffset], windSpeed[hourOffset]);
 
-        // Notify the client of updated weather parameters
         ParametersNP.setState(IPS_OK);
         ParametersNP.apply();
 
@@ -512,7 +508,7 @@ IPState AstrosphericWeather::updateWeather()
     }
     else // Simulated Mode
     {
-        LOG_INFO("Updating weather in simulated mode...");
+        LOG_DEBUG("Updating weather in simulated mode...");
         setParameterValue("WEATHER_CLOUD_COVER", 50.0);
         setParameterValue("WEATHER_TEMPERATURE", 20.0);
         setParameterValue("WEATHER_WIND_SPEED", 10.0);
@@ -521,20 +517,29 @@ IPState AstrosphericWeather::updateWeather()
         setParameterValue("WEATHER_SEEING", 2.5);
         setParameterValue("WEATHER_TRANSPARENCY", 15.0);
 
-        // Update the weather summary in the Main Control tab
-        char summary[128];
-        snprintf(summary, sizeof(summary),
-                 "Cloud: 50.0%%, Temp: 20.0C, Wind: 10.0kph, Dew: 10.0C, Dir: 180.0°, See: 2.5, Trans: 15.0");
-        IUSaveText(&WeatherSummaryT[0], summary);
-        WeatherSummaryTP.s = IPS_OK;
-        IDSetText(&WeatherSummaryTP, nullptr);
+        updateSummaryText(buildWeatherSummary(50.0, 20.0, 10.0, 10.0, 180.0, 2.5, 15.0));
 
-        // Notify the client of updated weather parameters
         ParametersNP.setState(IPS_OK);
         ParametersNP.apply();
 
         return IPS_OK;
     }
+}
+
+std::string AstrosphericWeather::buildWeatherSummary(double cloud, double temp, double wind, double dew, double dir, double see, double trans)
+{
+    char buf[128];
+    snprintf(buf, sizeof(buf),
+             "Cloud: %.2f%%, Temp: %.2fC, Wind: %.2fkph, Dew: %.2fC, Dir: %.2f°, See: %.2f, Trans: %.2f",
+             cloud, temp, wind, dew, dir, see, trans);
+    return buf;
+}
+
+void AstrosphericWeather::updateSummaryText(const std::string &text)
+{
+    WeatherSummaryTP[0].setText(text.c_str());
+    WeatherSummaryTP.setState(IPS_OK);
+    WeatherSummaryTP.apply();
 }
 
 // Timer callback for periodic updates.
@@ -546,7 +551,7 @@ void AstrosphericWeather::TimerHit()
     updateWeather();
 
     // Reschedule the next update.
-    timerID = SetTimer(static_cast<int>(WeatherRefreshN[0].value * 1000)); // Convert seconds to milliseconds
+    timerID = SetTimer(std::max(MIN_TIMER_PERIOD_MS, static_cast<int>(WeatherRefreshNP[0].getValue() * 1000)));
 }
 
 // Global unique pointer to the AstrosphericWeather instance.

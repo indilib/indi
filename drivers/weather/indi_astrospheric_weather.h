@@ -77,11 +77,9 @@ private:
     // Property to specify the telescope device to snoop for location.
     INDI::PropertyText TelescopeNameTP{1};
     // Custom property for refresh period.
-    INumber WeatherRefreshN[1];
-    INumberVectorProperty WeatherRefreshNP;
+    INDI::PropertyNumber WeatherRefreshNP{1};
     // Property for weather summary in the Main Control tab.
-    IText WeatherSummaryT[1];
-    ITextVectorProperty WeatherSummaryTP;
+    INDI::PropertyText WeatherSummaryTP{1};
 
     // Enumeration for the indices of the LocationNP property.
     enum
@@ -90,10 +88,10 @@ private:
         LOCATION_LONGITUDE    // Longitude in degrees
     };
 
-    // Vectors to store the 81-hour forecast data for each weather parameter.
+    // Vectors to store the 82-hour forecast data for each weather parameter.
     std::vector<double> cloudCover, temperature, windSpeed, dewPoint, windDirection, seeing, transparency;
     time_t forecastStartTime;  // Start time of the forecast in UTC
-    int forecastHours;         // Number of hours in the forecast (should be 81)
+    int forecastHours;         // Number of hours in the forecast (should be 82)
     bool forecastValid;        // Flag indicating if the forecast is valid
     time_t lastFetchTime;      // Last time data was fetched from the API
     int apiCreditsUsed;        // Number of API credits used in the last 24 hours
@@ -108,6 +106,9 @@ private:
     bool parseJSONResponse(const std::string &jsonResponse);
     // Static method to parse UTC date-time strings into time_t.
     static time_t parseUTCDateTime(const std::string &dateTimeStr);
+
+    std::string buildWeatherSummary(double cloud, double temp, double wind, double dew, double dir, double see, double trans);
+    void updateSummaryText(const std::string &text);
 };
 
 #endif // INDI_ASTROSPHERIC_WEATHER_H
