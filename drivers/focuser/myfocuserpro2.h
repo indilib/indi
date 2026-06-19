@@ -132,6 +132,9 @@ class MyFocuserPro2 : public INDI::Focuser
         // Read and update Step Mode
         bool readStepMode();
 
+        // Read Temperature Probe availability
+        bool readTempProbeAvailability();
+
         // Read and update Temperature
         bool readTemperature();
 

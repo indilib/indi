@@ -502,6 +502,30 @@ bool MyFocuserPro2::readPosition()
     return true;
 }
 
+bool MyFocuserPro2::readTempProbeAvailability()
+{
+    char res[ML_RES] = {0};
+
+    if (sendCommand(":83#", res) == false)
+    {
+        return false;
+    }
+
+    int32_t val;
+    int rc = sscanf(res, "c%d#", &val);
+
+    if (rc > 0)
+    {
+        return val==0 ? false : true;
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: Temp Probe Availability value (%s). We assume available.", res);
+    }
+
+    return true;
+}
+
 bool MyFocuserPro2::readTemperatureCoefficient()
 {
     char res[ML_RES] = {0};
