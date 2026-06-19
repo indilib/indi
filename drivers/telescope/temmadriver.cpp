@@ -199,7 +199,7 @@ bool TemmaMount::sendCommand(const char *cmd, char *response)
     char errmsg[MAXRBUF];
 
     char cmd_temma[TEMMA_BUFFER] = {0};
-    strncpy(cmd_temma, cmd, TEMMA_BUFFER);
+    snprintf(cmd_temma, TEMMA_BUFFER, "%s", cmd);
     int cmd_size = strlen(cmd_temma);
     if (cmd_size - 2 >= TEMMA_BUFFER)
     {
@@ -419,7 +419,7 @@ bool TemmaMount::ReadScopeStatus()
 
         aligned = true;
 
-        if (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC))
+        if (!TransformTelescopeToCelestialJD(TDV, alignedRA, alignedDEC, ln_get_julian_from_sys()))
         {
             aligned = false;
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
@@ -938,7 +938,7 @@ INDI::IEquatorialCoordinates TemmaMount::TelescopeToSky(double ra, double dec)
         eq.dec = dec;
         TDV    = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
 
-        if (TransformTelescopeToCelestial(TDV, RightAscension, Declination))
+        if (TransformTelescopeToCelestialJD(TDV, RightAscension, Declination, ln_get_julian_from_sys()))
         {
             //  if we get here, the conversion was successful
             //LOG_DEBUG"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
@@ -977,7 +977,7 @@ INDI::IEquatorialCoordinates TemmaMount::SkyToTelescope(double ra, double dec)
         //  if the alignment system has been turned off
         //  this transformation will fail, and we fall thru
         //  to using raw co-ordinates from the mount
-        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+        if (TransformCelestialToTelescopeJD(ra, dec, ln_get_julian_from_sys(), TDV))
         {
             /*  Initial attempt, using RA/DEC co-ordinates talking to alignment system
             EquatorialCoordinatesFromTelescopeDirectionVector(TDV,eq);

@@ -305,7 +305,7 @@ bool FocusLynxF1::getHubConfig()
         IDSetText(&HubTP, nullptr);
 
         //Save locally the Version of the firmware's Hub
-        strncpy(version, text, sizeof(version));
+        snprintf(version, sizeof(version), "%s", text);
 
         LOGF_DEBUG("Text =  %s,  Key = %s", text, key);
     }

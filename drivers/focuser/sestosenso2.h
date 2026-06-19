@@ -173,9 +173,9 @@ class SestoSenso2 : public INDI::Focuser
 
         INDI::Timer m_MotionProgressTimer;
         INDI::Timer m_HallSensorTimer;
-        bool m_IsSestoSenso2 { true };
 
         std::unique_ptr<PrimalucaLabs::SestoSenso2> m_SestoSenso2;
+
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////

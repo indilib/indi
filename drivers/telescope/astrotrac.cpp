@@ -682,7 +682,7 @@ bool AstroTrac::ReadScopeStatus()
     m_MountInternalCoordinates.declination = de;
     TDV = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
 
-    if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
+    if (TransformTelescopeToCelestialJD(TDV, skyRA, skyDE, ln_get_julian_from_sys()))
     {
         // double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
         // double dHA = rangeHA(lst - skyRA);
@@ -710,7 +710,7 @@ bool AstroTrac::ReadScopeStatus()
 bool AstroTrac::getTelescopeFromSkyCoordinates(double ra, double de, INDI::IEquatorialCoordinates &telescopeCoordinates)
 {
     TelescopeDirectionVector TDV;
-    if (TransformCelestialToTelescope(ra, de, 0.0, TDV))
+    if (TransformCelestialToTelescopeJD(ra, de, ln_get_julian_from_sys(), TDV))
     {
         EquatorialCoordinatesFromTelescopeDirectionVector(TDV, telescopeCoordinates);
         LOGF_DEBUG("TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",

@@ -18,7 +18,7 @@
 #include <wchar.h>
 #include <string.h>
 #include <stdlib.h>
-#include "hidapi.h"
+#include "indi_hidapi.h"
 
 // Headers needed for sleeping.
 #ifdef _WIN32

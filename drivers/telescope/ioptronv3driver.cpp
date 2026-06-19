@@ -302,8 +302,8 @@ bool Driver::getStatus(IOPInfo *info)
     }
 
     char longPart[16] = {0}, latPart[16] = {0};
-    strncpy(longPart, res, 9);
-    strncpy(latPart, res + 9, 8);
+    snprintf(longPart, sizeof(longPart), "%.9s", res);
+    snprintf(latPart, sizeof(latPart), "%.8s", res + 9);
 
     int arcsecLongitude = atoi(longPart);
     int arcsecLatitude  = atoi(latPart);
@@ -358,8 +358,8 @@ bool Driver::getMainFirmware(std::string &mainFirmware, std::string &controllerF
         return false;
 
     char mStr[16] = {0}, cStr[16] = {0};
-    strncpy(mStr, res, 6);
-    strncpy(cStr, res + 6, 6);
+    snprintf(mStr, sizeof(mStr), "%.6s", res);
+    snprintf(cStr, sizeof(cStr), "%.6s", res + 6);
 
     mainFirmware = mStr;
     controllerFirmware = cStr;
@@ -377,8 +377,8 @@ bool Driver::getRADEFirmware(std::string &RAFirmware, std::string &DEFirmware)
         return false;
 
     char mStr[16] = {0}, cStr[16] = {0};
-    strncpy(mStr, res, 6);
-    strncpy(cStr, res + 6, 6);
+    snprintf(mStr, sizeof(mStr), "%.6s", res);
+    snprintf(cStr, sizeof(cStr), "%.6s", res + 6);
 
     RAFirmware = mStr;
     DEFirmware = cStr;
@@ -543,8 +543,8 @@ bool Driver::getGuideRate(double *RARate, double *DERate)
         return false;
 
     char raStr[8] = {0}, deStr[8] = {0};
-    strncpy(raStr, res, 2);
-    strncpy(deStr, res + 2, 2);
+    snprintf(raStr, sizeof(raStr), "%.2s", res);
+    snprintf(deStr, sizeof(deStr), "%.2s", res + 2);
 
     *RARate = atoi(raStr) / 100.0;
     *DERate = atoi(deStr) / 100.0;
@@ -766,7 +766,7 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
     char deStr[16] = {0}, raStr[16] = {0};
 
     strncpy(deStr, res, 9);
-    strncpy(raStr, res + 9, 9);
+    snprintf(raStr, sizeof(raStr), "%.9s", res + 9);
 
     try
     {
@@ -807,7 +807,7 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     char offsetStr[16] = {0}, JDStr[16] = {0};
 
     strncpy(offsetStr, res, 4);
-    strncpy(JDStr, res + 5, 13);
+    snprintf(JDStr, sizeof(JDStr), "%.13s", res + 5);
 
     *utcOffsetMinutes = atoi(offsetStr);
     *dayLightSaving   = (res[4] == '1');

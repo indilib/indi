@@ -28,11 +28,110 @@
 #include "indidustcapinterface.h"
 #include "indilightboxinterface.h"
 #include <mutex>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace Connection
 {
 class Serial;
 }
+
+// Forward declarations
+class WandererCoverV4EC;
+
+// Protocol handler interface
+class IWandererCoverProtocol
+{
+public:
+    virtual ~IWandererCoverProtocol() = default;
+    
+    // Protocol identification
+    virtual std::string getProtocolName() const = 0;
+    virtual int getProtocolVersion() const = 0;
+    virtual int getMinFirmwareVersion() const = 0;
+    virtual bool supportsFeature(const std::string& feature) const = 0;
+    
+    // Data parsing
+    virtual bool parseDeviceData(const char* data, WandererCoverV4EC* device) = 0;
+    virtual bool detectProtocol(const char* data) = 0;
+    
+    // Command generation
+    virtual std::string generateOpenCommand() const = 0;
+    virtual std::string generateCloseCommand() const = 0;
+    virtual std::string generateSetBrightnessCommand(uint16_t value) const = 0;
+    virtual std::string generateTurnOffLightCommand() const = 0;
+    virtual std::string generateSetOpenPositionCommand(double value) const = 0;
+    virtual std::string generateSetClosePositionCommand(double value) const = 0;
+    virtual std::string generateAutoDetectOpenPositionCommand() const = 0;
+    virtual std::string generateAutoDetectClosePositionCommand() const = 0;
+    virtual std::string generateDewHeaterCommand(int value) const = 0;
+    virtual std::string generateASIAIRControlCommand(bool enable) const = 0;
+    virtual std::string generateCustomBrightnessCommand(int brightness, int customNumber) const = 0;
+    
+    // Status data structure
+    struct StatusData
+    {
+        int firmware = 0;
+        double closePositionSet = 0.0;
+        double openPositionSet = 0.0;
+        double currentPosition = 0.0;
+        double voltage = 0.0;
+        int flatPanelBrightness = 0;
+        int dewHeaterPower = 0;
+        bool asiairControlEnabled = false;
+    };
+};
+
+// Legacy protocol implementation (pre-20250404)
+class WandererCoverLegacyProtocol : public IWandererCoverProtocol
+{
+public:
+    std::string getProtocolName() const override { return "WandererCover V4-EC (Legacy < 20250404)"; }
+    int getProtocolVersion() const override { return 1; }
+    int getMinFirmwareVersion() const override { return 0; }
+    
+    bool supportsFeature(const std::string& feature) const override;
+    bool parseDeviceData(const char* data, WandererCoverV4EC* device) override;
+    bool detectProtocol(const char* data) override;
+    
+    std::string generateOpenCommand() const override;
+    std::string generateCloseCommand() const override;
+    std::string generateSetBrightnessCommand(uint16_t value) const override;
+    std::string generateTurnOffLightCommand() const override;
+    std::string generateSetOpenPositionCommand(double value) const override;
+    std::string generateSetClosePositionCommand(double value) const override;
+    std::string generateAutoDetectOpenPositionCommand() const override;
+    std::string generateAutoDetectClosePositionCommand() const override;
+    std::string generateDewHeaterCommand(int value) const override;
+    std::string generateASIAIRControlCommand(bool enable) const override;
+    std::string generateCustomBrightnessCommand(int brightness, int customNumber) const override;
+};
+
+// Modern protocol implementation (20250404+)
+class WandererCoverModernProtocol : public IWandererCoverProtocol
+{
+public:
+    std::string getProtocolName() const override { return "WandererCover V4-EC (Modern >= 20250404)"; }
+    int getProtocolVersion() const override { return 2; }
+    int getMinFirmwareVersion() const override { return 20250404; }
+    
+    bool supportsFeature(const std::string& feature) const override;
+    bool parseDeviceData(const char* data, WandererCoverV4EC* device) override;
+    bool detectProtocol(const char* data) override;
+    
+    std::string generateOpenCommand() const override;
+    std::string generateCloseCommand() const override;
+    std::string generateSetBrightnessCommand(uint16_t value) const override;
+    std::string generateTurnOffLightCommand() const override;
+    std::string generateSetOpenPositionCommand(double value) const override;
+    std::string generateSetClosePositionCommand(double value) const override;
+    std::string generateAutoDetectOpenPositionCommand() const override;
+    std::string generateAutoDetectClosePositionCommand() const override;
+    std::string generateDewHeaterCommand(int value) const override;
+    std::string generateASIAIRControlCommand(bool enable) const override;
+    std::string generateCustomBrightnessCommand(int brightness, int customNumber) const override;
+};
 
 class WandererCoverV4EC : public INDI::DefaultDevice, public INDI::DustCapInterface, public INDI::LightBoxInterface
 {
@@ -62,31 +161,52 @@ protected:
     virtual bool saveConfigItems(FILE *fp) override;
     virtual void TimerHit() override;
 
+    // Protocol handler access
+    friend class IWandererCoverProtocol;
+    friend class WandererCoverLegacyProtocol;
+    friend class WandererCoverModernProtocol;
 
 private:
 
     int firmware=0;
     bool toggleCover(bool open);
     bool sendCommand(std::string command);
-    //Current Calibrate
     bool getData();
     bool parseDeviceData(const char *data);
     double closesetread=0;
     double opensetread=0;
     double positionread=0;
     double voltageread=0;
+    double dewheaterpowerread=0;
+    double asiaircontrolenabledread=0;
+    double flatpanelbrightnessread=0;
     bool setDewPWM(int id, int value);
     bool setClose(double value);
     bool setOpen(double value);
-    void updateData(double closesetread,double opensetread,double positionread,double voltageread);
+    void updateData(double closesetread,double opensetread,double positionread,double voltageread,double flatpanelbrightnessread,double dewheaterpowerread,double asiaircontrolenabledread);
 
-    INDI::PropertyNumber DataNP{4};
+    // Protocol detection and management
+    bool detectProtocol();
+    void setProtocol(std::unique_ptr<IWandererCoverProtocol> protocol);
+    IWandererCoverProtocol* getCurrentProtocol() const { return currentProtocol.get(); }
+
+    // Protocol handler
+    std::unique_ptr<IWandererCoverProtocol> currentProtocol;
+
+    // Status data
+    IWandererCoverProtocol::StatusData statusData;
+
+    // Properties for all protocol versions
+    INDI::PropertyNumber DataNP{7}; // Extended to support new protocol fields
     enum
     {
         closeset_read,
         openset_read,
         position_read,
         voltage_read,
+        flat_panel_brightness_read,
+        dew_heater_power_read,
+        asiair_control_enabled_read,
     };
 
     //Dew heater///////////////////////////////////////////////////////////////
@@ -113,6 +233,29 @@ private:
     enum
     {
         FIRMWARE_VERSION,
+    };
+
+    // New protocol features
+    INDI::PropertySwitch ASIAIRControlSP{2};
+    enum
+    {
+        ASIAIR_ENABLE,
+        ASIAIR_DISABLE,
+    };
+
+    INDI::PropertyNumber CustomBrightnessNP{3};
+    enum
+    {
+        CUSTOM_BRIGHTNESS_1,
+        CUSTOM_BRIGHTNESS_2,
+        CUSTOM_BRIGHTNESS_3,
+    };
+
+    INDI::PropertySwitch AutoDetectSP{2};
+    enum
+    {
+        AUTO_DETECT_OPEN,
+        AUTO_DETECT_CLOSE,
     };
 
     int PortFD{ -1 };

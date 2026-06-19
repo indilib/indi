@@ -105,6 +105,11 @@ bool StreamManagerPrivate::initProperties()
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                       STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Full Depth Streaming — right after Video Stream toggle
+    FullDepthSP[FULL_DEPTH_8BIT ].fill("FULL_DEPTH_8BIT",  "8-bit",  ISS_ON);
+    FullDepthSP[FULL_DEPTH_16BIT].fill("FULL_DEPTH_16BIT", "16-bit", ISS_OFF);
+    FullDepthSP.fill(getDeviceName(), "STREAM_FULL_DEPTH", "Stream Depth", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // @INDI_STANDARD_PROPERTY@
     StreamTimeNP[0].fill("STREAM_DELAY_TIME", "Delay (s)", "%.3f", 0, 60, 0.001, 0);
     StreamTimeNP.fill(getDeviceName(), "STREAM_DELAY", "Video Stream Delay", STREAM_TAB, IP_RO, 0, IPS_IDLE);
@@ -184,6 +189,7 @@ bool StreamManagerPrivate::initProperties()
     LimitsNP[LIMITS_BUFFER_MAX ].fill("LIMITS_BUFFER_MAX",  "Maximum Buffer Size (MB)", "%.0f", 1, 1024 * 64, 1, 512);
     LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS",      "%.0f", 1, 120,     1,  10);
     LimitsNP.fill(getDeviceName(), "LIMITS", "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -201,6 +207,7 @@ void StreamManagerPrivate::ISGetProperties(const char *dev)
     if (currentDevice->isConnected())
     {
         currentDevice->defineProperty(StreamSP);
+        currentDevice->defineProperty(FullDepthSP);
         if (hasStreamingExposure)
             currentDevice->defineProperty(StreamExposureNP);
         currentDevice->defineProperty(FpsNP);
@@ -234,6 +241,7 @@ bool StreamManagerPrivate::updateProperties()
         }
 
         currentDevice->defineProperty(StreamSP);
+        currentDevice->defineProperty(FullDepthSP);
         currentDevice->defineProperty(StreamTimeNP);
         if (hasStreamingExposure)
             currentDevice->defineProperty(StreamExposureNP);
@@ -260,6 +268,7 @@ bool StreamManagerPrivate::updateProperties()
         currentDevice->deleteProperty(EncoderSP.getName());
         currentDevice->deleteProperty(RecorderSP.getName());
         currentDevice->deleteProperty(LimitsNP.getName());
+        currentDevice->deleteProperty(FullDepthSP.getName());
     }
 
     return true;
@@ -482,11 +491,12 @@ void StreamManagerPrivate::asyncStreamThread()
         }
 
         // For streaming, downscale to 8bit if higher than 8bit to reduce bandwidth
+        // unless Full Depth mode is enabled.
         // You can reduce the number of frames by setting a frame limit.
         if (isStreaming && FPSPreview.newFrame())
         {
-            // Downscale to 8bit always for streaming to reduce bandwidth
-            if (PixelFormat != INDI_JPG && PixelDepth > 8)
+            // Downscale to 8bit for streaming to reduce bandwidth, unless full depth is enabled
+            if (PixelFormat != INDI_JPG && PixelDepth > 8 && FullDepthSP[FULL_DEPTH_16BIT].getState() != ISS_ON)
             {
                 // Allocale new buffer if size changes
                 downscaleBuffer.resize(dstFrameInfo.pixels());
@@ -647,8 +657,8 @@ bool StreamManagerPrivate::startRecording()
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         /* get filter name for pattern substitution */
-        if (dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot != -1
-                && dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot <= static_cast<int>(dynamic_cast<INDI::CCD*>
+        if (dynamic_cast<INDI::CCD * >(currentDevice)->CurrentFilterSlot != -1
+                && dynamic_cast<INDI::CCD * >(currentDevice)->CurrentFilterSlot <= static_cast<int>(dynamic_cast<INDI::CCD * >
                         (currentDevice)->FilterNames.size()))
         {
             filtername      = dynamic_cast<INDI::CCD*>(currentDevice)->FilterNames.at(dynamic_cast<INDI::CCD*>
@@ -701,7 +711,7 @@ bool StreamManagerPrivate::startRecording()
     else
     {
         //if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
-        if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
+        if (dynamic_cast<INDI::CCD * >(currentDevice)->PrimaryCCD.getNAxis() == 2)
             recorder->setDefaultMono();
         else
             recorder->setDefaultColor();
@@ -718,7 +728,7 @@ bool StreamManagerPrivate::startRecording()
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
-        if (isStreaming == false && dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
+        if (isStreaming == false && dynamic_cast<INDI::CCD * >(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
             RecordStreamSP.setState(IPS_ALERT);
@@ -729,7 +739,7 @@ bool StreamManagerPrivate::startRecording()
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (isStreaming == false && dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
+        if (isStreaming == false && dynamic_cast<INDI::SensorInterface * >(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
             RecordStreamSP.setState(IPS_ALERT);
@@ -750,12 +760,12 @@ bool StreamManagerPrivate::stopRecording(bool force)
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         if (!isStreaming)
-            dynamic_cast<INDI::CCD*>(currentDevice)->StopStreaming();
+            dynamic_cast<INDI::CCD * >(currentDevice)->StopStreaming();
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
         if (!isStreaming)
-            dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming();
+            dynamic_cast<INDI::SensorInterface * >(currentDevice)->StopStreaming();
 
     }
 
@@ -907,6 +917,17 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
             }
         }
         RecorderSP.apply();
+        return true;
+    }
+
+    // Full Depth Streaming
+    if (FullDepthSP.isNameMatch(name))
+    {
+        currentDevice->updateProperty(FullDepthSP, states, names, n, [this, names]()
+        {
+            LOGF_INFO("Stream depth set to %s.", FullDepthSP[FULL_DEPTH_16BIT].isNameMatch(names[0]) == ISS_ON ? "16-bit" : "8-bit");
+            return true;
+        }, true);
         return true;
     }
 
@@ -1063,7 +1084,7 @@ bool StreamManagerPrivate::setStream(bool enable)
 
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
-                if (dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
+                if (dynamic_cast<INDI::CCD * >(currentDevice)->StartStreaming() == false)
                 {
                     StreamSP.reset();
                     StreamSP[1].setState(ISS_ON);
@@ -1075,7 +1096,7 @@ bool StreamManagerPrivate::setStream(bool enable)
             }
             else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
             {
-                if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
+                if (dynamic_cast<INDI::SensorInterface * >(currentDevice)->StartStreaming() == false)
                 {
                     StreamSP.reset();
                     StreamSP[1].setState(ISS_ON);
@@ -1106,7 +1127,7 @@ bool StreamManagerPrivate::setStream(bool enable)
             {
                 if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
                 {
-                    if (dynamic_cast<INDI::CCD*>(currentDevice)->StopStreaming() == false)
+                    if (dynamic_cast<INDI::CCD * >(currentDevice)->StopStreaming() == false)
                     {
                         StreamSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to stop streaming.");
@@ -1116,7 +1137,7 @@ bool StreamManagerPrivate::setStream(bool enable)
                 }
                 else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
                 {
-                    if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming() == false)
+                    if (dynamic_cast<INDI::SensorInterface * >(currentDevice)->StopStreaming() == false)
                     {
                         StreamSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to stop streaming.");
@@ -1155,6 +1176,7 @@ bool StreamManager::saveConfigItems(FILE * fp)
     d->RecordOptionsNP.save(fp);
     d->RecorderSP.save(fp);
     d->LimitsNP.save(fp);
+    d->FullDepthSP.save(fp);
     return true;
 }
 
@@ -1201,7 +1223,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     // Binning for grayscale frames only for now - REMOVE ME
 #if 0
-    if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
+    if (dynamic_cast<INDI::CCD * >(currentDevice)->PrimaryCCD.getNAxis() == 2)
     {
         dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.binFrame();
         nbytes /= dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX() * dynamic_cast<INDI::CCD*>
@@ -1211,7 +1233,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
-        if (encoder->upload(&imageBP[0], buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
+        if (encoder->upload(&imageBP[0], buffer, nbytes, dynamic_cast<INDI::CCD * >(currentDevice)->PrimaryCCD.isCompressed()))
         {
             // Upload to client now
             imageBP.setState(IPS_OK);

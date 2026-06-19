@@ -5,12 +5,14 @@ Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 9),
                cdbs,
                cmake (>= 3.0),
+               pkgconf,
                libcfitsio-dev,
                libnova-dev,
                libusb-1.0-0-dev,
                zlib1g-dev,
                libjpeg-dev,
                libgsl-dev,
+               liberfa-dev,
                libcurl4-gnutls-dev,
                libtheora-dev,
                libogg-dev,
@@ -18,6 +20,7 @@ Build-Depends: debhelper (>= 9),
                libev-dev,
                librtlsdr-dev,
                libxisf-dev,
+               libudev-dev
 Standards-Version: 3.9.5
 Homepage: http://www.indilib.org/
 Vcs-Git: git://github.com/indilib/indi.git

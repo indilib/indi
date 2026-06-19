@@ -70,6 +70,9 @@ class InMemoryDatabase
         /// \param[in] Latitude
         /// \param[in] Longitude
         void SetDatabaseReferencePosition(double Latitude, double Longitude);
+        /// \brief Set the database reference position
+        /// \param[in] Position
+        void SetDatabaseReferencePosition(const IGeographicCoordinates &Position);
 
         typedef void (*LoadDatabaseCallbackPointer_t)(void *);
 

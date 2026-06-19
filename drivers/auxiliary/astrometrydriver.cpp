@@ -195,7 +195,7 @@ bool AstrometryDriver::ISNewText(const char *dev, const char *name, char *texts[
             IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
-            strncpy(CCDDataBP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            snprintf(CCDDataBP.device, MAXINDIDEVICE, "%s", ActiveDeviceT[0].text);
             IDSnoopDevice(ActiveDeviceT[0].text, "CCD1");
             IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
 

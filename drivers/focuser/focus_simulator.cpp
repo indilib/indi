@@ -31,7 +31,8 @@ static std::unique_ptr<FocusSim> focusSim(new FocusSim());
 ************************************************************************************/
 FocusSim::FocusSim()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH |
+                      FOCUSER_CAN_SYNC);
 }
 
 /************************************************************************************
@@ -321,6 +322,15 @@ IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 bool FocusSim::SetFocuserSpeed(int speed)
 {
     INDI_UNUSED(speed);
+    return true;
+}
+
+/************************************************************************************
+ *
+************************************************************************************/
+bool FocusSim::SyncFocuser(uint32_t ticks)
+{
+    INDI_UNUSED(ticks);
     return true;
 }
 

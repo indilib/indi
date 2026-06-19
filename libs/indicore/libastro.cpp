@@ -39,6 +39,7 @@
 #include <libnova/aberration.h>
 #include <libnova/transform.h>
 #include <libnova/nutation.h>
+#include <libnova/sidereal_time.h>
 
 namespace INDI
 {
@@ -145,7 +146,11 @@ void EquatorialToHorizontal(IEquatorialCoordinates *object, IGeographicCoordinat
     // RA Hours --> Degrees
     struct ln_equ_posn libnova_object = {object->rightascension * 15.0, object->declination};
     struct ln_hrz_posn horizontalPos;
-    ln_get_hrz_from_equ(&libnova_object, &libnova_location, JD, &horizontalPos);
+    // Use apparent sidereal time to match ln_get_equ_from_hrz (which already uses apparent).
+    // ln_get_hrz_from_equ uses mean sidereal time — a libnova bug that introduces a ~17" RA
+    // offset (equation of the equinoxes) in the round-trip.
+    double apparentSidereal = ln_get_apparent_sidereal_time(JD);
+    ln_get_hrz_from_equ_sidereal_time(&libnova_object, &libnova_location, apparentSidereal, &horizontalPos);
     position->azimuth = range360(180 + horizontalPos.az);
     position->altitude = horizontalPos.alt;
 }
@@ -161,6 +166,7 @@ void HorizontalToEquatorial(IHorizontalCoordinates *object, IGeographicCoordinat
     // Convert from INDI standard location to libnova standard location
     struct ln_hrz_posn libnova_object = {range360(object->azimuth + 180), object->altitude};
     struct ln_equ_posn equatorialPos;
+    // ln_get_equ_from_hrz uses apparent sidereal time, matching EquatorialToHorizontal above.
     ln_get_equ_from_hrz(&libnova_object, &libnova_location, JD, &equatorialPos);
     // Degrees --> Hours
     position->rightascension = equatorialPos.ra / 15.0;

@@ -327,10 +327,11 @@ static void driverio_init_unix(driverio * dio)
     dio->user = (void*)dio;
     dio->joins = NULL;
     dio->joinSizes = NULL;
-    dio->locked = 0;
     dio->joinCount = 0;
     dio->outBuff = NULL;
     dio->outPos = 0;
+    pthread_mutex_lock(&stdout_mutex);
+    dio->locked = 1;
 }
 
 static void driverio_finish_unix(driverio * dio)

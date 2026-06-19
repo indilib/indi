@@ -138,6 +138,13 @@ bool Telescope::initProperties()
     PECStateSP.fill(getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                     IPS_IDLE);
 
+    // Mount Type
+    // @INDI_STANDARD_PROPERTY@
+    MountTypeSP[MOUNT_ALTAZ].fill("ALTAZ", "ALTAZ", ISS_OFF);
+    MountTypeSP[MOUNT_EQ_FORK].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
+    MountTypeSP[MOUNT_EQ_GEM].fill("EQ_GEM", "GEM", ISS_ON);
+    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RO, ISR_1OFMANY, 60, IPS_IDLE);
+
     // Track Mode. Child class must call AddTrackMode to add members
     // @INDI_STANDARD_PROPERTY@
     TrackModeSP.fill(getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
@@ -364,6 +371,8 @@ bool Telescope::updateProperties()
             defineProperty(TargetNP);
         }
 
+        defineProperty(MountTypeSP);
+
         if (HasTime())
             defineProperty(TimeTP);
         if (HasLocation())
@@ -424,6 +433,8 @@ bool Telescope::updateProperties()
                 deleteProperty(SlewRateSP);
             deleteProperty(TargetNP);
         }
+
+        deleteProperty(MountTypeSP);
 
         if (HasTime())
             deleteProperty(TimeTP);
@@ -539,9 +550,9 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                 const char *elemName = findXMLAttValu(ep, "name");
 
                 if (!strcmp(elemName, "UTC"))
-                    strncpy(utc, pcdataXMLEle(ep), MAXINDITSTAMP);
+                    snprintf(utc, MAXINDITSTAMP, "%s", pcdataXMLEle(ep));
                 else if (!strcmp(elemName, "OFFSET"))
-                    strncpy(offset, pcdataXMLEle(ep), MAXINDITSTAMP);
+                    snprintf(offset, MAXINDITSTAMP, "%s", pcdataXMLEle(ep));
             }
 
             return processTimeInfo(utc, offset);
@@ -683,7 +694,7 @@ void Telescope::NewRaDec(double ra, double dec)
     }
 
     // RA is in hours, so change the arc-second threshold accordingly.
-    constexpr double RA_NOTIFY_THRESHOLD = EQ_NOTIFY_THRESHOLD/15.0;
+    constexpr double RA_NOTIFY_THRESHOLD = EQ_NOTIFY_THRESHOLD / 15.0;
     if (std::abs(EqNP[AXIS_RA].getValue() - ra) > RA_NOTIFY_THRESHOLD ||
             std::abs(EqNP[AXIS_DE].getValue() - dec) > EQ_NOTIFY_THRESHOLD ||
             EqNP.getState() != lastEqState)
@@ -2409,11 +2420,13 @@ void Telescope::processButton(const char *button_n, ISState state)
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
     {
-        processSlewPresets(1, 270);
+        // angle=90 (RIGHT) falls in the (45°,225°] "increase-index" branch
+        processSlewPresets(1, 90);
     }
     else if (!strcmp(button_n, "SLEWPRESETDOWN"))
     {
-        processSlewPresets(1, 90);
+        // angle=270 (LEFT) falls in the "decrease-index" branch
+        processSlewPresets(1, 270);
     }
 }
 
@@ -2628,30 +2641,46 @@ void Telescope::processNSWE(double mag, double angle)
 
 void Telescope::processSlewPresets(double mag, double angle)
 {
-    // high threshold, only 1 is accepted
-    if (mag != 1)
+    // mag >= 0.9  → joystick fully deflected → eligible to fire once
+    // mag <  0.5  → joystick near centre     → re-arm for next press
+    // 0.5 ≤ mag < 0.9 → transitional zone   → do nothing
+    if (mag < 0.9)
+    {
+        if (mag < 0.5 && !m_slewPresetArmed)
+            m_slewPresetArmed = true;
         return;
+    }
+
+    // Already fired once for this press – ignore jitter until released.
+    if (!m_slewPresetArmed)
+        return;
+
+    m_slewPresetArmed = false;
 
     size_t currentIndex = SlewRateSP.findOnSwitchIndex();
 
-    // Up
-    if (angle > 0 && angle < 180)
+    // Direction convention (compass angles, N=0°):
+    //   RIGHT (90°) / DOWN (180°)  → angle in (45°, 225°] → increase index
+    //   UP    (0°)  / LEFT (270°)  → angle outside that range → decrease index
+    //
+    // This matches the standard GUI list convention where RIGHT/DOWN moves to
+    // the next (higher-index) item and UP/LEFT moves to the previous item.
+    if (angle > 45 && angle <= 225)
     {
-        if (currentIndex <= 0)
-            return;
-
-        SlewRateSP.reset();
-        SlewRateSP[currentIndex - 1].setState(ISS_ON);
-        SetSlewRate(currentIndex - 1);
-    }
-    // Down
-    else
-    {
+        // Increase index → next (faster) slew rate
         if (currentIndex >= SlewRateSP.count() - 1)
             return;
-
         SlewRateSP.reset();
         SlewRateSP[currentIndex + 1].setState(ISS_ON);
+        SetSlewRate(currentIndex + 1);
+    }
+    else
+    {
+        // Decrease index → previous (slower) slew rate
+        if (currentIndex <= 0)
+            return;
+        SlewRateSP.reset();
+        SlewRateSP[currentIndex - 1].setState(ISS_ON);
         SetSlewRate(currentIndex - 1);
     }
 

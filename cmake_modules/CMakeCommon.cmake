@@ -60,7 +60,7 @@ IF (UNIX OR APPLE OR ANDROID)
 ENDIF ()
 
 # Warning, debug and linker flags
-SET(FIX_WARNINGS OFF CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
+SET(FIX_WARNINGS ON CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
 IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")
@@ -75,6 +75,9 @@ IF (UNIX OR APPLE)
     ENDIF ()
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
         SET(COMP_FLAGS "${COMP_FLAGS} -Wno-nonnull -Wno-deprecated-declarations")
+        IF (FIX_WARNINGS)
+            SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-parameter")
+        ENDIF ()
     ENDIF ()
 
     # Minimal debug info with Clang

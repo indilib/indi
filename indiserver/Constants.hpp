@@ -28,6 +28,5 @@ constexpr unsigned defaultMaximumRestarts {10};
 
 #ifdef OSX_EMBEDED_MODE
 constexpr std::string_view logNamePattern {"/Users/%s/Library/Logs/indiserver.log"};
-constexpr std::string_view fifoName {"/tmp/indiserverFIFO"}
 #endif
 } // namespace indiserver

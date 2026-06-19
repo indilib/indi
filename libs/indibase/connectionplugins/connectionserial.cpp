@@ -234,30 +234,31 @@ bool Serial::Connect()
                 IDSetText(&PortTP, nullptr);
 
 #ifdef __linux__
-                bool saveConfig = false;
                 // Disable auto-search on Linux if not disabled already
                 if (AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
                 {
-                    saveConfig = true;
                     AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
                     AutoSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
                     IDSetSwitch(&AutoSearchSP, nullptr);
-                }
-                // Only save config if different from default port
-                if (m_ConfigPort != std::string(PortT[0].text))
-                {
-                    saveConfig = true;
+                    m_Device->saveConfig(true, AutoSearchSP.name);
                 }
 
-                if (saveConfig)
-                    m_Device->saveConfig(true);
+                // Save device port if different from configuration value and read-write.
+                if (m_Permission != IP_RO && m_ConfigPort != std::string(PortT[0].text))
+                    m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #else
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
-                if (std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortT[0].text) != m_SystemPorts.end())
-                    m_Device->saveConfig(true, PortTP.name);
+                if (m_Permission != IP_RO && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortT[0].text) != m_SystemPorts.end())
+                    m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #endif
+
+
+                // If baud rate is different from config file, save it.
+                if (m_Permission != IP_RO && IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+                    m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
+
                 return true;
             }
 
@@ -278,11 +279,13 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        if (m_Permission != IP_RO && (std::string(PortT[0].text) != m_ConfigPort || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate))
-        {
+        // If permission is read-write and either the config port or baud rate are different from
+        // configuration values, then save them.
+        if (m_Permission != IP_RO && std::string(PortT[0].text) != m_ConfigPort)
             m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
+
+        if (m_Permission != IP_RO && IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
             m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
-        }
     }
     else
         LOG_DEBUG("Handshake failed.");
@@ -387,6 +390,11 @@ void Serial::setDefaultBaudRate(BaudRate newRate)
 
     if (m_Device->isInitializationComplete())
         IDSetSwitch(&BaudRateSP, nullptr);
+}
+
+void Serial::setPortMatchPattern(const std::string &pattern)
+{
+    m_PortMatchPattern = pattern;
 }
 
 uint32_t Serial::baud()
@@ -565,6 +573,43 @@ bool Serial::Refresh(bool silent)
     // in case the default config port does not exist.
     if (pCount == 1 && m_ConfigPort.empty())
         IUSaveText(&PortT[0], m_Ports[0].c_str());
+
+    // If a port match pattern is registered, try to auto-select the best matching port.
+    // This is only done when no previously-saved config port is present among the discovered
+    // ports (e.g. first run, or device plugged into a different USB slot).
+    // Devices like Pegasus Astro embed their product name in the /dev/serial/by-id/ symlink,
+    // which makes it possible to pick the right port without blind handshake attempts.
+    if (!m_PortMatchPattern.empty())
+    {
+        // Check whether the saved config port is still available in the system port list.
+        const bool configPortAvailable = !m_ConfigPort.empty() &&
+                                         std::find(m_SystemPorts.begin(), m_SystemPorts.end(), m_ConfigPort) != m_SystemPorts.end();
+
+        if (!configPortAvailable)
+        {
+            try
+            {
+                const std::regex portRe(m_PortMatchPattern, std::regex::icase);
+                for (const auto &onePort : m_SystemPorts)
+                {
+                    if (std::regex_search(onePort, portRe))
+                    {
+                        LOGF_INFO("Auto-selected port %s based on device name pattern \"%s\".",
+                                  onePort.c_str(), m_PortMatchPattern.c_str());
+                        IUSaveText(&PortT[0], onePort.c_str());
+                        IDSetText(&PortTP, nullptr);
+                        break;
+                    }
+                }
+            }
+            catch (const std::regex_error &e)
+            {
+                LOGF_WARN("Port match pattern \"%s\" is not a valid regex: %s",
+                          m_PortMatchPattern.c_str(), e.what());
+            }
+        }
+    }
+
     return true;
 }
 }

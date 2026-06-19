@@ -65,7 +65,7 @@ void AlignmentSubsystemForDrivers::SaveAlignmentConfigProperties(FILE *fp)
 // Helper methods
 
 bool AlignmentSubsystemForDrivers::AddAlignmentEntryEquatorial(double actualRA, double actualDec, double mountRA,
-        double mountDec)
+        double mountDec, double JD)
 {
     IGeographicCoordinates location;
     if (!GetDatabaseReferencePosition(location))
@@ -77,7 +77,7 @@ bool AlignmentSubsystemForDrivers::AddAlignmentEntryEquatorial(double actualRA, 
     AlignmentDatabaseEntry NewEntry;
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
 
-    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    NewEntry.ObservationJulianDate = JD;
     NewEntry.RightAscension = actualRA;
     NewEntry.Declination = actualDec;
     NewEntry.TelescopeDirection = TDV;
@@ -98,7 +98,7 @@ bool AlignmentSubsystemForDrivers::AddAlignmentEntryEquatorial(double actualRA, 
 }
 
 bool AlignmentSubsystemForDrivers::SkyToTelescopeEquatorial(double actualRA, double actualDec, double &mountRA,
-        double &mountDec)
+        double &mountDec, double JD)
 {
     INDI::IEquatorialCoordinates eq{0, 0};
     TelescopeDirectionVector TDV;
@@ -113,9 +113,9 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeEquatorial(double actualRA, dou
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
-        if (TransformCelestialToTelescope(actualRA, actualDec, 0.0, TDV))
+        if (TransformCelestialToTelescopeJD(actualRA, actualDec, JD, TDV))
         {
             EquatorialCoordinatesFromTelescopeDirectionVector(TDV, eq);
             //  and now we have to convert from lha back to RA
@@ -129,7 +129,7 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeEquatorial(double actualRA, dou
 }
 
 bool AlignmentSubsystemForDrivers::TelescopeEquatorialToSky(double mountRA, double mountDec, double &actualRA,
-        double &actualDec)
+        double &actualDec, double JD)
 {
     INDI::IEquatorialCoordinates eq{0, 0};
     IGeographicCoordinates location;
@@ -143,21 +143,21 @@ bool AlignmentSubsystemForDrivers::TelescopeEquatorialToSky(double mountRA, doub
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
         TelescopeDirectionVector TDV;
         eq.rightascension = mountRA;
         eq.declination = mountDec;
 
         TDV = TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-        return TransformTelescopeToCelestial(TDV, actualRA, actualDec);
+        return TransformTelescopeToCelestialJD(TDV, actualRA, actualDec, JD);
     }
 
     return false;
 }
 
 bool AlignmentSubsystemForDrivers::AddAlignmentEntryAltAz(double actualRA, double actualDec, double mountAlt,
-        double mountAz)
+        double mountAz, double JD)
 {
     IGeographicCoordinates location;
     if (!GetDatabaseReferencePosition(location))
@@ -169,7 +169,7 @@ bool AlignmentSubsystemForDrivers::AddAlignmentEntryAltAz(double actualRA, doubl
     AlignmentDatabaseEntry NewEntry;
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
 
-    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    NewEntry.ObservationJulianDate = JD;
     NewEntry.RightAscension = actualRA;
     NewEntry.Declination = actualDec;
     NewEntry.TelescopeDirection = TDV;
@@ -189,7 +189,8 @@ bool AlignmentSubsystemForDrivers::AddAlignmentEntryAltAz(double actualRA, doubl
     return false;
 }
 
-bool AlignmentSubsystemForDrivers::SkyToTelescopeAltAz(double actualRA, double actualDec, double &mountAlt, double &mountAz)
+bool AlignmentSubsystemForDrivers::SkyToTelescopeAltAz(double actualRA, double actualDec, double &mountAlt,
+        double &mountAz, double JD)
 {
     INDI::IHorizontalCoordinates altAz{0, 0};
     TelescopeDirectionVector TDV;
@@ -200,9 +201,9 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeAltAz(double actualRA, double a
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
-        if (TransformCelestialToTelescope(actualRA, actualDec, 0.0, TDV))
+        if (TransformCelestialToTelescopeJD(actualRA, actualDec, JD, TDV))
         {
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, altAz);
             mountAz = range360(altAz.azimuth);
@@ -214,7 +215,8 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeAltAz(double actualRA, double a
     return false;
 }
 
-bool AlignmentSubsystemForDrivers::TelescopeAltAzToSky(double mountAlt, double mountAz, double &actualRa, double &actualDec)
+bool AlignmentSubsystemForDrivers::TelescopeAltAzToSky(double mountAlt, double mountAz, double &actualRa,
+        double &actualDec, double JD)
 {
     INDI::IHorizontalCoordinates altaz{0, 0};
     IGeographicCoordinates location;
@@ -224,13 +226,13 @@ bool AlignmentSubsystemForDrivers::TelescopeAltAzToSky(double mountAlt, double m
         return false;
     }
 
-    if (GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() >= 1)
     {
         TelescopeDirectionVector TDV;
         altaz.azimuth  = range360(mountAz);
         altaz.altitude = range360(mountAlt);
         TDV = TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
-        return TransformTelescopeToCelestial(TDV, actualRa, actualDec);
+        return TransformTelescopeToCelestialJD(TDV, actualRa, actualDec, JD);
     }
 
     return false;

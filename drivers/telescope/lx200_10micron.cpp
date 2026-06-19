@@ -32,6 +32,7 @@
 #include "lx200driver.h"
 
 #include <cstring>
+#include <string>
 #include <strings.h>
 #include <termios.h>
 #include <math.h>
@@ -58,6 +59,9 @@
 #define TRAJECTORY_TIME "TRAJECTORY_TIME"
 #define SAT_TRACKING_STAT "SAT_TRACKING_STAT"
 #define UNATTENDED_FLIP "UNATTENDED_FLIP"
+#define WAKE_ON_LAN_MAC  "WAKE_ON_LAN_MAC"
+#define WAKE_ON_LAN_SEND "WAKE_ON_LAN_SEND"
+#define MOUNT_SHUTDOWN "MOUNT_SHUTDOWN"
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
@@ -184,20 +188,47 @@ bool LX200_10MICRON::initProperties()
         IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                            "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+        
+        IUFillText(&WoLMacT[0], "MAC", "MAC Address (XX:XX:XX:XX:XX:XX)", "");
+        IUFillTextVector(&WoLMacTP, WoLMacT, 1, getDeviceName(), WAKE_ON_LAN_MAC, "Wake on LAN", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+        char wolMacBuf[128] = {};
+        if (IUGetConfigText(getDeviceName(), WoLMacTP.name, WoLMacT[0].name, wolMacBuf, sizeof(wolMacBuf)) == 0)
+            IUSaveText(&WoLMacT[0], wolMacBuf);
+
+        IUFillSwitch(&WoLSendS[0], "SEND", "Wake Mount", ISS_OFF);
+        IUFillSwitchVector(&WoLSendSP, WoLSendS, 1, getDeviceName(), WAKE_ON_LAN_SEND, "Wake on LAN", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+        MountShutdownSP[0].fill("SHUTDOWN", "Shutdown Mount", ISS_OFF);
+        MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
     return result;
+}
+
+void LX200_10MICRON::ISGetProperties(const char *dev)
+{
+    LX200Generic::ISGetProperties(dev);
+
+    defineProperty(&WoLMacTP);
+    defineProperty(&WoLSendSP);
 }
 
 bool LX200_10MICRON::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &UnattendedFlipSP);
+    IUSaveConfigText(fp, &WoLMacTP);
     return true;
 }
 
 // Called by INDI::Telescope when connected state changes to add/remove properties
 bool LX200_10MICRON::updateProperties()
 {
+    // Define MountShutdownSP before the parent call so it appears immediately on connect,
+    // not after the slow getBasicData() mount queries inside LX200Generic::updateProperties().
+    if (isConnected())
+        defineProperty(MountShutdownSP);
+
     bool result = LX200Generic::updateProperties();
 
     if (isConnected())
@@ -244,6 +275,7 @@ bool LX200_10MICRON::updateProperties()
     }
     else
     {
+        deleteProperty(MountShutdownSP);
         deleteProperty(UnattendedFlipSP.name);
         deleteProperty(ProductTP.name);
         deleteProperty(RefractionModelTemperatureNP.name);
@@ -1297,6 +1329,48 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&UnattendedFlipSP, nullptr);
             return true;
         }
+        if (strcmp(WoLSendSP.name, name) == 0)
+        {
+            IUResetSwitch(&WoLSendSP);
+            if (sendWakeOnLanPacket())
+            {
+                WoLSendSP.s = IPS_OK;
+                LOG_INFO("Wake on LAN packet sent successfully.");
+            }
+            else
+            {
+                WoLSendSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to send Wake on LAN packet.");
+            }
+            IDSetSwitch(&WoLSendSP, nullptr);
+            return true;
+        }
+        if (MountShutdownSP.isNameMatch(name))
+        {
+            MountShutdownSP.reset();
+            if (!isParked())
+            {
+                MountShutdownSP.setState(IPS_ALERT);
+                LOG_WARN("Mount must be parked before shutdown.");
+                MountShutdownSP.apply();
+                return false;
+            }
+            // :shutdown# — returns '1' on success, '0' on failure; ~20 s until power-off
+            if (0 != setStandardProcedureAndExpectChar(fd, ":shutdown#", "1"))
+            {
+                MountShutdownSP.setState(IPS_ALERT);
+                LOG_ERROR("Mount shutdown command failed.");
+                MountShutdownSP.apply();
+                return false;
+            }
+            MountShutdownSP.setState(IPS_OK);
+            LOG_INFO("Mount shutdown initiated. Disconnecting before mount powers off.");
+            MountShutdownSP.apply();
+            // Defer disconnect so ISNewSwitch returns cleanly before we tear down the property list
+            m_ShutdownPending = true;
+            SetTimer(100);
+            return true;
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -1354,6 +1428,14 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
                 LOG_ERROR("Trajectory could not be calculated");
                 return false;
             }
+        }
+        if (strcmp(name, WAKE_ON_LAN_MAC) == 0)
+        {
+            IUUpdateText(&WoLMacTP, texts, names, n);
+            WoLMacTP.s = IPS_OK;
+            IDSetText(&WoLMacTP, nullptr);
+            LOGF_INFO("WoL MAC address set to %s", WoLMacT[0].text);
+            return true;
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);
@@ -1452,4 +1534,43 @@ int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *da
     }
 
     return 0;
+}
+
+void LX200_10MICRON::TimerHit()
+{
+    if (m_ShutdownPending)
+    {
+        m_ShutdownPending = false;
+        // Standard INDI disconnect sequence — same as clicking Disconnect in the UI
+        Disconnect();
+        setConnected(false, IPS_IDLE);
+        updateProperties();
+        return; // do not reschedule polling
+    }
+    LX200Generic::TimerHit();
+}
+
+bool LX200_10MICRON::sendWakeOnLanPacket()
+{
+    const char *macStr = WoLMacT[0].text;
+    if (!macStr || macStr[0] == '\0')
+    {
+        LOG_ERROR("WoL: MAC address not configured.");
+        return false;
+    }
+
+    std::string cmd = "wakeonlan " + std::string(macStr);
+    int ret = system(cmd.c_str());
+    if (ret == 0)
+    {
+        LOGF_INFO("WoL: magic packet sent to %s", macStr);
+        return true;
+    }
+    if (ret == 127)
+    {
+        LOG_ERROR("WoL: wakeonlan tool not found. Please install it on your system.");
+        return false;
+    }
+    LOG_ERROR("WoL: wakeonlan failed to send the packet.");
+    return false;
 }

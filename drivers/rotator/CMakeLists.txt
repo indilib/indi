@@ -30,6 +30,17 @@ add_executable(indi_gemini_focus ${gemini_SRC})
 target_link_libraries(indi_gemini_focus indidriver)
 install(TARGETS indi_gemini_focus RUNTIME DESTINATION bin)
 
+# ############### iOptron Focusing Rotator ########
+SET(iafscaa_SRC
+    iafscaa.cpp)
+
+IF(UNITY_BUILD)
+    ENABLE_UNITY_BUILD(iafscaa iafscaa_SRC 10 cpp)
+ENDIF()
+
+add_executable(indi_iafscaa_focus ${iafscaa_SRC})
+target_link_libraries(indi_iafscaa_focus indidriver)
+install(TARGETS indi_iafscaa_focus RUNTIME DESTINATION bin)
 # ############### NightCrawler Focusing Rotator ################
 SET(nightcrawler_SRC
     nightcrawler.cpp)
@@ -53,6 +64,14 @@ SET(falcon_SRC
 add_executable(indi_falcon_rotator ${falcon_SRC})
 target_link_libraries(indi_falcon_rotator indidriver)
 install(TARGETS indi_falcon_rotator RUNTIME DESTINATION bin)
+
+# ############### Camelot Rotator ################
+SET(camelot_SRC
+    camelot.cpp)
+
+add_executable(indi_camelot_rotator ${camelot_SRC})
+target_link_libraries(indi_camelot_rotator indidriver)
+install(TARGETS indi_camelot_rotator RUNTIME DESTINATION bin)
 
 # ############### Falcon V2 Rotator ################
 SET(falconv2_SRC

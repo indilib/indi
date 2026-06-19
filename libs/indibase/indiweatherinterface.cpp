@@ -69,6 +69,11 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     // Weather Status
     // @INDI_STANDARD_PROPERTY@
     critialParametersLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", statusGroup, IPS_IDLE);
+
+    // Safety Status (standard property for safety monitoring)
+    // @INDI_STANDARD_PROPERTY@
+    SafetyStatusLP[0].fill("SAFETY", "Safety", IPS_IDLE);
+    SafetyStatusLP.fill(getDeviceName(), "SAFETY_STATUS", "Safety", statusGroup, IPS_IDLE);
 }
 
 bool WeatherInterface::updateProperties()
@@ -81,6 +86,8 @@ bool WeatherInterface::updateProperties()
 
         if (critialParametersLP.count() > 0)
             m_defaultDevice->defineProperty(critialParametersLP);
+
+        m_defaultDevice->defineProperty(SafetyStatusLP);
 
         if (ParametersNP.count() > 0)
             m_defaultDevice->defineProperty(ParametersNP);
@@ -98,6 +105,8 @@ bool WeatherInterface::updateProperties()
 
         if (critialParametersLP.count() > 0)
             m_defaultDevice->deleteProperty(critialParametersLP);
+
+        m_defaultDevice->deleteProperty(SafetyStatusLP);
 
         if (ParametersNP.count() > 0)
             m_defaultDevice->deleteProperty(ParametersNP);
@@ -123,15 +132,35 @@ void WeatherInterface::checkWeatherUpdate()
     {
         // Ok
         case IPS_OK:
+            syncCriticalParameters();
 
-            if (syncCriticalParameters())
+            // Override weather state if required - checked unconditionally so it is
+            // always enforced even when critical parameter states have not changed.
+            if (OverrideSP[0].getState() == ISS_ON)
             {
-                // Override weather state if required
-                if (OverrideSP[0].getState() == ISS_ON)
-                    critialParametersLP.setState(IPS_OK);
+                critialParametersLP.setState(IPS_OK);
 
-                critialParametersLP.apply();
+                // Update SafetyStatusLP to match override status (only if different)
+                if (SafetyStatusLP.getState() != IPS_OK)
+                {
+                    SafetyStatusLP.setState(IPS_OK);
+                    SafetyStatusLP.apply();
+                }
             }
+
+            // If no critical parameters are defined, syncCriticalParameters() returns
+            // early without ever touching SafetyStatusLP. Ensure it still reflects
+            // that the weather reading itself is OK so safety monitors see green.
+            if (critialParametersLP.count() == 0 && SafetyStatusLP.getState() != IPS_OK)
+            {
+                SafetyStatusLP.setState(IPS_OK);
+                SafetyStatusLP.apply();
+            }
+
+            // Always push the light property so clients stay in sync (e.g. after a
+            // reconnect where preStates matched and syncCriticalParameters returned false).
+            if (critialParametersLP.count() > 0)
+                critialParametersLP.apply();
 
             ParametersNP.setState(state);
             ParametersNP.apply();
@@ -149,8 +178,14 @@ void WeatherInterface::checkWeatherUpdate()
             ParametersNP.apply();
             break;
 
-        // Weather update is in progress
+        // Weather update is in progress - only transition the state once to IPS_BUSY
+        // so clients know an update is underway, without spamming them on every 5s retry.
         default:
+            if (ParametersNP.getState() != IPS_BUSY)
+            {
+                ParametersNP.setState(IPS_BUSY);
+                ParametersNP.apply();
+            }
             break;
     }
 
@@ -182,6 +217,13 @@ bool WeatherInterface::processSwitch(const char *dev, const char *name, ISState 
             OverrideSP.setState(IPS_BUSY);
             critialParametersLP.setState(IPS_OK);
             critialParametersLP.apply();
+
+            // Update SafetyStatusLP to match override status (only if different)
+            if (SafetyStatusLP.getState() != IPS_OK)
+            {
+                SafetyStatusLP.setState(IPS_OK);
+                SafetyStatusLP.apply();
+            }
         }
         else
         {
@@ -206,17 +248,17 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
     // Update period
     if (UpdatePeriodNP.isNameMatch(name))
     {
-        UpdatePeriodNP.update(values, names, n);
-        UpdatePeriodNP.setState(IPS_OK);
-        UpdatePeriodNP.apply();
-
-        if (UpdatePeriodNP[0].getValue() == 0)
-            LOG_INFO("Periodic updates are disabled.");
-        else
+        m_defaultDevice->updateProperty(UpdatePeriodNP, values, names, n, [this, values]()
         {
-            m_UpdateTimer.setInterval(UpdatePeriodNP[0].getValue() * 1000);
-            m_UpdateTimer.start();
-        }
+            if (values[0] == 0)
+                LOG_INFO("Periodic updates are disabled.");
+            else
+            {
+                m_UpdateTimer.setInterval(values[0] * 1000);
+                m_UpdateTimer.start();
+            }
+            return true;
+        }, true);
         return true;
     }
     else
@@ -226,14 +268,13 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
         {
             if (oneRange.isNameMatch(name))
             {
-                oneRange.update(values, names, n);
-
-                if (syncCriticalParameters())
-                    critialParametersLP.apply();
-
-                oneRange.setState(IPS_OK);
-                oneRange.apply();
-                m_defaultDevice->saveConfig(oneRange);
+                m_defaultDevice->updateProperty(oneRange, values, names, n, [this, &oneRange, values, names, n]()
+                {
+                    oneRange.update(values, names, n);
+                    if (syncCriticalParameters())
+                        critialParametersLP.apply();
+                    return true;
+                }, true);
                 return true;
             }
         }
@@ -269,9 +310,11 @@ IPState WeatherInterface::updateWeather()
  * @param percWarning percentage for Warning.
  * @param flipWarning boolean indicating if range warning should be flipped to in-bounds, rather than out-of-bounds
  */
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk,
+                                    double percWarning, bool flipWarning)
 {
-    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f,%s) ", name.c_str(), numMinOk, numMaxOk, percWarning, (flipWarning ? "true" : "false"));
+    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f,%s) ", name.c_str(), numMinOk, numMaxOk, percWarning,
+               (flipWarning ? "true" : "false"));
 
     INDI::WidgetNumber oneParameter;
     oneParameter.fill(name.c_str(), label.c_str(), "%.2f", numMinOk, numMaxOk, 0, 0);
@@ -460,6 +503,13 @@ bool WeatherInterface::syncCriticalParameters()
             critialParametersLP.setState(oneCriticalParam.getState());
     }
 
+    // Update the SafetyStatusLP to mirror the overall critical parameters state (only if different)
+    if (SafetyStatusLP.getState() != critialParametersLP.getState())
+    {
+        SafetyStatusLP.setState(critialParametersLP.getState());
+        SafetyStatusLP.apply();
+    }
+
     // if Any state changed, return true.
     for (size_t i = 0; i < critialParametersLP.count(); i++)
     {
@@ -486,7 +536,8 @@ bool WeatherInterface::syncCriticalParameters()
  * @param percWarning Percentage for warning zone calculation
  * @param flipWarning Boolean indicating if range warning should be flipped
  */
-void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
+void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk,
+        double percWarning, bool flipWarning)
 {
     INDI::WidgetNumber minWidget, maxWidget, warnWidget, typeWidget;
     minWidget.fill("MIN_OK", "OK range min", "%.2f", -1e6, 1e6, 0, numMinOk);

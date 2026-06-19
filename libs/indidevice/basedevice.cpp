@@ -512,10 +512,10 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
     property.setLabel      (root.getAttribute("label"));
     property.setGroupName  (root.getAttribute("group"));
     property.setState      (root.getAttribute("state"));
-    property.setTimeout    (root.getAttribute("timeout"));
 
     if (rootTagType->first != INDI_LIGHT)
     {
+        property.setTimeout(root.getAttribute("timeout"));
         property.setPermission(root.getAttribute("perm").toIPerm());
     }
 
@@ -634,11 +634,11 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
     }
 
     // 2. allow changing the timeout
+    if (rootTagType->first != INDI_LIGHT)
     {
         AutoCNumeric locale;
         bool ok = false;
         auto timeoutValue = root.getAttribute("timeout").toDouble(&ok);
-
         if (ok)
             property.setTimeout(timeoutValue);
     }

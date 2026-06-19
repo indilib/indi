@@ -225,13 +225,13 @@ void ArduinoST4::guideTimeout(ARDUINO_DIRECTION direction)
     {
         if (sendCommand("RA0#"))
         {
-            GuideNSNP.setState(IPS_IDLE);
+            GuideWENP.setState(IPS_IDLE);
             LOG_DEBUG("Guiding: RA axis stopped.");
         }
         else
         {
             LOG_ERROR("Failed to stop RA axis.");
-            GuideNSNP.setState(IPS_ALERT);
+            GuideWENP.setState(IPS_ALERT);
         }
 
         GuideWENP[0].setValue(0);

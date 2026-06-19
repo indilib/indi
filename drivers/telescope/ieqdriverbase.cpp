@@ -25,6 +25,7 @@
 
 #include <libnova/julian_day.h>
 
+#include <cctype>
 #include <cmath>
 #include <map>
 #include <cstring>
@@ -103,8 +104,8 @@ bool Base::getMainFirmware()
     {
         char board[8] = {0}, controller[8] = {0};
 
-        strncpy(board, res, 6);
-        strncpy(controller, res + 6, 6);
+        snprintf(board, sizeof(board), "%.6s", res);
+        snprintf(controller, sizeof(controller), "%.6s", res + 6);
 
         m_FirmwareInfo.MainBoardFirmware.assign(board, 6);
         m_FirmwareInfo.ControllerFirmware.assign(controller, 6);
@@ -123,8 +124,8 @@ bool Base::getRADEFirmware()
     {
         char ra[8] = {0}, de[8] = {0};
 
-        strncpy(ra, res, 6);
-        strncpy(de, res + 6, 6);
+        snprintf(ra, sizeof(ra), "%.6s", res);
+        snprintf(de, sizeof(de), "%.6s", res + 6);
 
         m_FirmwareInfo.RAFirmware.assign(ra, 6);
         m_FirmwareInfo.DEFirmware.assign(de, 6);
@@ -528,8 +529,73 @@ bool Base::getCoords(double *ra, double *dec)
 
     if (sendCommand(":GEC#", res))
     {
-        *ra = Ra = DecodeString(res + 9, 8, ieqHours);
-        *dec = Dec = DecodeString(res, 9, ieqDegrees);
+        // Response format: sTTTTTTTTXXXXXXXX (17 chars)
+        // s = sign, TTTTTTTT = DEC (8 digits), XXXXXXXX = RA (8 digits)
+        // Valid DEC range: [-32,400,000, +32,400,000]
+        // Valid RA range: [0, 86,400,000]
+        static constexpr size_t EXPECTED_LEN = 17;
+        static constexpr int32_t DEC_MIN = -32400000;
+        static constexpr int32_t DEC_MAX = 32400000;
+        static constexpr int32_t RA_MIN = 0;
+        static constexpr int32_t RA_MAX = 86400000;
+
+        // Check response length
+        size_t resLen = strlen(res);
+        if (resLen < EXPECTED_LEN)
+        {
+            LOGF_ERROR("Invalid GEC response: expected %zu chars, got %zu ('%s')",
+                       EXPECTED_LEN, resLen, res);
+            return false;
+        }
+
+        // Validate sign character for DEC
+        if (res[0] != '+' && res[0] != '-')
+        {
+            LOGF_ERROR("Invalid GEC response: expected sign at position 0, got '%c' ('%s')",
+                       res[0], res);
+            return false;
+        }
+
+        // Validate DEC digits (positions 1-8)
+        for (size_t i = 1; i < 9; i++)
+        {
+            if (!isdigit(static_cast<unsigned char>(res[i])))
+            {
+                LOGF_ERROR("Invalid GEC response: non-digit at position %zu ('%s')", i, res);
+                return false;
+            }
+        }
+
+        // Validate RA digits (positions 9-16)
+        for (size_t i = 9; i < 17; i++)
+        {
+            if (!isdigit(static_cast<unsigned char>(res[i])))
+            {
+                LOGF_ERROR("Invalid GEC response: non-digit at position %zu ('%s')", i, res);
+                return false;
+            }
+        }
+
+        // Decode and validate ranges
+        int32_t rawDec = DecodeString(res, 9);
+        int32_t rawRa = DecodeString(res + 9, 8);
+
+        if (rawDec < DEC_MIN || rawDec > DEC_MAX)
+        {
+            LOGF_ERROR("Invalid GEC response: DEC %d out of range [%d, %d]",
+                       rawDec, DEC_MIN, DEC_MAX);
+            return false;
+        }
+
+        if (rawRa < RA_MIN || rawRa > RA_MAX)
+        {
+            LOGF_ERROR("Invalid GEC response: RA %d out of range [%d, %d]",
+                       rawRa, RA_MIN, RA_MAX);
+            return false;
+        }
+
+        *ra = Ra = rawRa / ieqHours;
+        *dec = Dec = rawDec / ieqDegrees;
         return true;
     }
 
@@ -585,9 +651,9 @@ bool Base::getStatus(Info *info)
     {
         char longitude[8] = {0}, latitude[8] = {0}, status[8] = {0};
 
-        strncpy(longitude, res, 7);
-        strncpy(latitude, res + 7, 6);
-        strncpy(status, res + 13, 6);
+        snprintf(longitude, sizeof(longitude), "%.7s", res);
+        snprintf(latitude, sizeof(latitude), "%.6s", res + 7);
+        snprintf(status, sizeof(status), "%.6s", res + 13);
 
         info->longitude     = DecodeString(res, 7, 3600.0);
         info->latitude      = DecodeString(res + 7, 6, 3600.0) - 90;
@@ -825,7 +891,7 @@ double Base::DecodeString(const char * data, size_t size, double factor)
 int Base::DecodeString(const char *data, size_t size)
 {
     char str[DRIVER_LEN / 2] = {0};
-    strncpy(str, data, size);
+    snprintf(str, sizeof(str), "%.*s", static_cast<int>(size), data);
 
     int iVal = atoi(str);
     return iVal;

@@ -366,10 +366,11 @@ bool CCD::initProperties()
     WorldCoordSP.fill(getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW,
                       ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Camera Rotation E of N in degrees
+    // Camera Rotation E of N in degrees following Astrometry notation with row order Down - Top
+    // TS 06-2025: Has to be transformed accordingly for KSTARS Top - Down, see KSUtils::rotationToPositionAngle(orientation)
     // @INDI_STANDARD_PROPERTY@
-    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Rotation", "%g", -360, 360, 1, 0);
-    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
+    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Angle", "%.2f", -360, 360, 1, 0);
+    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "Orientation", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // Scope focal length and aperture
@@ -1025,6 +1026,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             FITSHeaderTP.update(texts, names, n);
 
             std::string name = FITSHeaderTP[KEYWORD_NAME].getText();
+            std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c)
+            {
+                return std::toupper(c);
+            });
             std::string value = FITSHeaderTP[KEYWORD_VALUE].getText();
             std::string comment = FITSHeaderTP[KEYWORD_COMMENT].getText();
 
@@ -1056,14 +1061,14 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                         {
                             auto lValue = std::stol(value);
                             FITSRecord record(name.c_str(), lValue, comment.c_str());
-                            m_CustomFITSKeywords[name.c_str()] = record;
+                            m_CustomFITSKeywords[name] = record;
                         }
                         // Try double
                         else if (std::regex_match(value, checkDouble))
                         {
                             auto dValue = std::stod(value);
                             FITSRecord record(name.c_str(), dValue, 6, comment.c_str());
-                            m_CustomFITSKeywords[name.c_str()] = record;
+                            m_CustomFITSKeywords[name] = record;
                         }
                         // Store as text
                         else
@@ -1072,7 +1077,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                             // Escape the value since backslashes are reserved /
                             std::replace(value.begin(), value.end(), '/', '\\');
                             FITSRecord record(name.c_str(), value.c_str(), comment.c_str());
-                            m_CustomFITSKeywords[name.c_str()] = record;
+                            m_CustomFITSKeywords[name] = record;
                         }
                     }
                     // In case conversion fails
@@ -1081,13 +1086,13 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                         // String
                         std::replace(value.begin(), value.end(), '/', '\\');
                         FITSRecord record(name.c_str(), value.c_str(), comment.c_str());
-                        m_CustomFITSKeywords[name.c_str()] = record;
+                        m_CustomFITSKeywords[name] = record;
                     }
                 }
                 else if (comment.empty() == false)
                 {
                     FITSRecord record(comment.c_str());
-                    m_CustomFITSKeywords[comment.c_str()] = record;
+                    m_CustomFITSKeywords[comment] = record;
                 }
             }
 
@@ -1503,7 +1508,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             CCDRotationNP.apply();
             m_ValidCCDRotation = true;
 
-            LOGF_INFO("CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
+            LOGF_INFO("Camera Orientation updated to %.2f degrees.", CCDRotationNP[0].getValue());
 
             return true;
         }
@@ -2060,7 +2065,7 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
     uint32_t subBinX = targetChip->getBinX();
     uint32_t subBinY = targetChip->getBinY();
 
-    strncpy(dev_name, getDeviceName(), MAXINDINAME);
+    snprintf(dev_name, sizeof(dev_name), "%s", getDeviceName());
 
     fitsKeywords.push_back({"EXPTIME", exposureDuration, 6, "Total Exposure Time (s)"});
 
@@ -2304,6 +2309,11 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
     }
 
     fitsKeywords.push_back({"DATE-OBS", exposureStartTime, "UTC start date of observation"});
+
+    // Add all custom keywords next
+    for (auto &record : m_CustomFITSKeywords)
+        fitsKeywords.push_back(record.second);
+
     fitsKeywords.push_back(FITSRecord("Generated by INDI"));
 }
 
@@ -2340,7 +2350,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     // save information used for the fits header
     exposureDuration = targetChip->getExposureDuration();
-    strncpy(exposureStartTime, targetChip->getExposureStartTime(), MAXINDINAME);
+    snprintf(exposureStartTime, sizeof(exposureStartTime), "%s", targetChip->getExposureStartTime());
 
     if(HasDSP())
     {
@@ -2439,10 +2449,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             std::vector<FITSRecord> fitsKeywords;
 
             addFITSKeywords(targetChip, fitsKeywords);
-
-            // Add all custom keywords next
-            for (auto &record : m_CustomFITSKeywords)
-                fitsKeywords.push_back(record.second);
 
             for (auto &keyword : fitsKeywords)
             {
@@ -3080,10 +3086,7 @@ int CCD::getFileIndex(const std::string &dir, const std::string &prefix, const s
         }
     }
     else
-    {
-        closedir(dpdf);
         return -1;
-    }
     int maxIndex = 0;
 
     for (uint32_t i = 0; i < files.size(); i++)

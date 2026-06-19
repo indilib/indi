@@ -67,6 +67,7 @@ bool PegasusFlatMaster::initProperties()
 
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+    serialConnection->setPortMatchPattern("FlatMaster");
     serialConnection->registerHandshake([&]()
     {
         return Ack();

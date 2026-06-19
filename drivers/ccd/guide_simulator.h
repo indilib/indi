@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "indiccd.h"
-#include "indifilterinterface.h"
+#include <indiccd.h>
+#include "sky_renderer.h"
 #include "indipropertyswitch.h"
 #include "fitskeyword.h"
 
@@ -73,10 +73,6 @@ class GuideSim : public INDI::CCD
 
         int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime,
-                          double zeroPointK, double zeroPointZ);
-        int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
-
         virtual IPState GuideNorth(uint32_t) override;
         virtual IPState GuideSouth(uint32_t) override;
         virtual IPState GuideEast(uint32_t) override;
@@ -85,20 +81,30 @@ class GuideSim : public INDI::CCD
         virtual bool saveConfigItems(FILE *fp) override;
         virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeywords) override;
         virtual void activeDevicesUpdated() override;
-        virtual int SetTemperature(double temperature) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
 
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
 
-    private:
+    protected:
 
-        float CalcTimeLeft(timeval, float);
         bool SetupParms();
+
+    private:
 
         // Turns on/off Bayer RGB simulation.
         void setRGB(bool onOff);
+
+        float CalcTimeLeft(timeval start, float req);
+
+        SkyRenderer m_Renderer;
+
+        // ADU ceiling and magnitude calibration -- updated from INDI properties.
+        int   m_MaxVal        {65000};
+        float m_LimitingMag   {11.5f};
+        float m_SaturationMag {2.0f};
+        float m_Seeing        {3.5f};
 
         double m_TemperatureRequest { 0 };
 
@@ -113,27 +119,28 @@ class GuideSim : public INDI::CCD
         bool m_ShowStarField { true };
         int m_Bias { 1500 };
         int m_MaxNoise { 20 };
-        int m_MaxVal { 65000 };
-        int m_MaxPix { 0 };
-        int m_MinPix { 65000 };
         float m_SkyGlow { 40 };
-        float m_LimitingMag { 11.5 };
-        float m_SaturationMag { 2 };
-        float m_Seeing { 3.5 };
-        float m_ImageScaleX { 1.0 };
-        float m_ImageScaleY { 1.0 };
         //  An oag is offset this much from center of scope position (arcminutes)
         float m_OAGoffset { 0 };
-        double m_RotationCW { 0 };
         float m_TimeFactor { 1 };
+        // With a rotator device "RotatorAngle" is snooped and defined, so the
+        // resulting camera rotation is the addition of offset and rotator angle.
+        // Without a rotator device ("Manual Rotator") the rotator angle is
+        // considered fixed to 0° and the camera rotation is equal to offset
+        float m_RotationOffset { 0 };
 
         bool m_SimulateRGB { false };
 
         bool m_AbortPrimaryFrame { false };
 
-        /// Guide rate is 7 arcseconds per second
+    protected:
         float m_GuideRate { 7 };
+        float m_GuideNSOffset {0};
+        float m_GuideWEOffset {0};
+        double m_CurrentRA { 0 };
+        double m_CurrentDEC { 0 };
 
+    private:
         float m_PEPeriod { 8 * 60 };
         float m_PEMax { 11 };
 
@@ -145,15 +152,14 @@ class GuideSim : public INDI::CCD
         float m_RaTimeDrift { 0 };
         float m_DecTimeDrift { 0 };
 
-        double m_CurrentRA { 0 };
-        double m_CurrentDEC { 0 };
         bool m_UsePE { false };
+#ifdef USE_EQUATORIAL_PE
+        double raPE  { 0 };
+        double decPE { 0 };
+#endif
         time_t m_RunStart;
         time_t m_LastSim;
         bool m_RunStartInitialized { false };
-
-        float m_GuideNSOffset {0};
-        float m_GuideWEOffset {0};
 
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
@@ -192,9 +198,11 @@ class GuideSim : public INDI::CCD
             SIM_DEC_RAND,
             SIM_PE_PERIOD,
             SIM_PE_MAX,
+            SIM_TEMPERATURE,
             SIM_NUM_PROPERTIES
         };
         INDI::PropertyNumber SimulatorSettingsNP {SIM_NUM_PROPERTIES};
+
 
         INDI::PropertySwitch SimulateRgbSP {2};
         enum
@@ -208,13 +216,6 @@ class GuideSim : public INDI::CCD
         {
             RA_PE,
             DEC_PE
-        };
-
-        INDI::PropertySwitch CoolerSP {2};
-        enum
-        {
-            COOLER_ON,
-            COOLER_OFF
         };
 
         INDI::PropertyNumber GainNP {1};

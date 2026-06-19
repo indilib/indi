@@ -25,6 +25,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "indiweatherinterface.h"
 #include <vector>
 #include <stdint.h>
 
@@ -33,7 +34,7 @@ namespace Connection
 class Serial;
 }
 
-class WandererBoxPlusV3 : public INDI::DefaultDevice
+class WandererBoxPlusV3 : public INDI::DefaultDevice, public INDI::WeatherInterface
 {
 public:
     WandererBoxPlusV3();
@@ -50,6 +51,7 @@ protected:
     const char *getDefaultName() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual void TimerHit() override;
+    virtual IPState updateWeather() override;
 
 
 private:
@@ -59,7 +61,8 @@ private:
     bool DC3DIFFMODE=false;
     bool DC3CONSTMODE=false;
     bool getData();
-    static constexpr const char *ENVIRONMENT_TAB {"Sensors"};
+    static constexpr const char *ENVIRONMENT_TAB {"Environment"};
+    static constexpr const char *SENSORS_TAB {"Sensors"};
     static constexpr const char *DC3_TAB {"DC3"};
     //Current Calibrate
     INDI::PropertySwitch CalibrateSP{1};

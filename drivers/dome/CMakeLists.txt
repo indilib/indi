@@ -101,3 +101,20 @@ SET(alpaca_dome_SRC
 add_executable(indi_alpaca_dome ${alpaca_dome_SRC})
 target_link_libraries(indi_alpaca_dome indidriver indiclient ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_dome RUNTIME DESTINATION bin)
+
+# ############### RTI Dome ################
+SET(rtidome_SRC
+    rti_dome.cpp)
+
+add_executable(indi_rti_dome ${rtidome_SRC})
+target_link_libraries(indi_rti_dome indidriver)
+install(TARGETS indi_rti_dome RUNTIME DESTINATION bin)
+
+# ############### Hakos Roof ################
+SET(hakos_roof_SRC
+    indi_hakos_roof.cpp)
+
+add_executable(indi_hakos_roof ${hakos_roof_SRC})
+target_link_libraries(indi_hakos_roof indidriver ${CURL_LIBRARIES} ${JSONLIB})
+install(TARGETS indi_hakos_roof RUNTIME DESTINATION bin)
+

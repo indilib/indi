@@ -124,8 +124,7 @@ class Weather : public DefaultDevice, public WeatherInterface
         virtual bool Handshake();
 
         // A number vector that stores latitude and longitude
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+        INDI::PropertyNumber LocationNP {3};
 
         // Active devices to snoop
         INDI::PropertyText ActiveDeviceTP {1};
@@ -136,7 +135,7 @@ class Weather : public DefaultDevice, public WeatherInterface
         int PortFD = -1;
 
     private:
-        bool processLocationInfo(double latitude, double longitude, double elevation);
+        void processLocationInfo(double latitude, double longitude, double elevation);
 
         bool callHandshake();
         uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;

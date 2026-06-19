@@ -39,7 +39,7 @@ LX200_OpenAstroTech::LX200_OpenAstroTech(void) : LX200GPS()
 {
     setVersion(MAJOR_VERSION, MINOR_VERSION);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_HOME_GO, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_HOME_GO | TELESCOPE_CAN_CONTROL_TRACK, 4);
 }
 
 bool LX200_OpenAstroTech::Handshake()
@@ -367,7 +367,7 @@ int LX200_OpenAstroTech::executeMeadeCommand(const char *cmd, char *data)
         {
             wait = false;
         }
-        else if(cmd[1] == 'M' && cmd[2] == 'X') // MXxnnnnn#
+        else if(cmd[1] == 'M' && (cmd[2] == 'X' || cmd[2] == 'T')) // MXxnnnnn#
         {
             getchar = true;
         }
@@ -437,7 +437,7 @@ char LX200_OpenAstroTech::getCommandChar(int fd, const char * cmd)
         //LOGF_INFO("getCommandChar 2: %s -> '%s'", cmd, read_buffer);
         if (nbytes_read == 1)
         {
-            LOGF_INFO("getCommandChar 3: %s -> '%s'", cmd, read_buffer);
+            // LOGF_INFO("getCommandChar 3: %s -> '%s'", cmd, read_buffer);
             return read_buffer[0];
         }
     }
@@ -617,7 +617,7 @@ int LX200_OpenAstroTech::OATUpdateFocuser()
         FocusSyncNP[0].setValue(atof(value));
         FocusAbsPosNP.apply();
         FocusSyncNP.apply();
-        LOGF_INFO("Current focuser: %f", FocusAbsPosNP[0].getValue());
+        // LOGF_INFO("Current focuser: %f", FocusAbsPosNP[0].getValue());
     }
     // get is_moving
     char valueStatus = getCommandChar(PortFD, ":FB#");
@@ -647,6 +647,15 @@ int LX200_OpenAstroTech::OATUpdateFocuser()
     FI::updateProperties();
     LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosNP[0].getMin(), FocusAbsPosNP[0].getMax());
     return 0;
+}
+
+
+bool LX200_OpenAstroTech::SetTrackEnabled(bool enabled)
+{
+    char value[RB_MAX_LEN] = "";
+    int rc = executeMeadeCommand(enabled ? ":MT1#" : ":MT0#", value);
+    LOGF_INFO("Set Tracking to %d: %d/'%s'", (int)enabled, rc, value);
+    return rc == 0 && value[0] == '1';
 }
 
 /////////////////////////////////////////////////////////////////////////////

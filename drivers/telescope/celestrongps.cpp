@@ -275,6 +275,12 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_CAN_AUX], canAuxGuide ? "Mount" : "Time Guide");
             IUSaveText(&FirmwareT[FW_HAS_FOC], fwInfo.hasFocuser ? "True" : "False");
 
+            if (!fwInfo.isGem)
+            {
+                MountTypeSP.reset();
+                MountTypeSP[MOUNT_EQ_FORK].setState(ISS_ON);
+            }
+
             usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
             // set the default switch index, will be updated from the mount if possible
             fwInfo.celestronTrackMode = static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&CelestronTrackModeSP) + 1);
@@ -350,13 +356,15 @@ bool CelestronGPS::updateProperties()
             IDSetSwitch(&CelestronTrackModeSP, nullptr);
         }
 
-        if (fwInfo.celestronTrackMode != CTM_ALTAZ)
-            cap |= TELESCOPE_HAS_TRACK_MODE;
-        else
-        {
-            TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
-            LOG_WARN("Mount firmware does not support track mode.");
-        }
+        // JM 2025.09.19: Celestron Track Mode (EQ-N, EQ-S, ALTAZ) is not related
+        // to TELESCOPE_HAS_TRACK_MODE which is about track *rates* like Lunar, Solar, Sidereal..etc
+        // if (fwInfo.celestronTrackMode != CTM_ALTAZ)
+        //     cap |= TELESCOPE_HAS_TRACK_MODE;
+        // else
+        // {
+        //     TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
+        //     LOG_WARN("Mount firmware does not support track mode.");
+        // }
 
         SetTelescopeCapability(cap, 9);
 

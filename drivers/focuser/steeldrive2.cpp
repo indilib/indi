@@ -707,7 +707,7 @@ bool SteelDriveII::sendCommand(const char * cmd, char * res, int cmd_len, int re
         // Remove extra \r\n
         rawResponse[nbytes_read - 2] = 0;
         // Remove the $BS
-        strncpy(res, rawResponse + 4, DRIVER_LEN);
+        snprintf(res, DRIVER_LEN, "%s", rawResponse + 4);
         LOGF_DEBUG("RES <%s>", res);
     }
 

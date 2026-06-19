@@ -43,17 +43,13 @@ const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(1, 0);
+    setVersion(1, 2);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
     m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso2::checkMotionProgressCallback, this));
     m_MotionProgressTimer.setSingleShot(true);
-
-    //    m_HallSensorTimer.callOnTimeout(std::bind(&SestoSenso2::checkHallSensorCallback, this));
-    //    m_HallSensorTimer.setSingleShot(true);
-    //    m_HallSensorTimer.setInterval(1000);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -436,7 +432,6 @@ bool SestoSenso2::applyMotorRates()
     if (!m_SestoSenso2->setMotorRates(mr))
     {
         LOG_ERROR("Failed to apply motor rates");
-        // TODO: Error state?
         return false;
     }
 
@@ -523,19 +518,12 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationSP.setState(IPS_BUSY);
                     CalibrationSP.apply();
 
-                    //
-                    // Init
-                    //
-                    if (m_IsSestoSenso2 && m_SestoSenso2->initCalibration() == false)
+                    // SestoSenso2: Manual Calibration (user moves by hand)
+                    if (m_SestoSenso2->initCalibration() == false)
                         return false;
-
-                    CalibrationMessageTP[0].setText("Set focus in MIN position and then press NEXT.");
+                    CalibrationMessageTP[0].setText("Manual Calibration: Set focus in MIN position and then press NEXT.");
                     CalibrationMessageTP.apply();
-
-                    // Motor hold disabled during calibration init, so fetch new hold state
                     fetchMotorSettings();
-
-                    // Set next step
                     cStage = GoToMiddle;
                 }
                 else
@@ -550,31 +538,17 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 if (cStage == GoToMiddle)
                 {
                     defineProperty(FastMoveSP);
-                    if (m_IsSestoSenso2)
-                    {
-                        if (m_SestoSenso2->storeAsMinPosition() == false)
-                            return false;
-
-                        CalibrationMessageTP[0].setText("Press MOVE OUT to move focuser out (CAUTION!)");
-                        CalibrationMessageTP.apply();
-                        cStage = GoMinimum;
-                    }
-                    // For Esatto, start moving out immediately
-                    else
-                    {
-                        cStage = GoMaximum;
-
-                        ISState fs[1] = { ISS_ON };
-                        const char *fn[1] =  { FastMoveSP[FASTMOVE_OUT].getName() };
-                        ISNewSwitch(getDeviceName(), FastMoveSP.getName(), fs, const_cast<char **>(fn), 1);
-                    }
+                    if (m_SestoSenso2->storeAsMinPosition() == false)
+                        return false;
+                    CalibrationMessageTP[0].setText("Manual Calibration: Press MOVE OUT to move focuser out (CAUTION!)");
+                    CalibrationMessageTP.apply();
+                    cStage = GoMinimum;
                 }
                 else if (cStage == GoMinimum)
                 {
                     if (m_SestoSenso2->storeAsMaxPosition() == false)
                         return false;
-
-                    CalibrationMessageTP[0].setText("Press NEXT to finish.");
+                    CalibrationMessageTP[0].setText("Manual Calibration: Press NEXT to finish.");
                     CalibrationMessageTP.apply();
                     cStage = GoMaximum;
                 }
@@ -617,6 +591,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     CalibrationMessageTP.apply();
 
                     deleteProperty(FastMoveSP);
+
                     cStage = Complete;
 
                     LOG_INFO("Calibration completed");
@@ -650,32 +625,15 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                         return false;
                     break;
                 case FASTMOVE_OUT:
-                    // NOT CORRECT FIX ME
-                    // Only use when calibration active?
-                    if (m_IsSestoSenso2)
-                    {
-                        if (m_SestoSenso2->goOutToFindMaxPos() == false)
-                        {
-                            return false;
-                        }
-                        CalibrationMessageTP[0].setText("Press STOP focuser almost at MAX position.");
-                        fetchMotorSettings();
-                    }
-                    else
-                    {
-                        if (m_SestoSenso2->fastMoveOut())
-                        {
-                            CalibrationMessageTP[0].setText("Focusing out to detect hall sensor.");
-                            m_MotionProgressTimer.start(500);
-                        }
-                    }
+                    if (m_SestoSenso2->goOutToFindMaxPos() == false)
+                        return false;
+                    CalibrationMessageTP[0].setText("Manual Calibration: Press STOP focuser almost at MAX position.");
                     CalibrationMessageTP.apply();
+                    fetchMotorSettings();
                     break;
                 case FASTMOVE_STOP:
                     if (m_SestoSenso2->stop() == false)
-                    {
                         return false;
-                    }
                     CalibrationMessageTP[0].setText("Press NEXT to store max limit.");
                     CalibrationMessageTP.apply();
                     break;
@@ -741,63 +699,6 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             fetchMotorSettings();
             return true;
         }
-        //        else if (MotorApplyUserPresetSP->isNameMatch(name))
-        //        {
-        //            MotorApplyUserPresetSP.update(states, names, n);
-        //            auto index = IUFindOnSwitchIndex(&MotorApplyUserPresetSP);
-        //            assert(index >= 0 && index < 3);
-        //            uint32_t userIndex = index + 1;
-
-        //            if (m_SestoSenso2->applyMotorPreset(userIndex))
-        //            {
-        //                LOGF_INFO("Loaded motor user preset: %u", userIndex);
-        //                MotorApplyUserPresetSP.setState(IPS_IDLE);
-        //            }
-        //            else
-        //            {
-        //                LOGF_ERROR("Failed to load motor user preset: %u", userIndex);
-        //                MotorApplyUserPresetSP.s = IPS_ALERT;
-        //            }
-
-        //            MotorApplyUserPresetS[index].s = ISS_OFF;
-        //            IDSetSwitch(&MotorApplyUserPresetSP, nullptr);
-
-        //            fetchMotorSettings();
-        //            return true;
-        //        }
-        //        else if (!strcmp(name, MotorSaveUserPresetSP.name))
-        //        {
-        //            IUUpdateSwitch(&MotorSaveUserPresetSP, states, names, n);
-        //            int index = IUFindOnSwitchIndex(&MotorSaveUserPresetSP);
-        //            assert(index >= 0 && index < 3);
-        //            uint32_t userIndex = index + 1;
-
-        //            MotorRates mr;
-        //            mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
-        //            mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
-        //            mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
-
-        //            MotorCurrents mc;
-        //            mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
-        //            mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
-        //            mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
-        //            mc.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
-
-        //            if (command->saveMotorUserPreset(userIndex, mr, mc))
-        //            {
-        //                LOGF_INFO("Saved motor user preset %u to firmware", userIndex);
-        //                MotorSaveUserPresetSP.s = IPS_IDLE;
-        //            }
-        //            else
-        //            {
-        //                LOGF_ERROR("Failed to save motor user preset %u to firmware", userIndex);
-        //                MotorSaveUserPresetSP.s = IPS_ALERT;
-        //            }
-
-        //            MotorSaveUserPresetS[index].s = ISS_OFF;
-        //            IDSetSwitch(&MotorSaveUserPresetSP, nullptr);
-        //            return true;
-        //        }
     }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
@@ -875,12 +776,6 @@ IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool SestoSenso2::AbortFocuser()
 {
-    //    if (m_MotionProgressTimerID > 0)
-    //    {
-    //        IERmTimer(m_MotionProgressTimerID);
-    //        m_MotionProgressTimerID = -1;
-    //    }
-
     m_MotionProgressTimer.stop();
 
     if (isSimulation())
@@ -919,39 +814,12 @@ void SestoSenso2::checkMotionProgressCallback()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-//void SestoSenso2::checkHallSensorCallback()
-//{
-//    // FIXME
-//    // Function not getting call from anywhere?
-//    char res[SESTO_LEN] = {0};
-//    if (command->getHallSensor(res))
-//    {
-//        int detected = 0;
-//        if (sscanf(res, "%d", &detected) == 1)
-//        {
-//            if (detected == 1)
-//            {
-//                ISState states[2] = { ISS_OFF, ISS_ON };
-//                const char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
-//                ISNewSwitch(getDeviceName(), CalibrationSP.name, states, const_cast<char **>(names), CalibrationSP.nsp);
-//                return;
-//            }
-//        }
-//    }
-
-//    //m_HallSensorTimerID = IEAddTimer(1000, &SestoSenso2::checkHallSensorHelper, this);
-//    m_HallSensorTimer.start();
-//}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 void SestoSenso2::TimerHit()
 {
     if (!isConnected() ||
             FocusAbsPosNP.getState() == IPS_BUSY
             || FocusRelPosNP.getState() == IPS_BUSY ||
-            (m_IsSestoSenso2 && CalibrationSP.getState() == IPS_BUSY))
+            CalibrationSP.getState() == IPS_BUSY)
     {
         SetTimer(getCurrentPollingPeriod());
         return;
@@ -1050,9 +918,14 @@ bool SestoSenso2::Ack()
         {
             return false;
         }
+
+        std::string modelName;
+        if (m_SestoSenso2->getModel(modelName))
+        {
+            LOGF_INFO("Model name: %s", modelName.c_str());
+        }
     }
 
-    m_IsSestoSenso2 = !strstr(response.c_str(), "ESATTO");
     FirmwareTP[FIRMWARE_SN].setText(response.c_str());
 
     if (m_SestoSenso2->getFirmwareVersion(response))
@@ -1109,4 +982,3 @@ bool SestoSenso2::saveConfigItems(FILE *fp)
     MotorCurrentNP.save(fp);
     return true;
 }
-

@@ -21,6 +21,7 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 #include "scopesim_helper.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 #define USE_SIM_TAB
 
@@ -39,7 +40,8 @@
  *
  * @author Jasem Mutlaq
  */
-class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
+class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
+                 public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
     public:
         ScopeSim();
@@ -55,6 +57,8 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
     protected:
         // Slew Rate
@@ -87,15 +91,25 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
-        double currentRA { 0 };
-        double currentDEC { 90 };
-        double targetRA { 0 };
-        double targetDEC { 0 };
-
+        double m_currentRA { 0 };
+        double m_currentDEC { 90 };
+        double m_currentAz { 180 };  // INDI Az convention: 0=North, increasing eastward
+        double m_currentAlt { 0 };
+        double m_targetRA { 0 };
+        double m_targetDEC { 0 };
         /// used by GoTo and Park
         void StartSlew(double ra, double dec, TelescopeStatus status);
 
-        // bool forceMeridianFlip { false }; // #PS: unused
+        /// Decompose a celestial N/S/E/W guide pulse into Az/Alt axis motion
+        /// via the parallactic angle, for ALTAZ mount guiding.
+        void guideAltAzDecomposed(double dNS, double dEW, uint32_t ms);
+
+        /// Compute m_currentRA/DEC from axis positions, then apply any INDI alignment correction.
+        void updateCurrentCoordsFromAxes();
+
+        /// Set m_targetRA/DEC from raw axis positions (for ALTAZ tracking servo consistency).
+        void setTargetFromAxisPosition(Angle primary, Angle secondary);
+
         unsigned int DBG_SCOPE { 0 };
 
         int mcRate = 0;
@@ -128,13 +142,21 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
         double m_Home[2] = {0, 0};
 
-        Axis axisPrimary { "HaAxis" };         // hour angle mount axis
-        Axis axisSecondary { "DecAxis" };       // declination mount axis
+        Axis axisPrimary { "Primary Axis" };    // entails angle of mount for primary axis
+        Axis axisSecondary { "Secondary Axis" }; // entails angle of mount for secondary axis ("mechanical DEC")
 
         int m_PierSide {-1};
         int m_MountType {-1};
 
         Alignment alignment;
+
+        // Parabolic Alt-Az tracking window: three sky positions bracketing the current time,
+        // used to fit a 2nd-order polynomial for axis rate prediction.
+        INDI::IHorizontalCoordinates m_TrackingWindowCoords[3] {};
+        bool   m_IsPipelinePrimed { false };
+        double m_LastTrackingRA  { 0 };
+        double m_LastTrackingDec { 0 };
+
         bool updateMountAndPierSide();
 
 #ifdef USE_SIM_TAB
@@ -176,7 +198,17 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         INDI::PropertyNumber flipHourAngleNP {1};
         INDI::PropertyNumber decBacklashNP {1};
 
+        INDI::PropertyText PACDeviceTP {1};
+        double m_snoopedAzError { 0 };
+        double m_snoopedAltError { 0 };
+
 #endif
+
+        // True pointing position (Wallace errors applied) published as EQUATORIAL_PE so the
+        // CCD simulator can generate star fields at the physically-correct sky position while
+        // EQUATORIAL_EOD_COORD carries the raw encoder position for the INDI alignment module.
+        INDI::PropertyNumber EqPENP {2};
+        enum { PE_RA = 0, PE_DEC = 1 };
 
 };
 

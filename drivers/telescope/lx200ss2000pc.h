@@ -1,6 +1,7 @@
 /*
     SkySensor2000 PC
     Copyright (C) 2015 Camiel Severijns
+    Copyright (C) 2025 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -36,6 +37,8 @@ class LX200SS2000PC : public LX200Generic
         virtual void getBasicData(void) override;
         virtual bool isSlewComplete(void) override;
 
+        virtual bool Goto(double ra, double dec) override;
+        virtual bool Sync(double ra, double dec) override;
         virtual bool ReadScopeStatus() override;
 
         virtual bool saveConfigItems(FILE *fp) override;
@@ -63,4 +66,3 @@ class LX200SS2000PC : public LX200Generic
         static const int ShortTimeOut;
         static const int LongTimeOut;
 };
-

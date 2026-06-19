@@ -48,7 +48,6 @@ class AlpacaDome : public INDI::Dome
         virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
         virtual bool saveConfigItems(FILE *fp) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual bool loadConfig(bool silent = false, const char *property = nullptr) override;
 
     protected:
         bool Connect() override;
@@ -70,8 +69,8 @@ class AlpacaDome : public INDI::Dome
         INDI::PropertyText ServerAddressTP {2};  // Host and port
         INDI::PropertyNumber DeviceNumberNP {1};  // Alpaca device number (remplace l'ancien int)
         INDI::PropertyNumber ConnectionSettingsNP {3};
-        
+
         // HTTP helper methods
         bool makeAlpacaRequest(const std::string& path, nlohmann::json& response, bool isPut = false);
-        bool retryRequest(const std::function<bool()>& request);
-}; 
+        bool retryRequest(const std::function<bool()> &request);
+};

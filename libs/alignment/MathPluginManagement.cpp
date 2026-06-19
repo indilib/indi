@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <cerrno>
+#include <libnova/julian_day.h>
 
 namespace INDI
 {
@@ -20,8 +21,6 @@ MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
     pGetApproximateMountAlignment(&MathPlugin::GetApproximateMountAlignment),
     pInitialise(&MathPlugin::Initialise),
     pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
-    pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
-    pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
     pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
 {
     memset(&AlignmentSubsystemCurrentMathPlugin, 0, sizeof(IText));
@@ -46,7 +45,7 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
 
     int configPlugin = -1;
     IUGetConfigOnSwitchIndex(ChildTelescope->getDeviceName(),  "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", &configPlugin);
-    if (configPlugin > 0 && configPlugin < AlignmentSubsystemMathPluginsV.nsp)
+    if (configPlugin >= 0 && configPlugin < AlignmentSubsystemMathPluginsV.nsp)
     {
         IUResetSwitch(&AlignmentSubsystemMathPluginsV);
         AlignmentSubsystemMathPluginsV.sp[configPlugin].s = ISS_ON;
@@ -101,8 +100,26 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
         AlignmentSubsystemCurrentMathPluginV.s = IPS_OK;
         IUUpdateText(&AlignmentSubsystemCurrentMathPluginV, texts, names, n);
 
+        // If the switch has already selected and loaded an external plugin, it takes
+        // precedence over the text property (which may be stale from a previous config
+        // save).  Sync the text to match the switch and skip the redundant reload.
+        int currentSwitch = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+        if (currentSwitch > 0 && currentSwitch <= (int)MathPluginFiles.size())
+        {
+            const char *switchPath = MathPluginFiles[currentSwitch - 1].c_str();
+            if (strcmp(AlignmentSubsystemCurrentMathPlugin.text, switchPath) != 0)
+                IUSaveText(&AlignmentSubsystemCurrentMathPlugin, switchPath);
+            return;
+        }
+
         if (0 != strcmp(AlignmentSubsystemMathPlugins.get()[0].label, AlignmentSubsystemCurrentMathPlugin.text))
         {
+            // Capture current mount alignment before unloading the old plugin so we can
+            // propagate it to the newly loaded plugin.  Without this, every externally-loaded
+            // plugin (Nearest, SVD, …) defaults to ZENITH, which silently switches EQ
+            // drivers to the AltAz code paths and produces garbage Goto coordinates.
+            MountAlignment_t currentMountAlignment = GetApproximateMountAlignment();
+
             // Unload old plugin if required
             if (nullptr != LoadedMathPluginHandle)
             {
@@ -138,6 +155,8 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
                 if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
+                    SetApproximateMountAlignment(currentMountAlignment);
+                    Initialise(CurrentInMemoryDatabase);
 
                     // TODO - Update the client to reflect the new plugin
                     int i = 0;
@@ -366,25 +385,43 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
     (pLoadedMathPlugin->*pSetApproximateMountAlignment)(ApproximateAlignment);
 }
 
-bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination,
-        double JulianOffset,
+bool MathPluginManagement::TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+        double JulianDate,
         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
-        return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset,
+        return pLoadedMathPlugin->TransformCelestialToTelescopeJD(RightAscension, Declination, JulianDate,
                 ApparentTelescopeDirectionVector);
     else
         return false;
 }
 
-bool MathPluginManagement::TransformTelescopeToCelestial(
-    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination)
+bool MathPluginManagement::TransformTelescopeToCelestialJD(
+    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination,
+    double JulianDate)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
-        return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension,
-                Declination);
+        return pLoadedMathPlugin->TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension,
+                Declination, JulianDate);
     else
         return false;
+}
+
+bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination,
+        double JulianOffset,
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+{
+    return TransformCelestialToTelescopeJD(RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset,
+                                           ApparentTelescopeDirectionVector);
+}
+
+bool MathPluginManagement::TransformTelescopeToCelestial(
+    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination,
+    double JulianOffset)
+{
+    return TransformTelescopeToCelestialJD(ApparentTelescopeDirectionVector, RightAscension, Declination,
+                                           ln_get_julian_from_sys() + JulianOffset);
 }
 
 void MathPluginManagement::EnumeratePlugins()

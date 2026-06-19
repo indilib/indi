@@ -99,7 +99,7 @@ bool FCUSB::initProperties()
     PWMScalerSP[PWM_1_4].fill("PWM_1_4", "1:4", ISS_OFF);
     PWMScalerSP[PWM_1_16].fill("PWM_1_16", "1:16", ISS_OFF);
     PWMScalerSP.fill(getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
+                     0, IPS_IDLE);
 
     addSimulationControl();
 
@@ -156,16 +156,17 @@ bool FCUSB::ISNewSwitch(const char * dev, const char * name, ISState * states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (PWMScalerSP.isNameMatch(name) == 0)
+        if (PWMScalerSP.isNameMatch(name))
         {
-            PWMScalerSP.update(states, names, n);
-
-            pwmStatus = static_cast<PWMBits>(PWMScalerSP.findOnSwitchIndex());
+            if (PWMScalerSP.isUpdated(states, names, n))
+            {
+                PWMScalerSP.update(states, names, n);
+                pwmStatus = static_cast<PWMBits>(PWMScalerSP.findOnSwitchIndex());
+                saveConfig(PWMScalerSP);
+            }
 
             PWMScalerSP.setState(setStatus() ? IPS_OK : IPS_ALERT);
-
             PWMScalerSP.apply();
-
             return true;
 
         }

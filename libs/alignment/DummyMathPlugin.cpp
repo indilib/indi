@@ -44,15 +44,28 @@ bool DummyMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
     return false;
 }
 
-bool DummyMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
-        double JulianOffset,
-        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+bool DummyMathPlugin::TransformCelestialToTelescopeJD(double /*RightAscension*/, double /*Declination*/,
+        double /*JulianDate*/,
+        TelescopeDirectionVector &/*ApparentTelescopeDirectionVector*/)
 {
     return false;
 }
 
-bool DummyMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-        double &RightAscension, double &Declination)
+bool DummyMathPlugin::TransformTelescopeToCelestialJD(const TelescopeDirectionVector &/*ApparentTelescopeDirectionVector*/,
+        double &/*RightAscension*/, double &/*Declination*/, double /*JulianDate*/)
+{
+    return false;
+}
+
+bool DummyMathPlugin::TransformCelestialToTelescope(const double /*RightAscension*/, const double /*Declination*/,
+        double /*JulianOffset*/,
+        TelescopeDirectionVector &/*ApparentTelescopeDirectionVector*/)
+{
+    return false;
+}
+
+bool DummyMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &/*ApparentTelescopeDirectionVector*/,
+        double &/*RightAscension*/, double &/*Declination*/, double /*JulianOffset*/)
 {
     return false;
 }

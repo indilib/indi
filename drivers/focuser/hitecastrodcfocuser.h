@@ -20,7 +20,12 @@
 
 #pragma once
 
-#include "hidapi.h"
+#ifdef _USE_SYSTEM_HIDAPILIB
+#include <hidapi/hidapi.h>
+#else
+#include <indi_hidapi.h>
+#endif
+
 #include "indifocuser.h"
 #include "indiusbdevice.h"
 

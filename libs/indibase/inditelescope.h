@@ -910,6 +910,15 @@ class Telescope : public DefaultDevice
         // PEC State
         INDI::PropertySwitch PECStateSP {2};
 
+        // Mount Type
+        INDI::PropertySwitch MountTypeSP {3};
+        enum
+        {
+            MOUNT_ALTAZ,
+            MOUNT_EQ_FORK,
+            MOUNT_EQ_GEM
+        };
+
         // Track Mode
         INDI::PropertySwitch TrackModeSP {0};
 
@@ -975,6 +984,11 @@ class Telescope : public DefaultDevice
 
         float motionDirNSValue {0};
         float motionDirWEValue {0};
+
+        /// True when ready to act on the next SLEWPRESET joystick press.
+        /// Set back to true when mag drops to 0 (joystick released).
+        /// Prevents repeated slew-rate changes caused by jitter while the joystick is held.
+        bool m_slewPresetArmed {true};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
 

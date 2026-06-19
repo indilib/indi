@@ -59,12 +59,14 @@ class PegasusFalconV2 : public INDI::Rotator
         ///////////////////////////////////////////////////////////////////////////////
         bool getFirmware();
         bool getStatusData();
+        bool getRotatorSpeed();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Device Control Functions
         ///////////////////////////////////////////////////////////////////////////////
         bool reloadFirmware();
         bool setDerotation(uint32_t ms);
+        bool setRotatorSpeed(uint32_t speed);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -97,6 +99,8 @@ class PegasusFalconV2 : public INDI::Rotator
         INDI::PropertySwitch ReloadFirmwareSP {1};
         /// Derotation
         INDI::PropertyNumber DerotateNP {1};
+        /// Rotator Speed
+        INDI::PropertyNumber RotatorSpeedNP {1};
         /// Firmware
         INDI::PropertyText FirmwareTP {1};
 

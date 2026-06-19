@@ -28,8 +28,8 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define STEELDRIVE_MAX_RETRIES       1
-#define STEELDRIVE_TIMEOUT           1
+#define STEELDRIVE_MAX_RETRIES       3
+#define STEELDRIVE_TIMEOUT           2
 #define STEELDRIVE_MAXBUF            16
 #define STEELDRIVE_CMD               9
 #define STEELDRIVE_CMD_LONG          11
@@ -42,6 +42,7 @@ std::unique_ptr<SteelDrive> steelDrive(new SteelDrive());
 
 SteelDrive::SteelDrive()
 {
+    setVersion(1, 1);
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 }
@@ -119,8 +120,6 @@ bool SteelDrive::initProperties()
     updateFocusMaxRange(fSettings[4].maxTrip, fSettings[4].gearRatio);
 
     addAuxControls();
-
-    setDefaultPollingPeriod(500);
 
     return true;
 }
@@ -281,13 +280,13 @@ bool SteelDrive::updateVersion()
 
     if (rc > 0)
     {
-        strncpy(hwrev, hardware_string, 3);
-        strncpy(hwdate, hardware_string + 3, 4);
+        snprintf(hwrev, sizeof(hwrev), "%.3s", hardware_string);
+        snprintf(hwdate, sizeof(hwdate), "%.4s", hardware_string + 3);
         char mon[3], year[3];
         memset(mon, 0, sizeof(mon));
         memset(year, 0, sizeof(year));
-        strncpy(mon, hwdate, 2);
-        strncpy(year, hwdate + 2, 2);
+        snprintf(mon, sizeof(mon), "%.2s", hwdate);
+        snprintf(year, sizeof(year), "%.2s", hwdate + 2);
         snprintf(hardware_string, MAXRBUF, "Version: %s Date: %s.%s", hwrev, mon, year);
         IUSaveText(&VersionT[0], hardware_string);
     }
@@ -310,7 +309,7 @@ bool SteelDrive::updateVersion()
 
     if (sim)
     {
-        strncpy(resp, ":FN2.21012#", STEELDRIVE_CMD_LONG + 1);
+        snprintf(resp, STEELDRIVE_CMD_LONG + 1, "%.13s", ":FN2.21012#");
         nbytes_read = STEELDRIVE_CMD_LONG;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -328,13 +327,13 @@ bool SteelDrive::updateVersion()
 
     if (rc > 0)
     {
-        strncpy(fwrev, firmware_string, 3);
-        strncpy(fwdate, firmware_string + 3, 4);
+        snprintf(fwrev, sizeof(fwrev), "%.3s", firmware_string);
+        snprintf(fwdate, sizeof(fwdate), "%.4s", firmware_string + 3);
         char mon[3], year[3];
         memset(mon, 0, sizeof(mon));
         memset(year, 0, sizeof(year));
-        strncpy(mon, fwdate, 2);
-        strncpy(year, fwdate + 2, 2);
+        snprintf(mon, sizeof(mon), "%.2s", fwdate);
+        snprintf(year, sizeof(year), "%.2s", fwdate + 2);
         snprintf(firmware_string, MAXRBUF, "Version: %s Date: %s.%s", fwrev, mon, year);
         IUSaveText(&VersionT[1], firmware_string);
     }
@@ -436,11 +435,11 @@ bool SteelDrive::updatePosition()
 
         if (sim)
         {
-            snprintf(resp, STEELDRIVE_CMD_LONG, ":F8%07u#", (int)simPosition);
+            snprintf(resp, STEELDRIVE_CMD_LONG + 1, ":F8%07u#", (int)simPosition);
             nbytes_read = STEELDRIVE_CMD_LONG;
             break;
         }
-        else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT - retries, &nbytes_read)) != TTY_OK)
+        else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             resp[nbytes_read] = '\0';
@@ -621,9 +620,9 @@ bool SteelDrive::updateTemperatureSettings()
 
     if (rc > 0)
     {
-        strncpy(coeff, tResp, 3);
-        strncpy(enabled, tResp + 3, 1);
-        strncpy(selectedFocuser, tResp + 4, 1);
+        snprintf(coeff, sizeof(coeff), "%.3s", tResp);
+        snprintf(enabled, sizeof(enabled), "%.1s", tResp + 3);
+        snprintf(selectedFocuser, sizeof(selectedFocuser), "%.1s", tResp + 4);
 
         TemperatureSettingN[FOCUS_T_COEFF].value = atof(coeff) / 1000.0;
 
@@ -727,8 +726,8 @@ bool SteelDrive::updateCustomSettings()
 
     if (rc > 0)
     {
-        strncpy(selectedFocuser, tResp, 1);
-        strncpy(maxTrip, tResp + 1, 7);
+        snprintf(selectedFocuser, sizeof(selectedFocuser), "%.1s", tResp);
+        snprintf(maxTrip, sizeof(maxTrip), "%.7s", tResp + 1);
 
         int sFocuser = atoi(selectedFocuser);
 
@@ -1322,6 +1321,12 @@ void SteelDrive::TimerHit()
             FocusAbsPosNP.apply();
             lastPos = FocusAbsPosNP[0].getValue();
         }
+    }
+    else if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
+    {
+        // During motion, hardware may be busy and timeout errors are expected
+        // Only log as debug/warning, don't treat as critical error
+        LOG_DEBUG("Position read timeout during motion (hardware busy) - will retry next cycle.");
     }
 
     if (temperatureUpdateCounter++ > STEELDRIVE_TEMPERATURE_FREQ)

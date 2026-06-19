@@ -102,7 +102,7 @@ bool ScopeSim::Goto(double ra, double dec)
     TelescopeDirectionVector TDV;
     INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-    if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+    if (TransformCelestialToTelescopeJD(ra, dec, ln_get_julian_from_sys(), TDV))
     {
         // The alignment subsystem has successfully transformed my coordinate
         AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
@@ -287,7 +287,7 @@ bool ScopeSim::ReadScopeStatus()
     INDI::IHorizontalCoordinates AltAz { CurrentEncoderMicrostepsRA / MICROSTEPS_PER_DEGREE, CurrentEncoderMicrostepsDEC / MICROSTEPS_PER_DEGREE };
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     double RightAscension, Declination;
-    if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
+    if (!TransformTelescopeToCelestialJD(TDV, RightAscension, Declination, ln_get_julian_from_sys()))
     {
         if (TraceThisTick)
             DEBUG(DBG_SIMULATOR, "ReadScopeStatus - TransformTelescopeToCelestial failed");
@@ -613,8 +613,9 @@ void ScopeSim::TimerHit()
             TelescopeDirectionVector TDV;
             INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-            if (TransformCelestialToTelescope(CurrentTrackingTarget.rightascension, CurrentTrackingTarget.declination, JulianOffset,
-                                              TDV))
+            if (TransformCelestialToTelescopeJD(CurrentTrackingTarget.rightascension,
+                                                CurrentTrackingTarget.declination,
+                                                ln_get_julian_from_sys() + JulianOffset, TDV))
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
             else
             {

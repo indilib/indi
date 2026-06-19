@@ -1,0 +1,2531 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                          %
+%  Simple Pointing Kernel  %
+%                          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  - - - - - - - -
+%   s p k . t e x
+%  - - - - - - - -
+
+% -------------------
+% Version information
+% -------------------
+
+\newcommand{\doctitle} {\vspace*{7mm}~ \framebox(30,18){\Huge SPK} \\ [2mm]
+                        {\Huge \it a SOFA-based telescope pointing kernel}}
+\newcommand{\softrev} {1}                          % software revision number
+\newcommand{\docrev} {1.0}                         % document revision number
+\newcommand{\revdate} {\Large 2024 November 10}    % revision date
+\newcommand{\coprd} {2022-2024}                    % copyright span
+
+% ----------
+% Stationery
+% ----------
+
+\def\paper{a4paper}
+
+%-------------------------------------------------------------------------------
+
+\documentclass[11pt,fleqn,twoside,\paper]{article}
+
+\pagestyle{headings}
+\pagenumbering{roman}
+\raggedright
+
+\renewcommand{\_}{{\tt\char'137}}     % re-centers the underscore
+
+\usepackage{graphicx}
+\usepackage[toc,page]{appendix}
+\usepackage{upquote}
+
+%-------------------------------------------------------------------------------
+
+\usepackage{amsmath}
+\newcommand\hyphen{{\operatorname{-}}}
+\makeatletter
+\@ifundefined{bm}{\let\bm\boldsymbol}{}
+\makeatother
+\def\vec#1{\bm{\rm #1}}
+\def\mat#1{\bm{\rm #1}}
+\let\Omega\varOmega % ISO style
+
+\usepackage[usenames]{color}
+\definecolor{mylinkcolor}{rgb}{0.0,0.5,0.0}  % mid green
+\definecolor{myurlcolor}{rgb}{0.0,0.0,0.7}  % mid blue
+
+\usepackage{hyperref}
+\hypersetup{
+    unicode=false,          % non-Latin characters in Acrobat's bookmarks
+    pdftoolbar=true,        % show Acrobat's toolbar?
+    pdfmenubar=true,        % show Acrobat's menu?
+    pdffitwindow=true,      % window fit to page when opened
+    pdfstartview={Fit},     % fits the height of the page to the window
+    pdftitle={},            % title
+    pdfauthor={},           % author
+    pdfsubject={},          % subject of the document
+    pdfcreator={},          % creator of the document
+    pdfproducer={},         % producer of the document
+    pdfkeywords={},         % list of keywords
+    pdfnewwindow=true,      % links in new window
+    colorlinks=true,        % false: boxed links; true: colored links
+    linkcolor=mylinkcolor,  % color of internal links
+    citecolor=green,        % color of links to bibliography
+    filecolor=magenta,      % color of file links
+    urlcolor=myurlcolor     % color of external links
+}
+
+%-------------------------------------------------------------------------------
+
+% Definitions to suit stationery
+
+\setlength{\textwidth}{160mm}       %
+\setlength{\textheight}{230mm}      % European A4
+\setlength{\topmargin}{5mm}         %
+\def\Fig2text{footnotesize}
+
+%-------------------------------------------------------------------------------
+
+\setlength{\oddsidemargin}{0mm}
+\setlength{\evensidemargin}{0mm}
+\setlength{\parindent}{0mm}
+\setlength{\parskip}{\medskipamount}
+\setlength{\unitlength}{1mm}
+
+%----------------------------------------------------------
+% Document specific \newcommand or \newenvironment commands
+%----------------------------------------------------------
+
+\newcommand{\radec}     {$[\,\alpha,\delta\,]$}
+
+\newcommand{\hadec}     {$[\,h,\delta\,]$}
+
+\newcommand{\xieta}     {$[\,\xi,\eta\,]$}
+
+\newcommand{\azalt}     {$[\,az,alt\,]$}
+
+\newcommand{\azel}      {$[\,Az,El~]$}
+
+\newcommand{\ropi}      {$[\,roll,pitch\,]$}
+
+\newcommand{\lonlat}    {$[\,\lambda,\phi~]$}
+
+\newcommand{\xy}        {$[\,x,y\,]$}
+
+\newcommand{\XY}        {$[\,X,Y\,]$}
+
+\newcommand{\xyz}       {$[\,x,y,z\,]$}
+
+\newcommand{\degi}[1]   {$#1^{\circ}$}
+
+\newcommand{\degree}[2] {$#1^{\circ}
+                        \hspace{-0.37em}.\hspace{0.05em}#2$}
+\newcommand{\arcseci}[1] {$#1\hspace{0.05em}$\raisebox{-0.5ex}
+                         {$^{'\hspace{-0.1em}'\hspace{0.0em}}$}}
+\newcommand{\arcsec}[2] {\arcseci{#1}$\hspace{-0.35em}.#2$}
+
+\newcommand{\dms}[4]    {$#1^{\circ}\,#2\raisebox{-0.5ex}
+                        {$^{'}$}\,$\arcsec{#3}{#4}}
+
+\newcommand{\tseci}[1]   {$#1$\mbox{$^{\rm s}$}}
+
+\newcommand{\tsec}[2]    {\tseci{#1}$\hspace{-0.3em}.#2$}
+
+\newcommand{\tdayi}[1]   {$#1$\mbox{$^{\rm d}$}}
+
+\newcommand{\tday}[2]    {\tdayi{#1}$\hspace{-0.3em}.#2$}
+
+\newcommand{\hms}[4]    {$#1^{\rm h}\,#2^{\rm m}\,$\tsec{#3}{#4}}
+
+\newcommand{\scode}     {\goodbreak
+                         \begin{quote}
+                         \vspace{-6ex}
+                         \rule[-2ex]{36em}{0.03ex}}
+
+\newcommand{\ecode}     {\rule[2ex]{36em}{0.03ex}
+                         \end{quote}
+                         \vspace{-4ex}
+                         \goodbreak}
+
+\newcommand{\tofro}     {$\,\leftrightarrow\,$}
+
+\newcommand{\fstring}[1]{\hspace{0.05em}\mbox{$'${\tt#1}\hspace{0.09em}$'$}}
+
+%------------------------------------------------------------------------------
+
+\newcommand{\function}[2]
+{
+  \newpage
+  \nfunction{#1}{#2}
+}
+
+\newcommand{\nfunction}[2]
+{
+  \phantomsection
+  \label{#1}
+  \addcontentsline{toc}{subsection}{#1}
+  \rule{\textwidth}{0.3mm}\\ \nopagebreak
+  {\Large {\bf #1}} \hfill \vspace{1ex}
+  {\large {\it #2}} \vspace{-1ex} \hfill
+  {\Large {\bf #1}}
+  \vspace{-1ex}
+}
+
+\newcommand{\call}[1]
+{
+  \goodbreak
+  \begin{description}
+    \item[CALL]: \\[0.5ex] \nopagebreak
+        {\tt #1}
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\action}[1]
+{
+  \goodbreak
+  \begin{description}
+    \item[ACTION]: \\[0.5ex] \nopagebreak
+        #1
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\args}[2]
+{
+  \goodbreak
+  \begin{description}
+  \item[#1]: \\[1.5ex] \nopagebreak
+    \hspace*{-0.9em}
+    \begin{tabular}{p{4.5em}p{5.8em}p{24em}}
+      #2
+    \end{tabular}
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\breakargs}[1]
+{
+  \goodbreak
+  \vfill
+  \begin{description}
+  \item ~ \\[1.5ex] \nopagebreak
+    \hspace*{-0.9em}
+    \begin{tabular}{p{4.5em}p{5.8em}p{24em}}
+      #1
+    \end{tabular}
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\blank}[1]
+{
+  \goodbreak
+  \begin{description}
+  \item~ \\[1.5ex] \nopagebreak
+    \hspace*{-0.9em}
+    \begin{tabular}{p{4.5em}p{5.8em}p{24em}}
+      #1
+    \end{tabular}
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\specsubhead}[1]
+{
+  \multicolumn{3}{l}{\hspace*{-1.5em} #1 \vspace{0.5ex}}
+}
+
+\newcommand{\spec}[3]
+{
+  {\em {#1}} & {\tt \mbox{#2}} & {#3}
+}
+
+\newcommand{\specel}[2]
+{
+  \multicolumn{1}{c}{#1} & {} & {#2}
+}
+
+\newcommand{\anote}[1]
+{
+  \goodbreak
+  \begin{description}
+    \item[NOTE]: \\[0.5ex] \nopagebreak
+        #1
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\notes}[1]
+{
+  \goodbreak
+  \begin{description}
+    \item[NOTES]: \nopagebreak
+        #1
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\aref}[1]
+{
+  \goodbreak
+  \begin{description}
+    \item[REFERENCE]: \nopagebreak
+    \begin{description}
+        \item[] #1
+    \end{description}
+  \end{description}
+  \vspace{-3ex}
+}
+
+\newcommand{\refs}[1]
+{
+  \goodbreak
+  \begin{description}
+    \item[REFERENCES]: \nopagebreak
+        #1
+  \end{description}
+  \vspace{-3ex}
+}
+
+%------------------------------------------------------------------------------
+
+\def\Goodbreak{\par\penalty-500 }
+
+\def\GOODbreak{\par\penalty-1000 }
+
+\newcommand{\callhead}[1]
+{\Goodbreak\vspace{\smallskipamount}{\Large\sc{#1}}
+   \phantomsection
+   \addcontentsline{toc}{subsubsection}{#1}
+   \vspace{-2ex}
+}
+
+\newcommand{\grouphead}[1]
+{\Goodbreak\vspace{\medskipamount}{\hspace*{1em}{\large\it #1}}
+   \phantomsection
+   \vspace{-2ex}
+}
+
+\newenvironment{callset}{\begin{list}{}{\setlength{\leftmargin}{2cm}
+                         \setlength{\parsep}{\smallskipamount}}}
+                         {\vspace{-\bigskipamount}\end{list}}
+
+\newcommand{\subp}[1]{\item\hspace{-2em}{\tt #1}\\}
+
+\newcommand{\subq}[2]{\item\hspace{-2em}{\tt #1}\\\hspace*{-1cm}{\tt #2}\\}
+
+%------------------------------------------------------------------------------
+
+%----------------------------------
+% End of document specific commands
+%----------------------------------
+
+%-----------------------------------------------------------------------
+
+\begin{document}
+\thispagestyle{empty}
+\begin{center}
+\vspace*{10ex}~
+\doctitle \\ [10ex]
+{\Large Patrick Wallace} \\ [20ex]
+Software version \softrev \\
+Document revision \docrev \\ [5ex]
+\revdate
+\end{center}
+\newpage
+~
+\vfill
+\begin{center}
+\copyright\ Copyright \coprd\ Patrick~Wallace.
+All rights reserved.
+\end{center}
+{\footnotesize
+Redistribution and use in source (\LaTeX) and `compiled' forms
+(SGML, HTML, PDF, PostScript, RTF and so forth) with or without
+modification, are permitted provided that the following conditions
+are met:
+\begin{enumerate}
+\item Redistributions of source code (\LaTeX) must retain the above copyright
+      notice, this list of conditions and the following disclaimer as the
+      first lines of this file unmodified.
+\item Redistributions in compiled form (transformed to other DTDs,
+      converted to PDF, PostScript, RTF and other formats) must reproduce
+      the above copyright notice, this list of conditions and the
+      following disclaimer in the documentation and/or other materials
+      provided with the distribution.
+\end{enumerate}
+}
+{\footnotesize
+THIS DOCUMENTATION IS PROVIDED BY THE AUTHOR ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS DOCUMENTATION, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+}
+\newpage
+
+%------------------------------------------------------------------------------
+
+\setlength{\parskip}{0mm}
+\tableofcontents
+\setlength{\parskip}{\bigskipamount}
+\newpage
+
+% Comment out the next section if an unwanted blank page appears.
+
+%\thispagestyle{empty}
+%~ \vfill
+%\begin{center}
+%blank page
+%\end{center}
+%\vfill
+
+%------------------------------------------------------------------------------
+
+\newenvironment{tabs}{\goodbreak\begin{tabbing}}{\end{tabbing}}
+\newenvironment{cmnds}{\begin{tabs}
+XXX \= XX \= XXXXXXXXXXXXXXXXXXXX \= \kill}{\end{tabs}}
+\newenvironment{cmd}{\begin{tabbing}
+XXXXXX \= XX \= XXXXXXXXXXXX \= \kill}{\end{tabbing}}
+
+\cleardoublepage
+\pagenumbering{arabic}
+\section{Introduction}
+\label{intro}
+\subsection{Quick Start}
+\label{quick}
+Compile the demonstrator application {\tt altaz.c}, linked to the
+SOFA C library\footnote{See {\tt https://www.iausofa.org}.}.
+All the SPK functions are explicitly included, so for the purposes
+of the demonstration there is no need
+for {\tt make} or any precompiled SPK library.
+
+Run the program.  The report shows a sequence of tracking
+position+velocity
+demands for an altazimuth mount (azimuth, elevation and rotator
+angle), followed by a series of transformations where any two of
+\begin{itemize}
+\item sky \radec
+\item mount \azel\
+\item focal-plane \xy\
+\end{itemize}
+are transformed into the third.  This demonstrates all the SPK
+features needed for the pointing-kernel portion of an altazimuth
+telescope's control system.  Another demonstrator application,
+{\tt equat.c}, does the same for the case of an equatorially
+mounted telescope.
+
+\subsection{What is SPK?}
+\label{descr}
+SPK (simple pointing kernel) is a set of three
+ANSI C functions that provide low-level support for
+the pointing and tracking components of a
+telescope control system (TCS).  The positional-astronomy aspects are
+handled using tools from the IAU SOFA
+(Standards of Fundamental Astronomy)
+collection, while the
+algorithms that predict the telescope mount angles are all from Wallace
+(2002).\footnote{Wallace,~P.T., 2002, {\it A rigorous algorithm for
+telescope pointing}, Advanced Telescope and Instrumentation Control
+Software~II, edited by Lewis,~Hilton, proceedings of the SPIE, 4848,
+125.  We will refer to this paper as ``W02''.}
+
+Existing pointing kernels offer a spectrum of trade-offs
+between feature-richness, efficiency and accuracy.  SPK in
+comparison offers only basic facilities, with flexibility
+the primary goal.  Computational efficiency is secondary, though
+more than adequate on modern processors.  No accuracy compromises
+are made.
+
+The key element in SPK, and the one that differentiates it from
+conventional pointing kernel designs, is the concept of the
+{\bf virtual telescope}.  This links three coordinate spaces,
+namely the sky, the focal plane and the telescope drive demands.
+All of the basic control modes can be succinctly expressed
+as deducing one from the other two, rather than being
+individual set-piece calculations involving spherical
+trigonometry, small-angle approximations, and so on.
+
+SPK is designed to get the developer off the ground quickly.  There
+are only two key functions to learn about, supplemented by
+ten data structures.  The low-level
+nature of the API naturally means that compared with other pointing
+kernel products there are many limitations, for example:
+\begin{itemize}
+\item SPK supports only three celestial coordinate systems, namely
+      ICRS \radec, geocentric apparent \radec\ and observed \azel;
+\item Only positions are addressed, not velocities.
+\item It is limited to self-contained telescope-tube optics, hence no
+      provision for Nasmyth or coud\'{e} foci.
+\item Pointing calibration is left entirely to
+      the TCS developer:  see Section~\ref{opm}.
+\end{itemize}
+In any TCS based on SPK, these and other required capabilities would
+be implemented as a higher-level API, with SPK providing the low-level
+support.  Indeed, this minimalist
+approach may appeal to many developers, who would
+sooner devise their own tailored ways of (for example) tracking moving
+targets or managing multiple focal-plane hotspots than be
+forced to engage with bloated pre-existing mechanisms.
+
+\section{Pointing and tracking: general principles}
+\label{tracking}
+\begin{figure}
+\begin{center}
+\thicklines
+\begin{picture}( 100.00, 100.00)(0,0)
+\put(  33.33,  90.00){\oval(  33.00,  10.00)}
+\put(  33.33,  90.00){\makebox(0,0){science target}}
+\put(  33.33,  85.00){\line( 0,-1){  11.00}}
+\put(  33.33,  70.00){\makebox(0,0){{\it astrometric transformation}}}
+\put(  33.33,  66.00){\line( 0,-1){  11.00}}
+\put(  33.33,  50.00){\oval(  32.00,  10.00)}
+\put(  33.33,  50.00){\makebox(0,0){observed place}}
+\put(  33.33,  45.00){\line( 0,-1){  11.00}}
+\put(  33.33,  30.00){\makebox(0,0){{\it pointing model}}}
+\put(  33.33,  26.00){\line( 0,-1){  11.00}}
+\put(  33.33,  10.00){\oval(  28.00,  10.00)}
+\put(  33.33,  10.00){\makebox(0,0){mount axes}}
+\put(  98.33,  78.00){\makebox(0,0){site}}
+\put(  98.33,  74.00){\makebox(0,0){air}}
+\put(  98.33,  70.00){\makebox(0,0){color}}
+\put(  98.33,  66.00){\makebox(0,0){EOP}}
+\put(  98.33,  62.00){\makebox(0,0){time}}
+\put(  98.33,  34.00){\makebox(0,0){$x, y$}}
+\put(  98.33,  30.00){\makebox(0,0){\hspace{-0.1em} guiding}}
+\put(  98.33,  26.00){\makebox(0,0){\hspace{-0.1em} $\theta$}}
+\put(  88.33,  70.00){\vector(-1, 0){  23.00}}
+\put(  88.33,  30.00){\vector(-1, 0){  34.00}}
+\end{picture}
+\end{center}
+\caption{\bf Telescope pointing}
+\label{pointing}
+\end{figure}
+
+Figure~\ref{pointing} shows how a telescope is pointed at an
+astronomical target.  The problem breaks down into two stages,
+namely (i)~predicting from what direction in the observer's
+local sky the radiation appears to be coming, followed by
+(ii)~aiming the mount so that the telescope
+forms an image of the target on a nominated spot in the
+focal plane.
+
+Because the astrometric transformation in the first stage
+is time dependent, as a result of Earth rotation in particular,
+in order to stabilize the target's image the mount axis angles
+must change continuously;  this process is called ``tracking''.
+
+The first stage, namely predicting from what direction the incoming
+radiation is coming, can be accomplished efficiently and
+accurately by calling SOFA functions.  The second stage,
+choosing mount axis angles to achieve the desired imaging,
+is a problem not addressed directly by SOFA;
+the method that will be described here implements the rigorous
+formulas set out in paper W02, with SOFA in merely a
+supporting role.
+
+The present document describes a set of (only) three ANSI C
+functions that implement Figure~\ref{pointing} and together
+comprise the rudiments of a
+``pointing kernel''.  Two demonstration {\tt main()} programs,
+{\tt EQUAT} and {\tt ALTAZ}, are also provided, illustrating
+different things a real pointing kernel would do.
+
+Note that the TCS design being discussed here assumes that at
+some fairly rapid rate, say 20-50\,Hz, time-stamped demand
+positions are sent to the mount drives, where servo mechanisms
+equipped with digital encoders
+apply the torques needed to achieve the
+specified locus.  Although this is how modern large telescopes
+work, it is not what amateur mounts do in most cases --
+typically such a mount deals with the Earth rotation part
+of Figure~\ref{pointing} itself, with tracking commanded
+purely in terms of rates, not positions.  In these cases
+the TCS design would be different from the
+{\tt EQUAT} and {\tt ALTAZ} demonstration
+programs presented later, although the underlying principles
+will still apply.
+
+\section{SPK design}
+\label{design}
+\subsection{Components}
+\label{components}
+The SPK software comprises {\bf a set of data structures}
+and the following {\bf three functions}:
+\begin{itemize}
+\item {\tt spkAstr} computes the astrometric context,
+star-independent quantities such as precession-nutation matrices,
+for a specified UTC.  This function can be called to
+perform either a (computationally expensive) full refresh or
+alternatively a first-order update that deals only with
+Earth rotation.
+\item {\tt spkCtar} accepts an ICRS star catalog entry (epoch J2000.0)
+and transforms it into astrometric \radec, taking into
+account space motion and parallax.\footnote{Although such an \radec\
+is slowly changing, it is in practice always acceptable to regard it
+as fixed for the duration of an observation.}
+\item {\tt spkVtel} implements the algorithms of paper W02.  It can be
+called in a variety of ways, not only to
+track the celestial target but also to predict image \xy\ for a given
+\radec\ and {\it vice versa}.
+\end{itemize}
+All three functions are re-entrant and thread safe.
+
+Two demonstration {\tt main()} programs are provided
+(Section~\ref{demos}).
+Called {\tt equat.c} and {\tt altaz.c}, they are essentially
+the same thing as each other but configured
+for an equatorial and an altazimuth mount respectively.
+
+\subsection{Pathways}
+\label{paths}
+
+At first glance, Figure~\ref{pointing} is simply about pointing
+a telescope:  we know the celestial position,
+typically an \radec, of the target to be observed,
+and we want to predict the mount axis angles
+needed to acquire and track its image.  However, this is
+only the first of three pathways through the diagram:
+\begin{enumerate}
+\item Given the target's \radec\ and the desired image \xy,
+      mount axis angles can be predicted.
+\item Given the mount axis angles, the \radec\ for a given \xy\ in
+      the focal plane can be calculated.
+\item Given the mount axis angles, the \xy\ can be predicted at which
+      the image of a given \radec\ will appear.
+\end{enumerate}
+The algorithms in paper W02, and the function {\tt spkVtel},
+perform each of these three transformations rigorously, so that
+repeated paths back and forth through Figure~\ref{pointing} may
+accumulate rounding errors but nothing worse.  W02 calls this
+scheme the {\bf virtual telescope}, acknowledging the degree of
+information hiding that is going on:  the TCS developer is
+insulated from the subtleties and complications of the astrometric
+transformation and the various misalignments and flexures in
+the pointing model, and can concentrate on the science
+objectives.
+
+In the above list of three pathways, the obvious application for
+the first is, as we already know, pointing and tracking;
+the second pathway provides a ``world coordinate system'',
+defining how the sky maps onto the focal plane; and
+the third pathway might be used to predict
+where an autoguider expects to see the image of a guide star.  Another
+use for the second pathway is to project \xy\ samples onto the celestial
+coordinate system so that picture orientation can be deduced, and in
+fact {\tt spkVtel} provides this important capability itself rather
+than leaving it to the developer.
+
+\subsection{Data structures}
+\label{structs}
+
+SPK contains no overall ``context''.  Instead, the application
+developer sets out the circumstances for the required calculation
+by choosing an appropriate set of {\tt spkVtel} arguments,
+each argument a small data structure.  There is complete
+freedom to assemble whatever selection of these describes the
+problem to be solved, and updating any one
+instance will affect only
+those calls that happen to use it.  Different sets of structures
+could define totally different circumstances, all independently
+computable without any cross-contamination.  For example it is
+perfectly possible to be dealing with two different targets, one for
+telescope tracking and the other looking ahead to a forthcoming
+observation.  In other words, every {\tt spkVtel} call is a
+separate instance of a Virtual Telescope.
+
+There are ten of these data structures, containing a total of
+40 data members.  The particular choice of granularity keeps
+argument lists reasonably short
+without significantly reducing versatility.
+
+{\bf Important} -- the data members are all {\bf public} and must be
+named explicitly when setting or inquiring values.  For example,
+here is code from the demonstrator {\tt altaz.c} showing how an
+{\tt spkOBS} structure called {\tt obs} is initialized:
+\scode\begin{verbatim}
+   iauAf2a ( '-', 5, 41, 54.2, &obs.slon );   /* east longitude */
+   iauAf2a ( '-', 15, 57, 42.8, &obs.slat );  /* geodetic latitude */
+   obs.sh = 625.0;                            /* altitude */
+   obs.mount = ALTAZ;                         /* mount type */
+   obs.pavoid = 0.5 * D2R;                    /* mount pole avoidance */
+\end{verbatim}\ecode
+There are no functions that support individual structures, and
+consequently no immediate protection against invalid or partial
+initialization.
+Descriptions of each of the structures follow.
+
+\subsubsection{Earth orientation parameters}
+\label{eop}
+
+The {\tt spkEOP} structure contains three {\tt double}s:
+\begin{itemize}
+\item {\tt xp}, {\tt yp}: the polar motion \xy\ (radians)
+\item {\tt dut1}: UT1$-$UTC (seconds)
+\end{itemize}
+Values can be obtained from IERS Bulletins.
+A simple TCS with no pretensions to high accuracy would probably
+set all of these values (the polar motion at least) to zero.
+
+\subsubsection{Observatory}
+\label{obs}
+
+The {\tt spkOBS} structure contains:
+\begin{itemize}
+\item {\tt slon}: site east longitude (ITRF, radians)
+\item {\tt slat}: site geodetic latitude (ITRF, radians)
+\item {\tt sh}: site altitude (above WGS84 ellipsoid, meters)
+\item {\tt mount}: mount type, EQUAT or ALTAZ (see below)
+\item {\tt pavoid}: closest to mount pole allowed (radians)
+\end{itemize}
+All except {\tt mount} are {\tt double}s; for {\tt mount} the
+enumeration {\tt spkMOUNT} offers {\tt EQUAT} for an equatorial
+mount or {\tt ALTAZ} for an altazimuth.\footnote{Other gimbal
+orientations could be supported by choosing {\tt ALTAZ} and
+setting the {\tt paw} and {\tt pan} terms in the pointing model
+(see \ref{pmodel}) to the appropriate large angles.}
+
+\subsubsection{Ambient air conditions}
+\label{air}
+
+The {\tt spkAIR} structure contains three {\tt double}s:
+\begin{itemize}
+\item {\tt p}: pressure (hPa\,$\equiv$\,mB)\footnote{Pressures
+reported for a local airfield or read from an electronic weather
+station are usually what aviators call ``QNH''.  This is the sea-level
+pressure and will always hover around 1013\,hPa even for a
+mountaintop site.  What SPK
+needs in order to calculate the refraction is ``QFE'', the
+actual pressure that would be read by a mercury barometer,
+a much lower figure for high-altitude sites.}
+\item {\tt t}: temperature ($^\circ$C)
+\item {\tt h}: relative humidity (0--1)
+\end{itemize}
+It is a fortunate circumstance that the refraction is almost
+entirely dependent on these local measurements.
+
+\subsubsection{Optics}
+\label{optics}
+
+The {\tt spkOPT} structure contains two {\tt double}s:
+\begin{itemize}
+\item {\tt fl}: focal length (user units)
+\item {\tt wl}: wavelength ($\mu$m)
+\end{itemize}
+The sole purpose of providing the focal length is to allow the
+TCS developer to choose in what units to reckon focal-plane
+coordinates.
+
+The crossover from optical to radio refraction is assumed to occur
+at {\tt wl=}$100\,\mu$m.
+
+\subsubsection{Pointing model}
+\label{pmodel}
+
+To summarize the mechanical imperfections of the
+telescope and mount, SPK uses a set of seven geometrical
+terms.  The {\tt spkPM} structure contains this seven-term model,
+supplemented by temporary adjustments to two of them.  All data
+members are radians and {\tt double}s:
+\begin{itemize}
+\item {\tt pia}: roll ($-{\rm HA}$ or $\pi\!-\!{\rm azimuth}$) index
+                 error
+\item {\tt pib}: pitch ($\delta$ or elevation) index error
+\item {\tt pvd}: droop
+\item {\tt pca}: telescope/pitch nonperpendicularity
+\item {\tt pnp}: roll/pitch nonperpendicularity
+\item {\tt paw}: roll axis misalignment across meridian
+\item {\tt pan}: roll axis misalignment along meridian
+\end{itemize}
+\vspace{-3ex}
+and
+\vspace{-3ex}
+\begin{itemize}
+\item {\tt ga}: guiding correction applied to {\tt pca}
+\item {\tt gb}: guiding correction applied to {\tt pib}
+\end{itemize}
+It is important to understand that in practice the operational
+pointing model is likely to contain more than the basic seven
+terms, probably several times as many, each one making a contribution to
+whichever of the seven is most appropriate or convenient.
+Consequently, the TCS
+must contain code that populates in real time the internal
+pointing model to follow the behavior of the operational model.
+
+\subsubsection{Hotspot}
+\label{hspot}
+
+The hotspot, sometimes called the ``pointing origin'', is the
+position in the focal plane that receives the image of the
+target.  The {\tt spkPO} structure contains two {\tt double}s:
+\begin{itemize}
+\item {\tt x}: $x$-coordinate
+\item {\tt y}: $y$-coordinate
+\end{itemize}
+These coordinates are in the rotating focal plane, so that in
+the case of a camera mounted on an instrument rotator a
+specific pixel will have a fixed \xy.  The units are whatever
+was chosen for the focal length in the {\tt spkOPT} structure.
+
+See Section~\ref{cconv} for information about the sign
+conventions.
+
+\subsubsection{Mount and rotator angles}
+\label{axes}
+
+The pointing algorithm needs estimates of the current
+orientation of the three drives (roll, pitch, rotator).
+The {\tt spkAX3} structure contains three {\tt double}s, all
+angles in radians:
+\begin{itemize}
+\item {\tt a}: achieved roll (minus~hour~angle or \degi{180}~minus~azimuth)
+\item {\tt b}: achieved pitch (declination or elevation)
+\item {\tt r}: achieved rotator angle
+\end{itemize}
+At first sight it may appear strange that an algorithm the
+principal use of which is to determine the orientations of
+the three drives should need {\it a~priori} values for these
+very angles.  The reasons are different for the mount and rotator
+respectively:
+\begin{itemize}
+\item The mount roll and pitch will be made available to the
+TCS application in anticipation of being needed for certain
+operational pointing corrections, for example gear errors.
+However, because such pointing
+corrections will not change much over small areas of sky there
+is no need for the supplied roll and pitch estimates to be
+particularly precise.
+\item The rotator angle is needed in order to deal with
+off-axis pointing origins ({\it i.e.}~where the target's image
+is to be placed).  Again, the precision requirements are fairly
+lax, depending how far the pointing origin is from the rotator
+axis.
+\end{itemize}
+Suitable values for populating the {\tt spkAX3} structure
+may be obtained by extrapolating the current motions, using
+either encoder readings or the predicted demands as the basis.
+
+See Section~\ref{cconv} for information about the sign
+conventions.
+
+\subsubsection{Time}
+\label{time}
+
+The {\tt spkUTC} structure contains a UTC date and time:
+\begin{itemize}
+\item {\tt iy }: year CE
+\item {\tt mo }: month (1-12)
+\item {\tt id }: day (1-31)
+\item {\tt ih }: hour (0-23)
+\item {\tt mi }: minute (0-59)
+\item {\tt sec}: seconds (0.0-61.0)
+\end{itemize}
+All the data members are {\tt int}s except for {\tt sec}, which is
+a {\tt double}. The smallest illegal seconds field
+is almost always 60.0, but would be 61.0 {\it during}\
+a positive leap
+second, which though a very
+uncommon case is correctly handled by the SOFA
+tools used by {\tt spkAstr}.
+
+It should be noted that in order to keep track of UTC leap
+seconds, SOFA includes a function {\tt iauDat} that for a
+given UTC returns the ${\rm TAI}-{\rm UTC}=\Delta{\rm AT}$
+value in force at
+that time.  Consequently, in order to retain
+correct handling of leap seconds in the long term,
+the TCS application must be relinked with the latest SOFA library
+from time to time, say once a year, so that any updated
+{\tt iauDat} can be picked up.  A preferable alternative,
+explicitly allowed by the SOFA usage conditions, is for there
+to be a local variant of {\tt iauDat}, for example one that
+obtains the current $\Delta{\rm AT}$ from an internet source
+or even returns a fixed value manually updated whenever a
+leap second occurs.
+
+\subsubsection{Astrometry}
+\label{ast}
+
+The {\tt spkAST} structure contains the target-independent
+parameters used by the SOFA astrometric functions:
+\begin{itemize}
+\item {\tt tai}: TAI MJD (JD$-$2400000.5)
+\item {\tt astrom}: star-independent astrometry quantities
+\item {\tt eo}: equation of the origins (ERA$-$GST, radians)
+\end{itemize}
+The members {\tt tai} and {\tt eo} are {\tt double}s;
+{\tt astrom} is a SOFA {\tt iauASTROM} structure.
+
+For an observed \azel\ target (see \ref{target}, below) the
+{\tt spkAST} argument will not be accessed and its contents
+arbitrary.
+
+\subsubsection{Target}
+\label{target}
+
+The target is the pointing direction in the sky.  The {\tt spkTAR}
+structure contains the following:
+\begin{itemize}
+\item {\tt sys}: reference system, ICRS, APPT or AZEL (see below)
+\item {\tt a}: right ascension or left-handed azimuth
+\item {\tt b}: declination or elevation
+\end{itemize}
+The spherical coordinates {\tt a} and {\tt b} are {\tt double}s
+and in radians; {\tt sys}, the reference system, is made with the
+enumeration {\tt spkSYS}:
+\begin{itemize}
+\item ICRS \radec:  International Celestial Reference System.  This is
+close (maximum difference less than 25~mas) to mean J2000.0.
+\item APPT \radec: geocentric apparent place.
+\item AZEL \azel: observed ({\it i.e.}~as affected by refraction)
+azimuth and altitude.  Azimuth iz zero for due north and \degi{90} for
+due east;  altitude is called ``elevation'' in the present
+document.  This is a left-handed system;  internally SPK uses a south
+through east system, and this right-handed convention applies to
+one of the arguments returned by the {\tt spkVtel}
+function.\footnote{The need for a TCS to support two left-handed
+coordinate systems, namely \hadec\ and \azel, is an ever-present
+tripwire for the software developer.  Constant vigilance is
+essential, and it is strongly to be recommended that in code
+referring to these coordinates or right-handed equivalents there
+is {\bf always} a comment spelling out which variant is being used
+in that particular instance.}
+\end{itemize}
+
+\subsection{The three SPK functions}
+\label{funcs}
+
+To use SPK, an application carries out the following steps:
+\begin{enumerate}
+\item Initialize or update all the required data structures
+(\ref{structs}).
+\item Call either {\tt spkAstr} (p\pageref{spkAstr}) to
+refresh or {\tt spkCtar} (p\pageref{spkCtar}) to update the
+astrometry parameters.
+\item Call {\tt spkVtel} (p\pageref{spkVtel})
+to solve for one of the three virtual-telescope
+end-points, {\it i.e.}~axis demands, image position or
+target coordinates.
+\end{enumerate}
+Step~2 can be omitted in the special case of an {\tt ALTAZ}
+target or if the time has not changed.
+
+\subsubsection{{\tt spkAstr}}
+\label{funAstr}
+
+The {\tt spkAstr} function provides star-independent
+astrometric quantities (precession matrices~{\it etc.})
+for the UTC specified by the caller.  For the utmost
+accuracy, but at significant computational cost, the function
+can be called specifying a full update, but it also offers the
+cheaper option of updating only that part that depends on Earth
+rotation, which most of the time will be good enough.  For
+further details see pp~\pageref{spkAstr}-\pageref{end_spkAstr}.
+
+\subsubsection{{\tt spkCtar}}
+\label{funCtar}
+
+The {\tt spkCtar} function accepts a target specified as an
+epoch J2000.0 ICRS catalog \radec\ and calculates its current
+ICRS astrometric place ready to be used with SPK.  (The
+astrometric place changes so slowly that in most TCS
+applications it can be used for the entire observing session.)
+For further details see p\pageref{spkCtar}.
+
+\subsubsection{{\tt spkVtel}}
+\label{virtel}
+
+The {\tt spkVtel} function implements the mount pointing formulas
+set out in paper W02.  Its power comes from the fact that it
+supports all three pathways through Figure~1 and so can
+provide many different capabilities.
+The call accepts (i)~an option code to specify
+which of the three pathways is to be taken, together with
+(ii)~a collection of data structures that define the context
+for the calculation;  it then returns an array of values that
+depends on the option code {\tt isoln} as follows:
+\begin{itemize}
+\item For the {\tt AXES} option the values returned are the
+mount \ropi\ and the position angle of the rotating focal plane's
+$y$-axis.  There may be two sets of \ropi, the second corresponding
+to a ``beyond the pole'' posture.
+\item For the {\tt TARG} option, a celestial position is returned.
+\item For the {\tt HOTS} option, the image \xy\ is returned.
+typically one of the {\radec}s.
+\end{itemize}
+In addition (and even if no option is specified),
+the pointing direction is returned in right-handed
+\azel\ and \ropi\ for use when calculating terms in the
+operational pointing model.
+
+The principal application for the {\tt AXES} option is to
+point and track the telescope.
+
+The {\tt TARG} option might be used to establish the
+celestial world coordinate system of the focal plane.  Another
+application would be measuring the \radec\ of a guide star that
+has just been acquired so that it can be used to detect future
+drifting of the image.
+
+The {\tt HOTS} option might be used to predict the \xy\ of a
+guide star image of known \radec;  the guider would compare this
+to the measured \xy\ and take guiding action (such as
+changing the {\tt ga} and {\tt gb} members of a pointing
+model data structure).
+
+Full details of {\tt spkVtel} are given on
+pp~\pageref{spkVtel}-\pageref{end_spkVtel}.
+
+\subsection{Management of time}
+\label{mtime}
+
+SPK has no direct connection with the system clock or any other
+timing signals, leaving these aspects completely to the TCS
+application.  The pointing calculations are with respect to
+whatever UTC the caller provides when the {\tt spkAstr} function
+is called, and indeed there is nothing to prevent different UTCs
+being used in different contexts, all proceeding in parallel.  An
+example of this might be to explore the future track so as
+to establish by trial and error when cable-wrap or horizon
+limits will be reached.
+
+A UTC time and date is supplied to {\tt spkAstr} as an instance
+of an {\tt spkUTC} data structure, containing the fields year,
+month, day, hour, minute, seconds, together with an
+offset in seconds.  The user may elect to supply
+a fresh {\tt spkUTC} each time, with the offset always
+left at zero, or alternatively can leave the {\tt spkUTC} fixed
+and specify different times by using the
+offset alone.  The latter choice has the advantage that the
+full date and time has to be formatted just once, when the system
+starts, and can then run on for the rest of the session purely by
+using the offset.
+
+\newpage
+
+\section{The demonstration programs}
+\label{demos}
+SPK comes with two demonstration programs,
+{\tt EQUAT} and {\tt ALTAZ}, that for the respective
+mount types show how the three transformations offered by the
+{\tt spkVtel} function can be used by a TCS to implement not
+only pointing and tracking but also also such things as
+guiding and the mapping between celestial and focal
+plane coordinates.
+
+The two programs are very similar, differing only in which
+sort of mount is declared during initialization, the names
+given to the mount angles in reports, and the labels for
+pointing-model terms.  This similarity reflects how
+SPK, and the ``virtual telescope''
+principle more generally, is based on there
+being little or no difference between how the two
+types of mount are controlled.  {\tt This important principle
+may be overlooked by the TCS developer.}  For example, in
+order to displace a star image vertically in the field of view
+of an altazimuth telescope it may seem obvious that all
+that needs to be done is
+to introduce an offset into the demands going to the
+elevation drive.  {\it But this is not the right thing to do}.
+The offset should instead be applied in terms of focal plane
+coordinates for a target being tracked in \azel, just as it
+would be in the equatorial case.  Doing so will deal with small
+field orientation effects caused by refraction and the pointing
+model, as well as differential refraction.  The motion, almost
+but not entirely a change in the demands going to the elevation
+drive, will be a {\it consequence}\/ of the changed pointing
+prescription, not something the developer should be conscious of.
+
+Because the {\tt EQUAT} and {\tt ALTAZ} programs are almost
+identical, the description below applied to both, with the
+occasional differences mentioned.  Certain portions of the code
+are omitted for brevity;  in particular, reports are reproduced
+but not the code that writes them.
+
+\subsection{Preliminaries}
+The code begins as a {\it pro~forma}\ {\tt main()} program and
+then declares some useful constants.
+Instances (in a couple of cases more than one) of the various
+data structures are then declared;  these will become arguments
+of the SPK function calls, {\tt spkVtel} in particular:
+\scode\begin{verbatim}
+spkEOP eop;    /* polar motion and UT1-UTC (from IERS) */
+spkOBS obs;    /* site location and mount type */
+spkAIR air;    /* local weather readings */
+spkOPT opt;    /* focal length and color */
+spkPM pm;      /* 7-term pointing model */
+spkAX3 ax3;    /* achieved roll, pitch, rotator angles */
+spkPO po;      /* image position in focal plane */
+spkUTC utc;    /* UTC date and time */
+spkAST ast;    /* target-independent astrometric parameters */
+spkTAR tar;    /* sky target */
+
+spkTAR tar2;   /* another target */
+spkPO po2;     /* another hotspot */
+\end{verbatim}\ecode
+In order to make the reports clearer, names for the different
+supported target reference systems are declared:
+\scode\begin{verbatim}
+static char *csys[] = {
+   "illegal",
+   "ICRS",
+   "apparent",
+   "altaz"
+};
+\end{verbatim}\ecode
+Miscellaneous variables are declared, with one small difference between
+the {\tt altaz.c} and {\tt equat.c} cases for cosmetic reasons.
+
+The executable code begins with initialization of the data structures,
+the first being the Earth orientation parameters:
+\scode\begin{verbatim}
+eop.xp = 50.995e-3 * AS2R;   /* polar motion x */
+eop.yp = 376.723e-3 * AS2R;  /* polar motion y */
+eop.dut1 = 155.0675e-3;      /* UT1-UTC */
+\end{verbatim}\ecode
+The EOPs are available from the International Earth
+Rotation and reference systems Service.  An advanced TCS might
+obtain the parameters automatically via the internet;  a simpler
+method is to read an initialization file that the observatory
+updates every few days.  For a TCS with modest accuracy
+objectives the EOPs could simply be set to zero, though
+in the case of UT1$-$UTC this
+can lead to pointing errors of nearly
+15\,arcseconds.\footnote{The situation could get worse if proposals
+to cease UTC leap seconds, first made in the early 2000s, are
+eventually put into effect.  The safest thing is for all TCSs to
+take into account UT1$-$UTC whatever the accuracy aspirations.}
+
+Next, details of the observatory are set up, namely
+geographical position and type of telescope mount;  there is also
+an opportunity to declare a ``no go'' area around the mount
+pole, to prevent unrealistically rapid motion and other unruly
+behavior:
+\scode\begin{verbatim}
+iauAf2a ( '-', 5, 41, 54.2, &obs.slon );   /* east longitude */
+iauAf2a ( '-', 15, 57, 42.8, &obs.slat );  /* geodetic latitude */
+obs.sh = 625.0;                            /* altitude */
+obs.mount = ALTAZ;                         /* mount type */
+obs.pavoid = 0.5 * D2R;                    /* zenith avoidance */
+\end{verbatim}\ecode
+\ldots and in the equatorial case:
+\scode\begin{verbatim}
+  :
+obs.mount = EQUAT;                         /* mount type */
+obs.pavoid = 0.5 * D2R;                    /* pole avoidance */
+  :
+\end{verbatim}\ecode
+Local air conditions, needed for calculating atmospheric
+refraction, are declared:
+\scode\begin{verbatim}
+air.p = 952.0;   /* pressure (hPA=mB) */
+air.t = 18.5;    /* temperature (Celsius) */
+air.h = 0.83;    /* humidity */
+\end{verbatim}\ecode
+How frequently this information is updated depends on the
+TCS and the accuracy objectives, but once per new target may
+be adequate (or in some cases even once per observing session).
+Continuous updating from an electronic weather station is the
+ultimate solution, but some form of smoothing is essential if
+noisy readings are not to inject jitter into the telescope
+track.  (See also the earlier note about sea-level pressure
+QNH versus local pressure QFE;  it is the latter that SPK
+needs.)
+
+The information SPK needs about the telescope optical
+configuration is the focal length and the observing wavelength:
+\scode\begin{verbatim}
+opt.fl = 3000.0;  /* focal length (mm) */
+opt.wl = 0.55;    /* wavelength (micrometers) */
+\end{verbatim}\ecode
+The only significance of focal length in the pointing
+calculation is that it defines the units in which \xy\
+image positions will be expressed.  Entering the focal
+length as 1.0 would not affect the pointing calculations
+except that focal-plane \xy\ coordinates are essentially
+radians.  The wavelength plays a more fundamental part in
+that it affects the refraction calculation.
+
+The starting amplitudes for the seven terms of the pointing
+model are set, together with small ``trimming'' adjustments
+to two of them:
+\scode\begin{verbatim}
+pm.pia =   25.0 * AS2R;  /* +IA */
+pm.pib =   15.0 * AS2R;  /* +IE */
+pm.pnp =    8.0 * AS2R;  /* +CA */
+pm.pca = -110.0 * AS2R;  /* +NPAE */
+pm.paw =  999.9 * AS2R;  /* +AW */
+pm.pan =  -12.0 * AS2R;  /* +AN */
+
+pm.ga = 0.0 * AS2R;   /* guiding correction to pm.pca */
+pm.gb = 0.0 * AS2R;   /* guiding correction to pm.pib */
+\end{verbatim}\ecode
+\ldots with only comment changes in the equatorial case:
+\scode\begin{verbatim}
+  :
+pm.pia =   25.0 * AS2R;  /* -IH */
+pm.pib =   15.0 * AS2R;  /* +ID */
+pm.pnp =    8.0 * AS2R;  /* -CH */
+pm.pca = -110.0 * AS2R;  /* -NP */
+pm.paw =  999.9 * AS2R;  /* -MA */
+pm.pan =  -12.0 * AS2R;  /* +ME */
+  :
+\end{verbatim}\ecode
+During the operation of the TCS the model will be updated, both
+continuously to allow for the effects of telescope attitude and
+abruptly to achieve special effects.
+
+Starting values for the three axis positions are set:
+\scode\begin{verbatim}
+ax3.a = 0.0 * D2R;   /* achieved azimuth (south zero right-handed) */
+ax3.b = 0.0 * D2R;   /* achieved elevation */
+ax3.r = 30.0 * D2R;  /* achieved rotator angle */
+\end{verbatim}\ecode
+\ldots and in the equatorial case:
+\scode\begin{verbatim}
+  :
+ax3.a = 0.0 * D2R;   /* achieved -HA (right-handed) */
+ax3.b = 0.0 * D2R;   /* achieved Dec */
+  :
+\end{verbatim}\ecode
+These three values will be actively controlled as tracking
+proceeds, from a combination of encoder readings and extrapolation.
+
+A pointing origin (hotspot) is declared:
+\scode\begin{verbatim}
+po.x = 10.0;
+po.y = 20.0;
+\end{verbatim}\ecode
+More typically the initialization process would set the pointing
+origin to $[0,0]$ ({\it i.e.}~the optical axis) and leave it up
+to the TCS application to manage where in the focal plane the
+image is being aimed at any given moment.
+
+The starting UTC is specified:
+\scode\begin{verbatim}
+utc.iy = 2013;    /* year (CE) */
+utc.mo = 4;       /* month (1-12) */
+utc.id = 2;       /* day (1-28,29,30,31) */
+utc.ih = 23;      /* hour */
+utc.mi = 15;      /* minute */
+utc.sec = 43.55;  /* seconds (0-59.999... or 0-60.999...) */
+\end{verbatim}\ecode
+In a real TCS this would of course come from a clock.
+
+The star-independent astrometry parameters for that moment can
+now be calculated:
+\scode\begin{verbatim}
+if ( spkAstr ( 1, utc, 0.0,
+               &eop, &obs, &air, &opt, &ast ) ) return -1;
+\end{verbatim}\ecode
+A celestial target is specified, starting from a catalog entry:
+\scode\begin{verbatim}
+if ( iauTf2a ( ' ', 14, 34, 16.81183, &rc ) ) return -1;
+if ( iauAf2a ( '-', 12, 31, 10.3965, &dc ) ) return -1;
+pr = atan2 ( -354.45e-3 * AS2R, cos(dc) );
+pd = 595.35e-3 * AS2R;
+px = 164.99e-3;
+rv = 0.0;
+spkCtar ( rc, dc, pr, pd, px, rv, &ast, &tar );
+\end{verbatim}\ecode
+We now specify the image orientation, the position angle
+with respect to the ICRS meridian of $+y$ at the specified hotspot:
+\scode\begin{verbatim}
+ypa = 30.0 * D2R;
+\end{verbatim}\ecode
+The choice of \degi{30} is merely illustrative;  it would be
+much more typical to use zero and an on-axis hotspot, meaning
+the focal plane's $y$-axis will point north.
+
+\subsection{Tracking}
+We are now ready to illustrate sidereal tracking.  This
+is the part of the {\tt EQUAT} and {\tt ALTAZ}
+demonstrations that least resembles what an
+actual TCS would do, and is only a general indication of what
+calculations might be involved.  The code shows just one way of
+computing the tracking
+demands, and gives some indication of the level of intricacy that a
+real TCS application would require.
+
+At first sight all that is
+involved is to take the current target and hotspot
+and solve for the axis demands.
+However, there is an interplay between the three axes that has to be
+resolved, and the servo systems controlling the axis may well expect
+velocity feedforward information (and conceivably acceleration and
+higher derivatives).  Consequently generating each new set of
+demands is likely to involve multiple VT solutions, and the precise
+way this is done will be something for the application developer to
+decide.
+
+The demonstration starts one second before the UTC that has
+been specified, and at intervals of 0.05~SI seconds computes the
+demand angles for the three axes.  We will also estimate velocities
+in the three axes;  this is to enable extrapolation to the next
+iteration but might also be needed for servo reasons.  It should also
+be noted that servo engineers tend to disapprove of even tiny
+irregularities in the tracking demands, and arranging the
+computations to avoid, or at least minimize, glitches in the
+demand stream is highly desirable.
+
+We are assuming that the astrometry parameters have
+been computed for a particular moment using {\tt spkAstr} with
+{\tt jfull~=~TRUE}, and that the track is relative to that time and
+involves only {\tt jfull~=~FALSE} calls to {\tt spkAstr}.
+Some TCS developers will decide to call {\tt spkAstr} with
+{\tt jfull~=~TRUE} every tracking step and accept the
+(considerable)
+computational expense.  Most will opt instead for
+occasional (say once a minute) full updates, maintaining
+precision long-term at the expense of (sub-milliarcsecond)
+glitches.  A full refresh only at the start of a new track
+is a workable plan, incurring errors of less than
+\arcsec{0}{1} for tracks several hours long and avoiding
+glitches (from this cause at least) completely.
+
+In the demonstration code, updating the pointing model terms is
+performed each time through, but an economical implementation
+could elect to do it less frequently, say at 1\,Hz.  If
+the update intervals are too long, the corrections will not keep
+up with changing flexure {\it etc}.~and will also inject small
+glitches into the tracking demands.
+
+A noteworthy feature of the demonstration is that the velocities
+are {\bf not} computed by differencing successive demands, though
+this approach would be efficient and may well look much as it does
+in the present simulation.  The potential difficulty is in the
+general case, where the observing program is free to introduce
+abrupt changes to target, hotspot {\it etc}.  The resulting
+transients can trigger adverse reactions in servo systems, so the
+demonstration code instead recomputes the demands from last time,
+but using the latest target and hotspot.  Though
+computationally wasteful, this simple measure means that the
+velocities always reflect a steady background track.
+
+The first step in the demonstration is to initialize various
+quantities and then enter the 1~second-at-20-Hz loop:
+\scode\begin{verbatim}
+/* Initialize the per-timestep changes in the three axes. */
+   da = 0.0;
+   db = 0.0;
+   dr = 0.0;
+
+/* Initialize the time offset. */
+   dt = 0.0;
+
+/* The demonstration track (20Hz for 1s). */
+   for ( i = 0; i <= 20; i++ ) {
+\end{verbatim}\ecode
+Each tracking update starts by solving for the demands {\it last time},
+but using the current circumstances in case there have
+been abrupt changes:
+\scode\begin{verbatim}
+/* Solve for previous roll,pitch demands and field orientation. */
+   j = spkVtel ( AXES, &obs, &opt, &pm, &ast, &ax3, &tar, &po,
+                 &tara, &tare, &tarr, &tarp, soln );
+     :
+
+/* The roll, pitch and rotator demands then. */
+   aold = soln[0];
+   bold = soln[1];
+   rold = iauAnpm ( soln[4] + ypa );
+\end{verbatim}\ecode
+We now turn our attention to the present UTC, expressing it as an
+offset to the time originally supplied, and we update the astrometry
+to take account of Earth rotation:
+\scode\begin{verbatim}
+/* New time offset (seconds) relative to provided UTC. */
+   dt = ( (double) (i-20) ) / 20.0;
+
+/* Update astrometry to that time. */
+   if ( spkAstr ( 0, iy, mo, id, ih, mi, sec, dt, &eop, &obs,
+                  &air, &opt, &ast ) ) return -1;
+\end{verbatim}\ecode
+We extrapolate the axis angles and recalculate, twice to let
+things settle, and noting the changes since last time:
+\scode\begin{verbatim}
+/* Iterate to let roll/pitch/rotator angles settle. */
+   for ( it = 0; it < 2; it++ ) {
+
+   /* Extrapolated encoder readings. */
+      ax3.a = aold + da;
+      ax3.b = bold + db;
+      ax3.r = rold + dr;iauAnpm ( soln[4] + ypa );
+
+   /* Solve for roll,pitch demands and field orientation. */
+      j = spkVtel ( AXES, &obs, &opt, &pm, &ast, &ax3, &tar, &po,
+                    &tara, &tare, &tarr, &tarp, soln );
+        :
+
+   /* Set achieved roll,pitch,rotator to match. */
+      ax3.a = soln[0];
+      ax3.b = soln[1];
+      ax3.r = iauAnpm ( soln[4] + ypa );
+
+   /* Changes since last time. */
+      da = iauAnpm ( ax3.a - aold );
+      db = iauAnpm ( ax3.b - bold );
+      dr = iauAnpm ( ax3.r - rold );
+
+   /* Next iteration. */
+   }
+\end{verbatim}\ecode
+Next we update the pointing model, which may have changed
+slightly as a result of the change in attitude.
+The altazimuth\ldots
+\scode\begin{verbatim}
+pm.pia =   25.0 * AS2R;              /* +IA */
+pm.pib =   15.0 * AS2R;              /* +IE */
+pm.pnp =    8.0 * AS2R;              /* +CA */
+pm.pca = -110.0 * AS2R;              /* +NPAE */
+pm.paw =  999.9 * AS2R;              /* +AW */
+pm.pan =  -12.0 * AS2R;              /* +AN */
+pm.pvd =   10.0 * AS2R * cos(tare);  /* +TF */
+\end{verbatim}\ecode
+\ldots and equatorial\ldots
+\scode\begin{verbatim}
+pm.pia =   25.0 * AS2R;              /* -IH */
+pm.pib =   15.0 * AS2R;              /* +ID */
+pm.pnp =    8.0 * AS2R;              /* -CH */
+pm.pca = -110.0 * AS2R;              /* -NP */
+pm.paw =  999.9 * AS2R;              /* -MA */
+pm.pan =  -12.0 * AS2R;              /* +ME */
+pm.pvd =   10.0 * AS2R * cos(tare);  /* +TF */
+  :
+\end{verbatim}\ecode
+\ldots cases are the same apart from the comments.
+
+The tracking illustration is complete.  In the altazimuth case the
+report is as follows:
+\scode\begin{verbatim}
+    TAI              azimuth        elevation       rotator
+
+56384.9696579861   91.5962372761  47.3611395498  309.8100307422  deg
+                   -3.6793457591 +14.4476380752   -0.6156716180  "/s
+
+56384.9696585648   91.5961861739  47.3613402043  309.8100222021  deg
+                   -3.6793542193 +14.4476377656   -0.6148119632  "/s
+
+56384.9696591435   91.5961350716  47.3615408588  309.8100136492  deg
+                   -3.6793626300 +14.4476375408   -0.6152177327  "/s
+    MJD
+\end{verbatim}\ecode
+The equatorial report shows an HA tracking rate of about 15~arcseconds
+per sidereal second and approximately zero in elevation and rotator
+angle:
+\scode\begin{verbatim}
+    TAI              hour angle    declination      rotator
+
+56384.9696579861  -43.6619835316 -13.0082797783  210.2268042522  deg
+                  +15.0454749917  +0.0546843530   +0.0555711106  "/s
+
+56384.9696585648  -43.6617745739 -13.0082790175  210.2268050235  deg
+                  +15.0454783351  +0.0546895851   +0.0556434599  "/s
+
+56384.9696591435  -43.6615656161 -13.0082782567  210.2268057997  deg
+                  +15.0454790803  +0.0546907798   +0.0557620306  "/s
+    MJD
+\end{verbatim}\ecode
+
+\subsection{The three pathways}
+We are ready to to demonstrate the three pathways through
+Figure~1 that {\tt spkVtel} implements.  These are the basic
+ingredients that can be combined to achieve not only the key
+functions of pointing, tracking and autoguiding, but also
+establishing an image's world coordinate system, offsetting
+between acquisition camera and instrument or between multiple
+feed horns, trailing along a vertical spectrograph slit,
+chopping between source and sky, and so on.
+
+\subsubsection{Target and hotspot to mount angles}
+
+The first pathway is just
+a repeat of the final call of the tracking
+demonstration;  we know the target \radec\ and hotspot \xy,
+and wish to calculate the corresponding mount \ropi\ and
+also the field orientation,
+requiring {\tt spkVtel}'s {\tt isoln} option to be  {\tt AXES}:
+\scode\begin{verbatim}
+j = spkVtel ( AXES, &obs, &opt, &pm, &ast, &ax3, &tar, &po,
+              &tara, &tare, &tarr, &tarp, soln );
+\end{verbatim}\ecode
+The report from {\tt altaz.c} is as follows:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   -50.189986351 deg
+   target = 14 34 16.4960  -12 31 02.524  ICRS
+   hotspot [x,y] =    10.000000,    20.000000 mm
+Returned:
+   encoder [Az,El] =    91.596135072 (N thru E),    47.361540852 deg
+   PA of +y =    29.999999998 deg (ICRS)
+\end{verbatim}\ecode
+The quoted position angle is the direction of $+y$ at
+the pointing origin, with respect to the stated celestial
+coordinate system, in this case ICRS.  In other words, zero
+would mean that at the pointing origin $+y$ points north.
+If exactly the same pointing direction in the sky were to be
+specified as a geocentric apparent place, the position angle
+would again be different, by up to \degi{180} for a point
+between the ICRS and apparent poles.  The {\tt equat.c} report
+is similar, differing only in the mount axis angles:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   210.226805800 deg
+   target = 14 34 16.4960  -12 31 02.524  ICRS
+   hotspot [x,y] =    10.000000,    20.000000 mm
+Returned:
+   encoder [HA,Dec] =    43.661565623 (W +ve),   -13.008278256 deg
+   PA of +y =    30.000000008 deg (ICRS)
+\end{verbatim}\ecode
+
+\subsubsection{Mount angles and hotspot to target}
+
+The second pathway through Figure~1 is where
+everything stays the same except that the pointing origin \xy\
+has changed to [\,25.0,27.5\,] and we set {\tt isoln~-~TARG}:
+\scode\begin{verbatim}
+po2.x = 25.0;
+po2.y = 27.5;
+j = spkVtel ( TARG, &obs, &opt, &pm, &ast, &ax3, &tar, &po2,
+              &tara, &tare, &tarr, &tarp, soln );
+\end{verbatim}\ecode
+The reports show that for the same mount and rotator demands the
+new hotspot corresponds to a new \radec.  In the {\tt altaz.c}
+case:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   309.810013649 deg
+   hotspot [x,y] =    25.000000,    27.500000 mm
+   encoder [Az,El] =    91.596135072 (N thru E),    47.361540859 deg
+Returned:
+   target = 14 35 35.1364  -12 32 10.772  ICRS
+\end{verbatim}\ecode
+\ldots and for {\tt equat:}:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   210.226805800 deg
+   hotspot [x,y] =    25.000000,    27.500000 mm
+   encoder [HA,Dec] =    43.661565616 (W +ve),   -13.008278257 deg
+Returned:
+   target = 14 35 35.1364  -12 32 10.772  ICRS
+\end{verbatim}\ecode
+
+\subsubsection{Mount angles and target to hotspot}
+
+The third and final pathway through Figure~1
+accepts a target and for given mount and rotator demands
+predicts the focal-plane \xy\ that will receive the image.
+For the demonstration the mount and rotator demands
+are left as they are and we use as a target the \radec\ found in the
+previous example, with {\tt spkVtel}'s {\tt isoln} set to {\tt HOTS}:
+\scode\begin{verbatim}
+if ( iauTf2a ( ' ', 14, 35, 35.1363560, &rc ) ) return -1;
+if ( iauAf2a ( '-', 12, 32, 10.771790, &dc ) ) return -1;
+spkCtar ( rc, dc, 0.0, 0.0, 0.0, 0.0, &ast, &tar2 );
+j = spkVtel ( HOTS, &obs, &opt, &pm, &ast, &ax3, &tar2, &po,
+              &tara, &tare, &tarr, &tarp, soln );
+\end{verbatim}\ecode
+The code is identical in {\tt altaz.c} and {\tt equat.c}.  The
+{\tt altaz.c} report is:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   309.810013649 deg
+   target = 14 35 35.1364  -12 32 10.772  ICRS
+   encoder [Az,El] =    91.596135072 (N thru E),    47.361540859 deg
+Returned:
+   hotspot [x,y] =    25.000000,    27.500000 mm
+\end{verbatim}\ecode
+\ldots recovering the test \xy\ that we used.  The {\tt equat.c}
+report is similar:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   210.226805800 deg
+   target = 14 35 35.1364  -12 32 10.772  ICRS
+   encoder [HA,Dec] =    43.661565616 (W +ve),   -13.008278257 deg
+Returned:
+   hotspot [x,y] =    25.000000,    27.500000 mm
+\end{verbatim}\ecode
+That completes the three Figure~1 pathways.
+
+\subsection{Direction of the vertical}
+Even though a target is usually tracked in \radec, and the
+field orientation requirement is given relative to north, it is
+often necessary to know which direction in the focal plane
+corresponds to the vertical.  This is easy to do, simply by
+specifying the pointing direction as
+an \azel\ target but leaving other {\tt spkVtel}
+arguments as they were.
+The latest call to {\tt spkVtel} has already returned the
+pointing direction as an \azel, so the new target is simply that
+but in left-handed form:
+\scode\begin{verbatim}
+tar2.sys = AZEL;
+tar2.a = D180 - tara;
+tar2.b = tare;
+j = spkVtel ( AXES, &obs, &opt, &pm, &ast, &ax3, &tar2, &po,
+              &tara, &tare, &tarr, &tarp, soln );
+\end{verbatim}\ecode
+Note that the original hotspot has been retained, so it is the
+vertical through that point that we are interested in.
+The {\tt altaz.c} report is:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   309.810013649 deg
+   target =    88.499802127 (N thru E),    46.938342447 deg (altaz)
+   hotspot [x,y] =    10.000000,    20.000000 mm
+Returned:
+   encoder [Az,El] =    91.596135072 (N thru E),    47.361540859 deg
+   PA of +y =   129.948849391 deg (altaz)
+\end{verbatim}\ecode
+\ldots and the {\tt equat.c} report is similar:
+\scode\begin{verbatim}
+Given:
+   TAI = 56384.969659144 MJD
+   RMA =   210.226805800 deg
+   target =    88.499802127 (N thru E),    46.938342447 deg (altaz)
+   hotspot [x,y] =    10.000000,    20.000000 mm
+Returned:
+   encoder [HA,Dec] =    43.597998256 (W +ve),   -11.016168751 deg
+   PA of +y =   129.948849393 deg (altaz)
+\end{verbatim}\ecode
+The {\tt EQUAT} and {\tt ALTAZ}
+demonstrations end at this point.
+
+\subsection{The POINT testbed}
+\label{point}
+The {\tt EQUAT} and {\tt ALTAZ} programs just described
+demonstrate all three virtual-telescope transformations
+supported by the {\tt spkVtel} function.  Though
+the techniques used are perfectly straightforward, and
+quite representative of how a real
+TCS would be coded, some potential SPK users may prefer to
+start with something even more primitive.  To satisfy this
+need, SPK comes with a testbed program called {\tt POINT}
+(Section\ref{point})
+that performs the basic pointing/tracking calculation for
+a hardwired test case.  It
+takes a set of circumstances (site location,
+star coordinates, time {\it etc.}) and calculates the encoder
+demands that the TCS would make in order to acquire the target.
+This is done in the simplest possible way, with no regard for
+computational efficiency.  A particular use
+for the {\tt point.c} code is as a template for experimentation,
+and a source of reference data for sanity checks and other
+diagnostic purposes.
+
+{\tt POINT} is merely a front-end for a function ({\tt spkS2e},
+described on pp~\pageref{spkS2e}-\pageref{end_spkS2e},
+that accepts the 40 parameters
+needed to specify the test case and generates the corresponding
+encoder demands.  It is worth noting that although {\tt spkS2e}
+could itself be used in a TCS, it is computationally very
+wasteful compared with the methods shown in {\tt EQUAT} and
+{\tt ALTAZ}.  However, its simplicity -- a single function
+call does the entire pointing/tracking calculation -- may
+make it attractive for use in a minimal TCS, and in fact it
+can run at kilohertz rates an any modern processor.
+
+\newpage
+
+\section{Function specifications}
+\label{specs}
+
+%-----------------------------------------------------------------------
+
+\nfunction{spkAstr}{update astrometry context}
+\call{j = spkAstr ( jfull, utc, dt,
+                   \&eop, \&obs, \&air, \&opt, \&ast );}
+\action{For a specified UTC, update the star-independent astrometry
+        parameters.}
+\args{GIVEN}{
+\spec{jfull}{int}{TRUE/FALSE = full/partial update (Notes~1,2)} \\
+\spec{utc}{spkUTC}{UTC date and time (Notes~2-4)} \\
+\spec{dt}{double}{offset (SI seconds, Note~2)} \\
+\spec{eop}{spkEOP*}{Earth orientation parameters} \\
+\spec{obs}{spkOBS*}{site location and mount type} \\
+\spec{air}{spkAIR*}{ambient weather conditions} \\
+\spec{opt}{spkOPT*}{for color} \\
+}
+\args{RETURNED}{
+\spec{ast}{spkAST*}{astrometry parameters (Note~1)} \\
+}
+\args{RETURNED \rm (function value)}{
+\spec{}{int}{status: $+3$ = both of next two} \\
+\spec{}{}{~~~~~~~~~  $+2$ = time is after end of day (Note~3) } \\
+\spec{}{}{~~~~~~~~~  $+1$ = dubious year (Note~4)} \\
+\spec{}{}{~~~~~~~~~  \,~~0 = OK} \\
+\spec{}{}{~~~~~~~~~  $-1$ = bad year} \\
+\spec{}{}{~~~~~~~~~  $-2$ = bad month} \\
+\spec{}{}{~~~~~~~~~  $-3$ = bad day} \\
+\spec{}{}{~~~~~~~~~  $-4$ = bad hour} \\
+\spec{}{}{~~~~~~~~~  $-5$ = bad minute} \\
+\spec{}{}{~~~~~~~~~  $-6$ = bad second ($<0$)} \\
+\spec{}{}{~~~~~~~~~  $-7$ = other error (Note~5)} \\
+}
+\notes{
+\begin{enumerate}
+\setlength{\parskip}{\medskipamount}
+\item The flag {\tt jfull} selects whether the entire set of
+      star-independent astrometry parameters are refreshed
+      ({\tt jfull = TRUE}) or just the Earth rotation angle.  Other
+      quantities such as precession matrices are not recomputed in
+      the {\tt jfull = FALSE} case, and will as time goes on become
+      less accurate.  How frequently the parameters are fully
+      refreshed is a decision for the application developer, but once
+      for each new target could be adequate.  The TAI included in the
+      star-independent astrometry parameters corresponds to the ERA.
+\item The UTC date and time is supplied as an {\tt spkUTC} structure,
+      containing y,m,d,h,m,s fields, with an offset in seconds.  The
+      user may elect to supply a fresh {\tt spkUTC} structure each time,
+      with the offset always zero, or can supply the same spkUTC
+      structure each time and move forward using the offset alone.
+\item The warning status ``time is after end of day'' usually means
+      the second argument is greater than 60.0.  However, in a day
+      ending in a leap second the limit changes to 61.0 (or 59.0 in the
+      case of a negative leap second).
+\item The warning status ``dubious year'' flags UTCs that predate the
+      introduction of the time scale or that are too far in the future
+      to be trusted.  See the {\tt iauDat} function for further
+      details.
+\item The error status $-7$ should be impossible.
+\end{enumerate}
+}
+\label{end_spkAstr}
+
+%-----------------------------------------------------------------------
+
+\function{spkCtar}{accept ICRS catalog star as target}
+\call{spkCtar ( rc, dc, pr, pd, px, rv, \&ast, \&tar );}
+\action{Transform an epoch J2000.0 ICRS star catalog entry into an ICRS
+        astrometric target.}
+\args{GIVEN}{
+\spec{rc}{double }{ICRS right ascension at J2000.0
+                   (radians, Note~1)} \\
+\spec{dc}{double }{ICRS declination at J2000.0 (radians, Note~1)} \\
+\spec{pr}{double }{$\alpha$ proper motion (radians/year, Note~2)} \\
+\spec{pd}{double }{$\delta$ proper motion (radians/year)} \\
+\spec{px}{double }{parallax (arcsec, Note~3)} \\
+\spec{rv}{double }{radial velocity (km/s, +ve if receding)} \\
+\spec{ast}{spkAST*}{astrometry parameters} \\
+}
+\args{RETURNED}{
+\spec{tar}{spkTAR*}{target, ICRS astrometric} \\
+}
+\notes{
+\begin{enumerate}
+\setlength{\parskip}{\medskipamount}
+\item Star data for an epoch other than J2000.0 (for example from the
+      Hipparcos catalog, which has an epoch of J1991.25) will require
+      preliminary treatment.
+\item The proper motion in $\alpha$ is $\dot{\alpha}$ rather than
+      $\dot{\alpha}\cos\delta$.
+\item In catalogs where the $\alpha$ and $\delta$ proper motions are
+      given in milliarcseconds per year, both will need scaling into
+      radians before the $\mu_{\alpha}$ value is divided by
+      $\cos\delta$.  {\it n.b.}~Some catalogs quote proper motions
+      per century rather than per year.
+\item The parallax value is in arcseconds rather than radians as it is
+      a distance measure rather than an angle.
+\end{enumerate}
+}
+
+%-----------------------------------------------------------------------
+
+\function{spkS2e}{One-call star to mount calculation}
+\call{j = spkS2e ( xp, yp, dut1, slon, slat, sh, mount, pnogo,
+                   p, tc, h, fl, wl, \\
+     \hspace*{6em} pia, pib, pvd, pca, pnp, paw, pan, ga, gb, x, y,
+                   a, b, \\
+     \hspace*{6em} r, iy, im, id, ih, mi, sec, rc, dc,
+                   pr, pd, px, rv, \\
+     \hspace*{6em} \&adem, \&bdem, \&ademb, \&bdemb, \&rdem );}
+\action{The function performs the end-to-end pointing transformation,
+        starting with an ICRS
+        star catalog entry and predicting the mount encoder demands
+        required to acquire the star image.  It does so in the simplest
+        possible way, by first populating the SPK data structures and
+        then calling {\tt spkAstr},
+        {\tt spkCtar} and {\tt spkVtel}, with no consideration for
+        computational efficiency.
+
+        Its main purpose is as the core component of the SPK
+        demonstrator {\tt POINT}, though it could be used in a basic
+        telescope control system where only the pointing/tracking
+        capability of SPK is needed and efficiency is not an important
+        consideration.}
+\args{GIVEN}{
+\specsubhead{Earth orientation parameters (Note~1)} \\
+\spec{xp}{double}{polar motion $x$ coordinate (radians)} \\
+\spec{yp}{double}{polar motion $y$ coordinate (radians)} \\
+\spec{dut1}{double}{$\Delta$UT1: UT1$-$UTC (seconds)} \\
+\\
+\specsubhead{Observatory} \\
+\spec{slon}{double}{site east longitude (ITRF, radians)} \\
+\spec{slat}{double}{site geodetic latitude (ITRF, radians)} \\
+\spec{sh}{double}{site altitude above WGS84 ellipsoid (m)} \\
+\spec{mount}{int}{mount type:  1~=~equatorial, else~=~altazimuth} \\
+\spec{pnogo}{double}{closest to mount pole allowed (radians)} \\
+\\
+\specsubhead{Ambient air conditions} \\
+\spec{p }{double}{pressure (hPa~$\equiv$~mB)} \\
+\spec{tc}{double}{temperature (degrees Celsius)} \\
+\spec{h }{double}{relative humidity (0.0--1.0)} \\
+\\
+\specsubhead{Optics} \\
+\spec{fl}{double}{focal length (user units)} \\
+\spec{wl}{double}{wavelength ($\mu$m)} \\
+}\breakargs{
+\specsubhead{Pointing model coefficients (radians)} \\
+\spec{pia}{double}
+                {{\tt IA}: roll ($-$HA or $\pi-$azimuth) index error} \\
+\spec{pib}{double}
+             {{\tt IB}: pitch (declination or elevation) index error} \\
+\spec{pvd}{double}{{\tt VD}: droop} \\
+\spec{pca}{double}{{\tt CA}: telescope/pitch nonperpendicularity} \\
+\spec{pnp}{double}{{\tt NP}: roll/pitch nonperpendicularity} \\
+\spec{paw}{double}{{\tt AW}: roll axis misalignment across meridian} \\
+\spec{pan}{double}{{\tt AN}: roll axis misalignment along meridian} \\
+\spec{ga}{double}{$\Delta${\tt CA} guiding correction} \\
+\spec{gb}{double}{$\Delta${\tt IB} guiding correction} \\
+\\
+\specsubhead{Hotspot} \\
+\spec{x}{double}{$x$-coordinate in rotating focal plane (user units)} \\
+\spec{y}{double}{$y$-coordinate in rotating focal plane (user units)} \\
+\\
+\specsubhead{Mount and rotator angles (achieved)} \\
+\spec{a}{double}{achieved $-$HA or $\pi-$Az (radians)} \\
+\spec{b}{double}{achieved Dec or El (radians)} \\
+\spec{r}{double}{achieved rotator angle (radians, Note~3)} \\
+\\
+\specsubhead{UTC} \\
+\spec{iy}{int}{year CE} \\
+\spec{im}{int}{month} \\
+\spec{id}{int}{day} \\
+\spec{ih}{int}{hour} \\
+\spec{mi}{int}{minute} \\
+\spec{sec}{double}{seconds} \\
+\\
+\specsubhead{Target} \\
+\spec{rc}{double}{ICRS $\alpha$ at epoch J2000.0 (radians, Note~2)} \\
+\spec{dc}{double}{ICRS $\delta$ at epoch J2000.0 (radians, Note~2)} \\
+\spec{pr}{double}{$\mu_\alpha$ (radians/year, Note~2)} \\
+\spec{pd}{double}{$\mu_\delta$ (radians/year)} \\
+\spec{px}{double}{parallax (arcsec, Note~3)} \\
+\spec{rv}{double}{radial velocity (km/s, +ve if receding)} \\
+}
+\args{RETURNED}{
+\spec{adem }{double*}{demand $-$HA or $\pi-$Az (radians)} \\
+\spec{bdem }{double*}{demand Dec or El (radians)} \\
+\spec{ademb}{double*}{demand $-$HA or $\pi-$Az (radians, Note~4)} \\
+\spec{bdemb}{double*}{demand Dec or El (radians, Note~4)} \\
+\spec{rdem }{double*}{demand rotator angle (radians, Note~5} \\
+}
+\newpage
+\notes{
+\begin{enumerate}
+\setlength{\parskip}{\medskipamount}
+\item The Earth Orientation Parameters can be obtained from tabulations
+      provided by the International Earth Rotation and Reference
+      Systems Service.
+
+      {\tt xp} and {\tt yp}
+      are the coordinates (in radians) of the Celestial
+      Intermediate Pole with respect to the International Terrestrial
+      Reference System (see IERS Conventions), measured along the
+      meridians 0 and \degi{90} west respectively.
+
+      The $\Delta\rm{UT1}$ changes very slowly except for UTC leap
+      seconds, where it jumps by one second.
+
+\item Star data for an epoch other than J2000.0 (for example from the
+      Hipparcos catalog, which has an epoch of J1991.25) will require
+      preliminary treatment.
+
+      The target's proper motion in $\alpha$ is $d\alpha/dt$ rather than
+      $d\alpha \cos\delta /dt$.  In catalogs where the $\alpha$ and
+      $\delta$ proper motions
+      are given in milliarcseconds per year, both will need scaling
+      into radians before the $\mu_\alpha$ value is divided by
+      $\cos \delta$.  {\it n.b.}~Some catalogs quote proper motions
+      per century, others per year.
+
+      The parallax value is in arcseconds rather than radians as it is
+      a distance measure rather than an angle.
+\item The achieved rotator angle {\tt r} is zero when the $+y$~axis
+      points toward the projection of the mount's south pole, and
+      increases counterclockwise.
+\item The second set of mount demands,
+      {\tt ademb,bdemb}, is for the ``beyond the pole'' solution.
+\item The demand rotator angle {\tt rdem} is that required to align the
+      $+y$~axis to ICRS north when the mount is in its normal
+      ({\it i.e.}~not beyond the pole) attitude.
+\item This function does not itself validate the given arguments, but
+      does return the error status if any of the called functions
+      fails.
+\item Although grossly inefficient, it will run at kilohertz rates on
+      any modern processor.
+\end{enumerate}
+}
+
+\label{end_spkS2e}
+
+%-----------------------------------------------------------------------
+
+\function{spkVtel}{solve virtual telescope}
+\call{j = spkVtel ( isoln, \&obs, \&opt, \&pm,
+                     \&ast, \&ax3, \&tar, \&po, \\
+       \hspace*{14em} \&tara, \&tare, \&tarr, \&tarp, soln[5] );}
+\action{Solve a ``virtual telescope'' (Note~1).}
+\args{GIVEN}{
+
+\spec{isoln}{spkVTS }{what to solve for (Notes~3,4)} \\
+\spec{obs  }{spkOBS*}{observatory} \\
+\spec{opt  }{spkOPT*}{optics (for focal length)} \\
+\spec{pm   }{spkPM* }{pointing model (Note~5)} \\
+\spec{ast  }{spkAST*}{astrometry parameters (Note~6)} \\
+\spec{ax3  }{spkAX3*}{achieved roll, pitch, rotator angles (radians)} \\
+\spec{tar  }{spkTAR*}{target (ICRS, apparent or altazimuth)} \\
+\spec{po   }{spkPO* }{hotspot \xy\
+                     (Note~2, same units as focal length)} \\
+}
+\args{RETURNED}{
+\spec{tara}{double*}{target observed azimuth (N thru E, radians)} \\
+\spec{tare}{double*}{target observed elevation (radians)} \\
+\spec{tarr}{double*}{target roll (radians)} \\
+\spec{tarp}{double*}{target pitch (radians)} \\
+\spec{soln}{double[5]}{solution (Notes~4,9)} \\
+}
+\args{RETURNED \rm (function value)}{
+\spec{}{int}{status: $+1$ = pole avoidance occurred} \\
+\spec{}{}{~~~~~~~~~  \,~~0 = OK} \\
+\spec{}{}{~~~~~~~~~  $-1$ = no solutions} \\
+\spec{}{}{~~~~~~~~~  $-2$ = geometrically impossible} \\
+\spec{}{}{~~~~~~~~~  $-3$ = illegal target system} \\
+}
+\notes{
+\begin{enumerate}
+\setlength{\parskip}{\medskipamount}
+\item The virtual telescope (see reference) is a data construct that
+      describes the relationship between three aspects of pointing a
+      telescope, namely:
+      \begin{itemize}
+      \item the coordinates of the celestial target,
+      \item the position of the target's image in the focal plane, and
+      \item the angles to which the mount axes must be set in order to
+            acquire the image.
+      \end{itemize}
+      Given any two of these, along with certain other information,
+      including astrometric parameters some of which are changing
+      with time, the third can be deduced.
+
+      Thus a telescope can track a star by knowing the \radec\ and the
+      desired image \xy, and repeatedly solving for mount angles as the
+      astronomical transformations progress.  Or the mapping between
+      sky coordinates and focal plane coordinates can be sampled, in
+      both directions.
+\item Focal plane \xy\ is left-handed when projected onto the sky.
+      Zero rotator angle is when the projection on the sky of the
+      $y$-axis points at the negative mount pole, and the angle
+      increases counter-clockwise on the sky.
+\item The argument {\tt isoln} specifies what quantities are to be
+      solved for:
+      \begin{itemize}
+      \item If {\tt isoln = AXES}, the result is the mount axis
+            angles demands required to image the target onto the desired
+            \xy, known as the ``hotspot''.  There can be two sets of
+            these angles, one corresponding to the ``beyond the pole''
+            state of the mount.  Also computed is the field orientation,
+            in the form of the position angle of the rotating focal
+            plane's $y$-axis.  {\it n.b.}~ The given argument {\tt ax3}
+            is needed for other purposes and must contain valid
+            ``achieved'' angles.
+      \item If {\tt isoln = HOTS}, the result is the \xy\ position
+            of the image in the rotating focal plane.  The given
+            argument {\tt po} is not used and need not be
+            initialized.
+      \item If {\tt isoln = TARG}, the result is the celestial
+            coordinates of the target.  The supported systems are
+            ICRS astrometric \radec, geocentric apparent \radec\
+            and observed \azel, the latter left-handed (north
+            through east).  The given argument {\tt tar} is
+            needed for other purposes and must contain a valid
+            target.
+      \item If {\tt isoln = DEFT} (or any other value) no solution
+            takes place -- see the next note.
+      \end{itemize}
+\item Irrespective of the {\tt isoln} value, the target's observed place
+      as right-handed \azel\ and mount \ropi\ are returned, for
+      general purposes including the calculation of pointing-model
+      terms.
+\item The pointing model structure {\tt pm}
+      contains seven coefficients, called IA, IB,
+      VD, CA, NP, AW and AN.  A typical operational pointing model would
+      contain a greater variety, each being mapped onto the most natural
+      one of the seven.
+\item The astrometry parameters {\tt ast} can be formed by calling the
+      {\tt spkAstr} function with the appropriate UTC specified.  In
+      {\tt spkAstr} the argument {\tt jfull} controls whether a complete
+      recalculation is to be carried out or merely the Earth rotation
+      angle.  A common strategy would be to recompute the parameters
+      prior to acquiring a new target (or even once a night), and to
+      update only the ERA at the rate of the tracking loop, typically
+      20~Hz.
+\item The returned {\tt tara} and {\tt tare} are the observed place
+      ({\it i.e.}~the pointing direction) as left-handed \azel,
+      where azimuth runs north through east.
+\item The returned {\tt tarr} and {\tt tarp} are the target observed
+      place in mount roll,pitch, called {\tt AIM} in the code.  For
+      an equatorial mount, the nominal orientation of the \ropi\
+      frame makes {\tt tarr} minus hour angle and {\tt tarp}
+      declination.  For an altazimuth mount, the nominal orientation
+      makes {\tt tarr} $\pi$ minus the north-through-east azimuth and
+      {\tt tarp} elevation (more properly called altitude).  For both
+      types of mount, the actual orientation depends on data members
+      {\tt pan} and {\tt paw} in the {\tt spkPM} pointing-model
+      structure.  These are typically a few (or a few tens of)
+      arcseconds, and are called polar misalignment for an equatorial
+      and azimuth axis tilt in an altazimuth.
+\item The {\tt soln} array receives from one to five doubles, depending
+      on the {\tt isoln} argument, as follows:
+
+      \begin{tabular}{c l c c c c}
+         ~~~~~~ & {\tt isoln} & {\tt AXES} & {\tt HOTS} & {\tt TARG} & {\it else} \\
+         \\
+         ~~~~~~ & {\tt soln[0]} & $r$      &  $x$  &  $f$  &  - \\
+         ~~~~~~ & {\tt soln[1]} & $p$      &  $y$  &  $g$  &  - \\
+         \\
+         ~~~~~~ & {\tt soln[2]} & $rb$     &  -    &  -    &  - \\
+         ~~~~~~ & {\tt soln[3]} & $pb$     &  -    &  -    &  - \\
+         \\
+         ~~~~~~ & {\tt soln[4]} & $\theta$ &  -    &  -    &  - \\
+      \end{tabular}
+
+      Unused {\tt soln} elements (marked -) are undefined.  Everything
+      but $x$ and $y$ are radians.
+
+      For the {\tt AXES} solution:
+      \begin{itemize}
+      \item The results $r,p$ and $rb,pb$ are the roll,pitch mount
+            pointing demands needed to image the target onto the
+            hotspot.
+      \item The ``$b$'' pair are for the ``beyond the pole''
+            configuration.  It is up to the telescope control
+            application to decide whether $r,p$ or $rb,pb$ are to be
+            used as drive demands.  For equatorials the ``$b$'' set
+            represents below the pole in a fork or horseshoe mount and
+            one of the ``meridian flip'' cases in GEMs and cross-axis
+            mounts.  The ``$b$'' set are not commonly used for
+            altazimuths, though they could be in designs where ``through
+            the zenith'' is allowed.
+      \item The $\theta$ result is the rotator demand that will, at the
+            hotspot, make the $y$-axis of the rotating focal plane point
+            north (or up) in the target's celestial coordinate system.
+      \item If the desired field orientation ({\it i.e.}~the desired
+            position
+            angle of the $y$-axis, counterclockwise from north) is
+            $ypa$, the rotator demand is $\theta + ypa$.  In altazimuth
+            telescopes in particular this will provide the
+            ever-changing tracking
+            demands for the rotator.  The same is true for equatorials,
+            though usually the rotator is not driven continuously and
+            the small residual field rotations neglected.
+      \item It is important to understand that the {\tt soln[4]} value
+            is for the {\bf achieved} mount orientation, supplied in the
+            {\tt ax3} structure, and whether this is close to $r,p$ or
+            $rb,pb$ depends on the current ``beyond the pole'' status.
+      \end{itemize}
+
+      For the {\tt HOTS} solution, the $x,y$ results are the
+      coordinates of the target's image given the current mount
+      pointing.  They are in the units chosen for the telescope focal
+      length in the {\tt spkOBS} structure, for example millimeters,
+      and are on the rotating focal plane, so will stay constant for a
+      specific place on an instrument, such as a spectrograph slit.
+
+      For the {\tt TARG} solution, the $f,g$ results are the sky
+      position that corresponds to the hotspot \xy\ given the current
+      mount pointing.  This is an \radec\ when the target's system is
+      {\tt ICRS} or {\tt APPT}, or \azel\ (left-handed) for the
+      {\tt AZEL} case.
+\end{enumerate}
+}
+\label{end_spkVtel}
+
+%-----------------------------------------------------------------------
+
+\newpage
+
+\section{Coordinate conventions}
+\label{cconv}
+The coordinate conventions that SPK uses are a fruitful cause of
+confusion, mainly for historical reasons.  The present section
+spells out exactly what they are.
+
+As far as possible, the SPK code deals internally with right-handed
+systems, transforming into left-handed systems only to harmonize
+with existing astronomical practice.  It is advisable in code to
+provide explanatory comments each and every time there is opportunity
+for misunderstanding.
+
+Angles may be expressed in any range (in particular
+$\pm\pi$ or $0-2\pi$) without changing meaning as far as SPK is
+concerned.  A TCS which had reason to be careful about this
+aspect, for example where dealing with cable wraps and limits,
+would have to condition values returned by SPK appropriately.
+
+\subsection{Vectors}
+Throughout SPK, vectors are right-handed.  There are, for example,
+no cases where left-handed spherical coordinates such as \azel\
+are transformed into 3-vectors using standard formulas;  the
+angular coordinates would be converted into right-handed forms
+before transformation.
+
+\subsection{Spherical coordinates}
+Celestial coordinates in \radec\ form are naturally
+right-handed, and no special care is needed dealing with them.
+
+The opposite is true of \hadec, which is a left-handed system.
+The right-handed form is $[\,-h,\delta\,]$.
+
+The other awkward case is \azel, with the additional complication
+that in practice different zero points are encountered.
+In SPK the left-handed
+form is clockwise from north as seen from above, while the
+right-handed form is counter-clockwise from south.
+
+SPK calls generic mount coordinates \ropi, a right-handed system.
+For equatorial mounts, zero roll is on the meridian;  for
+altazimuth mounts, zero roll is south.  In code that transforms
+\ropi\ into either \azel\ or \hadec\ there must be comments
+spelling out exactly what is happening.
+
+\subsection{Focal plane}
+The focal plane \xy\ system is right-handed as seen by the
+light approaching the focal plane being delivered from Cassegrain
+optics or another non-mirror-imaging optical design.  This means
+that {\bf when projected onto the sky} the \xy\ axes are
+{\bf left-handed}.
+
+\subsection{Rotator angle}
+Zero rotator angle is when the projection on the sky of the
+$y$-axis points at the negative mount pole, hence downwards in
+an altazimuth and south in an equatorial.  The angle increases
+counter-clockwise on the sky.
+
+%-----------------------------------------------------------------------
+
+\newpage
+
+\section{The operational pointing model}
+\label{opm}
+This section deals with the chain of events that must
+come about if accurate corrected pointing and tracking
+is to be achieved, namely
+calibration, modeling and implementation.
+
+For the modeling stage an offline pointing-analysis
+program called PMFIT is supplied with SPK, but is
+neither SPK-specific
+nor mandatory.  PMFIT uses a rudimentary but quite
+effective fixed six-term model, but far better
+results will be obtained with one of the much more complete
+proprietary pointing-analysis packages (ideally TPOINT).
+
+\subsection{Context}
+
+Straight out of the box,
+SPK does little more than point a perfect telescope/mount
+at a celestial target.
+But telescopes/mounts are never perfect, and to
+achieve accurate pointing and tracking there needs to be a way of
+correcting for mechanical defects such as
+misalignments, flexures and gear errors.
+The interface through which these
+corrections are applied is the set of seven coefficients
+in SPK's {\it internal} pointing model structure,
+the argument {\tt pm} in the function {\tt spkVtel}.
+
+The TCS developer must devise ways of accomplishing three things:
+\begin{enumerate}
+\item Set-piece pointing tests have to be developed,
+      sampling the behavior of the telescope+mount at
+      different places in the sky.  See Section~\ref{ptests}.
+\item Suitable mathematical terms must be
+      fitted to these samples that describe the character of
+      the all-sky
+      pointing.  This set of formulas and amplitudes
+      is the {\it operational} pointing model.
+      See Section~\ref{modeling}.
+\item In the TCS pointing kernel, the internal
+      model {\tt pm} must be kept updated in real time so that it
+      impersonates the operational model.  See Section~\ref{prt}.
+\end{enumerate}
+
+\subsection{Pointing tests}
+\label{ptests}
+
+Before models can be fitted and correction code written,
+the essential first step is to develop procedures
+that carry out pointing tests.  The telescope must
+be pointed at a series of calibration
+targets, and records kept of, in effect, (i)~the mount
+encoder readings that the telescope was told to point at
+and (ii)~where in the sky it was actually pointing.
+
+The latter, the direction of the incoming radiation,
+is known as ``observed place".  Starting from the catalog
+entry for the star, it includes all the the usual
+astrometric transformations up to and including refraction.
+What is actually logged can be the observed coordinates
+themselves or
+enough information (star catalog entry, ambient
+air conditions, color, time) to compute them.
+
+The pointing-test implementation must have access
+to a set of trustworthy calibration targets, and
+there are two options for these.  The most straightforward
+is simply a list of stars (optical/IR or radio),
+chosen for their brightness and isolation;  acquiring each
+pointing sample normally involves centering on the star
+before logging the results.  The second method, which
+applies only to optical/IR and requires a camera, is to
+make exposures at arbitrary points spread over the sky and then
+perform automatic astrometry to detemine from the star patterns
+where the center of the exposure turned out to be.
+
+The TCS implementor has to decide the order in which
+the pointing calibrators will be observed.  The whole observable
+sky must be sampled, fairly evenly, and with some degree
+of randomness; avoiding excessive dome motion will also be a
+consideration.  A tried-and-tested scheme is as follows:
+\begin{enumerate}
+\item Observe the calibration target which is
+      (a)~nearest where the telescope happens to be pointing and
+      (b)~sufficiently high in the sky.
+\item Mark it as used.
+\item Repeat from Step~1 until all visible calibrators
+      have been used.
+\end{enumerate}
+It is very important to log the target's observed place and
+the encoder demands as {\it absolute}~ quantities, sampled at
+precisely the same instant and independent of whatever
+pointing/tracking corrections the TCS is currently
+applying.  A trap that TCS developers
+usually fall into is instead to log how far out the star was.
+Radio astronomers for some reason often make matters worse by
+recording azimuth~+~error separately from
+elevation~+~error,
+and not necessarily at the same
+instant.  If this line-of-least resistance ``How far out were we?"
+method is used, not only does the operational pointing model have
+to be recorded but the calculations during analysis must
+be identical to what the TCS was doing.  There is a lot to go
+wrong!
+
+In summary, the pointing samples should fulfil the following
+requirements:
+\begin{itemize}
+\item The observations must cover the full patrol range of the telescope
+and be evenly spread across the sky.  They must be random and not
+a regular grid of any kind.
+\item The quantities recorded
+must be absolute, and not relative to the current pointing
+model.  In the case of altazimuth mounts this will require adroit
+real-time handling.
+\item The telescope readings must be mechanical rather than celestial,
+while the star readings must be observed place (or the makings).
+\item The path must keep both axes busy to allow
+temporal and spatial effects to be distinguished during analysis.
+\item All observations must be vector ones, {\it i.e.}~both coordinates at
+once.
+\item The observations should either be centered or astrometrically
+solved.  Simply recording pointing errors or adjustments is not
+acceptable.
+\end{itemize}
+
+\subsection{Modeling}
+\label{modeling}
+
+Given a set of pointing samples, the next step is to model
+the relationship between where the telescope was told to
+point and where it actually ended up pointing.  This can be done
+in a rudimentary way by the supplied offline tool PMFIT, but serious
+work calls for a proprietary package such as TPOINT,
+MaxPoint, PointXP {\it etc.}  In all of these packages
+the goal is to minimize $\Sigma r^2$, where $r$ is the error
+on the sky.
+
+The recommended proprietary pointing-analysis tool is TPOINT.
+This offers a huge repertoire of terms (not the fixed set
+of just six terms that PMFIT uses), the ability to
+build models both interactively and automatically, formal statistical
+tests to identify outliers and assess
+term effectiveness, the ability to
+combine heterogeneous
+pointing tests for analysis, rigorous Euler-angle based
+transformations, and much more.\footnote{Examples
+of TPOINT in action can be found in:
+\begin{itemize}
+\item Mangum, G. {\it et~al.}, 2006, {\it Evaluation of the
+ALMA Prototype Antennas}, Publications of the Astronomical
+Society of the Pacific, {\bf 118}, 847, 1260, and
+\item White, E., {\it et~al}, 2022,
+{\it Green Bank Telescope: overview and analysis
+of metrology systems and
+pointing performance}, Astronomy \& Astrophysics, {\bf 659}, A113.
+\end{itemize}}
+
+\subsubsection{Using PMFIT}
+\label{pmfit}
+The PMFIT program reads a file of pointing-test data
+from standard input, fits a basic model that minimizes the sum
+of squares of the sky error,
+and reports the fit through standard output.
+
+The input file has the following format:
+\begin{itemize}
+\item Comment.
+\item Mount record: {\tt E} or {\tt A} for equatorial or altazimuth
+      respectively.
+\item Latitude record (degrees).
+\item Observation records.
+\end{itemize}
+Each observation record contains four numbers, all
+of which are angles in degrees.
+
+The first pair are the observed place, the direction from which the
+radiation from the pointing calibrator is arriving.
+The second pair are the encoder demands needed to center the
+telescope on the calibrator.
+
+For the equatorial case the observations are in terms of hour angle
+(west positive) and declination.  For the altazimuth case the
+observations are in terms of azimuth (north through east) and
+elevation.
+
+The operational model that PMFIT produces
+contains only six terms, namely the
+two index errors, telescope/pitch non-perpendicularity,
+the two components of the tilt of the roll axis, and Hooke's Law
+flexure. Note that there is no PMFIT term that corresponds to
+nonperpendicularity between the two axes of the mount.  This is
+because that and two other terms, namely the roll
+zero point and the collimation error, are highly correlated
+and consequently hard to separate.  Given typical
+standards of engineering, it is safer to assume that
+that the mount axes are at right angles.
+
+For demonstration purposes, two samples of
+pointing-test data are provided, one equatorial and
+one altazimuth.  In both cases the
+observations are authentic, complete and, apart from having been
+transformed into PMFIT format, unedited.
+
+The first, {\tt pmfit\_equat.dat}, is a 39-observation
+data set from a 5m horseshoe-mounted
+telescope in the northern hemisphere:
+\scode\begin{verbatim}
+5m horseshoe equatorial
+E
++33.356111
+  6.330566 +30.152204  6.340084 +30.170576
+  0.187975 -33.082993  0.199617 -33.063655
+  1.817108  +9.797865  1.830450  +9.815605
+                      :
+                      :
+  1.947325 +30.766812  1.957668 +30.784955
+  1.983704 +30.766812  1.994047 +30.784950
+\end{verbatim}\ecode
+The second, {\tt pmfit\_altaz.dat}, is a
+105-observation data set from from an 8m altazmuth
+telescope in the southern hemisphere:
+\scode\begin{verbatim}
+8m altazimuth
+A
+-30.240667
+264.465524  28.162130 264.433446  28.271060
+259.687217  29.877367 259.655032  29.985096
+259.231614  42.583144 259.202411  42.677360
+                     :
+                     :
+110.331319  72.458197 110.282862  72.514584
+130.940386  39.626090 130.901588  39.719032
+\end{verbatim}\ecode
+The PMFIT report for the equatorial data set is:
+\scode\begin{verbatim}
+IH:    -92.258  +/-  4.034 arcsec
+ID:   -126.738  +/-  2.273 arcsec
+CH:    +44.210  +/-  3.266 arcsec
+ME:    +64.848  +/-  2.495 arcsec
+MA:     -2.992  +/-  1.395 arcsec
+TF:    +10.993  +/-  1.647 arcsec
+
+Sky sigma =    5.780 arcsec
+\end{verbatim}\ecode
+The coefficients
+IH and ID are the index errors (zero points) in
+hour angle and declination, CH is the ``collimation error'',
+the nonperpendicularity between the telescope and the declination
+axis;  ME and MA are the polar axis displacements
+up-down and left-right respectively; and TF
+is the Hooke's Law vertical flexure.  {\it n.b.}~PMFIT uses first-order
+expressions for CH, ME and MA, whereas the TPOINT package uses
+rigorous rotations.
+
+TPOINT automatic modeling of the same data set achieved sky
+$\sigma$ of 1.65~arcsec from a 14-term
+model.  The PMFIT 5.78~arcsec result is therefore only a factor of
+four worse, which is unusually good:  a factor of 5-10 would be
+more typical.  To illustrate the available performance without
+pointing corrections, fitting only the zero points
+gave $\sigma = 36.26$~arcsec, so for this example PMFIT
+achieved a factor of six improvement.
+
+The PMFIT report for the altazimuth data set is:
+\scode\begin{verbatim}
+IA:   -142.148  +/-  4.378 arcsec
+IE:   -117.293  +/-  3.016 arcsec
+CA:    +19.843  +/-  3.022 arcsec
+AN:    -23.758  +/-  0.965 arcsec
+AW:    +19.261  +/-  0.960 arcsec
+TF:   +279.752  +/-  4.361 arcsec
+
+Sky sigma =    8.349 arcsec
+\end{verbatim}\ecode
+IA and IE are the azimuth and elevation index errors;
+CA is the nonperpendicularity between the
+telescope and the elevation axis;  AN and AW are the azimuth axis
+tilts north and west respectively; and TF
+is the Hooke's Law vertical flexure. {\it n.b.}~PMFIT uses first-order
+expressions for CA, AN and AW, whereas the TPOINT package uses
+rigorous rotations.
+
+TPOINT automatic modeling of the same data set achieved sky
+$\sigma$ of 1.01~arcsec from an 18-term
+model.  The PMFIT 8.36~arcsec result is therefore
+a factor of eight worse, a not untypical result.  Fitting
+zero points alone
+gave $\sigma = 60.44$~arcsec, so for this example PMFIT
+achieved a factor of seven improvement.
+
+\subsection{Implementing the model}
+\label{prt}
+
+With a mathematical model of the pointing characteristics
+adopted, the final step is to implement
+new code in the {\tt spkVtel}
+function to evaluate the operational model in real time.
+This involves updating the data members of the
+{\tt pm} structure at some appropriate rate.
+
+For a few basic terms there is a one-to-one
+correspondence between the operational and
+internal models.  In other cases the terms in the operational
+model will turn into contributions to two or more
+internal model terms.  The documentation for the pointing-analysis
+tool of choice should provide the mathematical expressions
+that enable these contributions to be formulated.
+
+In less sophisticated analysis tools, all the operational model
+terms are presented simply as contributions to the index
+errors, using first-order spherical trigonometry
+expressions.  In that scenario
+only two of the internal model's coefficients
+will need to be populated,
+and the remaining five left set to zero.  This simple-minded
+scheme is not ideal as it will fail to exploit SPK's
+rigor, so that both
+pointing and field orientation predictions will progressively
+degrade as the pointing coefficients increase in size.
+
+Irrespective of what pointing-analysis tool is chosen,
+coding the {\tt spkVtel} enhancements is bound to be
+messy and error-prone.  Fortunately, the code will be very
+easy to debug, using what is called a ``dummy pointing test''.
+This is where a pointing test is run but the data
+logging is contrived to
+correspond to no pointing errors:  the corrected pointing
+that the TCS is calculating is already producing a perfect
+result.  Fictitious stars can of course be used, and there
+is no need for darkness;  indeed there is
+no need to have the telescope moving
+at all.  The subsequent pointing analysis should give
+exactly the
+same terms and coefficients that were generated by the
+analysis tool after an actual pointing test.  With luck, any
+differences will merely be sign errors or missing terms, hence
+easy to spot.  However, it will usually be necessary to deduce
+what is going wrong from the look of the pointing
+residuals.  If that fails, experimenting with one term at a
+time is the way forward.
+
+The following lines of code in
+the demonstrators {\tt altaz.c} and {\tt equat.c}
+show what is involved.  Real code would of course have
+amplitudes passed in from outside in some way, not the
+hardcoded numerical values used here.
+
+Using the term amplitudes from the above PMFIT examples,
+the {\tt equat.c} code would be:
+\scode\begin{verbatim}
+pm.pia =  +92.258 * AS2R;              /* -IH */
+pm.pib = -126.738 * AS2R;              /* +ID */
+pm.pvd =  +44.210 * AS2R * cos(tare);  /* +TF */
+pm.pca =  -64.848 * AS2R;              /* -CH */
+pm.pnp =    0.0   * AS2R;              /* -NP */
+pm.paw =   +2.992 * AS2R;              /* -MA */
+pm.pan =  +10.993 * AS2R;              /* +ME */
+\end{verbatim}\ecode
+\ldots and the {\tt altaz.c} code would be:
+\scode\begin{verbatim}
+pm.pia = -142.148 * AS2R;              /* +IA */
+pm.pib = -117.293 * AS2R;              /* +IE */
+pm.pvd =  +19.843 * AS2R * cos(tare);  /* +TF */
+pm.pca =  -23.758 * AS2R;              /* +CA */
+pm.pnp =    0.0   * AS2R;              /* +NPAE */
+pm.paw =  +19.261 * AS2R;              /* +AW */
+pm.pan = +279.752 * AS2R;              /* +AN */
+\end{verbatim}\ecode
+In both cases, {\tt cos(tare)} is the cosine of the
+target elevation ({\it i.e.}~the sine of zenith distance)
+and there is no NPAE/NP component for the reasons given
+earlier.
+
+\newpage
+
+\section{Files}
+\label{files}
+The following lists all the SPK files and the purpose of each one:
+\begin{tabbing}
+xxx \= xxxxxxxxxxxxxxxxxx \= \kill
+\> {\tt altaz.c} \> C source for the {\tt ALTAZ} demonstrator \\
+\> {\tt astr.c} \> C source for the {\tt spkAstr} function \\
+\> {\tt ctar.c} \> C source for the {\tt spkCtar} function \\
+\> {\tt equat.c} \> C source for the {\tt EQUAT} demonstrator \\
+\> {\tt pmfit.c} \> C source for the {\tt PMFIT} model-fitting program \\
+\> {\tt pmfit\_altaz.dat} \> simulated pointing-test data, altazimuth \\
+\> {\tt pmfit\_equat.dat} \> simulated pointing-test data, equatorial \\
+\> {\tt point.c} \> C source for the {\tt POINT} demonstrator \\
+\> {\tt s2e.c} \> C source for the function called by {\tt point.c} \\
+\> {\tt spk.h} \> C source for the {\tt spk.h} header file \\
+\> {\tt spk.pdf} \> documentation PDF \\
+\> {\tt spk.tex} \> documentation \LaTeX\ source \\
+\> {\tt vtel.c} \> C source for the {\tt spkVtel} function \\
+\end{tabbing}
+
+\end{document}
+

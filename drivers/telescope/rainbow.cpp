@@ -477,7 +477,11 @@ bool Rainbow::getTrackingState()
 /////////////////////////////////////////////////////////////////////////////////////
 bool Rainbow::findHome()
 {
-    return sendCommand(":Ch#");
+    bool ret = false;
+    ret = sendCommand(":Ch#");
+    if (ret)
+        TrackState = SCOPE_SLEWING;
+    return ret;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1261,13 +1265,13 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
             break;
     }
 
-        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
-      auto directionProperty = direction > North ? MovementWESP : MovementNSSP;
+    auto directionProperty = direction > North ? MovementWESP : MovementNSSP;
 
     // If already moving (no pulse command), then stop movement
     if (directionProperty.getState() == IPS_BUSY)
@@ -1632,7 +1636,7 @@ bool Rainbow::sendScopeLocation()
     // Only update if different from current values
     // and then immediately save to config.
     if (std::abs(LocationNP[LOCATION_LONGITUDE].getValue() - longitude) > 0.001 ||
-        std::abs(LocationNP[LOCATION_LATITUDE].getValue() - latitude) > 0.001)
+            std::abs(LocationNP[LOCATION_LATITUDE].getValue() - latitude) > 0.001)
     {
         LocationNP[LOCATION_LATITUDE].setValue(latitude);
         LocationNP[LOCATION_LONGITUDE].setValue(longitude);
@@ -1663,7 +1667,7 @@ Rainbow::TelescopePierSide Rainbow::getSideOfPier()
 
     char rotationAngle[16] = {0};
 
-    strncpy(rotationAngle, cyResponse + 3, 7);
+    snprintf(rotationAngle, sizeof(rotationAngle), "%.7s", cyResponse + 3);
 
     sscanf(rotationAngle, "%f", &decAxis);
 

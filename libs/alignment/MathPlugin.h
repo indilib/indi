@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InMemoryDatabase.h"
+#include "TelescopeDirectionVectorSupportFunctions.h"
 
 namespace INDI
 {
@@ -18,7 +19,7 @@ namespace AlignmentSubsystem
  * \class MathPlugin
  * \brief Provides alignment subsystem functions to INDI alignment math plugins
  *
- * \note This class is intended to be implemented within a dynamic shared object. If the
+ * \note This class is intended to be implemented within an external plugin. If the
  * implementation of this class uses a standard 3 by 3 transformation matrix to convert between coordinate systems
  * then it will not normally need to know the handedness of either the celestial or telescope coordinate systems, as the
  * necessary rotations and scaling will be handled in the derivation of the matrix coefficients. This will normally
@@ -60,9 +61,37 @@ class MathPlugin
         /// \brief Get the alignment corrected telescope pointing direction for the supplied celestial coordinates
         /// \param[in] RightAscension Right Ascension (Decimal Hours).
         /// \param[in] Declination Declination (Decimal Degrees).
-        /// \param[in] JulianOffset to be applied to the current julian date.
+        /// \param[in] JulianDate Absolute Julian Date (days).
         /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
         /// \return True if successful
+        /// \note Built-in plugins override this method and use JulianDate directly without reading the system clock.
+        /// External plugins that have not yet adopted this interface use the default implementation, which
+        /// computes JulianOffset = JulianDate - ln_get_julian_from_sys() and delegates to
+        /// TransformCelestialToTelescope, so the plugin recovers the correct absolute JD internally.
+        virtual bool TransformCelestialToTelescopeJD(double RightAscension, double Declination,
+                double JulianDate,
+                TelescopeDirectionVector &ApparentTelescopeDirectionVector);
+
+        /// \brief Get the true celestial coordinates for the supplied telescope pointing direction
+        /// \param[in] ApparentTelescopeDirectionVector the telescope direction
+        /// \param[out] RightAscension Parameter to receive the Right Ascension (Decimal Hours).
+        /// \param[out] Declination Parameter to receive the Declination (Decimal Degrees).
+        /// \param[in] JulianDate Absolute Julian Date (days).
+        /// \return True if successful
+        /// \note Built-in plugins override this method and use JulianDate directly without reading the system clock.
+        /// External plugins that have not yet adopted this interface use the default implementation, which
+        /// ignores JulianDate and delegates to TransformTelescopeToCelestial with JulianOffset=0.
+        virtual bool TransformTelescopeToCelestialJD(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                double &RightAscension, double &Declination, double JulianDate);
+
+        /// \brief Get the alignment corrected telescope pointing direction for the supplied celestial coordinates
+        /// \param[in] RightAscension Right Ascension (Decimal Hours).
+        /// \param[in] Declination Declination (Decimal Degrees).
+        /// \param[in] JulianOffset Offset (days) added to ln_get_julian_from_sys() to form the Julian Date.
+        /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
+        /// \return True if successful
+        /// \note Built-in plugins implement this as a thin shim that resolves the absolute JD and calls
+        /// TransformCelestialToTelescopeJD. New callers should use TransformCelestialToTelescopeJD directly.
         virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
                 double JulianOffset,
                 TelescopeDirectionVector &ApparentTelescopeDirectionVector) = 0;
@@ -71,9 +100,26 @@ class MathPlugin
         /// \param[in] ApparentTelescopeDirectionVector the telescope direction
         /// \param[out] RightAscension Parameter to receive the Right Ascension (Decimal Hours).
         /// \param[out] Declination Parameter to receive the Declination (Decimal Degrees).
+        /// \param[in] JulianOffset Offset (days) added to ln_get_julian_from_sys() to form the Julian Date (default 0).
         /// \return True if successful
+        /// \note Built-in plugins implement this as a thin shim that resolves the absolute JD and calls
+        /// TransformTelescopeToCelestialJD. New callers should use TransformTelescopeToCelestialJD directly.
         virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                double &RightAscension, double &Declination) = 0;
+                double &RightAscension, double &Declination, double JulianOffset = 0) = 0;
+
+        /// \brief Sanitize alignment database entries that are near the pole (EQ) or
+        /// zenith (altaz).  At these singularities the roll-axis (HA or Az) component
+        /// of the TDV is unconstrained, making any pointing model ill-conditioned.
+        ///
+        /// The method shifts such entries to a moderate pitch by applying the same
+        /// delta to both the TDV encoder position and the celestial declination,
+        /// preserving the pointing correction while breaking the degeneracy.
+        /// The encoder HA/Az is reconstructed from the celestial coordinates,
+        /// implicitly assuming zero roll-index error.
+        ///
+        /// Call this before processing the database in Initialise().
+        static void SanitizePolarEntries(InMemoryDatabase *pInMemoryDatabase,
+                                         MountAlignment_t mountAlignment);
 
     protected:
         // Protected properties

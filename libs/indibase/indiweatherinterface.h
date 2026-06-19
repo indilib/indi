@@ -294,6 +294,9 @@ class WeatherInterface
         // Weather status
         INDI::PropertyLight critialParametersLP {0};
 
+        // Safety status (standard property for safety monitoring)
+        INDI::PropertyLight SafetyStatusLP {1};
+
         // Update Period
         INDI::PropertyNumber UpdatePeriodNP {1};
         // Refresh data

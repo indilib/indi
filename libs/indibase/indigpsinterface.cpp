@@ -24,6 +24,14 @@
 
 #include <cstring>
 #include <cmath>
+#ifdef __linux__
+#include <cerrno>
+#include <cstdlib>
+#include <ctime>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
 
 namespace INDI
 {
@@ -211,8 +219,12 @@ bool GPSInterface::processNumber(const char * dev, const char * name, double val
             m_UpdateTimer.start();
             // Need to warn user this is not recommended. Startup values should be enough
             if (prevPeriod == 0)
-                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
-                            "GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
+            {
+                DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,  "GPS Update Timer enabled.");
+                if (SystemTimeUpdateSP[UPDATE_ON_REFRESH].getState() == ISS_ON)
+                    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                                "Updating system-wide time repeatedly may lead to undesirable side-effects.");
+            }
         }
 
         PeriodNP.setState(IPS_OK);
@@ -263,13 +275,55 @@ bool GPSInterface::processSwitch(const char * dev, const char * name, ISState * 
 bool GPSInterface::setSystemTime(time_t &raw_time)
 {
 #ifdef __linux__
+    // Detect if running inside a Flatpak sandbox using the canonical env variable
+    if (getenv("FLATPAK_ID") != nullptr)
+    {
+        // Format time as ISO 8601 for timedatectl
+        struct tm *tm_info = gmtime(&raw_time);
+        char timeStr[32];
+        strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", tm_info);
+
+        // Use flatpak-spawn to delegate to timedatectl on the host system.
+        // timedatectl handles polkit authentication itself; pkexec is not needed.
+        // We use fork()+execvp() instead of system() to avoid shell injection risks.
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            // Child process: exec flatpak-spawn directly (no shell involved)
+            const char *args[] = { "flatpak-spawn", "--host", "timedatectl", "set-time", timeStr, nullptr };
+            execvp("flatpak-spawn", const_cast<char * const *>(args));
+            // If execvp returns, it failed
+            _exit(EXIT_FAILURE);
+        }
+        else if (pid > 0)
+        {
+            int status = 0;
+            waitpid(pid, &status, 0);
+            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            {
+                DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                             "Failed to update system time via timedatectl (exit code: %d)",
+                             WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+                return false;
+            }
+        }
+        else
+        {
+            DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                         "Failed to fork process for timedatectl: %s", strerror(errno));
+            return false;
+        }
+        return true;
+    }
+
+    // Native (non-Flatpak) path
 #if defined(__GNU_LIBRARY__)
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
     timespec sTime = {};
     sTime.tv_sec = raw_time;
-    auto rc = clock_settime(CLOCK_REALTIME, &sTime);
-    if (rc)
-        DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING, "Failed to update system time: %s", strerror(rc));
+    if (clock_settime(CLOCK_REALTIME, &sTime) == -1)
+        DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                     "Failed to update system time: %s", strerror(errno));
 #else
     stime(&raw_time);
 #endif

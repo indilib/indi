@@ -243,7 +243,7 @@ void set_pmc8_simulation(bool enable)
 
 void set_pmc8_device(const char *name)
 {
-    strncpy(pmc8_device, name, MAXINDIDEVICE);
+    snprintf(pmc8_device, MAXINDIDEVICE, "%s", name);
 }
 
 void set_pmc8_location(double latitude, double longitude)
@@ -344,8 +344,8 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
             if (detect_pmc8(fd))
             {
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "Connected to PMC8 using a standard-configured FTDI cable."
-                            "Your mount will reset and lose its position anytime you disconnect and reconnect."
-                            "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");
+                                                                    "Your mount will reset and lose its position anytime you disconnect and reconnect."
+                                                                    "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");
                 return true;
             }
             usleep(PMC8_RETRY_DELAY);
@@ -452,7 +452,7 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
             {
                 //locate P9 code in response
                 char num_str[3] = {0};
-                strncat(num_str, response + 20, 2);
+                snprintf(num_str, sizeof(num_str), "%.2s", response + 20);
                 int p9 = (int)strtol(num_str, nullptr, 10);
 
                 // Set mount type based on P9 code
@@ -602,8 +602,7 @@ bool get_pmc8_move_rate_axis(int fd, PMC8_AXIS axis, double &rate)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 5, 6);
+    snprintf(num_str, sizeof(num_str), "0X%.6s", response + 5);
 
     int mrate = (int)strtol(num_str, nullptr, 0);
 
@@ -658,7 +657,7 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 
     char num_str[16] = {0};
 
-    strncat(num_str, response + 5, 2);
+    snprintf(num_str, sizeof(num_str), "%.2s", response + 5);
 
     dir = (int)strtol(num_str, nullptr, 0);
 
@@ -748,6 +747,10 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
 }
 
 // set move speed in terms of how many times sidereal
+// Southern Hemisphere support: In the southern hemisphere, the mount is oriented
+// differently relative to the celestial pole, so we need to invert the motor
+// directions for N/S movements. The pmc8_east_dir variable is 1 for northern
+// hemisphere and 0 for southern hemisphere.
 bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
 {
     int rate = reqrate;
@@ -760,9 +763,14 @@ bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
     switch (dir)
     {
         case PMC8_S:
-            rate = -rate;
-            [[fallthrough]];
+            // In northern hemisphere, South is negative direction
+            // In southern hemisphere, South is positive direction (mount is flipped)
+            rate = pmc8_east_dir ? -rate : rate;
+            return set_pmc8_custom_dec_move_rate(fd, rate);
         case PMC8_N:
+            // In northern hemisphere, North is positive direction
+            // In southern hemisphere, North is negative direction (mount is flipped)
+            rate = pmc8_east_dir ? rate : -rate;
             return set_pmc8_custom_dec_move_rate(fd, rate);
         case PMC8_E:
             rate = -rate;
@@ -828,8 +836,7 @@ bool get_pmc8_track_rate(int fd, double &rate)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 4, 4);
+    snprintf(num_str, sizeof(num_str), "0X%.4s", response + 4);
 
     int mrate = (int)strtol(num_str, nullptr, 0);
     convert_precise_motor_to_rate(mrate, &rate);
@@ -1255,8 +1262,7 @@ bool get_pmc8_guide_rate(int fd, PMC8_AXIS axis, double &rate)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 5, 2);
+    snprintf(num_str, sizeof(num_str), "0X%.2s", response + 5);
     int tint = strtol(num_str, nullptr, 0);
 
     rate = ((double)tint) / 100;
@@ -1400,11 +1406,19 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
 
     }
     // DEC guiding routine needs to set a DEC move rate and possibly a new direction
+    // Southern Hemisphere support: In the southern hemisphere, the celestial pole
+    // is in the opposite direction, so guide pulses need to be inverted.
+    // pmc8_east_dir is 1 for northern hemisphere, 0 for southern hemisphere.
     else if ((gdir == PMC8_N) || (gdir == PMC8_S))
     {
         double guide_rate = pmc8_sidereal_rate_fraction_de * PMC8_RATE_SIDEREAL;
 
-        if (gdir == PMC8_S) new_rate -= guide_rate;
+        // Determine effective guide direction considering hemisphere
+        // In southern hemisphere, N/S guide commands need to be inverted
+        bool effectiveSouth = (gdir == PMC8_S);
+        if (!pmc8_east_dir) effectiveSouth = !effectiveSouth;  // flip for southern hemisphere
+
+        if (effectiveSouth) new_rate -= guide_rate;
         else new_rate += guide_rate;
 
         if (new_rate < 0) new_dir = 1;
@@ -1858,8 +1872,7 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 5, 6);
+    snprintf(num_str, sizeof(num_str), "0X%.6s", response + 5);
 
     point = (int)strtol(num_str, nullptr, 0);
 
@@ -2329,4 +2342,11 @@ bool get_pmc8_reconnect_flag()
 void set_pmc8_goto_resume(bool resume)
 {
     pmc8_goto_resume = resume;
+}
+
+// Helper to expose pmc8_east_dir to the high-level driver (pmc8.cpp)
+// Returns 1 for Northern Hemisphere, 0 for Southern Hemisphere
+int get_pmc8_east_dir()
+{
+    return pmc8_east_dir;
 }

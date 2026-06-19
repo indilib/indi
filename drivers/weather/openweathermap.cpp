@@ -121,8 +121,8 @@ bool OpenWeatherMap::initProperties()
     setCriticalParameter("WEATHER_RAIN_HOUR");
     setCriticalParameter("WEATHER_SNOW_HOUR");
 
+    updateLocation(LocationNP[LOCATION_LATITUDE].getValue(), LocationNP[LOCATION_LONGITUDE].getValue(), LocationNP[LOCATION_ELEVATION].getValue());
     addDebugControl();
-
     return true;
 }
 

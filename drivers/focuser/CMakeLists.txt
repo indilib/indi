@@ -29,7 +29,7 @@ SET(fcusb_SRC
     fcusb.cpp)
 
 add_executable(indi_fcusb_focus ${fcusb_SRC})
-target_link_libraries(indi_fcusb_focus indidriver)
+target_link_libraries(indi_fcusb_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_fcusb_focus RUNTIME DESTINATION bin)
 
 # ############### Rigelsys NFocus Focuser ################
@@ -89,6 +89,14 @@ add_executable(indi_astromechfoc ${astromech_focuser_SRC})
 target_link_libraries(indi_astromechfoc indidriver)
 install(TARGETS indi_astromechfoc RUNTIME DESTINATION bin)
 
+# ############### Pinefeat CEF Focuser ################
+SET(pinefeat_cef_SRC
+    pinefeat_cef.cpp)
+
+add_executable(indi_pinefeat_cef_focus ${pinefeat_cef_SRC})
+target_link_libraries(indi_pinefeat_cef_focus indidriver)
+install(TARGETS indi_pinefeat_cef_focus RUNTIME DESTINATION bin)
+
 # ############### Moonlite Focuser ################
 SET(moonlite_SRC
     moonlite.cpp)
@@ -147,6 +155,16 @@ add_executable(indi_sestosenso2_focus ${sesto2_SRC})
 target_link_libraries(indi_sestosenso2_focus indidriver ${JSONLIB})
 install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 
+# ############### Sesto Senso 3 Focuser ################
+SET(sesto3_SRC
+    sestosenso3.cpp
+    primalucacommandset.cpp
+)
+
+add_executable(indi_sestosenso3_focus ${sesto3_SRC})
+target_link_libraries(indi_sestosenso3_focus indidriver ${JSONLIB})
+install(TARGETS indi_sestosenso3_focus RUNTIME DESTINATION bin)
+
 # ############### Esatto Focuser ################
 SET(esatto_SRC
     esatto.cpp
@@ -172,7 +190,7 @@ install(TARGETS indi_esattoarco_focus RUNTIME DESTINATION bin)
 # focusmaster.cpp)
 
 # add_executable(indi_focusmaster_focus ${focusmaster_SRC})
-# target_link_libraries(indi_focusmaster_focus indidriver)
+# target_link_libraries(indi_focusmaster_focus indidriver ${HIDAPILIB})
 # install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
 
 # ############### RainbowAstro RSF Focuser ################
@@ -302,7 +320,7 @@ SET(perfectstar_SRC
     perfectstar.cpp)
 
 add_executable(indi_perfectstar_focus ${perfectstar_SRC})
-target_link_libraries(indi_perfectstar_focus indidriver)
+target_link_libraries(indi_perfectstar_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
 
 # ############### Starlight Instruments EFS ################
@@ -310,7 +328,7 @@ SET(siefs_SRC
     si_efs.cpp)
 
 add_executable(indi_siefs_focus ${siefs_SRC})
-target_link_libraries(indi_siefs_focus indidriver)
+target_link_libraries(indi_siefs_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_siefs_focus RUNTIME DESTINATION bin)
 
 # ############### hitechfocus Focuser ################
@@ -318,7 +336,7 @@ SET(hitecastrodcfocuser_SRC
     hitecastrodcfocuser.cpp)
 
 add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
-target_link_libraries(indi_hitecastrodc_focus indidriver)
+target_link_libraries(indi_hitecastrodc_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
 
 # ############### DeepSky Dad AF1 ################
@@ -363,7 +381,7 @@ target_link_libraries(indi_tcfs_focus indidriver)
 install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin)
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
-    "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
+	"execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
 
 # ############### Lacerta MFOC Focuser ################
@@ -390,5 +408,12 @@ SET(activefocuser_SRC
 
 add_executable(indi_activefocuser_focus ${activefocuser_SRC})
 
-target_link_libraries(indi_activefocuser_focus indidriver)
+target_link_libraries(indi_activefocuser_focus indidriver ${HIDAPILIB})
 install(TARGETS indi_activefocuser_focus RUNTIME DESTINATION bin)
+# ############### Alpaca Focuser ################
+SET(alpaca_focuser_SRC
+    indi_alpaca_focuser.cpp)
+
+add_executable(indi_alpaca_focuser ${alpaca_focuser_SRC})
+target_link_libraries(indi_alpaca_focuser indidriver ${HTTPLIB_LIBRARY})
+install(TARGETS indi_alpaca_focuser RUNTIME DESTINATION bin)

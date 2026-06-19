@@ -33,6 +33,7 @@ class LX200GPS : public LX200Autostar
         bool updateProperties();
         void ISGetProperties(const char *dev);
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool updateTime(ln_date *utc, double utc_offset);
 
     protected:
@@ -67,4 +68,8 @@ class LX200GPS : public LX200Autostar
 
         INumberVectorProperty OTATempNP;
         INumber OTATempN[1];
+
+        INDI::PropertyNumber GuideRateNP {2};
+        
+        virtual bool saveConfigItems(FILE *fp);    
 };

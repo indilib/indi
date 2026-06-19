@@ -143,7 +143,7 @@ class INDI::BaseMediator
         virtual void serverDisconnected(int exit_code);
 
     public: // deprecated interface
-#if INDI_VERSION_MAJOR < 2
+#if INDI_VERSION_MAJOR < 2 && !defined(SWIG)
         /** @brief Emmited when a new device is created from INDI server.
          *  @param dp Pointer to the base device instance
          */

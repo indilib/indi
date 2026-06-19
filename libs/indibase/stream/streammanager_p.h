@@ -216,6 +216,10 @@ class StreamManagerPrivate
         INDI::PropertyNumber LimitsNP {2};
         enum { LIMITS_BUFFER_MAX, LIMITS_PREVIEW_FPS };
 
+        // Full bit depth streaming (skip 8-bit downscale for 16-bit cameras)
+        INDI::PropertySwitch FullDepthSP {2};
+        enum { FULL_DEPTH_8BIT, FULL_DEPTH_16BIT };
+
         std::atomic<bool> isStreaming { false };
         std::atomic<bool> isRecording { false };
         std::atomic<bool> isRecordingAboutToClose { false };

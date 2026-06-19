@@ -114,8 +114,10 @@ bool CelestronSCT::initProperties()
     // Add debugging support
     addDebugControl();
 
-    // Set default baud rate to 19200
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+    // Set default baud rate to 9600
+    // On aarch64 19200 or more seems to crash the whole USB hub.
+    // stty -a says the baud rate is 9600
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
 
     communicator.setDeviceName(getDeviceName());
 
