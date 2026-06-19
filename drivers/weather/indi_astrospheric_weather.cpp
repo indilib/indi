@@ -36,6 +36,7 @@ using json = nlohmann::json;
 #include <iomanip>
 #include <sstream>
 #include <cstdlib>
+#include <utility>
 
 static constexpr size_t EXPECTED_FORECAST_HOURS = 82;
 static constexpr int    FORECAST_CACHE_TTL_SECS  = 6 * 3600;
@@ -69,12 +70,7 @@ const char *AstrosphericWeather::getDefaultName()
 // Handles device connection.
 bool AstrosphericWeather::Connect()
 {
-    LOG_INFO("AstrosphericWeather: Connecting...");
-    // Mark device as connected.
     setConnected(true);
-    // Attempt to sync location from telescope.
-    syncLocationFromSite();
-    // Update properties for the client; this also triggers the base-class timer via WI::updateProperties().
     updateProperties();
     return true;
 }
@@ -82,9 +78,7 @@ bool AstrosphericWeather::Connect()
 // Handles device disconnection.
 bool AstrosphericWeather::Disconnect()
 {
-    LOG_INFO("AstrosphericWeather: Disconnecting...");
     setConnected(false);
-    // Update properties for the client.
     updateProperties();
     return true;
 }
@@ -328,21 +322,6 @@ bool AstrosphericWeather::saveConfigItems(FILE *fp)
     return true;
 }
 
-// Syncs location by checking snooped data.
-void AstrosphericWeather::syncLocationFromSite()
-{
-    if (locationReceived)
-    {
-        LOGF_INFO("Using location: Latitude=%.4f, Longitude=%.4f",
-                  LocationNP[LOCATION_LATITUDE].getValue(),
-                  LocationNP[LOCATION_LONGITUDE].getValue());
-    }
-    else
-    {
-        LOG_INFO("Waiting for location data to be received...");
-    }
-}
-
 // Fetches data from the Astrospheric API.
 bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
 {
@@ -399,32 +378,34 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
         apiCreditsUsed = j["APICreditUsedToday"].get<int>();
         LOGF_INFO("API credits used today: %d", apiCreditsUsed);
 
-        cloudCover.clear();
-        temperature.clear();
-        windSpeed.clear();
-        dewPoint.clear();
-        windDirection.clear();
-        seeing.clear();
-        transparency.clear();
+        std::vector<double> newCloudCover, newTemperature, newWindSpeed,
+                            newDewPoint, newWindDirection, newSeeing, newTransparency;
 
-        for (const auto &hour : j["RDPS_CloudCover"]) cloudCover.push_back(hour["Value"]["ActualValue"].get<double>());
-        for (const auto &hour : j["RDPS_Temperature"]) temperature.push_back(hour["Value"]["ActualValue"].get<double>() - 273.15);
-        for (const auto &hour : j["RDPS_WindVelocity"]) windSpeed.push_back(hour["Value"]["ActualValue"].get<double>() * 3.6);
-        for (const auto &hour : j["RDPS_DewPoint"]) dewPoint.push_back(hour["Value"]["ActualValue"].get<double>() - 273.15);
-        for (const auto &hour : j["RDPS_WindDirection"]) windDirection.push_back(hour["Value"]["ActualValue"].get<double>());
-        for (const auto &hour : j["Astrospheric_Seeing"]) seeing.push_back(hour["Value"]["ActualValue"].get<double>());
-        for (const auto &hour : j["Astrospheric_Transparency"]) transparency.push_back(hour["Value"]["ActualValue"].get<double>());
+        for (const auto &hour : j["RDPS_CloudCover"]) newCloudCover.push_back(hour["Value"]["ActualValue"].get<double>());
+        for (const auto &hour : j["RDPS_Temperature"]) newTemperature.push_back(hour["Value"]["ActualValue"].get<double>() - 273.15);
+        for (const auto &hour : j["RDPS_WindVelocity"]) newWindSpeed.push_back(hour["Value"]["ActualValue"].get<double>() * 3.6);
+        for (const auto &hour : j["RDPS_DewPoint"]) newDewPoint.push_back(hour["Value"]["ActualValue"].get<double>() - 273.15);
+        for (const auto &hour : j["RDPS_WindDirection"]) newWindDirection.push_back(hour["Value"]["ActualValue"].get<double>());
+        for (const auto &hour : j["Astrospheric_Seeing"]) newSeeing.push_back(hour["Value"]["ActualValue"].get<double>());
+        for (const auto &hour : j["Astrospheric_Transparency"]) newTransparency.push_back(hour["Value"]["ActualValue"].get<double>());
 
-        forecastHours = static_cast<int>(cloudCover.size());
-        if (cloudCover.size() != EXPECTED_FORECAST_HOURS || temperature.size() != EXPECTED_FORECAST_HOURS ||
-            windSpeed.size() != EXPECTED_FORECAST_HOURS || dewPoint.size() != EXPECTED_FORECAST_HOURS ||
-            windDirection.size() != EXPECTED_FORECAST_HOURS || seeing.size() != EXPECTED_FORECAST_HOURS ||
-            transparency.size() != EXPECTED_FORECAST_HOURS)
+        if (newCloudCover.size() != EXPECTED_FORECAST_HOURS || newTemperature.size() != EXPECTED_FORECAST_HOURS ||
+            newWindSpeed.size() != EXPECTED_FORECAST_HOURS || newDewPoint.size() != EXPECTED_FORECAST_HOURS ||
+            newWindDirection.size() != EXPECTED_FORECAST_HOURS || newSeeing.size() != EXPECTED_FORECAST_HOURS ||
+            newTransparency.size() != EXPECTED_FORECAST_HOURS)
         {
-            LOGF_ERROR("Forecast data length mismatch: %d hours (expected %zu).", forecastHours, EXPECTED_FORECAST_HOURS);
+            LOGF_ERROR("Forecast data length mismatch: expected %zu hours.", EXPECTED_FORECAST_HOURS);
             return false;
         }
 
+        cloudCover    = std::move(newCloudCover);
+        temperature   = std::move(newTemperature);
+        windSpeed     = std::move(newWindSpeed);
+        dewPoint      = std::move(newDewPoint);
+        windDirection = std::move(newWindDirection);
+        seeing        = std::move(newSeeing);
+        transparency  = std::move(newTransparency);
+        forecastHours = static_cast<int>(cloudCover.size());
         forecastValid = true;
         lastFetchTime = time(nullptr);
         LOGF_INFO("Parsed forecast for %d hours starting at %s.", forecastHours, utcStartTimeStr.c_str());
@@ -480,20 +461,27 @@ IPState AstrosphericWeather::updateWeather()
         {
             LOG_INFO("Fetching new forecast data...");
             std::string responseBody;
-            if (!fetchDataFromAPI(responseBody) || !parseJSONResponse(responseBody))
+            bool refreshed = fetchDataFromAPI(responseBody) && parseJSONResponse(responseBody);
+            if (!refreshed)
             {
-                LOG_ERROR("Failed to fetch or parse forecast data.");
-                return IPS_ALERT;
+                if (!forecastValid)
+                {
+                    LOG_ERROR("Failed to fetch forecast data and no cached data is available.");
+                    return IPS_ALERT;
+                }
+                LOG_WARN("API refresh failed; continuing with cached forecast data.");
             }
         }
 
         time_t now = time(nullptr);
-        int hourOffset = (now - forecastStartTime) / 3600;
-        if (hourOffset < 0 || hourOffset >= forecastHours)
+        int hourOffset = static_cast<int>((now - forecastStartTime) / 3600);
+        if (hourOffset < 0)
+            hourOffset = 0;
+        if (hourOffset >= forecastHours)
         {
-            LOGF_ERROR("Current time outside forecast range. Offset: %d", hourOffset);
+            LOGF_WARN("Forecast window exceeded (offset %d of %d); using last available hour.", hourOffset, forecastHours);
+            hourOffset = forecastHours - 1;
             forecastValid = false;
-            return IPS_ALERT;
         }
 
         setParameterValue("WEATHER_CLOUD_COVER", cloudCover[hourOffset]);

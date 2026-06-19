@@ -99,8 +99,6 @@ private:
     int apiCreditsUsed;        // Number of API credits used in the last 24 hours
     bool locationReceived;     // Flag to track if location data was received via snooping
 
-    // Method to sync location by snooping on a telescope device.
-    void syncLocationFromSite();
     // Method to fetch data from the Astrospheric API using the provided latitude, longitude, and API key.
     bool fetchDataFromAPI(std::string &responseBody);
     // Method to parse the JSON response from the API and populate the forecast data vectors.
