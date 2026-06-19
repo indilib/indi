@@ -423,6 +423,9 @@ bool MyFocuserPro2::readTemperature()
 {
     char res[ML_RES] = {0};
 
+    if(!readTempProbeAvailability())
+        return false;
+
     if (sendCommand(":06#", res) == false)
         return false;
 
