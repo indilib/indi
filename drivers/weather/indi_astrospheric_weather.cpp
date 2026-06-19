@@ -20,6 +20,27 @@
  - GPT-4o (OpenAI)
 *******************************************************************************/
 
+/*
+ * Purpose: Serve the Astrospheric.com 82-hour RDPS forecast as an INDI weather
+ * device, exposing both current conditions (Parameters tab) and a 24-hour
+ * lookahead (Forecast tab, 8 × 3-hour steps).
+ *
+ * Key design decisions:
+ *   - Forecast data is cached for FORECAST_CACHE_TTL_SECS (6 h) to limit API
+ *     credit use.  A fresh fetch is also triggered when fewer than
+ *     FORECAST_REFRESH_MARGIN_HOURS remain in the current window.
+ *   - updateWeather() only sets parameter values and returns an IPState.
+ *     ParametersNP bookkeeping and syncCriticalParameters() are handled by
+ *     checkWeatherUpdate() in the INDI::WeatherInterface base class.
+ *   - Location is accepted from three sources (in priority order):
+ *     1. The manual Location property in the Options tab.
+ *     2. Snooped GEOGRAPHIC_COORD from the configured Snoop Telescope device.
+ *     3. EKOS/GPS geographic-location push via the updateLocation() override.
+ *   - API responses shorter than EXPECTED_FORECAST_HOURS are accepted with a
+ *     warning rather than rejected outright; all vectors are truncated to the
+ *     shortest returned array to keep indexing consistent.
+ */
+
 #include "indi_astrospheric_weather.h"
 
 #include <indicom.h>
@@ -31,6 +52,8 @@
 #endif
 using json = nlohmann::json;
 
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
@@ -38,10 +61,15 @@ using json = nlohmann::json;
 #include <cstdlib>
 #include <utility>
 
-static constexpr size_t EXPECTED_FORECAST_HOURS = 82;
-static constexpr int    FORECAST_CACHE_TTL_SECS  = 6 * 3600;
-static constexpr int    FORECAST_STEPS            = 8;
-static constexpr int    FORECAST_STEP_HOURS       = 3;
+static constexpr double kPI                            = 3.14159265358979323846;
+
+static constexpr size_t EXPECTED_FORECAST_HOURS        = 82;
+static constexpr int    FORECAST_CACHE_TTL_SECS        = 6 * 3600;
+static constexpr int    FORECAST_REFRESH_MARGIN_HOURS  = 6;
+static constexpr int    FORECAST_STEPS                 = 8;
+static constexpr int    FORECAST_STEP_HOURS            = 3;
+static constexpr int    API_CONNECT_TIMEOUT_SECS       = 15;
+static constexpr int    API_READ_TIMEOUT_SECS          = 30;
 
 #define FORECAST_TAB "Forecast"
 
@@ -80,6 +108,20 @@ bool AstrosphericWeather::Disconnect()
 {
     setConnected(false);
     updateProperties();
+    return true;
+}
+
+// Called by the base class whenever EKOS or a GPS device pushes a location update.
+bool AstrosphericWeather::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+    LocationNP[LOCATION_LATITUDE].setValue(latitude);
+    LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+    LocationNP.setState(IPS_OK);
+    LocationNP.apply();
+    LOGF_INFO("Location updated from EKOS/GPS: Latitude=%.4f, Longitude=%.4f", latitude, longitude);
+    locationReceived = true;
+    forecastValid    = false;
     return true;
 }
 
@@ -353,8 +395,8 @@ bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
     std::string jsonDataString = payload.dump();
 
     httplib::Client client(host.c_str());
-    client.set_connection_timeout(15, 0);
-    client.set_read_timeout(30, 0);
+    client.set_connection_timeout(API_CONNECT_TIMEOUT_SECS, 0);
+    client.set_read_timeout(API_READ_TIMEOUT_SECS, 0);
     auto res = client.Post(endpoint.c_str(), jsonDataString, "application/json");
     if (!res || res->status != 200)
     {
@@ -396,14 +438,28 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
         for (const auto &hour : j["Astrospheric_Seeing"]) newSeeing.push_back(hour["Value"]["ActualValue"].get<double>());
         for (const auto &hour : j["Astrospheric_Transparency"]) newTransparency.push_back(hour["Value"]["ActualValue"].get<double>());
 
-        if (newCloudCover.size() != EXPECTED_FORECAST_HOURS || newTemperature.size() != EXPECTED_FORECAST_HOURS ||
-            newWindSpeed.size() != EXPECTED_FORECAST_HOURS || newDewPoint.size() != EXPECTED_FORECAST_HOURS ||
-            newWindDirection.size() != EXPECTED_FORECAST_HOURS || newSeeing.size() != EXPECTED_FORECAST_HOURS ||
-            newTransparency.size() != EXPECTED_FORECAST_HOURS)
+        // Accept the shortest vector length so all arrays index consistently.
+        size_t actualHours = newCloudCover.size();
+        for (size_t sz : {newTemperature.size(), newWindSpeed.size(), newDewPoint.size(),
+                          newWindDirection.size(), newSeeing.size(), newTransparency.size()})
+            actualHours = std::min(actualHours, sz);
+
+        if (actualHours == 0)
         {
-            LOGF_ERROR("Forecast data length mismatch: expected %zu hours.", EXPECTED_FORECAST_HOURS);
+            LOG_ERROR("API returned empty forecast vectors.");
             return false;
         }
+        if (actualHours < EXPECTED_FORECAST_HOURS)
+            LOGF_WARN("API returned only %zu of %zu expected hours; accepting shorter forecast.",
+                      actualHours, EXPECTED_FORECAST_HOURS);
+
+        newCloudCover.resize(actualHours);
+        newTemperature.resize(actualHours);
+        newWindSpeed.resize(actualHours);
+        newDewPoint.resize(actualHours);
+        newWindDirection.resize(actualHours);
+        newSeeing.resize(actualHours);
+        newTransparency.resize(actualHours);
 
         cloudCover    = std::move(newCloudCover);
         temperature   = std::move(newTemperature);
@@ -473,9 +529,15 @@ IPState AstrosphericWeather::updateWeather()
             return IPS_ALERT;
         }
         time_t currentTime = time(nullptr);
-        if (!forecastValid || (currentTime - lastFetchTime) > FORECAST_CACHE_TTL_SECS)
+        bool cacheExpired = !forecastValid || (currentTime - lastFetchTime) > FORECAST_CACHE_TTL_SECS;
+        if (cacheExpired)
+            LOG_INFO("Cache miss or TTL expired — fetching fresh forecast data...");
+        else
+            LOGF_DEBUG("Cache hit (age %lds / TTL %ds).",
+                       static_cast<long>(currentTime - lastFetchTime), FORECAST_CACHE_TTL_SECS);
+
+        if (cacheExpired)
         {
-            LOG_INFO("Fetching new forecast data...");
             std::string responseBody;
             bool refreshed = fetchDataFromAPI(responseBody) && parseJSONResponse(responseBody);
             if (!refreshed)
@@ -500,6 +562,14 @@ IPState AstrosphericWeather::updateWeather()
             forecastValid = false;
         }
 
+        int hoursRemaining = forecastHours - hourOffset;
+        LOGF_DEBUG("Forecast index: offset=%d, hoursRemaining=%d of %d.", hourOffset, hoursRemaining, forecastHours);
+        if (forecastValid && hoursRemaining < FORECAST_REFRESH_MARGIN_HOURS)
+        {
+            LOGF_DEBUG("Only %d hours remain in forecast window — scheduling early refresh.", hoursRemaining);
+            forecastValid = false;
+        }
+
         setParameterValue("WEATHER_CLOUD_COVER", cloudCover[hourOffset]);
         setParameterValue("WEATHER_TEMPERATURE", temperature[hourOffset]);
         setParameterValue("WEATHER_WIND_SPEED", windSpeed[hourOffset]);
@@ -520,33 +590,56 @@ IPState AstrosphericWeather::updateWeather()
         // Return IPS_OK — checkWeatherUpdate() applies ParametersNP state and fires syncCriticalParameters().
         return IPS_OK;
     }
-    else // Simulated Mode
+    else // Simulated Mode — time-varying diurnal patterns
     {
-        LOG_DEBUG("Updating weather in simulated mode...");
-        setParameterValue("WEATHER_CLOUD_COVER", 50.0);
-        setParameterValue("WEATHER_TEMPERATURE", 20.0);
-        setParameterValue("WEATHER_WIND_SPEED", 10.0);
-        setParameterValue("WEATHER_DEW_POINT", 10.0);
-        setParameterValue("WEATHER_WIND_DIRECTION", 180.0);
-        setParameterValue("WEATHER_SEEING", 2.5);
-        setParameterValue("WEATHER_TRANSPARENCY", 15.0);
+        LOG_DEBUG("Updating weather in simulated mode (diurnal patterns)...");
 
-        updateSummaryText(buildWeatherSummary(50.0, 20.0, 10.0, 10.0, 180.0, 2.5, 15.0));
+        // Anchor the simulation to the current UTC hour so the forecast
+        // moves forward naturally each time updateWeather() is called.
+        time_t now = time(nullptr);
+        struct tm tmNow {};
+        gmtime_r(&now, &tmNow);
+        const int currentHour = tmNow.tm_hour;
 
-        // Simulated forecast: constant values across all steps.
-        for (int i = 0; i < FORECAST_STEPS; i++)
+        const int simHours = FORECAST_STEPS * FORECAST_STEP_HOURS; // 24 h of coverage
+        cloudCover.resize(simHours);
+        temperature.resize(simHours);
+        windSpeed.resize(simHours);
+        dewPoint.resize(simHours);
+        windDirection.resize(simHours);
+        seeing.resize(simHours);
+        transparency.resize(simHours);
+        forecastHours     = simHours;
+        forecastStartTime = now; // hourOffset = 0 when read immediately
+
+        for (int h = 0; h < simHours; h++)
         {
-            ForecastCloudCoverNP[i].setValue(50.0);
-            ForecastTemperatureNP[i].setValue(20.0);
-            ForecastWindSpeedNP[i].setValue(10.0);
-            ForecastSeeingNP[i].setValue(2.5);
-            ForecastTransparencyNP[i].setValue(15.0);
+            // Smooth 24-hour sine wave; temperature peaks near 14:00 UTC.
+            const int    hour  = (currentHour + h) % 24;
+            const double phase = (hour - 8) * kPI / 12.0;
+
+            temperature[h]   = 15.0 + 7.0  * std::sin(phase);
+            cloudCover[h]    = std::max(0.0, std::min(100.0, 30.0 + 25.0 * std::sin(phase + kPI)));
+            windSpeed[h]     = std::max(0.0, 12.0 + 6.0  * std::sin(phase - kPI / 4.0));
+            windDirection[h] = std::fmod(225.0 + 90.0 * std::sin(h * kPI / 12.0), 360.0);
+            dewPoint[h]      = temperature[h] - 8.0;
+            seeing[h]        = std::max(0.5, std::min(5.0, 3.0 - 1.5 * std::sin(phase)));
+            transparency[h]  = std::max(0.0, std::min(27.0, 18.0 * (1.0 - cloudCover[h] / 100.0)));
         }
-        ForecastCloudCoverNP.setState(IPS_OK);   ForecastCloudCoverNP.apply();
-        ForecastTemperatureNP.setState(IPS_OK);  ForecastTemperatureNP.apply();
-        ForecastWindSpeedNP.setState(IPS_OK);    ForecastWindSpeedNP.apply();
-        ForecastSeeingNP.setState(IPS_OK);       ForecastSeeingNP.apply();
-        ForecastTransparencyNP.setState(IPS_OK); ForecastTransparencyNP.apply();
+
+        setParameterValue("WEATHER_CLOUD_COVER",    cloudCover[0]);
+        setParameterValue("WEATHER_TEMPERATURE",    temperature[0]);
+        setParameterValue("WEATHER_WIND_SPEED",     windSpeed[0]);
+        setParameterValue("WEATHER_DEW_POINT",      dewPoint[0]);
+        setParameterValue("WEATHER_WIND_DIRECTION", windDirection[0]);
+        setParameterValue("WEATHER_SEEING",         seeing[0]);
+        setParameterValue("WEATHER_TRANSPARENCY",   transparency[0]);
+
+        updateSummaryText(buildWeatherSummary(
+            cloudCover[0], temperature[0], windSpeed[0],
+            dewPoint[0], windDirection[0], seeing[0], transparency[0]));
+
+        updateForecastProperties(0);
 
         return IPS_OK;
     }

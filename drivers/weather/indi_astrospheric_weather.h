@@ -59,6 +59,8 @@ public:
     virtual bool Connect() override;
     // Override of Disconnect to handle the disconnection from the device.
     virtual bool Disconnect() override;
+    // Override of updateLocation to receive geographic-location updates from EKOS or GPS.
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
 protected:
     // Override of updateWeather to fetch and update weather forecast data.
