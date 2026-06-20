@@ -22,23 +22,29 @@
 
 /*
  * Purpose: Serve the Astrospheric.com 82-hour RDPS forecast as an INDI weather
- * device, exposing both current conditions (Parameters tab) and a 24-hour
- * lookahead (Forecast tab, 8 × 3-hour steps).
+ * device, exposing current conditions (Parameters tab) and a 24-hour lookahead
+ * (Forecast tab, 8 × 3-hour steps).  Requires an Astrospheric Professional
+ * account with API access.
  *
  * Key design decisions:
- *   - Forecast data is cached for FORECAST_CACHE_TTL_SECS (6 h) to limit API
- *     credit use.  A fresh fetch is also triggered when fewer than
+ *   - Forecast data is cached for FORECAST_CACHE_TTL_SECS (6 h) to conserve
+ *     API credits.  A fresh fetch is also triggered proactively when fewer than
  *     FORECAST_REFRESH_MARGIN_HOURS remain in the current window.
- *   - updateWeather() only sets parameter values and returns an IPState.
- *     ParametersNP bookkeeping and syncCriticalParameters() are handled by
- *     checkWeatherUpdate() in the INDI::WeatherInterface base class.
- *   - Location is accepted from three sources (in priority order):
- *     1. The manual Location property in the Options tab.
+ *   - parseJSONResponse() stages new data in local vectors and only std::move()s
+ *     them into class members on success, so a failed re-parse never corrupts
+ *     a valid cached forecast.
+ *   - updateWeather() only calls setParameterValue() and returns an IPState.
+ *     ParametersNP bookkeeping and syncCriticalParameters() are owned by
+ *     checkWeatherUpdate() in INDI::WeatherInterface and must not be duplicated.
+ *   - All properties use the modern INDI C++ API (PropertyText, PropertyNumber,
+ *     PropertySwitch with .fill()/.apply()/.setState()).  No IUFill*/IDSet*
+ *     legacy calls are used.
+ *   - Location is accepted from three sources (first one wins):
+ *     1. Manual entry in the Options > Location property.
  *     2. Snooped GEOGRAPHIC_COORD from the configured Snoop Telescope device.
- *     3. EKOS/GPS geographic-location push via the updateLocation() override.
+ *     3. EKOS/GPS push via the updateLocation() override.
  *   - API responses shorter than EXPECTED_FORECAST_HOURS are accepted with a
- *     warning rather than rejected outright; all vectors are truncated to the
- *     shortest returned array to keep indexing consistent.
+ *     warning; all arrays are truncated to the shortest returned length.
  */
 
 #include "indi_astrospheric_weather.h"
@@ -58,7 +64,6 @@ using json = nlohmann::json;
 #include <ctime>
 #include <iomanip>
 #include <sstream>
-#include <cstdlib>
 #include <utility>
 
 static constexpr double kPI                            = 3.14159265358979323846;
@@ -73,19 +78,16 @@ static constexpr int    API_READ_TIMEOUT_SECS          = 30;
 
 #define FORECAST_TAB "Forecast"
 
-// Constructor for AstrosphericWeather.
 AstrosphericWeather::AstrosphericWeather()
 {
     setVersion(1, 0);
-    // Set connection type to none (weather driver, no physical device).
     setWeatherConnection(CONNECTION_NONE);
-    // Initialize forecast-related variables.
-    forecastValid = false;
-    lastFetchTime = 0;
-    forecastHours = 0;
+    forecastValid     = false;
+    lastFetchTime     = 0;
+    forecastHours     = 0;
     forecastStartTime = 0;
-    apiCreditsUsed = 0;
-    locationReceived = false;
+    apiCreditsUsed    = 0;
+    locationReceived  = false;
 }
 
 // Returns the default name of the device.
@@ -94,15 +96,18 @@ const char *AstrosphericWeather::getDefaultName()
     return "Astrospheric Weather";
 }
 
-// Handles device connection.
 bool AstrosphericWeather::Connect()
 {
     setConnected(true);
     updateProperties();
+    if (ModeSP[0].getState() == ISS_ON && !locationReceived)
+        LOG_WARN("No location configured. Enter coordinates in Options > Location, or configure a Snoop Telescope.");
+    if (ModeSP[0].getState() == ISS_ON &&
+        (APIKeyTP[0].getText() == nullptr || strlen(APIKeyTP[0].getText()) == 0))
+        LOG_WARN("No API key configured. Enter your Astrospheric key in Options > API Key.");
     return true;
 }
 
-// Handles device disconnection.
 bool AstrosphericWeather::Disconnect()
 {
     setConnected(false);
@@ -110,7 +115,7 @@ bool AstrosphericWeather::Disconnect()
     return true;
 }
 
-// Called by the base class whenever EKOS or a GPS device pushes a location update.
+// updateLocation() is called by the base class when EKOS or a GPS device pushes coordinates.
 bool AstrosphericWeather::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
@@ -124,65 +129,59 @@ bool AstrosphericWeather::updateLocation(double latitude, double longitude, doub
     return true;
 }
 
-// Initializes all device properties.
 bool AstrosphericWeather::initProperties()
 {
-    // Initialize base weather properties.
     INDI::Weather::initProperties();
 
-    // Define API key property in Options tab.
     APIKeyTP[0].fill("API_KEY_VALUE", "Key", "");
     APIKeyTP.fill(getDeviceName(), "ASTROSPHERIC_API_KEY", "API Key", "Options", IP_RW, 60, IPS_IDLE);
     defineProperty(APIKeyTP);
 
-    // Define location property in Options tab.
     LocationNP[LOCATION_LATITUDE].fill("LATITUDE", "Latitude (deg)", "%.4f", -90.0, 90.0, 0.0, 0.0);
     LocationNP[LOCATION_LONGITUDE].fill("LONGITUDE", "Longitude (deg)", "%.4f", -180.0, 360.0, 0.0, 0.0);
     LocationNP.fill(getDeviceName(), "LOCATION", "Location", "Options", IP_RW, 0, IPS_IDLE);
     defineProperty(LocationNP);
 
-    // Define telescope name property for snooping location.
     TelescopeNameTP[0].fill("TELESCOPE_NAME", "Telescope", "Telescope Simulator");
     TelescopeNameTP.fill(getDeviceName(), "TELESCOPE_NAME", "Snoop Telescope", "Options", IP_RW, 60, IPS_IDLE);
     defineProperty(TelescopeNameTP);
 
-    // Define mode switch property in Options tab (API vs Simulated).
     ModeSP[0].fill("API_MODE", "API Mode", ISS_OFF);
     ModeSP[1].fill("SIMULATED_MODE", "Simulated Mode", ISS_ON);
     ModeSP.fill(getDeviceName(), "WEATHER_MODE", "Mode", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     defineProperty(ModeSP);
 
-    // Define weather parameters for the Parameters tab.
-    addParameter("WEATHER_CLOUD_COVER", "Cloud Cover (%)", 0, 80, 25);
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -50, 50, 0);
-    addParameter("WEATHER_WIND_SPEED", "Wind Speed (kph)", 0, 200, 50);
-    addParameter("WEATHER_DEW_POINT", "Dew Point (C)", -50, 50, 0);
-    addParameter("WEATHER_WIND_DIRECTION", "Wind Direction (°)", 0, 360, 0);
-    addParameter("WEATHER_SEEING", "Seeing (0–5)", 0, 5, 0);
-    addParameter("WEATHER_TRANSPARENCY", "Transparency (0–27+)", 0, 30, 0);
+    // Momentary push-button; visible only when connected (defined in updateProperties).
+    RefreshNowSP[0].fill("REFRESH", "Refresh Now", ISS_OFF);
+    RefreshNowSP.fill(getDeviceName(), "WEATHER_REFRESH", "Refresh", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    // Set cloud cover as the critical parameter for weather alerts.
+    // Cloud cover is the critical (dome-safety) parameter.
+    // addParameter threshold model: (min, max, percWarning) ─ warning band width = max*percWarning/100.
+    // (0, 80, 25) → warning 0–20%, OK 20–60%, warning 60–80%, alert above 80%.
+    addParameter("WEATHER_CLOUD_COVER",    "Cloud Cover (%)",        0,    80, 25);
+    addParameter("WEATHER_TEMPERATURE",    "Temperature (C)",      -50,    50,  0);
+    addParameter("WEATHER_WIND_SPEED",     "Wind Speed (kph)",       0,   200, 50);
+    addParameter("WEATHER_DEW_POINT",      "Dew Point (C)",        -50,    50,  0);
+    addParameter("WEATHER_WIND_DIRECTION", "Wind Direction (\xc2\xb0)", 0, 360,  0);
+    addParameter("WEATHER_SEEING",         "Seeing (0-5)",           0,     5,  0);
+    addParameter("WEATHER_TRANSPARENCY",   "Transparency (0-27+)",   0,    30,  0);
+
     setCriticalParameter("WEATHER_CLOUD_COVER");
 
-    // Override the base-class default update period from 60 s to 30 minutes.
     UpdatePeriodNP[0].setValue(1800);
 
-    // Current-conditions summary (always visible in Main Control tab).
     WeatherSummaryTP[0].fill("SUMMARY", "Weather Summary", "N/A");
     WeatherSummaryTP.fill(getDeviceName(), "WEATHER_SUMMARY", "Status", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
     defineProperty(WeatherSummaryTP);
 
-    // Last successful API fetch timestamp (always visible in Main Control tab).
     LastUpdateTP[0].fill("TIMESTAMP", "Last API Fetch", "Never");
     LastUpdateTP.fill(getDeviceName(), "WEATHER_LAST_UPDATE", "Last Update", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
     defineProperty(LastUpdateTP);
 
-    // UTC expiry time for the current forecast window.
     ForecastValidUntilTP[0].fill("EXPIRY", "Valid Until", "Unknown");
     ForecastValidUntilTP.fill(getDeviceName(), "WEATHER_FORECAST_EXPIRY", "Forecast Expires", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
     defineProperty(ForecastValidUntilTP);
 
-    // Forecast tab: 8 steps × 3 h = 24-hour lookahead.
     static const char *stepNames[]  = {"HOUR_0",  "HOUR_3",  "HOUR_6",  "HOUR_9",
                                         "HOUR_12", "HOUR_15", "HOUR_18", "HOUR_21"};
     static const char *stepLabels[] = {"Now",  "+3h",  "+6h",  "+9h",
@@ -195,16 +194,14 @@ bool AstrosphericWeather::initProperties()
         ForecastSeeingNP[i].fill(stepNames[i],      stepLabels[i], "%.2f",  0,     5, 0, 0);
         ForecastTransparencyNP[i].fill(stepNames[i],stepLabels[i], "%.1f",  0,    30, 0, 0);
     }
-    ForecastCloudCoverNP.fill(getDeviceName(),  "FORECAST_CLOUD_COVER",  "Cloud Cover (%)",    FORECAST_TAB, IP_RO, 60, IPS_IDLE);
-    ForecastTemperatureNP.fill(getDeviceName(), "FORECAST_TEMPERATURE",  "Temperature (C)",    FORECAST_TAB, IP_RO, 60, IPS_IDLE);
-    ForecastWindSpeedNP.fill(getDeviceName(),   "FORECAST_WIND_SPEED",   "Wind Speed (kph)",   FORECAST_TAB, IP_RO, 60, IPS_IDLE);
-    ForecastSeeingNP.fill(getDeviceName(),      "FORECAST_SEEING",       "Seeing (0-5)",       FORECAST_TAB, IP_RO, 60, IPS_IDLE);
-    ForecastTransparencyNP.fill(getDeviceName(),"FORECAST_TRANSPARENCY", "Transparency (0-27+)",FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastCloudCoverNP.fill(getDeviceName(),  "FORECAST_CLOUD_COVER",   "Cloud Cover (%)",     FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastTemperatureNP.fill(getDeviceName(), "FORECAST_TEMPERATURE",   "Temperature (C)",     FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastWindSpeedNP.fill(getDeviceName(),   "FORECAST_WIND_SPEED",    "Wind Speed (kph)",    FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastSeeingNP.fill(getDeviceName(),      "FORECAST_SEEING",        "Seeing (0-5)",        FORECAST_TAB, IP_RO, 60, IPS_IDLE);
+    ForecastTransparencyNP.fill(getDeviceName(),"FORECAST_TRANSPARENCY",  "Transparency (0-27+)",FORECAST_TAB, IP_RO, 60, IPS_IDLE);
 
-    // Add debug control for logging.
     addDebugControl();
 
-    // Load saved configuration.
     loadConfig(true, "ASTROSPHERIC_API_KEY");
     loadConfig(true, "LOCATION");
     if (LocationNP[LOCATION_LATITUDE].getValue() != 0.0 || LocationNP[LOCATION_LONGITUDE].getValue() != 0.0)
@@ -217,7 +214,6 @@ bool AstrosphericWeather::initProperties()
     loadConfig(true, "WEATHER_MODE");
     loadConfig(true, "WEATHER_UPDATE");
 
-    // Start snooping on the telescope for location data.
     if (TelescopeNameTP[0].getText() && strlen(TelescopeNameTP[0].getText()) > 0)
     {
         IDSnoopDevice(TelescopeNameTP[0].getText(), "GEOGRAPHIC_COORD");
@@ -227,13 +223,13 @@ bool AstrosphericWeather::initProperties()
     return true;
 }
 
-// Updates properties based on connection state.
 bool AstrosphericWeather::updateProperties()
 {
     INDI::Weather::updateProperties();
 
     if (isConnected())
     {
+        defineProperty(RefreshNowSP);
         defineProperty(ForecastCloudCoverNP);
         defineProperty(ForecastTemperatureNP);
         defineProperty(ForecastWindSpeedNP);
@@ -242,6 +238,7 @@ bool AstrosphericWeather::updateProperties()
     }
     else
     {
+        deleteProperty(RefreshNowSP);
         deleteProperty(ForecastCloudCoverNP);
         deleteProperty(ForecastTemperatureNP);
         deleteProperty(ForecastWindSpeedNP);
@@ -252,12 +249,10 @@ bool AstrosphericWeather::updateProperties()
     return true;
 }
 
-// Handles updates to number properties (e.g., location, snooped telescope data).
 bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev && strcmp(dev, getDeviceName()) == 0)
     {
-        // Handle updates to the LocationNP property.
         if (LocationNP.isNameMatch(name))
         {
             LocationNP.update(values, names, n);
@@ -266,13 +261,12 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
             LOGF_INFO("Location updated: Latitude=%.4f, Longitude=%.4f",
                       LocationNP[LOCATION_LATITUDE].getValue(),
                       LocationNP[LOCATION_LONGITUDE].getValue());
-            // Invalidate forecast when location changes.
-            forecastValid = false;
-            locationReceived = true; // Consider manually set location as received
+            forecastValid    = false;
+            locationReceived = true;
             return true;
         }
     }
-    // Handle snooped GEOGRAPHIC_COORD data from the configured telescope only.
+    // Snooped GEOGRAPHIC_COORD from the configured telescope.
     if (strcmp(name, "GEOGRAPHIC_COORD") == 0 &&
         dev && TelescopeNameTP[0].getText() && strcmp(dev, TelescopeNameTP[0].getText()) == 0)
     {
@@ -281,16 +275,8 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
 
         for (int i = 0; i < n; i++)
         {
-            if (strcmp(names[i], "LAT") == 0)
-            {
-                lat = values[i];
-                latFound = true;
-            }
-            else if (strcmp(names[i], "LONG") == 0)
-            {
-                lon = values[i];
-                lonFound = true;
-            }
+            if (strcmp(names[i], "LAT") == 0)  { lat = values[i]; latFound = true; }
+            else if (strcmp(names[i], "LONG") == 0) { lon = values[i]; lonFound = true; }
         }
 
         if (latFound && lonFound)
@@ -300,9 +286,8 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
             LocationNP.setState(IPS_OK);
             LocationNP.apply();
             locationReceived = true;
+            forecastValid    = false;
             LOGF_INFO("Snooped location from %s: Latitude=%.4f, Longitude=%.4f", dev, lat, lon);
-            // Invalidate forecast when location updates.
-            forecastValid = false;
         }
         else
         {
@@ -314,12 +299,10 @@ bool AstrosphericWeather::ISNewNumber(const char *dev, const char *name, double 
     return INDI::Weather::ISNewNumber(dev, name, values, names, n);
 }
 
-// Handles updates to text properties (e.g., API key, telescope name).
 bool AstrosphericWeather::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev && strcmp(dev, getDeviceName()) == 0)
     {
-        // Handle updates to the API key.
         if (APIKeyTP.isNameMatch(name))
         {
             APIKeyTP.update(texts, names, n);
@@ -327,10 +310,9 @@ bool AstrosphericWeather::ISNewText(const char *dev, const char *name, char *tex
             APIKeyTP.apply();
             saveConfig(true, APIKeyTP.getName());
             forecastValid = false;
-            LOG_INFO("API Key updated.");
+            LOG_INFO("API key updated.");
             return true;
         }
-        // Handle updates to the telescope name for snooping.
         if (TelescopeNameTP.isNameMatch(name))
         {
             TelescopeNameTP.update(texts, names, n);
@@ -340,7 +322,7 @@ bool AstrosphericWeather::ISNewText(const char *dev, const char *name, char *tex
             if (TelescopeNameTP[0].getText() && strlen(TelescopeNameTP[0].getText()) > 0)
             {
                 IDSnoopDevice(TelescopeNameTP[0].getText(), "GEOGRAPHIC_COORD");
-                LOGF_INFO("Now snooping on telescope %s for location data.", TelescopeNameTP[0].getText());
+                LOGF_INFO("Now snooping on %s for GEOGRAPHIC_COORD.", TelescopeNameTP[0].getText());
             }
             return true;
         }
@@ -348,7 +330,6 @@ bool AstrosphericWeather::ISNewText(const char *dev, const char *name, char *tex
     return INDI::Weather::ISNewText(dev, name, texts, names, n);
 }
 
-// Handles updates to switch properties (e.g., mode switch).
 bool AstrosphericWeather::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev && strcmp(dev, getDeviceName()) == 0)
@@ -360,15 +341,28 @@ bool AstrosphericWeather::ISNewSwitch(const char *dev, const char *name, ISState
             ModeSP.apply();
             LOGF_INFO("Mode updated to: %s",
                       ModeSP[0].getState() == ISS_ON ? "API Mode" : "Simulated Mode");
-            // Invalidate forecast when mode changes.
             forecastValid = false;
+            return true;
+        }
+
+        if (RefreshNowSP.isNameMatch(name))
+        {
+            LOG_INFO("Manual refresh requested.");
+            forecastValid = false;
+            RefreshNowSP[0].setState(ISS_OFF);
+            RefreshNowSP.setState(IPS_BUSY);
+            RefreshNowSP.apply();
+            // checkWeatherUpdate() calls updateWeather(), updates ParametersNP, and
+            // calls syncCriticalParameters() — the same path as the scheduled timer.
+            checkWeatherUpdate();
+            RefreshNowSP.setState(IPS_IDLE);
+            RefreshNowSP.apply();
             return true;
         }
     }
     return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
 }
 
-// Saves configuration items to a file.
 bool AstrosphericWeather::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
@@ -379,22 +373,15 @@ bool AstrosphericWeather::saveConfigItems(FILE *fp)
     return true;
 }
 
-// Fetches data from the Astrospheric API.
 bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
 {
-    LOG_DEBUG("Fetching data from Astrospheric API...");
+    const std::string host     = "astrosphericpublicaccess.azurewebsites.net";
     const std::string endpoint = "/api/GetForecastData_V1";
-    const std::string host = "astrosphericpublicaccess.azurewebsites.net";
 
-    // Get latitude and longitude from LocationNP
     double lat = LocationNP[LOCATION_LATITUDE].getValue();
     double lon = LocationNP[LOCATION_LONGITUDE].getValue();
-
-    // Convert longitude from [0, 360] to [-180, 180] for Astrospheric API
     if (lon > 180.0)
-    {
-        lon -= 360.0;
-    }
+        lon -= 360.0; // [0,360] → [-180,180] as expected by the API
 
     LOGF_DEBUG("Sending coordinates to API: Latitude=%.4f, Longitude=%.4f", lat, lon);
 
@@ -415,17 +402,42 @@ bool AstrosphericWeather::fetchDataFromAPI(std::string &responseBody)
     }
 
     responseBody = res->body;
-    LOGF_DEBUG("API response: %s", responseBody.c_str());
+    LOGF_DEBUG("API response received (%zu bytes).", responseBody.size());
     return true;
 }
 
-// Parses the JSON response from the API.
 bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
 {
     LOG_DEBUG("Parsing JSON response...");
     try
     {
         json j = json::parse(jsonResponse);
+
+        // Validate top-level structure before accessing any forecast arrays.
+        if (!j.contains("UTCStartTime") || !j["UTCStartTime"].is_string())
+        {
+            if (j.contains("Message") && j["Message"].is_string())
+                LOGF_ERROR("Astrospheric API error: %s", j["Message"].get<std::string>().c_str());
+            else if (j.contains("Error") && j["Error"].is_string())
+                LOGF_ERROR("Astrospheric API error: %s", j["Error"].get<std::string>().c_str());
+            else
+                LOG_ERROR("Unexpected API response: missing 'UTCStartTime' field.");
+            return false;
+        }
+        static constexpr const char *REQUIRED_ARRAYS[] = {
+            "RDPS_CloudCover", "RDPS_Temperature", "RDPS_WindVelocity",
+            "RDPS_DewPoint", "RDPS_WindDirection",
+            "Astrospheric_Seeing", "Astrospheric_Transparency"
+        };
+        for (const char *key : REQUIRED_ARRAYS)
+        {
+            if (!j.contains(key) || !j[key].is_array() || j[key].empty())
+            {
+                LOGF_ERROR("API response missing or empty forecast array '%s'.", key);
+                return false;
+            }
+        }
+
         std::string utcStartTimeStr = j["UTCStartTime"].get<std::string>();
         forecastStartTime = parseUTCDateTime(utcStartTimeStr);
         if (forecastStartTime == static_cast<time_t>(-1))
@@ -509,7 +521,6 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
     }
 }
 
-// Parses UTC date-time strings into time_t.
 time_t AstrosphericWeather::parseUTCDateTime(const std::string &dateTimeStr)
 {
     std::tm tm = {};
@@ -523,28 +534,19 @@ time_t AstrosphericWeather::parseUTCDateTime(const std::string &dateTimeStr)
 #endif
 }
 
-// Updates weather data based on mode (API or Simulated).
 IPState AstrosphericWeather::updateWeather()
 {
-    LOG_DEBUG("Updating weather...");
-    if (!isConnected())
-    {
-        LOG_ERROR("Not connected. Please connect the device first.");
-        return IPS_ALERT;
-    }
-
-    if (!locationReceived)
-    {
-        LOG_WARN("No location set. Enter coordinates in Options > Location, or connect a telescope for snooping.");
-        return IPS_BUSY;
-    }
-
     if (ModeSP[0].getState() == ISS_ON) // API Mode
     {
+        if (!locationReceived)
+        {
+            LOG_DEBUG("API mode: no location set — update skipped.");
+            return IPS_IDLE;
+        }
         if (APIKeyTP[0].getText() == nullptr || strlen(APIKeyTP[0].getText()) == 0)
         {
-            LOG_ERROR("API key is not set. Set it in the Options tab.");
-            return IPS_ALERT;
+            LOG_DEBUG("API mode: no API key — update skipped.");
+            return IPS_IDLE;
         }
         time_t currentTime = time(nullptr);
         bool cacheExpired = !forecastValid || (currentTime - lastFetchTime) > FORECAST_CACHE_TTL_SECS;
@@ -605,15 +607,11 @@ IPState AstrosphericWeather::updateWeather()
         LOGF_INFO("Weather updated for hour %d: Cloud=%.2f%%, Temp=%.2fC, Wind=%.2fkph",
                   hourOffset, cloudCover[hourOffset], temperature[hourOffset], windSpeed[hourOffset]);
 
-        // Return IPS_OK — checkWeatherUpdate() applies ParametersNP state and fires syncCriticalParameters().
         return IPS_OK;
     }
-    else // Simulated Mode — time-varying diurnal patterns
+    else // Simulated Mode
     {
-        LOG_DEBUG("Updating weather in simulated mode (diurnal patterns)...");
-
-        // Anchor the simulation to the current UTC hour so the forecast
-        // moves forward naturally each time updateWeather() is called.
+        // Anchor to the current UTC hour so the forecast advances naturally each cycle.
         time_t now = time(nullptr);
         struct tm tmNow {};
         gmtime_r(&now, &tmNow);
@@ -628,11 +626,10 @@ IPState AstrosphericWeather::updateWeather()
         seeing.resize(simHours);
         transparency.resize(simHours);
         forecastHours     = simHours;
-        forecastStartTime = now; // hourOffset = 0 when read immediately
+        forecastStartTime = now;
 
         for (int h = 0; h < simHours; h++)
         {
-            // Smooth 24-hour sine wave; temperature peaks near 14:00 UTC.
             const int    hour  = (currentHour + h) % 24;
             const double phase = (hour - 8) * kPI / 12.0;
 
@@ -706,10 +703,8 @@ void AstrosphericWeather::updateForecastProperties(int offset)
     ForecastTransparencyNP.setState(IPS_OK); ForecastTransparencyNP.apply();
 }
 
-// Global unique pointer to the AstrosphericWeather instance.
 static std::unique_ptr<AstrosphericWeather> weather(new AstrosphericWeather());
 
-// Factory function to create the device instance.
 extern "C" INDI::DefaultDevice *createDevice()
 {
     return weather.get();
