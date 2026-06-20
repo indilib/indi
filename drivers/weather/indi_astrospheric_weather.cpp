@@ -23,28 +23,50 @@
 /*
  * Purpose: Serve the Astrospheric.com 82-hour RDPS forecast as an INDI weather
  * device, exposing current conditions (Parameters tab) and a 24-hour lookahead
- * (Forecast tab, 8 × 3-hour steps).  Requires an Astrospheric Professional
- * account with API access.
+ * (Forecast tab, 8 × 3-hour steps).
+ *
+ * Requirements:
+ *   An Astrospheric Professional account with API access is required for live
+ *   data.  Simulated Mode works offline and needs no API key or location.
+ *
+ * Usage:
+ *   1. API Key  — Enter your Astrospheric key in Options > API Key before
+ *                 connecting in API Mode.
+ *   2. Location — Set coordinates in Options > Location, or enter a device
+ *                 name in Options > Snoop Telescope to receive GEOGRAPHIC_COORD
+ *                 automatically.  EKOS also pushes location via updateLocation()
+ *                 when a mount or GPS is active.
+ *   3. Mode     — API Mode fetches live RDPS data; Simulated Mode generates
+ *                 time-varying diurnal patterns for testing.
+ *   4. Forecast — The Forecast tab shows cloud cover, temperature, wind speed,
+ *                 seeing, and transparency for the next 24 h in 3-h increments.
+ *   5. Refresh  — The Refresh Now button (Options tab, visible when connected)
+ *                 forces an immediate fetch, bypassing the 6-hour cache TTL.
  *
  * Key design decisions:
  *   - Forecast data is cached for FORECAST_CACHE_TTL_SECS (6 h) to conserve
- *     API credits.  A fresh fetch is also triggered proactively when fewer than
+ *     API credits.  A proactive early fetch is also triggered when fewer than
  *     FORECAST_REFRESH_MARGIN_HOURS remain in the current window.
- *   - parseJSONResponse() stages new data in local vectors and only std::move()s
- *     them into class members on success, so a failed re-parse never corrupts
- *     a valid cached forecast.
+ *   - parseJSONResponse() stages incoming data in local vectors and only
+ *     std::move()s them into class members on full success, so a failed
+ *     re-parse never corrupts a valid cached forecast.
+ *   - Cache fallback uses cloudCover.empty() (not forecastValid) to decide
+ *     whether cached data is available.  forecastValid is a "needs refetch"
+ *     flag and can be false even when the vectors contain good data.
  *   - updateWeather() only calls setParameterValue() and returns an IPState.
  *     ParametersNP bookkeeping and syncCriticalParameters() are owned by
- *     checkWeatherUpdate() in INDI::WeatherInterface and must not be duplicated.
+ *     checkWeatherUpdate() in INDI::WeatherInterface; duplicating them here
+ *     would double-apply and race.
  *   - All properties use the modern INDI C++ API (PropertyText, PropertyNumber,
- *     PropertySwitch with .fill()/.apply()/.setState()).  No IUFill*/IDSet*
- *     legacy calls are used.
- *   - Location is accepted from three sources (first one wins):
- *     1. Manual entry in the Options > Location property.
- *     2. Snooped GEOGRAPHIC_COORD from the configured Snoop Telescope device.
- *     3. EKOS/GPS push via the updateLocation() override.
+ *     PropertySwitch with .fill() / .apply() / .setState()).  No legacy
+ *     IUFill* / IDSet* calls are used.
+ *   - Location is accepted from three sources (first write wins per session):
+ *     1. Manual entry via Options > Location.
+ *     2. Snooped GEOGRAPHIC_COORD from the configured Snoop Telescope.
+ *     3. EKOS/GPS push via the updateLocation() virtual override.
  *   - API responses shorter than EXPECTED_FORECAST_HOURS are accepted with a
- *     warning; all arrays are truncated to the shortest returned length.
+ *     warning; all arrays are truncated to the shortest returned length so
+ *     indexing stays consistent.
  */
 
 #include "indi_astrospheric_weather.h"
@@ -90,7 +112,6 @@ AstrosphericWeather::AstrosphericWeather()
     locationReceived  = false;
 }
 
-// Returns the default name of the device.
 const char *AstrosphericWeather::getDefaultName()
 {
     return "Astrospheric Weather";
@@ -424,7 +445,7 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
                 LOG_ERROR("Unexpected API response: missing 'UTCStartTime' field.");
             return false;
         }
-        static constexpr const char *REQUIRED_ARRAYS[] = {
+        static const char * const REQUIRED_ARRAYS[] = {
             "RDPS_CloudCover", "RDPS_Temperature", "RDPS_WindVelocity",
             "RDPS_DewPoint", "RDPS_WindDirection",
             "Astrospheric_Seeing", "Astrospheric_Transparency"
@@ -562,7 +583,9 @@ IPState AstrosphericWeather::updateWeather()
             bool refreshed = fetchDataFromAPI(responseBody) && parseJSONResponse(responseBody);
             if (!refreshed)
             {
-                if (!forecastValid)
+                // forecastValid may be false due to early-refresh scheduling even when
+                // the vectors still hold good data, so check the vectors directly.
+                if (cloudCover.empty())
                 {
                     LOG_ERROR("Failed to fetch forecast data and no cached data is available.");
                     return IPS_ALERT;
@@ -577,8 +600,14 @@ IPState AstrosphericWeather::updateWeather()
             hourOffset = 0;
         if (hourOffset >= forecastHours)
         {
+            if (forecastHours <= 0)
+            {
+                LOG_ERROR("Forecast data is empty; triggering re-fetch.");
+                forecastValid = false;
+                return IPS_ALERT;
+            }
             LOGF_WARN("Forecast window exceeded (offset %d of %d); using last available hour.", hourOffset, forecastHours);
-            hourOffset = forecastHours - 1;
+            hourOffset    = forecastHours - 1;
             forecastValid = false;
         }
 
@@ -617,7 +646,7 @@ IPState AstrosphericWeather::updateWeather()
         gmtime_r(&now, &tmNow);
         const int currentHour = tmNow.tm_hour;
 
-        const int simHours = FORECAST_STEPS * FORECAST_STEP_HOURS; // 24 h of coverage
+        const int simHours = FORECAST_STEPS * FORECAST_STEP_HOURS;
         cloudCover.resize(simHours);
         temperature.resize(simHours);
         windSpeed.resize(simHours);
