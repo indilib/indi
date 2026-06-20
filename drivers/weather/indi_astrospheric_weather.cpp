@@ -76,8 +76,7 @@ static constexpr int    API_READ_TIMEOUT_SECS          = 30;
 // Constructor for AstrosphericWeather.
 AstrosphericWeather::AstrosphericWeather()
 {
-    // Set driver version to 0.2 (alpha).
-    setVersion(0, 2);
+    setVersion(1, 0);
     // Set connection type to none (weather driver, no physical device).
     setWeatherConnection(CONNECTION_NONE);
     // Initialize forecast-related variables.
@@ -154,7 +153,7 @@ bool AstrosphericWeather::initProperties()
     defineProperty(ModeSP);
 
     // Define weather parameters for the Parameters tab.
-    addParameter("WEATHER_CLOUD_COVER", "Cloud Cover (%)", 0, 100, 50);
+    addParameter("WEATHER_CLOUD_COVER", "Cloud Cover (%)", 0, 80, 25);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -50, 50, 0);
     addParameter("WEATHER_WIND_SPEED", "Wind Speed (kph)", 0, 200, 50);
     addParameter("WEATHER_DEW_POINT", "Dew Point (C)", -50, 50, 0);
@@ -177,6 +176,11 @@ bool AstrosphericWeather::initProperties()
     LastUpdateTP[0].fill("TIMESTAMP", "Last API Fetch", "Never");
     LastUpdateTP.fill(getDeviceName(), "WEATHER_LAST_UPDATE", "Last Update", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
     defineProperty(LastUpdateTP);
+
+    // UTC expiry time for the current forecast window.
+    ForecastValidUntilTP[0].fill("EXPIRY", "Valid Until", "Unknown");
+    ForecastValidUntilTP.fill(getDeviceName(), "WEATHER_FORECAST_EXPIRY", "Forecast Expires", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    defineProperty(ForecastValidUntilTP);
 
     // Forecast tab: 8 steps × 3 h = 24-hour lookahead.
     static const char *stepNames[]  = {"HOUR_0",  "HOUR_3",  "HOUR_6",  "HOUR_9",
@@ -203,6 +207,12 @@ bool AstrosphericWeather::initProperties()
     // Load saved configuration.
     loadConfig(true, "ASTROSPHERIC_API_KEY");
     loadConfig(true, "LOCATION");
+    if (LocationNP[LOCATION_LATITUDE].getValue() != 0.0 || LocationNP[LOCATION_LONGITUDE].getValue() != 0.0)
+    {
+        locationReceived = true;
+        LOGF_INFO("Loaded saved location: Latitude=%.4f, Longitude=%.4f",
+                  LocationNP[LOCATION_LATITUDE].getValue(), LocationNP[LOCATION_LONGITUDE].getValue());
+    }
     loadConfig(true, "TELESCOPE_NAME");
     loadConfig(true, "WEATHER_MODE");
     loadConfig(true, "WEATHER_UPDATE");
@@ -480,6 +490,15 @@ bool AstrosphericWeather::parseJSONResponse(const std::string &jsonResponse)
         LastUpdateTP.setState(IPS_OK);
         LastUpdateTP.apply();
 
+        time_t expiryTime = forecastStartTime + static_cast<time_t>(forecastHours) * 3600;
+        char expiryBuf[32];
+        struct tm expiryTm = {};
+        gmtime_r(&expiryTime, &expiryTm);
+        strftime(expiryBuf, sizeof(expiryBuf), "%Y-%m-%d %H:%M UTC", &expiryTm);
+        ForecastValidUntilTP[0].setText(expiryBuf);
+        ForecastValidUntilTP.setState(IPS_OK);
+        ForecastValidUntilTP.apply();
+
         LOGF_INFO("Parsed forecast for %d hours starting at %s.", forecastHours, utcStartTimeStr.c_str());
         return true;
     }
@@ -514,10 +533,9 @@ IPState AstrosphericWeather::updateWeather()
         return IPS_ALERT;
     }
 
-    // Wait for location data before proceeding
     if (!locationReceived)
     {
-        LOG_INFO("Waiting for location data...");
+        LOG_WARN("No location set. Enter coordinates in Options > Location, or connect a telescope for snooping.");
         return IPS_BUSY;
     }
 
@@ -640,6 +658,15 @@ IPState AstrosphericWeather::updateWeather()
             dewPoint[0], windDirection[0], seeing[0], transparency[0]));
 
         updateForecastProperties(0);
+
+        time_t simExpiry = now + static_cast<time_t>(simHours) * 3600;
+        char expiryBuf[32];
+        struct tm expiryTm = {};
+        gmtime_r(&simExpiry, &expiryTm);
+        strftime(expiryBuf, sizeof(expiryBuf), "%Y-%m-%d %H:%M UTC", &expiryTm);
+        ForecastValidUntilTP[0].setText(expiryBuf);
+        ForecastValidUntilTP.setState(IPS_OK);
+        ForecastValidUntilTP.apply();
 
         return IPS_OK;
     }

@@ -79,6 +79,8 @@ private:
     INDI::PropertyText WeatherSummaryTP{1};
     // Timestamp of the last successful API fetch.
     INDI::PropertyText LastUpdateTP{1};
+    // UTC time at which the current forecast window expires.
+    INDI::PropertyText ForecastValidUntilTP{1};
 
     // Forecast tab properties: next 24 hours in 3-hour steps (8 elements each).
     INDI::PropertyNumber ForecastCloudCoverNP{8};
