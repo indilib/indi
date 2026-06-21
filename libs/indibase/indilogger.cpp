@@ -75,9 +75,12 @@ int Logger::addDebugLevel(const char *debugLevelName, const char *loggingLevelNa
     if (customLevel == nlevels)
         return -1;
 
-    strncpy(Tags[customLevel], loggingLevelName, MAXINDINAME);
-    strncpy(DebugLevelSInit[customLevel].label, debugLevelName, MAXINDINAME);
-    strncpy(LoggingLevelSInit[customLevel].label, debugLevelName, MAXINDINAME);
+    strncpy(Tags[customLevel], loggingLevelName, MAXINDINAME - 1);
+    Tags[customLevel][MAXINDINAME - 1] = '\0';
+    strncpy(DebugLevelSInit[customLevel].label, debugLevelName, MAXINDINAME - 1);
+    DebugLevelSInit[customLevel].label[MAXINDINAME - 1] = '\0';
+    strncpy(LoggingLevelSInit[customLevel].label, debugLevelName, MAXINDINAME - 1);
+    LoggingLevelSInit[customLevel].label[MAXINDINAME - 1] = '\0';
 
     return DebugLevelSInit[customLevel++].levelmask;
 }

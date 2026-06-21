@@ -393,7 +393,8 @@ bool SpectraCyber::ISNewText(const char *dev, const char *name, char *texts[], c
             if (!tProp.update(texts, names, n))
                 return false;
 
-            strncpy(EquatorialCoordsRNP.device, tProp[0].getText(), MAXINDIDEVICE);
+            strncpy(EquatorialCoordsRNP.device, tProp[0].getText(), MAXINDIDEVICE - 1);
+            EquatorialCoordsRNP.device[MAXINDIDEVICE - 1] = '\0';
 
             LOGF_INFO("Active telescope updated to %s. Please save configuration.", telescopeID->text);
 

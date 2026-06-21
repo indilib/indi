@@ -162,10 +162,10 @@ IPState WunderGround::updateWeather()
         curl_easy_cleanup(curl);
     }
 
-    char srcBuffer[readBuffer.size()];
+    char srcBuffer[readBuffer.size() + 1];
     strncpy(srcBuffer, readBuffer.c_str(), readBuffer.size());
+    srcBuffer[readBuffer.size()] = '\0';
     char *source = srcBuffer;
-    // do not forget terminate source string with 0
     char *endptr;
     JsonValue value;
     JsonAllocator allocator;

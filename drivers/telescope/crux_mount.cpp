@@ -658,7 +658,8 @@ bool TitanTCS::GetParamStr(const char* pInStr, char* pOutStr, int len, const cha
             break;
     }
 
-    strncpy(pOutStr, pInStr, len);
+    strncpy(pOutStr, pInStr, len - 1);
+    pOutStr[len - 1] = '\0';
 
     if(delimeter)
     {
