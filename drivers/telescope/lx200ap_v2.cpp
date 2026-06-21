@@ -476,7 +476,6 @@ void LX200AstroPhysicsV2::setMajorMinorVersions(char *version)
 bool LX200AstroPhysicsV2::getFirmwareVersion()
 {
     bool success;
-    char rev[8];
     char versionString[128];
     majorVersion = 0;
     minorVersion = 0;
@@ -496,7 +495,6 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
     {
         firmwareVersion = MCV_V;
         servoType = GTOCP4;
-        strcpy(rev, "V");
         success = true;
         setMajorMinorVersions(versionString);
     }
@@ -505,7 +503,6 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
     {
         firmwareVersion = MCV_V;
         servoType = GTOCP5;
-        strcpy(rev, "V");
         setMajorMinorVersions(versionString);
         success = true;
     }
@@ -522,8 +519,6 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
                 servoType = GTOCP2;
             else
                 servoType = GTOCP3;
-
-            strncpy(rev, versionString, 8);
 
             success = true;
         }
