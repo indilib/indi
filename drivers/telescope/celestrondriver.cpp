@@ -425,12 +425,12 @@ bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *can
 
     if (models.find(m) != models.end())
     {
-        strncpy(model, models[m].c_str(), size);
+        snprintf(model, size, "%s", models[m].c_str());
         LOGF_INFO("Mount model: %s", model);
     }
     else
     {
-        strncpy(model, "Unknown", size);
+        snprintf(model, size, "%s", "Unknown");
         LOGF_WARN("Unrecognized model (%d).", model);
     }
 

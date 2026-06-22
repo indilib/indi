@@ -2185,7 +2185,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 LOG_WARN("This update aborted, will try again...");
                 return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
             }
-            strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
+            snprintf(OldOSStat, sizeof(OldOSStat), "%s", OSStat);
 
             OnstepStatTP[0].setText(OSStat);
 
@@ -2931,7 +2931,7 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 if (strcmp(OSPier, OldOSPier) != 0) // any change ?
                 {
-                    strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
+                    snprintf(OldOSPier, sizeof(OldOSPier), "%s", OSPier);
                     switch(OSPier[0])
                     {
                         case 'E':

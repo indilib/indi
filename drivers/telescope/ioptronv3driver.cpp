@@ -166,7 +166,7 @@ bool Driver::sendCommand(const char *command,
 
     // Copy response to buffer
     if (response)
-        strncpy(response, res, IOP_BUFFER);
+        snprintf(response, IOP_BUFFER, "%s", res);
 
     return true;
 }

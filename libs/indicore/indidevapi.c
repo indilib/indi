@@ -71,7 +71,7 @@ XMLEle *configRootFP(const char *device)
     snprintf(configDir, MAXRBUF-1, "%s/.indi/", getenv("HOME"));
 
         if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF-1);
+            snprintf(configFileName, MAXRBUF, "%s", getenv("INDICONFIG"));
         else
             snprintf(configFileName, MAXRBUF-1, "%s%s_config.xml", configDir, device);
 

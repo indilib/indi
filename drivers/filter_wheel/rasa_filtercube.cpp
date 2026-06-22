@@ -210,7 +210,7 @@ bool RasaFilterCube::Handshake()
 
         if (strncasecmp(field, FILTERCUBE_MODEL, std::strlen(FILTERCUBE_MODEL)) == 0)
         {
-            std::strncpy(mModel, field, sizeof(mModel) - 1);
+            snprintf(mModel, sizeof(mModel), "%s", field);
             foundModel = true;
             break;
         }
@@ -232,7 +232,7 @@ bool RasaFilterCube::Handshake()
         nbytes_read--;
         field[nbytes_read] = '\0';
     }
-    strncpy(mFirmware, field, sizeof(mFirmware) - 1);
+    snprintf(mFirmware, sizeof(mFirmware), "%s", field);
 
     double fwVersion = std::atof(mFirmware);
     if (fwVersion < FILTERCUBE_MIN_FIRMWARE)

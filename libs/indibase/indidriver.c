@@ -828,7 +828,7 @@ int IUGetConfigOnSwitchName(const char *dev, const char *property, char *name, s
                 if (crackISState(pcdataXMLEle(oneSwitch), &s) == 0 && s == ISS_ON)
                 {
                     found = 0;
-                    strncpy(name, findXMLAttValu(oneSwitch, "name"), size);
+                    snprintf(name, size, "%s", findXMLAttValu(oneSwitch, "name"));
                     break;
                 }
             }
@@ -951,7 +951,7 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
             {
                 if (!strcmp(member, findXMLAttValu(oneText, "name")))
                 {
-                    strncpy(value, pcdataXMLEle(oneText), len);
+                    snprintf(value, len, "%s", pcdataXMLEle(oneText));
                     valueFound = 1;
                     break;
                 }

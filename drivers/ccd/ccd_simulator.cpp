@@ -927,7 +927,7 @@ void CCDSim::activeDevicesUpdated()
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM");
 
-    strncpy(FWHMNP.device, ActiveDeviceTP[ACTIVE_FOCUSER].getText(), MAXINDIDEVICE);
+    snprintf(FWHMNP.device, MAXINDIDEVICE, "%s", ActiveDeviceTP[ACTIVE_FOCUSER].getText());
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle * root)
