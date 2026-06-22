@@ -550,9 +550,9 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                 const char *elemName = findXMLAttValu(ep, "name");
 
                 if (!strcmp(elemName, "UTC"))
-                    strncpy(utc, pcdataXMLEle(ep), MAXINDITSTAMP);
+                    snprintf(utc, MAXINDITSTAMP, "%s", pcdataXMLEle(ep));
                 else if (!strcmp(elemName, "OFFSET"))
-                    strncpy(offset, pcdataXMLEle(ep), MAXINDITSTAMP);
+                    snprintf(offset, MAXINDITSTAMP, "%s", pcdataXMLEle(ep));
             }
 
             return processTimeInfo(utc, offset);

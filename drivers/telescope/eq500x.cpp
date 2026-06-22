@@ -281,9 +281,9 @@ bool EQ500X::ReadScopeStatus()
         {
             // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
             if (RAmDecrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA - rates[adjustment - adjustments] * delta / 15.0
-                        + 24.0, 24.0);
+                    + 24.0, 24.0);
             if (RAmIncrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA + rates[adjustment - adjustments] * delta / 15.0
-                        + 24.0, 24.0);
+                    + 24.0, 24.0);
             if (DECmDecrease) simEQ500X.MechanicalDEC -= rates[adjustment - adjustments] * delta;
             if (DECmIncrease) simEQ500X.MechanicalDEC += rates[adjustment - adjustments] * delta;
 
@@ -950,9 +950,9 @@ double EQ500X::MechanicalPoint::DECm(double const value)
 double EQ500X::MechanicalPoint::RAsky() const
 {
     switch (_pointingState)
-    {
-        case POINTING_BEYOND_POLE:
-            return static_cast <double> ((12 * 3600 + _RAm) % (24 * 3600)) / 3600.0;
+{
+    case POINTING_BEYOND_POLE:
+        return static_cast <double> ((12 * 3600 + _RAm) % (24 * 3600)) / 3600.0;
         case POINTING_NORMAL:
         default:
             return static_cast <double> ((24 * 3600 + _RAm) % (24 * 3600)) / 3600.0;
@@ -1041,7 +1041,7 @@ char const * EQ500X::MechanicalPoint::toStringDEC_Sim(char *buf, size_t buf_leng
     int const seconds = static_cast <int> (std::abs(_DECm)) % 60;
 
     if (degrees < -255 || +255 < degrees)
-        return (char const*)0;
+        return (char const * )0;
 
     char high_digit = '0';
     if (-100 < degrees && degrees < 100)
@@ -1120,7 +1120,7 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     int const seconds = static_cast <int> (std::abs(_DECm)) % 60;
 
     if (degrees < -255 || +255 < degrees)
-        return (char const*)0;
+        return (char const * )0;
 
     int const written = snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
 
@@ -1133,7 +1133,7 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
         return true;
 
     char b[sizeof(MechanicalPoint_DEC_FormatR)] = {0};
-    strncpy(b, buf, sizeof(b));
+    snprintf(b, sizeof(b), "%s", buf);
 
     // Mount replies to "#GD:" with "sDD:MM:SS".
     // s is in {+,-} and provides a sign.

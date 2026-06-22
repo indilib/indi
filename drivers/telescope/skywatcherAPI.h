@@ -350,6 +350,7 @@ class SkywatcherAPI
             EQ6_PRO          = 0x23,
             EQ5_PRO          = 0x31,
             WAVE_150I        = 0x45,
+            WAVE_100I        = 0x44,
             GT               = 0x80,
             MF               = 0x81,
             _114GT           = 0x82,

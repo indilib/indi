@@ -173,7 +173,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 
     if (isSimulation())
     {
-        strncpy(response, simulation, sizeof(response));
+        snprintf(response, sizeof(response), "%s", simulation);
         nbytes_read = strlen(response) + 2; // +2 for simulation = "\n\r" see below
     }
     else
@@ -584,11 +584,11 @@ bool FilterIFW::GetFilterNames()
 
             for (int i = 0; i < maxFilter; i++)
             {
-                strncpy(filterNameIFW[i], p, OPTEC_LEN_FLTNAME);
+                snprintf(filterNameIFW[i], OPTEC_LEN_FLTNAME + 1, "%s", p);
                 filterNameIFW[i][OPTEC_LEN_FLTNAME] = '\0';
                 p                                   = p + OPTEC_LEN_FLTNAME;
                 LOGF_DEBUG("filterNameIFW[%d] : %s", i, filterNameIFW[i]);
-                strncat(filterList, filterNameIFW[i], OPTEC_LEN_FLTNAME);
+                strcat(filterList, filterNameIFW[i]);
                 strcat(filterList, "/");
             }
             filterList[strlen(filterList) - 1] = '\0'; //Remove last "/"

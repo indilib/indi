@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2026 Jérémie Klein. All rights reserved.
+  Copyright(c) 2026 WandererAstro. All rights reserved. (modifications)
 
   Wanderer Snowflake Filter Wheel Driver
 
@@ -28,17 +29,15 @@
 #include <strings.h>
 #include <termios.h>
 
-// Wanderer Snowflake protocol specifics
 #define WANDERER_TIMEOUT 5
-/** Per-field timeout while parsing the continuous A-delimited status stream (motor activity can slow UART). */
+
 #define WANDERER_STATUS_TIMEOUT 12
-/** Optional line reply after 1500002; may be absent while the status stream is busy. */
+
 #define WANDERER_CALIB_REPLY_TIMEOUT 10
 #define WANDERER_MAX_FILTERS 8
-/** Zero detection — default 1500003; override if your protocol PDF differs. */
+
 #define WANDERER_CMD_ZERO_DETECT "1002"
 
-// Single global instance
 static std::unique_ptr<WandererSnowflakeFW> wanderer_snowflake(new WandererSnowflakeFW());
 
 WandererSnowflakeFW::WandererSnowflakeFW()
@@ -67,6 +66,15 @@ bool WandererSnowflakeFW::initProperties()
     IUFillSwitchVector(&CalibrationCmdSP, CalibrationCmdS, 2, getDeviceName(), "CALIBRATION_CMDS", "Calibration",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    IUFillNumber(&DeviceIDN[0], "DEVICE_ID", "ID", "%0.0f", 0, 10, 1, 0);
+    IUFillNumberVector(&DeviceIDNP, DeviceIDN, 1, getDeviceName(),
+                       "DEVICE_ID", "Device ID", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillText(&DeviceInfoT[0], "MODEL", "Model", "");
+    IUFillText(&DeviceInfoT[1], "FIRMWARE", "Firmware", "");
+    IUFillTextVector(&DeviceInfoTP, DeviceInfoT, 2, getDeviceName(),
+                     "DEVICE_INFO", "Device Info", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+
     addAuxControls();
 
     return true;
@@ -77,9 +85,20 @@ bool WandererSnowflakeFW::updateProperties()
     INDI::FilterWheel::updateProperties();
 
     if (isConnected())
+    {
         defineProperty(&CalibrationCmdSP);
+        defineProperty(&DeviceIDNP);
+        DeviceIDN[0].value = mDeviceID;
+        DeviceIDNP.s = IPS_OK;
+        IDSetNumber(&DeviceIDNP, nullptr);
+        defineProperty(&DeviceInfoTP);
+    }
     else
+    {
         deleteProperty(CalibrationCmdSP.name);
+        deleteProperty(DeviceIDNP.name);
+        deleteProperty(DeviceInfoTP.name);
+    }
 
     return true;
 }
@@ -97,7 +116,7 @@ bool WandererSnowflakeFW::Handshake()
     int current = 0;
     if (!readCurrentFilterFromStatus(current))
     {
-        LOG_ERROR("Failed to read status from Wanderer Snowflake filter wheel.");
+        LOG_ERROR("Wanderer Snowflake model (WSFW508/WSFW368) not found in status. Wrong port or device.");
         return false;
     }
 
@@ -106,6 +125,38 @@ bool WandererSnowflakeFW::Handshake()
         CurrentFilter = current;
         FilterSlotNP[0].setValue(CurrentFilter);
     }
+
+    char field[64] = {0};
+    int nbytes = 0;
+
+    if (tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes) == TTY_OK)
+    {
+        while (nbytes > 0 && (field[nbytes - 1] == 'A' || field[nbytes - 1] == '\r' || field[nbytes - 1] == '\n'))
+        {
+            nbytes--;
+            field[nbytes] = '\0';
+        }
+        for (int i = 0; i < WANDERER_MAX_FILTERS && i < nbytes; i++)
+            mFilterLetters[i] = field[i];
+    }
+
+    for (int i = 0; i < WANDERER_MAX_FILTERS; i++)
+        tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes);
+
+    if (tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes) == TTY_OK)
+    {
+        while (nbytes > 0 && (field[nbytes - 1] == 'A' || field[nbytes - 1] == '\r' || field[nbytes - 1] == '\n'))
+        {
+            nbytes--;
+            field[nbytes] = '\0';
+        }
+        mDeviceID = std::atoi(field);
+    }
+
+    IUSaveText(&DeviceInfoT[0], mModel);
+    IUSaveText(&DeviceInfoT[1], mFirmware);
+    DeviceInfoTP.s = IPS_OK;
+    IDSetText(&DeviceInfoTP, nullptr);
 
     usleep(200000);
 
@@ -125,7 +176,6 @@ bool WandererSnowflakeFW::sendAutomaticCalibration()
         return true;
     }
 
-    // The spec documents no reply for 1500002 — send only, no read.
     if (!sendCommand("1500002", nullptr, 0, WANDERER_TIMEOUT))
     {
         LOG_ERROR("Failed to send automatic calibration command (1500002).");
@@ -147,8 +197,6 @@ bool WandererSnowflakeFW::sendZeroDetection()
         return true;
     }
 
-    // Command 1002: triggers zero position detection and moves to filter 1.
-    // No reply is documented; result is visible in the continuous status stream.
     if (!sendCommand(WANDERER_CMD_ZERO_DETECT, nullptr, 0, WANDERER_TIMEOUT))
     {
         LOGF_ERROR("Failed to send zero detection command (%s).", WANDERER_CMD_ZERO_DETECT);
@@ -156,7 +204,6 @@ bool WandererSnowflakeFW::sendZeroDetection()
     }
     LOGF_INFO("Zero detection command (%s) sent; waiting for filter 1.", WANDERER_CMD_ZERO_DETECT);
 
-    // Wait for the wheel to reach filter 1 (same logic as SelectFilter).
     constexpr int maxAttempts = 80;
     for (int attempts = 0; attempts < maxAttempts; ++attempts)
     {
@@ -205,6 +252,41 @@ bool WandererSnowflakeFW::ISNewSwitch(const char *dev, const char *name, ISState
     return INDI::FilterWheel::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool WandererSnowflakeFW::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && std::strcmp(dev, getDeviceName()) == 0)
+    {
+
+        if (std::strcmp(DeviceIDNP.name, name) == 0)
+        {
+            IUUpdateNumber(&DeviceIDNP, values, names, n);
+            int id = static_cast<int>(DeviceIDN[0].value);
+            if (id < 0 || id > 10)
+            {
+                LOG_ERROR("Device ID must be 0-10.");
+                DeviceIDNP.s = IPS_ALERT;
+                IDSetNumber(&DeviceIDNP, nullptr);
+                return true;
+            }
+            char cmd[16] = {0};
+            snprintf(cmd, sizeof(cmd), "%d", 1900000 + id);
+            if (!sendCommand(cmd, nullptr, 0, WANDERER_TIMEOUT))
+            {
+                LOG_ERROR("Failed to set device ID.");
+                DeviceIDNP.s = IPS_ALERT;
+                IDSetNumber(&DeviceIDNP, nullptr);
+                return true;
+            }
+            mDeviceID = id;
+            DeviceIDNP.s = IPS_OK;
+            IDSetNumber(&DeviceIDNP, nullptr);
+            LOGF_INFO("Device ID set to %d.", id);
+            return true;
+        }
+    }
+    return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+}
+
 int WandererSnowflakeFW::QueryFilter()
 {
     return CurrentFilter;
@@ -236,42 +318,32 @@ bool WandererSnowflakeFW::SelectFilter(int position)
         return true;
     }
 
-    // Command 200X where X = 1–8 moves to the specified filter position.
     char cmd[16] = {0};
     snprintf(cmd, sizeof(cmd), "%d", 2000 + TargetFilter);
 
-    // Do not read a fixed-length reply: the wheel continuously emits status frames; tty_read
-    // would consume arbitrary bytes and break parsing. NP (no 12V) is visible in status if needed.
     if (!sendCommand(cmd, nullptr, 0, WANDERER_TIMEOUT))
     {
         LOG_ERROR("Failed to send move command to Wanderer Snowflake filter wheel.");
         return false;
     }
 
-    // Wait for the wheel to report the new position via its status stream.
+    tcflush(PortFD, TCIFLUSH);
+
     int attempts = 0;
-    constexpr int maxAttempts = 80; // up to ~40s with 500ms sleeps (slow mechanical moves)
+    constexpr int maxAttempts = 80;
 
     while (attempts++ < maxAttempts)
     {
         int current = 0;
-        if (!readCurrentFilterFromStatus(current))
-        {
-            usleep(500 * 1000);
-            continue;
-        }
-
-        if (current == TargetFilter)
+        if (readCurrentFilterFromStatus(current) && current == TargetFilter)
         {
             CurrentFilter = current;
             FilterSlotNP[0].setValue(CurrentFilter);
             FilterSlotNP.setState(IPS_OK);
             FilterSlotNP.apply("Selected filter position reached");
             SelectFilterDone(CurrentFilter);
-            LOGF_DEBUG("CurrentFilter set to %d", CurrentFilter);
             return true;
         }
-
         usleep(500 * 1000);
     }
 
@@ -310,7 +382,6 @@ bool WandererSnowflakeFW::sendCommand(const char *command, char *response, int r
     if (response == nullptr || responseLen <= 1)
         return true;
 
-
     rc = tty_read_section(PortFD, response, '\r', timeoutSeconds, &nbytes_read);
     if (rc != TTY_OK)
         rc = tty_read_section(PortFD, response, '\n', timeoutSeconds, &nbytes_read);
@@ -320,7 +391,7 @@ bool WandererSnowflakeFW::sendCommand(const char *command, char *response, int r
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_DEBUG("No CR/LF line after command '%s' (status stream may omit it while moving): %s", command, errstr);
         response[0] = '\0';
-        return true; // write succeeded; calibration / NP detection is best-effort only
+        return true;
     }
 
     while (nbytes_read > 0 && (response[nbytes_read - 1] == '\r' || response[nbytes_read - 1] == '\n'))
@@ -335,9 +406,100 @@ bool WandererSnowflakeFW::sendCommand(const char *command, char *response, int r
     return true;
 }
 
+bool WandererSnowflakeFW::saveConfigItems(FILE *fp)
+{
+
+    INDI::DefaultDevice::saveConfigItems(fp);
+    if (FilterNameTP.size() > 0)
+        FilterNameTP.save(fp);
+    return true;
+}
+
+bool WandererSnowflakeFW::GetFilterNames()
+{
+    FilterNameTP.resize(0);
+    for (int i = 0; i < WANDERER_MAX_FILTERS; i++)
+    {
+        char filterName[32];
+        char filterLabel[16];
+        char filterText[4];
+        snprintf(filterName, sizeof(filterName), "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, sizeof(filterLabel), "Filter %d", i + 1);
+        snprintf(filterText, sizeof(filterText), "%c", mFilterLetters[i]);
+        INDI::WidgetText oneWidget;
+
+        oneWidget.fill(filterName, filterLabel, filterText);
+        FilterNameTP.push(std::move(oneWidget));
+    }
+    FilterNameTP.fill(getDeviceName(), "FILTER_NAME", "Filter",
+                      FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
+    FilterNameTP.shrink_to_fit();
+    FilterSlotNP[0].setMax(FilterNameTP.count());
+    return true;
+}
+
+bool WandererSnowflakeFW::SetFilterNames()
+{
+    if (isSimulation())
+        return true;
+
+    bool allOk = true;
+    for (int i = 0; i < WANDERER_MAX_FILTERS; i++)
+    {
+        const char *txt = FilterNameTP[i].getText();
+        if (txt == nullptr)
+            continue;
+
+        const char *p = txt;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        char c = *p;
+        if (c >= 'a' && c <= 'z')
+            c -= 32;
+        char after = p[1];
+        bool singleLetter = (c >= 'B' && c <= 'Z') &&
+                            (after == '\0' || after == ' ' || after == '\t' || after == '\r' || after == '\n');
+
+        if (!singleLetter)
+        {
+
+            LOGF_ERROR("Filter %d name '%s' invalid — must be a single letter (B-Z).", i + 1, txt);
+
+            char orig[2] = { mFilterLetters[i] ? mFilterLetters[i] : 'X', '\0' };
+            FilterNameTP[i].setText(orig);
+            allOk = false;
+            continue;
+        }
+
+        char norm[2] = { c, '\0' };
+        FilterNameTP[i].setText(norm);
+
+        int code = (161 + i) * 10000 + (c - 'A' + 1);
+        char cmd[16] = {0};
+        snprintf(cmd, sizeof(cmd), "%d", code);
+
+        if (!sendCommand(cmd, nullptr, 0, WANDERER_TIMEOUT))
+        {
+            LOGF_ERROR("Failed to set filter %d name to %c.", i + 1, c);
+            allOk = false;
+            continue;
+        }
+
+        mFilterLetters[i] = c;
+        LOGF_INFO("Filter %d name set to %c.", i + 1, c);
+    }
+
+    if (!allOk)
+    {
+        FilterNameTP.setState(IPS_ALERT);
+        FilterNameTP.apply("Invalid filter name(s): must be a single letter (B-Z). Invalid entries reverted.");
+    }
+    return true;
+}
+
 namespace
 {
-/** tty_read_section stores the stop character in buf; strip it and trailing CR/LF. */
+
 void wandererStripFieldDelimiter(char *field, int &nbytes_read, char delimiter)
 {
     while (nbytes_read > 0)
@@ -354,7 +516,6 @@ void wandererStripFieldDelimiter(char *field, int &nbytes_read, char delimiter)
     field[nbytes_read] = '\0';
 }
 
-/** Left-trim spaces / CR / LF; result is within the same buffer. */
 char *wandererTrimLeft(char *s)
 {
     char *p = s;
@@ -365,63 +526,15 @@ char *wandererTrimLeft(char *s)
     return s;
 }
 
-static const char *wandererFindWsfw(const char *s)
-{
-    for (const char *p = s; *p != '\0'; ++p)
-    {
-        if (strncasecmp(p, "WSFW", 4) == 0)
-            return p;
-    }
-    return nullptr;
-}
-
-/** True if this A-delimited field is the model token (WSFW… family). */
 bool wandererFieldLooksLikeModel(char *field, int nbytes_read)
 {
     if (nbytes_read <= 0)
         return false;
     field[nbytes_read] = '\0';
     wandererTrimLeft(field);
-    nbytes_read = static_cast<int>(std::strlen(field));
-    if (nbytes_read < 4)
-        return false;
-    if (strncasecmp(field, "WSFW", 4) == 0)
-        return true;
-    const char *hit = wandererFindWsfw(field);
-    if (hit == nullptr)
-        return false;
-    for (const char *q = field; q < hit; ++q)
-    {
-        if (*q != ' ' && *q != '\t')
-            return false;
-    }
-    return true;
+    return (strncasecmp(field, "WSFW508", 7) == 0 || strncasecmp(field, "WSFW368", 7) == 0);
 }
-
-bool wandererReadFilterFromThreeFields(int PortFD, char *field, int &position)
-{
-    int rc = 0;
-    int nbytes_read = 0;
-
-    if ((rc = tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes_read)) != TTY_OK)
-        return false;
-    wandererStripFieldDelimiter(field, nbytes_read, 'A');
-
-    if ((rc = tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes_read)) != TTY_OK)
-        return false;
-    wandererStripFieldDelimiter(field, nbytes_read, 'A');
-
-    if ((rc = tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes_read)) != TTY_OK)
-        return false;
-    wandererStripFieldDelimiter(field, nbytes_read, 'A');
-
-    int current = std::atoi(field);
-    if (current < 1 || current > WANDERER_MAX_FILTERS)
-        return false;
-    position = current;
-    return true;
 }
-} // namespace
 
 bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
 {
@@ -432,7 +545,6 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
     if (PortFD < 0)
         return false;
 
-
     constexpr int maxResync = 32;
     bool haveModel = false;
 
@@ -442,13 +554,14 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
         {
             char errstr[MAXRBUF] = {0};
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_WARN("Failed to read Wanderer Snowflake status field: %s", errstr);
+            LOGF_DEBUG("Failed to read Wanderer Snowflake status field: %s", errstr);
             return false;
         }
         wandererStripFieldDelimiter(field, nbytes_read, 'A');
 
         if (wandererFieldLooksLikeModel(field, static_cast<int>(std::strlen(field))))
         {
+            snprintf(mModel, sizeof(mModel), "%s", field);
             haveModel = true;
             break;
         }
@@ -462,16 +575,25 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
         {
             char errstr[MAXRBUF] = {0};
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_WARN("Failed to read firmware field from Wanderer Snowflake status: %s", errstr);
+            LOGF_DEBUG("Failed to read firmware field from Wanderer Snowflake status: %s", errstr);
             return false;
         }
         wandererStripFieldDelimiter(field, nbytes_read, 'A');
+        snprintf(mFirmware, sizeof(mFirmware), "%s", field);
+
+        double fwVersion = std::atof(field);
+        if (fwVersion < 20260124.0)
+        {
+            LOGF_ERROR("Wanderer Snowflake firmware %.0f is too old (minimum 20260124). "
+                       "Please update the firmware in WandererEmpire.", fwVersion);
+            return false;
+        }
 
         if ((rc = tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             char errstr[MAXRBUF] = {0};
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_WARN("Failed to read current filter field from Wanderer Snowflake status: %s", errstr);
+            LOGF_DEBUG("Failed to read current filter field from Wanderer Snowflake status: %s", errstr);
             return false;
         }
         wandererStripFieldDelimiter(field, nbytes_read, 'A');
@@ -482,17 +604,11 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
             position = current;
             return true;
         }
-        LOGF_WARN("Received invalid current filter value '%s' from Wanderer Snowflake status.", field);
+        LOGF_DEBUG("Received invalid current filter value '%s' from Wanderer Snowflake status.", field);
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
-    usleep(150000);
-    LOG_DEBUG("No WSFW token after resync; flushed RX and trying 3-field status read.");
-    if (wandererReadFilterFromThreeFields(PortFD, field, position))
-        return true;
-
-    LOG_WARN("Could not parse Wanderer Snowflake status (no WSFW* field and 3-field read failed).");
     return false;
 }
+
 

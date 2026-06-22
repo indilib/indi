@@ -199,7 +199,7 @@ bool TemmaMount::sendCommand(const char *cmd, char *response)
     char errmsg[MAXRBUF];
 
     char cmd_temma[TEMMA_BUFFER] = {0};
-    strncpy(cmd_temma, cmd, TEMMA_BUFFER);
+    snprintf(cmd_temma, TEMMA_BUFFER, "%s", cmd);
     int cmd_size = strlen(cmd_temma);
     if (cmd_size - 2 >= TEMMA_BUFFER)
     {

@@ -559,7 +559,7 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         {
             return m_defaultDevice->updateProperty(LEDControlSP, states, names, n, [this, names]()
             {
-                bool enabled = LEDControlSP[0].isNameMatch(names[0]) == ISS_ON;
+                bool enabled = LEDControlSP[0].isNameMatch(names[0]);
                 return SetLEDEnabled(enabled);
             }, true);
         }

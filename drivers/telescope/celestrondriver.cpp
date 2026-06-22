@@ -105,7 +105,7 @@ const char *CelestronDriver::getDeviceName()
 
 void CelestronDriver::set_device(const char *name)
 {
-    strncpy(device_str, name, MAXINDIDEVICE);
+    snprintf(device_str, MAXINDIDEVICE, "%s", name);
 }
 
 // Virtual method for testing
@@ -425,12 +425,12 @@ bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *can
 
     if (models.find(m) != models.end())
     {
-        strncpy(model, models[m].c_str(), size);
+        snprintf(model, size, "%s", models[m].c_str());
         LOGF_INFO("Mount model: %s", model);
     }
     else
     {
-        strncpy(model, "Unknown", size);
+        snprintf(model, size, "%s", "Unknown");
         LOGF_WARN("Unrecognized model (%d).", model);
     }
 
@@ -1157,7 +1157,7 @@ bool CelestronDriver::foc_limits(int * low, int * high)
         return false;
 
     *low = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>
-            (response[2]) << 8) + static_cast<uint8_t>(response[3]);
+           (response[2]) << 8) + static_cast<uint8_t>(response[3]);
     *high = (static_cast<uint8_t>(response[4]) << 24) + (static_cast<uint8_t>(response[5]) << 16) + (static_cast<uint8_t>
             (response[6]) << 8) + static_cast<uint8_t>(response[7]);
 

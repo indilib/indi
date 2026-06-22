@@ -69,15 +69,12 @@ bool LX200AM5::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Properties
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    // Mount Type
-    int mountType = Equatorial;
-    IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &mountType);
-    MountTypeSP[Azimuth].fill("Azimuth", "Azimuth", mountType == Azimuth ? ISS_ON : ISS_OFF);
-    MountTypeSP[Equatorial].fill("Equatorial", "Equatorial", mountType == Equatorial ? ISS_ON : ISS_OFF);
+    MountTypeSP[Azimuth].fill("Azimuth", "Azimuth", ISS_OFF);
+    MountTypeSP[Equatorial].fill("Equatorial", "Equatorial", ISS_ON);
     MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    MountTypeSP.load();
 
-    if (mountType == Equatorial)
+    if (MountTypeSP[Equatorial].getState() == ISS_ON)
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Slew Rates
@@ -110,30 +107,11 @@ bool LX200AM5::initProperties()
     BuzzerSP[Low].fill("LOW", "Low", ISS_OFF);
     BuzzerSP[High].fill("HIGH", "High", ISS_ON);
     BuzzerSP.fill(getDeviceName(), "BUZZER", "Buzzer", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    BuzzerSP.onUpdate([this]
-    {
-        if (setBuzzer(BuzzerSP.findOnSwitchIndex()))
-        {
-            BuzzerSP.setState(IPState::IPS_OK);
-        }
-        else
-        {
-            BuzzerSP.setState(IPState::IPS_ALERT);
-        }
-        BuzzerSP.apply();
-    });
 
     // Heavy Duty Mode
     HeavyDutyModeSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     HeavyDutyModeSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     HeavyDutyModeSP.fill(getDeviceName(), "HEAVY_DUTY_MODE", "Heavy Duty Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    HeavyDutyModeSP.onUpdate([this]
-    {
-        bool enabled = HeavyDutyModeSP[INDI_ENABLED].getState() == ISS_ON;
-        IPState state = setHeavyDutyMode(enabled) ? IPS_OK : IPS_ALERT;
-        HeavyDutyModeSP.setState(state);
-        HeavyDutyModeSP.apply();
-    });
 
     // Meridian Flip Enable
     MeridianFlipSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
@@ -158,58 +136,23 @@ bool LX200AM5::initProperties()
     AltitudeLimitSP[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
     AltitudeLimitSP.fill(getDeviceName(), "ALTITUDE_LIMIT_CONTROL", "Altitude Limit Control", ALTITUDE_LIMIT_TAB, IP_RW,
                          ISR_1OFMANY, 60, IPS_IDLE);
-    AltitudeLimitSP.onUpdate([this]
-    {
-        if (AltitudeLimitSP[INDI_ENABLED].getState() == ISS_ON)
-        {
-            AltitudeLimitSP.setState(setAltitudeLimitEnabled(true) ? IPS_OK : IPS_ALERT);
-        }
-        else if (AltitudeLimitSP[INDI_DISABLED].getState() == ISS_ON)
-        {
-            AltitudeLimitSP.setState(setAltitudeLimitEnabled(false) ? IPS_OK : IPS_ALERT);
-        }
-        AltitudeLimitSP.apply();
-    });
 
     AltitudeLimitUpperNP[0].fill("UPPER_LIMIT", "Upper Limit (deg)", "%.f", 60, 90, 1, 90);
     AltitudeLimitUpperNP.fill(getDeviceName(), "ALTITUDE_UPPER_LIMIT", "Altitude Upper Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60,
                               IPS_IDLE);
-    AltitudeLimitUpperNP.onUpdate([this]
-    {
-        AltitudeLimitUpperNP.setState(setAltitudeLimitUpper(AltitudeLimitUpperNP[0].getValue()) ? IPS_OK : IPS_ALERT);
-        AltitudeLimitUpperNP.apply();
-    });
 
     AltitudeLimitLowerNP[0].fill("LOWER_LIMIT", "Lower Limit (deg)", "%.f", 0, 30, 1, 0);
     AltitudeLimitLowerNP.fill(getDeviceName(), "ALTITUDE_LOWER_LIMIT", "Altitude Lower Limit", ALTITUDE_LIMIT_TAB, IP_RW, 60,
                               IPS_IDLE);
-    AltitudeLimitLowerNP.onUpdate([this]
-    {
-        AltitudeLimitLowerNP.setState(setAltitudeLimitLower(AltitudeLimitLowerNP[0].getValue()) ? IPS_OK : IPS_ALERT);
-        AltitudeLimitLowerNP.apply();
-    });
 
     // Multi-Star Alignment
     MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].fill("CLEAR", "Clear Data", ISS_OFF);
     MultiStarAlignSP.fill(getDeviceName(), "MULTI_STAR_ALIGNMENT", "Multi-Star Alignment", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1,
                           60, IPS_IDLE);
-    MultiStarAlignSP.onUpdate([this]
-    {
-        if (MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].getState() == ISS_ON)
-        {
-            MultiStarAlignSP.setState(clearMultiStarAlignmentData() ? IPS_OK : IPS_ALERT);
-            MultiStarAlignSP.apply();
-        }
-    });
 
     // Variable Slew Speed
     VariableSlewRateNP[0].fill("RATE", "Rate (x Sidereal)", "%.2f", 0.00, 1440.00, 0.01, 1440.00);
     VariableSlewRateNP.fill(getDeviceName(), "VARIABLE_SLEW_RATE", "Variable Slew Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
-    VariableSlewRateNP.onUpdate([this]
-    {
-        VariableSlewRateNP.setState(setVariableSlewRate(VariableSlewRateNP[0].getValue()) ? IPS_OK : IPS_ALERT);
-        VariableSlewRateNP.apply();
-    });
 
     return true;
 }
@@ -341,48 +284,94 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Meridian Flip
+        // Mount Type
+        // updateProperty only calls the lambda when the value actually changes.
+        // When disconnected the lambda returns true so the selection is still saved.
+        if (MountTypeSP.isNameMatch(name))
+        {
+            return updateProperty(MountTypeSP, states, names, n, [this, names]()
+            {
+                if (isConnected())
+                {
+                    int previousType = MountTypeSP.findOnSwitchIndex();
+                    int newType = MountTypeSP[Azimuth].isNameMatch(names[0]) ? Azimuth : Equatorial;
+                    bool rc = setMountType(newType);
+                    if (rc && previousType != newType)
+                        LOG_WARN("You must restart mount for change to take effect.");
+                    return rc;
+                }
+                return true;
+            }, true);
+        }
+
+        // Buzzer
+        if (BuzzerSP.isNameMatch(name))
+        {
+            return updateProperty(BuzzerSP, states, names, n, [this, names]()
+            {
+                if (BuzzerSP[Off].isNameMatch(names[0]))
+                    return setBuzzer(Off);
+                if (BuzzerSP[Low].isNameMatch(names[0]))
+                    return setBuzzer(Low);
+                if (BuzzerSP[High].isNameMatch(names[0]))
+                    return setBuzzer(High);
+                return false;
+            }, true);
+        }
+
+        // Heavy Duty Mode
+        if (HeavyDutyModeSP.isNameMatch(name))
+        {
+            return updateProperty(HeavyDutyModeSP, states, names, n, [this, names]()
+            {
+                return setHeavyDutyMode(HeavyDutyModeSP[INDI_ENABLED].isNameMatch(names[0]));
+            }, true);
+        }
+
+        // Meridian Flip Enable
         if (MeridianFlipSP.isNameMatch(name))
         {
-            MeridianFlipSP.update(states, names, n);
-            auto rc = setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
-                                              PostMeridianTrackSP[TRACK].getState() == ISS_ON,
-                                              MeridianLimitNP[0].getValue());
-            MeridianFlipSP.setState(rc ? IPS_OK : IPS_ALERT);
-            MeridianFlipSP.apply();
-            saveConfig(MeridianFlipSP);
-            return true;
+            return updateProperty(MeridianFlipSP, states, names, n, [this, names]()
+            {
+                return setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].isNameMatch(names[0]),
+                                               PostMeridianTrackSP[TRACK].getState() == ISS_ON,
+                                               MeridianLimitNP[0].getValue());
+            }, true);
         }
 
         // Post Meridian Track
         if (PostMeridianTrackSP.isNameMatch(name))
         {
-            PostMeridianTrackSP.update(states, names, n);
-            auto rc = setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
-                                              PostMeridianTrackSP[TRACK].getState() == ISS_ON,
-                                              MeridianLimitNP[0].getValue());
-            PostMeridianTrackSP.setState(rc ? IPS_OK : IPS_ALERT);
-            PostMeridianTrackSP.apply();
-            saveConfig(PostMeridianTrackSP);
-            return true;
+            return updateProperty(PostMeridianTrackSP, states, names, n, [this, names]()
+            {
+                return setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
+                                               PostMeridianTrackSP[TRACK].isNameMatch(names[0]),
+                                               MeridianLimitNP[0].getValue());
+            }, true);
         }
 
-        // Mount Type
-        if (MountTypeSP.isNameMatch(name))
+        // Altitude Limit Enable/Disable
+        if (AltitudeLimitSP.isNameMatch(name))
         {
-            int previousType = MountTypeSP.findOnSwitchIndex();
-            MountTypeSP.update(states, names, n);
-            IPState state = IPS_OK;
-            // Only update if already connected.
-            if (isConnected())
+            return updateProperty(AltitudeLimitSP, states, names, n, [this, names]()
             {
-                auto targetType = MountTypeSP.findOnSwitchIndex();
-                state = setMountType(targetType) ? IPS_OK : IPS_ALERT;
-                if (state == IPS_OK && previousType != targetType)
-                    LOG_WARN("You must restart mount for change to take effect.");
+                return setAltitudeLimitEnabled(AltitudeLimitSP[INDI_ENABLED].isNameMatch(names[0]));
+            }, true);
+        }
+
+        // Multi-Star Alignment (momentary action — handled manually like AbortRotatorSP in rotator interface)
+        if (MultiStarAlignSP.isNameMatch(name))
+        {
+            MultiStarAlignSP.update(states, names, n);
+            if (MultiStarAlignSP[CLEAR_ALIGNMENT_DATA].getState() == ISS_ON)
+            {
+                MultiStarAlignSP.setState(clearMultiStarAlignmentData() ? IPS_OK : IPS_ALERT);
+
             }
-            MountTypeSP.setState(state);
-            MountTypeSP.apply();
+            else
+                MultiStarAlignSP.setState(IPS_IDLE);
+
+            MultiStarAlignSP.apply();
             return true;
         }
     }
@@ -397,25 +386,51 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (MeridianLimitNP.isNameMatch(name))
-        {
-            MeridianLimitNP.update(values, names, n);
-            auto rc = setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
-                                              PostMeridianTrackSP[TRACK].getState() == ISS_ON,
-                                              MeridianLimitNP[0].getValue());
-            MeridianLimitNP.setState(rc ? IPS_OK : IPS_ALERT);
-            MeridianLimitNP.apply();
-            saveConfig(MeridianLimitNP);
-            return true;
-        }
-
+        // Guide Rate
         if (GuideRateNP.isNameMatch(name))
         {
-            GuideRateNP.update(values, names, n);
-            GuideRateNP.setState(setGuideRate(GuideRateNP[0].getValue()) ? IPS_OK : IPS_ALERT);
-            GuideRateNP.apply();
-            saveConfig(GuideRateNP);
-            return true;
+            return updateProperty(GuideRateNP, values, names, n, [this, values]()
+            {
+                return setGuideRate(values[0]);
+            }, true);
+        }
+
+        // Meridian Flip Limit
+        if (MeridianLimitNP.isNameMatch(name))
+        {
+            return updateProperty(MeridianLimitNP, values, names, n, [this, values]()
+            {
+                return setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
+                                               PostMeridianTrackSP[TRACK].getState() == ISS_ON,
+                                               values[0]);
+            }, true);
+        }
+
+        // Altitude Upper Limit
+        if (AltitudeLimitUpperNP.isNameMatch(name))
+        {
+            return updateProperty(AltitudeLimitUpperNP, values, names, n, [this, values]()
+            {
+                return setAltitudeLimitUpper(values[0]);
+            }, true);
+        }
+
+        // Altitude Lower Limit
+        if (AltitudeLimitLowerNP.isNameMatch(name))
+        {
+            return updateProperty(AltitudeLimitLowerNP, values, names, n, [this, values]()
+            {
+                return setAltitudeLimitLower(values[0]);
+            }, true);
+        }
+
+        // Variable Slew Rate
+        if (VariableSlewRateNP.isNameMatch(name))
+        {
+            return updateProperty(VariableSlewRateNP, values, names, n, [this, values]()
+            {
+                return setVariableSlewRate(values[0]);
+            });
         }
     }
 
@@ -1072,4 +1087,26 @@ std::vector<std::string> LX200AM5::split(const std::string &input, const std::st
     first{input.begin(), input.end(), re, -1},
           last;
     return {first, last};
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::saveConfigItems(FILE *fp)
+{
+    LX200Generic::saveConfigItems(fp);
+
+    MountTypeSP.save(fp);
+    GuideRateNP.save(fp);
+    BuzzerSP.save(fp);
+    HeavyDutyModeSP.save(fp);
+    MeridianFlipSP.save(fp);
+    PostMeridianTrackSP.save(fp);
+    MeridianLimitNP.save(fp);
+    AltitudeLimitSP.save(fp);
+    AltitudeLimitUpperNP.save(fp);
+    AltitudeLimitLowerNP.save(fp);
+    VariableSlewRateNP.save(fp);
+
+    return true;
 }

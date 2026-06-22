@@ -307,7 +307,7 @@ bool SynscanLegacyDriver::AnalyzeMount()
             {
                 // This workaround is needed because the firmware 3.39 sends these bytes swapped.
                 if (res[1] == '#')
-                    MountCode = static_cast<int>(*reinterpret_cast<unsigned char*>(&res[0]));
+                    MountCode = static_cast<int>(*reinterpret_cast<unsigned char * >(&res[0]));
                 else
                     MountCode = static_cast<int>(*reinterpret_cast<unsigned char*>(&res[1]));
             }
@@ -570,7 +570,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
             {
                 StopCount = 0;
             }
-            strncpy(LastParkRead, res, 20);
+            snprintf(LastParkRead, 20, "%.20s", res);
         }
     }
 

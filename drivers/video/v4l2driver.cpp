@@ -73,8 +73,8 @@ static const double iPolarTicks[] = { 13, 26, 66, 133, 266, 666, 1333, 1999, 266
 V4L2_Driver::V4L2_Driver(std::string label, std::string path)
 {
     setDeviceName(label.c_str());
-    strncpy(defaultVideoPort, path.c_str(), 256);
-    strncpy(configPort, path.c_str(), 256);
+    snprintf(defaultVideoPort, 256, "%s", path.c_str());
+    snprintf(configPort, 256, "%s", path.c_str());
 
     setVersion(1, 2);
 
@@ -1726,6 +1726,8 @@ void V4L2_Driver::newFrame()
                         guard.unlock();
                     }
                 }
+
+                PrimaryCCD.binFrame();
             }
             PrimaryCCD.setImageExtension("fits");
         }

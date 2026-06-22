@@ -63,7 +63,7 @@ bool MBox::initProperties()
     // Reset Calibration
     ResetSP[0].fill("RESET", "Reset", ISS_OFF);
     ResetSP.fill(getDeviceName(), "CALIBRATION_RESET", "Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
+                 0, IPS_IDLE);
 
     // Calibration Properties
     CalibrationNP[CAL_TEMPERATURE].fill("CAL_TEMPERATURE", "Temperature", "%.f", -50, 50, 1, 0);
@@ -75,7 +75,7 @@ bool MBox::initProperties()
     // Firmware Information
     FirmwareTP[0].fill("VERSION", "Version", "--");
     FirmwareTP.fill(getDeviceName(), "DEVICE_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
-                     IPS_IDLE);
+                    IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
 
@@ -488,7 +488,7 @@ bool MBox::verifyCRC(const char *response)
     uint8_t calculated_checksum = 0, response_checksum = 0;
     // Skip starting $. Copy string
     char checksum_string[MBOX_BUF] = {0};
-    strncpy(checksum_string, response + 1, MBOX_BUF);
+    snprintf(checksum_string, MBOX_BUF, "%s", response + 1);
 
     std::vector<std::string> result = split(checksum_string, R"(\*)");
 

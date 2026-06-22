@@ -46,7 +46,7 @@ unsigned int AP_DBG_SCOPE;
 
 void set_lx200ap_name(const char *deviceName, unsigned int debug_level)
 {
-    strncpy(lx200ap_name, deviceName, MAXINDIDEVICE);
+    snprintf(lx200ap_name, MAXINDIDEVICE, "%s", deviceName);
     AP_DBG_SCOPE = debug_level;
 }
 

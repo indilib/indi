@@ -183,7 +183,8 @@ void Imager::initiateDownload()
     if (group == 0 || image == 0)
         return;
 
-    sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image, format);
+    sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
+            format);
     file.open(name, std::ios::in | std::ios::binary | std::ios::ate);
     DownloadNP[GROUP].setValue(0);
     DownloadNP[IMAGE].setValue(0);
@@ -200,7 +201,7 @@ void Imager::initiateDownload()
         DownloadNP.setState(IPS_BUSY);
         LOG_INFO("Download initiated");
         DownloadNP.apply();
-//        strncpy(FitsBP[0].format, format, MAXINDIBLOBFMT);
+        //        strncpy(FitsBP[0].format, format, MAXINDIBLOBFMT);
         FitsBP[0].setFormat(format);
         FitsBP[0].setBlob(data);
         FitsBP[0].setBlobLen(FitsBP[0].getSize() == size);
@@ -293,16 +294,16 @@ bool Imager::initProperties()
     CCDUploadSP[UPLOAD_LOCAL].fill("UPLOAD_LOCAL", "Local", ISS_ON);
     CCDUploadSP[UPLOAD_BOTH].fill("UPLOAD_BOTH", "Both", ISS_OFF);
     CCDUploadSP.fill(ControlledDeviceTP[CCD].getText(), "UPLOAD_MODE", "Upload", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                     IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     CCDUploadSettingsTP[UPLOAD_DIR].fill("UPLOAD_DIR", "Dir", "");
     CCDUploadSettingsTP[UPLOAD_PREFIX].fill("UPLOAD_PREFIX", "Prefix", IMAGE_PREFIX);
     CCDUploadSettingsTP.fill(ControlledDeviceTP[CCD].getText(), "UPLOAD_SETTINGS",
-                     "Upload Settings", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+                             "Upload Settings", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
     FilterSlotNP.fill(ControlledDeviceTP[FILTER].getText(), "FILTER_SLOT", "Filter Slot",
-                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+                      MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 }
@@ -526,15 +527,16 @@ void Imager::updateProperty(INDI::Property property)
 
     if (property.getType() == INDI_BLOB)
     {
-        for (auto &bp: INDI::PropertyBlob(property))
+        for (auto &bp : INDI::PropertyBlob(property))
         {
             if (ProgressNP.getState() == IPS_BUSY)
             {
                 char name[128] = {0};
                 std::ofstream file;
 
-                strncpy(format, bp.getFormat(), 16);
-                sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image, format);
+                snprintf(format, sizeof(format), "%s", bp.getFormat());
+                sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
+                        format);
                 file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
                 file.write(static_cast<char *>(bp.getBlob()), bp.getBlobLen());
                 file.close();
@@ -606,8 +608,9 @@ void Imager::updateProperty(INDI::Property property)
         INDI::PropertyText propertyText(property);
         char name[128] = {0};
 
-        strncpy(format, strrchr(propertyText[0].getText(), '.'), sizeof(format));
-        sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image, format);
+        snprintf(format, sizeof(format), "%s", strrchr(propertyText[0].getText(), '.'));
+        sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
+                format);
         rename(propertyText[0].getText(), name);
         LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
                    maxImage, name);

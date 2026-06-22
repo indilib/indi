@@ -544,17 +544,17 @@ int IUSaveDefaultConfig(const char *source_config, const char *dest_config, cons
     char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
 
     if (source_config)
-        strncpy(configFileName, source_config, MAXRBUF);
+        snprintf(configFileName, MAXRBUF, "%s", source_config);
     else
     {
         if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+            snprintf(configFileName, MAXRBUF, "%s", getenv("INDICONFIG"));
         else
             snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
     }
 
     if (dest_config)
-        strncpy(configDefaultFileName, dest_config, MAXRBUF);
+        snprintf(configDefaultFileName, MAXRBUF, "%s", dest_config);
     else if (getenv("INDICONFIG"))
         snprintf(configDefaultFileName, MAXRBUF, "%s.default", getenv("INDICONFIG"));
     else
@@ -828,7 +828,7 @@ int IUGetConfigOnSwitchName(const char *dev, const char *property, char *name, s
                 if (crackISState(pcdataXMLEle(oneSwitch), &s) == 0 && s == ISS_ON)
                 {
                     found = 0;
-                    strncpy(name, findXMLAttValu(oneSwitch, "name"), size);
+                    snprintf(name, size, "%s", findXMLAttValu(oneSwitch, "name"));
                     break;
                 }
             }
@@ -951,7 +951,7 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
             {
                 if (!strcmp(member, findXMLAttValu(oneText, "name")))
                 {
-                    strncpy(value, pcdataXMLEle(oneText), len);
+                    snprintf(value, len, "%s", pcdataXMLEle(oneText));
                     valueFound = 1;
                     break;
                 }
@@ -996,11 +996,11 @@ int IUPurgeConfig(const char *filename, const char *dev, char errmsg[])
     snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
 
     if (filename)
-        strncpy(configFileName, filename, MAXRBUF);
+        snprintf(configFileName, MAXRBUF, "%s", filename);
     else
     {
         if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+            snprintf(configFileName, MAXRBUF, "%s", getenv("INDICONFIG"));
         else
             snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, dev);
     }
@@ -1024,11 +1024,11 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
     snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
 
     if (filename)
-        strncpy(configFileName, filename, MAXRBUF);
+        snprintf(configFileName, MAXRBUF, "%s", filename);
     else
     {
         if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+            snprintf(configFileName, MAXRBUF, "%s", getenv("INDICONFIG"));
         else
             snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, dev);
     }

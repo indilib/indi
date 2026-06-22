@@ -43,7 +43,7 @@ char * toHexStr(buffer data)
         sz = 100;
     for (int i = 0; i < sz; i++)
     {
-        snprintf(&debugStr[i * 3], 301 - 3*i, "%02X ", data[i]);
+        snprintf(&debugStr[i * 3], 301 - 3 * i, "%02X ", data[i]);
     }
     return debugStr;
 }
@@ -185,9 +185,10 @@ bool Communicator::readPacket(int portFD, Packet &reply)
     }
 
     int len = rxbuf[0];
-    buffer packet(2);
-    packet[0] = Packet::AUX_HDR;
-    packet[1] = len;
+    buffer packet;
+    packet.reserve(2 + len + 1);
+    packet.push_back(Packet::AUX_HDR);
+    packet.push_back(len);
 
     // get source, destination, command, data and checksum
     char rxdata[MAXRBUF] = {0};

@@ -243,7 +243,7 @@ void set_pmc8_simulation(bool enable)
 
 void set_pmc8_device(const char *name)
 {
-    strncpy(pmc8_device, name, MAXINDIDEVICE);
+    snprintf(pmc8_device, MAXINDIDEVICE, "%s", name);
 }
 
 void set_pmc8_location(double latitude, double longitude)
@@ -344,8 +344,8 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
             if (detect_pmc8(fd))
             {
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "Connected to PMC8 using a standard-configured FTDI cable."
-                            "Your mount will reset and lose its position anytime you disconnect and reconnect."
-                            "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");
+                                                                    "Your mount will reset and lose its position anytime you disconnect and reconnect."
+                                                                    "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");
                 return true;
             }
             usleep(PMC8_RETRY_DELAY);
@@ -452,7 +452,7 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
             {
                 //locate P9 code in response
                 char num_str[3] = {0};
-                strncat(num_str, response + 20, 2);
+                snprintf(num_str, sizeof(num_str), "%.2s", response + 20);
                 int p9 = (int)strtol(num_str, nullptr, 10);
 
                 // Set mount type based on P9 code
@@ -602,8 +602,7 @@ bool get_pmc8_move_rate_axis(int fd, PMC8_AXIS axis, double &rate)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 5, 6);
+    snprintf(num_str, sizeof(num_str), "0X%.6s", response + 5);
 
     int mrate = (int)strtol(num_str, nullptr, 0);
 
@@ -658,7 +657,7 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 
     char num_str[16] = {0};
 
-    strncat(num_str, response + 5, 2);
+    snprintf(num_str, sizeof(num_str), "%.2s", response + 5);
 
     dir = (int)strtol(num_str, nullptr, 0);
 
@@ -837,8 +836,7 @@ bool get_pmc8_track_rate(int fd, double &rate)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 4, 4);
+    snprintf(num_str, sizeof(num_str), "0X%.4s", response + 4);
 
     int mrate = (int)strtol(num_str, nullptr, 0);
     convert_precise_motor_to_rate(mrate, &rate);
@@ -1264,8 +1262,7 @@ bool get_pmc8_guide_rate(int fd, PMC8_AXIS axis, double &rate)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 5, 2);
+    snprintf(num_str, sizeof(num_str), "0X%.2s", response + 5);
     int tint = strtol(num_str, nullptr, 0);
 
     rate = ((double)tint) / 100;
@@ -1875,8 +1872,7 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
 
     char num_str[16] = {0};
 
-    strcpy(num_str, "0X");
-    strncat(num_str, response + 5, 6);
+    snprintf(num_str, sizeof(num_str), "0X%.6s", response + 5);
 
     point = (int)strtol(num_str, nullptr, 0);
 

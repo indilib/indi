@@ -169,7 +169,7 @@ bool DomeScript::ISNewSwitch(const char *dev, const char *name, ISState *states,
 bool DomeScript::RunScript(int script, ...)
 {
     char tmp[256];
-    strncpy(tmp, ScriptsTP[script].getText(), sizeof(tmp));
+    snprintf(tmp, sizeof(tmp), "%s", ScriptsTP[script].getText());
 
     char **args = (char **)malloc(MAXARGS * sizeof(char *));
     int arg     = 1;

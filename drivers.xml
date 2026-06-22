@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <driversList>
     <devGroup group="Spectrographs">
         <device label="Shelyak Usis" manufacturer="Shelyak">
@@ -107,21 +107,29 @@
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
             <version>2.2</version>
         </device>
+        <device label="ZWO AM7 WiFi" manufacturer="ZWO">
+            <driver name="ZWO AM5">indi_lx200am5</driver>
+            <version>1.5</version>
+        </device>
+        <device label="ZWO AM7 USB" manufacturer="ZWO">
+            <driver name="ZWO AM5">indi_lx200am5</driver>
+            <version>1.5</version>
+        </device>
         <device label="ZWO AM5 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="ZWO AM5 USB" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="ZWO AM3 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="ZWO AM3 USB" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="Celestron GPS" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
@@ -790,6 +798,10 @@
             <driver name="Wanderer Snowflake Filter Wheel">indi_wanderer_snowflake_wheel</driver>
             <version>1.0</version>
         </device>
+        <device label="Wanderer FilterCube" manufacturer="Wanderer Astro">
+            <driver name="RASA FilterCube Filter Wheel">indi_rasa_filtercube_wheel</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Auxiliary">
         <device label="Astrometry" manufacturer="Others">
@@ -818,6 +830,10 @@
         </device>
         <device label="Pegasus FlatMaster Neo" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster Neo">indi_pegasus_flatmaster_neo</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pegasus FlatMaster WiFi" manufacturer="Pegasus Astro">
+            <driver name="Pegasus FlatMaster WiFi">indi_pegasus_flatmaster_wifi</driver>
             <version>1.0</version>
         </device>
         <device label="PlaneWave Delta-T" manufacturer="Planewave Instruments">

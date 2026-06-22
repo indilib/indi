@@ -94,6 +94,8 @@ const char *SkywatcherAPI::mountTypeToString(uint8_t type)
             return "EQ5 Pro";
         case WAVE_150I:
             return "Wave 150i";
+        case WAVE_100I:
+            return "Wave 100i";
         case GT:
             return "GT";
         case MF:
@@ -508,7 +510,7 @@ bool SkywatcherAPI::InitMount()
 
     // Disable EQ mounts
     // 0x22 is code for AZEQ6 which is added as an exception as proposed by Dirk Tetzlaff
-    if (MountCode < 0x80 && MountCode != AZEQ6 && MountCode != AZEQ5 && MountCode != AZEQ6_PRO && MountCode != WAVE_150I)
+    if (MountCode < 0x80 && MountCode != AZEQ6 && MountCode != AZEQ5 && MountCode != AZEQ6_PRO && MountCode != WAVE_150I && MountCode != WAVE_100I)
     {
         MYDEBUGF(DBG_SCOPE, "Mount type not supported. %d", MountCode);
         return false;

@@ -351,7 +351,7 @@ bool LX200AstroPhysics::getFirmwareVersion()
             else
                 servoType = GTOCP3;
 
-            strncpy(rev, versionString, 8);
+            snprintf(rev, sizeof(rev), "%s", versionString);
 
             success = true;
         }
