@@ -442,8 +442,7 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
         }
         else if (res)
         {
-            strncpy(res, cmd, PEGASUS_LEN - 1);
-            res[PEGASUS_LEN - 1] = '\0';
+            snprintf(res, PEGASUS_LEN, "%s", cmd);
         }
 
         return true;
@@ -1356,8 +1355,7 @@ void PegasusUPB::cleanupResponse(char *response)
     {
         return std::isspace(x);
     }), s.end());
-    strncpy(response, s.c_str(), PEGASUS_LEN - 1);
-    response[PEGASUS_LEN - 1] = '\0';
+    snprintf(response, PEGASUS_LEN, "%s", s.c_str());
 }
 
 //////////////////////////////////////////////////////////////////////

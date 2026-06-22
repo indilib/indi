@@ -508,6 +508,5 @@ void PegasusFalconV2::cleanupResponse(char *response)
     {
         return std::isspace(x);
     }), s.end());
-    strncpy(response, s.c_str(), DRIVER_LEN - 1);
-    response[DRIVER_LEN - 1] = '\0';
+    snprintf(response, DRIVER_LEN, "%s", s.c_str());
 }

@@ -210,8 +210,7 @@ bool RasaFilterCube::Handshake()
 
         if (strncasecmp(field, FILTERCUBE_MODEL, std::strlen(FILTERCUBE_MODEL)) == 0)
         {
-            std::strncpy(mModel, field, sizeof(mModel) - 1);
-            mModel[sizeof(mModel) - 1] = '\0';
+            snprintf(mModel, sizeof(mModel), "%s", field);
             foundModel = true;
             break;
         }
@@ -233,8 +232,7 @@ bool RasaFilterCube::Handshake()
         nbytes_read--;
         field[nbytes_read] = '\0';
     }
-    strncpy(mFirmware, field, sizeof(mFirmware) - 1);
-    mFirmware[sizeof(mFirmware) - 1] = '\0';
+    snprintf(mFirmware, sizeof(mFirmware), "%s", field);
 
     double fwVersion = std::atof(mFirmware);
     if (fwVersion < FILTERCUBE_MIN_FIRMWARE)
@@ -387,7 +385,6 @@ bool RasaFilterCube::SelectFilter(int position)
     LOG_ERROR("Timed out waiting for RASA FilterCube to reach target position.");
     return false;
 }
-
 
 bool RasaFilterCube::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
@@ -551,3 +548,4 @@ bool RasaFilterCube::readCurrentFilterFromStatus(int &position)
 
     return false;
 }
+

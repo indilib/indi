@@ -1405,10 +1405,8 @@ void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
             break;
 
         /* Store input description */
-        strncpy(inputs[input_avail.index].name, (const char *)input_avail.name, MAXINDINAME - 1);
-        inputs[input_avail.index].name[MAXINDINAME - 1] = '\0';
-        strncpy(inputs[input_avail.index].label, (const char *)input_avail.name, MAXINDILABEL - 1);
-        inputs[input_avail.index].label[MAXINDILABEL - 1] = '\0';
+        snprintf(inputs[input_avail.index].name, MAXINDINAME, "%s", (const char *)input_avail.name);
+        snprintf(inputs[input_avail.index].label, MAXINDILABEL, "%s", (const char *)input_avail.name);
     }
 
     /* Free inputs before replacing */
@@ -1480,10 +1478,8 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
             break;
 
         /* Store format description */
-        strncpy(formats[fmt_avail.index].name, (const char *)fmt_avail.description, MAXINDINAME - 1);
-        formats[fmt_avail.index].name[MAXINDINAME - 1] = '\0';
-        strncpy(formats[fmt_avail.index].label, (const char *)fmt_avail.description, MAXINDILABEL - 1);
-        formats[fmt_avail.index].label[MAXINDILABEL - 1] = '\0';
+        snprintf(formats[fmt_avail.index].name, MAXINDINAME, "%s", (const char *)fmt_avail.description);
+        snprintf(formats[fmt_avail.index].label, MAXINDILABEL, "%s", (const char *)fmt_avail.description);
 
         /* And store pixel format for reference */
         /* FIXME: store pixel format as void pointer to avoid that malloc */
@@ -2540,10 +2536,8 @@ int V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
                             (unsigned int *)malloc(sizeof(unsigned int)) :
                             (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
-                strncpy(numbers[nnum].name, ((char *)queryctrl.name), MAXINDINAME - 1);
-                numbers[nnum].name[MAXINDINAME - 1] = '\0';
-                strncpy(numbers[nnum].label, ((char *)queryctrl.name), MAXINDILABEL - 1);
-                numbers[nnum].label[MAXINDILABEL - 1] = '\0';
+                snprintf(numbers[nnum].name, MAXINDINAME, "%s", (const char *)queryctrl.name);
+                snprintf(numbers[nnum].label, MAXINDILABEL, "%s", (const char *)queryctrl.name);
                 strncpy(numbers[nnum].format, "%0.f", MAXINDIFORMAT);
                 numbers[nnum].min   = queryctrl.minimum;
                 numbers[nnum].max   = queryctrl.maximum;
@@ -2593,10 +2587,8 @@ int V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
                             (unsigned int *)malloc(sizeof(unsigned int)) :
                             (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
-                strncpy(numbers[nnum].name, ((char *)queryctrl.name), MAXINDINAME - 1);
-                numbers[nnum].name[MAXINDINAME - 1] = '\0';
-                strncpy(numbers[nnum].label, ((char *)queryctrl.name), MAXINDILABEL - 1);
-                numbers[nnum].label[MAXINDILABEL - 1] = '\0';
+                snprintf(numbers[nnum].name, MAXINDINAME, "%s", (const char *)queryctrl.name);
+                snprintf(numbers[nnum].label, MAXINDILABEL, "%s", (const char *)queryctrl.name);
                 strncpy(numbers[nnum].format, "%0.f", MAXINDIFORMAT);
                 numbers[nnum].min   = queryctrl.minimum;
                 numbers[nnum].max   = queryctrl.maximum;

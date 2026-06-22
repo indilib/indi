@@ -163,8 +163,7 @@ IPState WunderGround::updateWeather()
     }
 
     char srcBuffer[readBuffer.size() + 1];
-    strncpy(srcBuffer, readBuffer.c_str(), readBuffer.size());
-    srcBuffer[readBuffer.size()] = '\0';
+    snprintf(srcBuffer, sizeof(srcBuffer), "%s", readBuffer.c_str());
     char *source = srcBuffer;
     char *endptr;
     JsonValue value;

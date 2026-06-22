@@ -387,9 +387,6 @@ int CelestronDriver::model()
 
 bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *canPec, bool *hasHomeIndex)
 {
-    if (size == 0)
-        return false;
-
     // extended list of mounts
     std::map<int, std::string> models =
     {
@@ -428,14 +425,12 @@ bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *can
 
     if (models.find(m) != models.end())
     {
-        strncpy(model, models[m].c_str(), size - 1);
-        model[size - 1] = '\0';
+        snprintf(model, size, "%s", models[m].c_str());
         LOGF_INFO("Mount model: %s", model);
     }
     else
     {
-        strncpy(model, "Unknown", size - 1);
-        model[size - 1] = '\0';
+        snprintf(model, size, "%s", "Unknown");
         LOGF_WARN("Unrecognized model (%d).", model);
     }
 
@@ -1587,3 +1582,5 @@ const char *PecData::getDeviceName()
 {
     return device_str;
 }
+
+

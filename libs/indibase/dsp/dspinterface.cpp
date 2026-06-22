@@ -254,18 +254,15 @@ void Interface::addFITSKeywords(fitsfile *fptr)
     char fitsString[MAXINDIDEVICE];
 
     // Telescope
-    strncpy(fitsString, m_Device->getText("ACTIVE_DEVICES")[0].getText(), MAXINDIDEVICE - 1);
-    fitsString[MAXINDIDEVICE - 1] = '\0';
+    snprintf(fitsString, MAXINDIDEVICE, "%s", m_Device->getText("ACTIVE_DEVICES")[0].getText());
     fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
 
     // Observer
-    strncpy(fitsString, m_Device->getText("FITS_HEADER")[0].getText(), MAXINDIDEVICE - 1);
-    fitsString[MAXINDIDEVICE - 1] = '\0';
+    snprintf(fitsString, MAXINDIDEVICE, "%s", m_Device->getText("FITS_HEADER")[0].getText());
     fits_update_key_s(fptr, TSTRING, "OBSERVER", fitsString, "Observer name", &status);
 
     // Object
-    strncpy(fitsString, m_Device->getText("FITS_HEADER")[1].getText(), MAXINDIDEVICE - 1);
-    fitsString[MAXINDIDEVICE - 1] = '\0';
+    snprintf(fitsString, MAXINDIDEVICE, "%s", m_Device->getText("FITS_HEADER")[1].getText());
     fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name", &status);
 
     auto nv = m_Device->getNumber("GEOGRAPHIC_COORDS");

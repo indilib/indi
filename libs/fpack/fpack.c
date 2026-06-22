@@ -212,10 +212,8 @@ int fp_get_param (int argc, char *argv[], fpstate *fpptr)
 
 		    if (++iarg >= argc) {
 			fp_usage (); exit (-1);
-		    } else {
-			strncpy (tile, argv[iarg], SZ_STR-1); /* checked below */
-			tile[SZ_STR-1] = '\0';
-		    }
+		    } else
+			snprintf (tile, SZ_STR, "%s", argv[iarg]); /* checked below */
 
 		} else if (argv[iarg][1] == 'v') {
 		    fpptr->verbose = 1;
@@ -252,10 +250,8 @@ int fp_get_param (int argc, char *argv[], fpstate *fpptr)
 		} else if (argv[iarg][1] == 'R') {
 		    if (++iarg >= argc) {
 			fp_usage (); fp_hint (); exit (-1);
-		    } else {
-			strncpy (fpptr->outfile, argv[iarg], SZ_STR-1);
-			fpptr->outfile[SZ_STR-1] = '\0';
-		    }
+		    } else
+			snprintf (fpptr->outfile, SZ_STR, "%s", argv[iarg]);
 
 		} else if (argv[iarg][1] == 'H') {
 		    fp_help (); exit (0);

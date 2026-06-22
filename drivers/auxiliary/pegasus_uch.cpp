@@ -552,6 +552,5 @@ void PegasusUCH::cleanupResponse(char *response)
     {
         return std::isspace(x);
     }), s.end());
-    strncpy(response, s.c_str(), PEGASUS_LEN - 1);
-    response[PEGASUS_LEN - 1] = '\0';
+    snprintf(response, PEGASUS_LEN, "%s", s.c_str());
 }

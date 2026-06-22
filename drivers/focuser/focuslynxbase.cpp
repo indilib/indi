@@ -655,8 +655,7 @@ bool FocusLynxBase::ack()
     if (isSimulation())
     {
         const char *focusName = IUFindOnSwitch(&ModelSP)->label;
-        strncpy(response, focusName, LYNX_MAX - 1);
-        response[LYNX_MAX - 1] = '\0';
+        snprintf(response, LYNX_MAX, "%s", focusName);
         nbytes_read = strlen(response) + 1;
     }
     else

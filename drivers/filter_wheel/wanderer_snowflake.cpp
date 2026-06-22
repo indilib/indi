@@ -561,8 +561,7 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
 
         if (wandererFieldLooksLikeModel(field, static_cast<int>(std::strlen(field))))
         {
-            std::strncpy(mModel, field, sizeof(mModel) - 1);
-            mModel[sizeof(mModel) - 1] = '\0';
+            snprintf(mModel, sizeof(mModel), "%s", field);
             haveModel = true;
             break;
         }
@@ -580,8 +579,7 @@ bool WandererSnowflakeFW::readCurrentFilterFromStatus(int &position)
             return false;
         }
         wandererStripFieldDelimiter(field, nbytes_read, 'A');
-        std::strncpy(mFirmware, field, sizeof(mFirmware) - 1);
-        mFirmware[sizeof(mFirmware) - 1] = '\0';
+        snprintf(mFirmware, sizeof(mFirmware), "%s", field);
 
         double fwVersion = std::atof(field);
         if (fwVersion < 20260124.0)
