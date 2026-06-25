@@ -36,10 +36,18 @@ class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase,
         /// \brief Virtual destructor
         virtual ~AlignmentSubsystemForDrivers() {}
 
-        /** \brief Initialize alignment subsystem properties. It is recommended to call this function within initProperties() of your primary device
+        /** \brief Initialize alignment subsystem property structures (fill only, no defineProperty/registerProperty).
+           * Call this from initProperties() of your primary device.
            * \param[in] pTelescope Pointer to the child INDI::Telecope class
-          */
-        void InitAlignmentProperties(Telescope *pTelescope);
+           */
+        void initAlignmentProperties(Telescope *pTelescope);
+
+        /** \brief Define/register alignment subsystem properties to the INDI client.
+           * Call this from ISGetProperties() of your primary device, after the base class,
+           * to ensure the "Alignment" tab appears after "Main Control".
+           * \param[in] pTelescope Pointer to the child INDI::Telecope class
+           */
+        void ISGetAlignmentProperties(Telescope *pTelescope);
 
         /** \brief Call this function from within the ISNewBlob processing path. The function will
            * handle any alignment subsystem related properties.
@@ -159,7 +167,7 @@ class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase,
          * is not set. Call UpdateLocation to set the current location.
          */
         bool SkyToTelescopeAltAz(double actualRA, double actualDec, double &mountAlt, double &mountAz,
-                                  double JD = ln_get_julian_from_sys());
+                                 double JD = ln_get_julian_from_sys());
 
         /** \brief Converts a mount location to actual sky coordinates, usually called in ReadScopeStatus.
          * \param[in] mountAlt Altitude where the mount thinks it is in decimal degrees
@@ -172,7 +180,7 @@ class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase,
          * is not set. Call UpdateLocation to set the current location.
          */
         bool TelescopeAltAzToSky(double mountAlt, double mountAz, double &actualRA, double &actualDec,
-                                  double JD = ln_get_julian_from_sys());
+                                 double JD = ln_get_julian_from_sys());
 
     private:
         /** \brief This static function is registered as a load database callback with

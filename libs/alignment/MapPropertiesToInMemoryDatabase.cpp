@@ -18,7 +18,7 @@ namespace AlignmentSubsystem
 // BLOB format identifier for the model JSON
 #define ALIGNMENT_MODEL_FORMAT ".json"
 
-void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
+void MapPropertiesToInMemoryDatabase::initProperties(Telescope *pTelescope)
 {
     // ==================== NEW properties (simplified, cursor-free) ====================
 
@@ -27,14 +27,12 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                ALIGNMENT_MODEL_FORMAT);
     AlignmentModelBlob.fill(pTelescope->getDeviceName(), "ALIGNMENT_MODEL_BLOB",
                             "Alignment Model", ALIGNMENT_TAB, IP_RO, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentModelBlob);
 
     // ALIGNMENT_MODEL_COUNT — sync point count (read-only)
     AlignmentModelCountNP[0].fill("ALIGNMENT_MODEL_COUNT", "Count",
                                   "%g", 0, 100000, 0, 0);
     AlignmentModelCountNP.fill(pTelescope->getDeviceName(), "ALIGNMENT_MODEL_COUNT",
                                "Sync Points", ALIGNMENT_TAB, IP_RO, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentModelCountNP);
 
     // ALIGN_POINT_NEW — append a sync point (write-only)
     AlignPointNewNP[NEW_JD].fill("ALIGN_POINT_JD", "Julian Date", "%g", 0, 60000, 0, 0);
@@ -45,34 +43,26 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
     AlignPointNewNP[NEW_VZ].fill("ALIGN_POINT_VECTOR_Z", "TDV Z", "%g", -FLT_MAX, FLT_MAX, 0, 0);
     AlignPointNewNP.fill(pTelescope->getDeviceName(), "ALIGN_POINT_NEW",
                          "Add Sync Point", ALIGNMENT_TAB, IP_WO, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignPointNewNP);
 
     // ALIGN_POINT_DELETE_INDEX — delete a sync point at 0-based index
     AlignPointDeleteIndexNP[0].fill("ALIGN_POINT_INDEX", "Index", "%g", 0, 100000, 0, -1);
     AlignPointDeleteIndexNP.fill(pTelescope->getDeviceName(), "ALIGN_POINT_DELETE_INDEX",
                                  "Delete Sync Point", ALIGNMENT_TAB, IP_WO, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignPointDeleteIndexNP);
 
     // ALIGNMENT_CLEAR — clear all sync points
     AlignmentClearSP[CLEAR_S].fill("CLEAR", "Clear All Points", ISS_OFF);
     AlignmentClearSP.fill(pTelescope->getDeviceName(), "ALIGNMENT_CLEAR",
                           "Clear Sync Points", ALIGNMENT_TAB, IP_WO, ISR_ATMOST1, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentClearSP);
 
     // ALIGNMENT_LOAD — load database from persistent storage
     AlignmentLoadSP[LOAD_S].fill("LOAD", "Load Sync Points", ISS_OFF);
     AlignmentLoadSP.fill(pTelescope->getDeviceName(), "ALIGNMENT_LOAD",
                          "Load Sync Points", ALIGNMENT_TAB, IP_WO, ISR_ATMOST1, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentLoadSP);
 
     // ALIGNMENT_SAVE — save database to persistent storage
     AlignmentSaveSP[SAVE_S].fill("SAVE", "Save Sync Points", ISS_OFF);
     AlignmentSaveSP.fill(pTelescope->getDeviceName(), "ALIGNMENT_SAVE",
                          "Save Sync Points", ALIGNMENT_TAB, IP_WO, ISR_ATMOST1, 0, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentSaveSP);
-
-    // Update the count and publish an empty model blob
-    UpdateModelCount();
 
     // ==================== DEPRECATED properties (kept for backward compatibility) ====================
 
@@ -94,7 +84,6 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                  "ALIGNMENT_POINT_MANDATORY_NUMBERS",
                                  "Mandatory sync point numeric fields (deprecated)",
                                  ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentPointSetEntryV);
 
     // ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB (deprecated, unused)
     AlignmentPointSetPrivateBinaryDataV[0].fill("ALIGNMENT_POINT_ENTRY_PRIVATE",
@@ -103,7 +92,6 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                        "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB",
                                        "Optional sync point binary data (deprecated)",
                                        ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentPointSetPrivateBinaryDataV);
 
     // ALIGNMENT_POINTSET_SIZE (deprecated)
     AlignmentPointSetSizeV[0].fill("ALIGNMENT_POINTSET_SIZE", "Size",
@@ -112,7 +100,6 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                 "ALIGNMENT_POINTSET_SIZE",
                                 "Current Set (deprecated)",
                                 ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentPointSetSizeV);
 
     // ALIGNMENT_POINTSET_CURRENT_ENTRY (deprecated)
     AlignmentPointSetPointerV[0].fill("ALIGNMENT_POINTSET_CURRENT_ENTRY", "Pointer",
@@ -121,7 +108,6 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                    "ALIGNMENT_POINTSET_CURRENT_ENTRY",
                                    "Current Set (deprecated)",
                                    ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentPointSetPointerV);
 
     // ALIGNMENT_POINTSET_ACTION (deprecated)
     AlignmentPointSetActionV[APPEND].fill("APPEND",
@@ -146,7 +132,6 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                   "ALIGNMENT_POINTSET_ACTION",
                                   "Action to take (deprecated)",
                                   ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    pTelescope->defineProperty(AlignmentPointSetActionV);
 
     // ALIGNMENT_POINTSET_COMMIT (deprecated)
     AlignmentPointSetCommitV[0].fill("ALIGNMENT_POINTSET_COMMIT", "OK (deprecated)", ISS_OFF);
@@ -154,6 +139,27 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                                   "ALIGNMENT_POINTSET_COMMIT",
                                   "Execute the action (deprecated)",
                                   ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+}
+
+void MapPropertiesToInMemoryDatabase::ISGetProperties(Telescope *pTelescope)
+{
+    // ==================== NEW properties (simplified, cursor-free) ====================
+
+    pTelescope->defineProperty(AlignmentModelBlob);
+    pTelescope->defineProperty(AlignmentModelCountNP);
+    pTelescope->defineProperty(AlignPointNewNP);
+    pTelescope->defineProperty(AlignPointDeleteIndexNP);
+    pTelescope->defineProperty(AlignmentClearSP);
+    pTelescope->defineProperty(AlignmentLoadSP);
+    pTelescope->defineProperty(AlignmentSaveSP);
+
+    // ==================== DEPRECATED properties (kept for backward compatibility) ====================
+
+    pTelescope->defineProperty(AlignmentPointSetEntryV);
+    pTelescope->defineProperty(AlignmentPointSetPrivateBinaryDataV);
+    pTelescope->defineProperty(AlignmentPointSetSizeV);
+    pTelescope->defineProperty(AlignmentPointSetPointerV);
+    pTelescope->defineProperty(AlignmentPointSetActionV);
     pTelescope->defineProperty(AlignmentPointSetCommitV);
 }
 

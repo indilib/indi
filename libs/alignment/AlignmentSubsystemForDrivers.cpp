@@ -24,10 +24,16 @@ AlignmentSubsystemForDrivers::AlignmentSubsystemForDrivers()
 
 // Public methods
 
-void AlignmentSubsystemForDrivers::InitAlignmentProperties(Telescope *pTelescope)
+void AlignmentSubsystemForDrivers::initAlignmentProperties(Telescope *pTelescope)
 {
-    MapPropertiesToInMemoryDatabase::InitProperties(pTelescope);
-    MathPluginManagement::InitProperties(pTelescope);
+    MapPropertiesToInMemoryDatabase::initProperties(pTelescope);
+    MathPluginManagement::initProperties(pTelescope);
+}
+
+void AlignmentSubsystemForDrivers::ISGetAlignmentProperties(Telescope *pTelescope)
+{
+    MapPropertiesToInMemoryDatabase::ISGetProperties(pTelescope);
+    MathPluginManagement::ISGetProperties(pTelescope);
 }
 
 void AlignmentSubsystemForDrivers::ProcessAlignmentBLOBProperties(Telescope *pTelescope, const char *name, int sizes[],

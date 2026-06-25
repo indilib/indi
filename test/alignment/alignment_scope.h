@@ -52,6 +52,7 @@ class Scope : public INDI::Telescope, public INDI::AlignmentSubsystem::Alignment
         void ISGetProperties(const char *dev) override
         {
             INDI::Telescope::ISGetProperties(dev);
+            ISGetAlignmentProperties(this);
         }
         bool ISSnoopDevice(XMLEle *root) override
         {
@@ -62,7 +63,7 @@ class Scope : public INDI::Telescope, public INDI::AlignmentSubsystem::Alignment
         {
             INDI::Telescope::initProperties();
             // initialize the alignment subsystem properties AFTER creating the base telescope properties
-            InitAlignmentProperties(this);
+            initAlignmentProperties(this);
             return true;
         }
 

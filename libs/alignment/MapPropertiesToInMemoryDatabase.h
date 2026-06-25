@@ -100,12 +100,20 @@ class MapPropertiesToInMemoryDatabase : public InMemoryDatabase
 
         // Public methods
 
-        /** \brief Initialize alignment database properties. It is recommended to call this function within initProperties()
-            * of your primary device.
-            * This registers both the new simplified properties and the deprecated legacy properties.
+        /** \brief Initialize alignment database property structures (fill only, no defineProperty).
+            * Call this from initProperties() of your primary device.
+            * This fills both the new simplified properties and the deprecated legacy properties.
             * \param[in] pTelescope Pointer to the child INDI::Telecope class
            */
-        void InitProperties(Telescope *pTelescope);
+        void initProperties(Telescope *pTelescope);
+
+        /** \brief Define alignment database properties to the INDI client.
+            * Call this from ISGetProperties() of your primary device, after the base class,
+            * to ensure the "Alignment" tab appears after "Main Control".
+            * This defines both the new simplified properties and the deprecated legacy properties.
+            * \param[in] pTelescope Pointer to the child INDI::Telecope class
+           */
+        void ISGetProperties(Telescope *pTelescope);
 
         /** \brief Call this function from within the ISNewBLOB processing path. The function will
             * handle any alignment database related properties.
