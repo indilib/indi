@@ -261,6 +261,9 @@ class MapPropertiesToInMemoryDatabase : public InMemoryDatabase
             * Member: COMMIT.
            */
         INDI::PropertySwitch AlignmentPointSetCommitV {1};
+
+        /** \brief Cached serialized model JSON to keep the blob buffer alive across apply() calls. */
+        std::string m_SerializedModelJSON;
 };
 
 } // namespace AlignmentSubsystem

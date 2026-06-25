@@ -274,16 +274,6 @@ static const char *MountAlignmentToString(MountAlignment_t alignment)
     }
 }
 
-// Helper: map JSON string to MountAlignment_t enum
-static MountAlignment_t StringToMountAlignment(const std::string &str)
-{
-    if (str == "NORTH_CELESTIAL_POLE")
-        return NORTH_CELESTIAL_POLE;
-    if (str == "SOUTH_CELESTIAL_POLE")
-        return SOUTH_CELESTIAL_POLE;
-    return ZENITH;
-}
-
 std::string InMemoryDatabase::SerializeModelToJSON(MountAlignment_t MountAlignment) const
 {
     using json = nlohmann::json;

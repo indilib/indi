@@ -16,7 +16,7 @@ namespace AlignmentSubsystem
 {
 
 // BLOB format identifier for the model JSON
-#define ALIGNMENT_MODEL_FORMAT "alignmentModel.json"
+#define ALIGNMENT_MODEL_FORMAT ".json"
 
 void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
 {
@@ -307,43 +307,54 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
     // --- Handle new ALIGNMENT_CLEAR ---
     if (AlignmentClearSP.isNameMatch(name))
     {
-        if (AlignmentClearSP[CLEAR_S].getState() == ISS_ON)
-        {
-            AlignmentDatabase.clear();
-            AlignmentClearSP[CLEAR_S].setState(ISS_OFF);
-            AlignmentClearSP.setState(IPS_OK);
-            AlignmentClearSP.apply();
+        AlignmentDatabase.clear();
+        AlignmentClearSP[CLEAR_S].setState(ISS_OFF);
+        AlignmentClearSP.setState(IPS_OK);
+        AlignmentClearSP.apply();
 
-            UpdateModelCount();
-        }
+        UpdateModelCount();
+
         return;
     }
 
     // --- Handle new ALIGNMENT_LOAD ---
     if (AlignmentLoadSP.isNameMatch(name))
     {
-        if (AlignmentLoadSP[LOAD_S].getState() == ISS_ON)
+        if (LoadDatabase(pTelescope->getDeviceName()))
         {
-            LoadDatabase(pTelescope->getDeviceName());
-            AlignmentLoadSP[LOAD_S].setState(ISS_OFF);
+            DEBUGDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_SESSION,
+                        "Alignment database loaded successfully");
             AlignmentLoadSP.setState(IPS_OK);
-            AlignmentLoadSP.apply();
-
             UpdateModelCount();
         }
+        else
+        {
+            DEBUGDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                        "Failed to load alignment database");
+            AlignmentLoadSP.setState(IPS_ALERT);
+        }
+        AlignmentLoadSP[LOAD_S].setState(ISS_OFF);
+        AlignmentLoadSP.apply();
         return;
     }
 
     // --- Handle new ALIGNMENT_SAVE ---
     if (AlignmentSaveSP.isNameMatch(name))
     {
-        if (AlignmentSaveSP[SAVE_S].getState() == ISS_ON)
+        if (SaveDatabase(pTelescope->getDeviceName()))
         {
-            SaveDatabase(pTelescope->getDeviceName());
-            AlignmentSaveSP[SAVE_S].setState(ISS_OFF);
+            DEBUGDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_SESSION,
+                        "Alignment database saved successfully");
             AlignmentSaveSP.setState(IPS_OK);
-            AlignmentSaveSP.apply();
         }
+        else
+        {
+            DEBUGDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                        "Failed to save alignment database");
+            AlignmentSaveSP.setState(IPS_ALERT);
+        }
+        AlignmentSaveSP[SAVE_S].setState(ISS_OFF);
+        AlignmentSaveSP.apply();
         return;
     }
 
@@ -502,11 +513,12 @@ void MapPropertiesToInMemoryDatabase::UpdateModelCount(MountAlignment_t MountAli
 
 void MapPropertiesToInMemoryDatabase::PublishModelBlob(MountAlignment_t MountAlignment)
 {
-    std::string JSONData = SerializeModelToJSON(MountAlignment);
+    m_SerializedModelJSON = SerializeModelToJSON(MountAlignment);
 
     // Publish the JSON blob to clients
-    AlignmentModelBlob[0].setBlob(const_cast<char *>(JSONData.c_str()));
-    AlignmentModelBlob[0].setBlobLen(JSONData.size());
+    AlignmentModelBlob[0].setBlob(const_cast<char *>(m_SerializedModelJSON.c_str()));
+    AlignmentModelBlob[0].setBlobLen(m_SerializedModelJSON.size());
+    AlignmentModelBlob[0].setSize(m_SerializedModelJSON.size());
     AlignmentModelBlob[0].setFormat(ALIGNMENT_MODEL_FORMAT);
     AlignmentModelBlob.setState(IPS_OK);
     AlignmentModelBlob.apply();
