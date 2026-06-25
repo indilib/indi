@@ -7,6 +7,101 @@ During observing runs the sync point database is held in memory within the INDI 
 
 The current math plugin module can be selected and initialised via INDI properties (for details of the properties see the class MathPluginManagement), by and API class for use in INDI drivers(MathPluginManagement), or by an API class for use in INDI clients(ClientAPIForMathPluginManagement).
 
+## Alignment Model JSON Format
+
+The entire sync point database is communicated between driver and client as a single JSON BLOB via the `ALIGNMENT_MODEL_BLOB` property. This replaces the legacy cursor-based iteration that required N+1 INDI property round-trips to read N sync points.
+
+### JSON Schema
+
+```json
+{
+  "version": 1,
+  "referencePosition": {
+    "latitude":  29.5,
+    "longitude": 48.0
+  },
+  "mountAlignment": "NORTH_CELESTIAL_POLE",
+  "points": [
+    {
+      "julianDate": 2460489.3,
+      "ra":  5.233,
+      "dec": 22.014,
+      "vector": {
+        "x": 0.12,
+        "y": 0.87,
+        "z": 0.48
+      }
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `version` | int | Schema version. Currently `1`. Clients should reject unknown versions. |
+| `referencePosition.latitude` | double | Observatory latitude in degrees (-90..90) |
+| `referencePosition.longitude` | double | Observatory longitude in degrees (0..360 eastward) |
+| `mountAlignment` | string | One of `"ZENITH"`, `"NORTH_CELESTIAL_POLE"`, `"SOUTH_CELESTIAL_POLE"` |
+| `points[]` | array | Array of sync point entries |
+| `points[].julianDate` | double | Julian date of the observation |
+| `points[].ra` | double | Right Ascension in **decimal hours** |
+| `points[].dec` | double | Declination in **decimal degrees** |
+| `points[].vector.x/y/z` | double | Unit-length TelescopeDirectionVector components |
+
+Units match `AlignmentDatabaseEntry` exactly to avoid round-trip conversion errors.
+
+### INDI Properties
+
+#### New Properties (Simplified, Cursor-Free)
+
+| Property | Type | Direction | Purpose |
+|---|---|---|---|
+| `ALIGNMENT_MODEL_BLOB` | BLOB | RO (driver→client) / WO (client→driver) | Full JSON model. Driver publishes on every change; client can push a modified model back to replace the database. Format: `"alignmentModel.json"` |
+| `ALIGNMENT_MODEL_COUNT` | Number | RO | Number of sync points in the model |
+| `ALIGN_POINT_NEW` | Number | WO | Append one sync point. Elements: `ALIGN_POINT_JD`, `ALIGN_POINT_RA`, `ALIGN_POINT_DEC`, `ALIGN_POINT_VECTOR_X/Y/Z` |
+| `ALIGN_POINT_DELETE_INDEX` | Number | WO | Delete the sync point at the given 0-based index. Element: `ALIGN_POINT_INDEX` |
+| `ALIGNMENT_CLEAR` | Switch | WO | Clear all sync points. Member: `CLEAR` |
+| `ALIGNMENT_LOAD` | Switch | WO | Load database from persistent storage. Member: `LOAD` |
+| `ALIGNMENT_SAVE` | Switch | WO | Save database to persistent storage. Member: `SAVE` |
+
+#### Deprecated Properties (Kept for Backward Compatibility)
+
+These cursor-based properties are kept functional but marked as deprecated. New clients should use the JSON BLOB and dedicated properties above.
+
+| Property | Replaced By |
+|---|---|
+| `ALIGNMENT_POINTSET_SIZE` | `ALIGNMENT_MODEL_COUNT` |
+| `ALIGNMENT_POINTSET_CURRENT_ENTRY` | Index-based and BLOB operations |
+| `ALIGNMENT_POINTSET_ACTION` (9 switches: APPEND, INSERT, EDIT, DELETE, CLEAR, READ, READ_INCREMENT, LOAD_DATABASE, SAVE_DATABASE) | `ALIGN_POINT_NEW`, `ALIGN_POINT_DELETE_INDEX`, `ALIGNMENT_CLEAR`, `ALIGNMENT_LOAD`, `ALIGNMENT_SAVE`, `ALIGNMENT_MODEL_BLOB` |
+| `ALIGNMENT_POINTSET_COMMIT` | Direct property writes (no commit required) |
+| `ALIGNMENT_POINT_MANDATORY_NUMBERS` | `ALIGN_POINT_NEW` and `ALIGNMENT_MODEL_BLOB` |
+| `ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB` | Removed (unused by any driver or math plugin) |
+
+### Data Flow
+
+**Client reading the full model (new):**
+```
+Driver → Client: ALIGNMENT_MODEL_BLOB (JSON with all sync points)
+→ 1 INDI message
+```
+
+**Client adding a sync point (new):**
+```
+Client → Driver: ALIGN_POINT_NEW = { JD, RA, DEC, VX, VY, VZ }
+Driver → Client: ALIGNMENT_MODEL_BLOB (updated model)
+→ 2 INDI messages
+```
+
+**Client reading the full model (deprecated, still functional):**
+```
+Client → Driver: ALIGNMENT_POINTSET_ACTION = READ, COMMIT
+Driver → Client: ALIGNMENT_POINT_MANDATORY_NUMBERS (point 0)
+Client → Driver: ACTION = READ_INCREMENT, COMMIT
+Driver → Client: MANDATORY_NUMBERS (point 1)
+... repeat N times ...
+→ 2N INDI messages
+```
+
 ## Math Plugins
 The following math plugins are included in the first release.
 
@@ -193,7 +288,7 @@ The next step is to add the handling of sync points into your drivers Sync funct
 
             GetAlignmentDatabase().push_back(NewEntry);
 
-            // Tell the client about size change
+            // Tell the client about size change and publish the model BLOB
             UpdateSize();
 
             // Tell the math plugin to reinitialise
@@ -301,7 +396,7 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
 
             GetAlignmentDatabase().push_back(NewEntry);
 
-            // Tell the client about size change
+            // Tell the client about size change and publish the model BLOB
             UpdateSize();
 
             // Tell the math plugin to reinitialise
@@ -677,5 +772,36 @@ A call to the Alignment Subsystems property handling functions must then be plac
     {
         ProcessNewSwitch(svp);
     }
+
+### Reading the Full Model (New API)
+
+Clients should subscribe to `ALIGNMENT_MODEL_BLOB`. The driver publishes the complete model JSON whenever sync points change. No cursor iteration required.
+
+```cpp
+// In newBLOB handler:
+if (strcmp(bp->bvp->name, "ALIGNMENT_MODEL_BLOB") == 0)
+{
+    std::string json(bp->blob, bp->bloblen);
+    // Parse the JSON to get all sync points at once
+}
+```
+
+### Adding a Sync Point (New API)
+
+```cpp
+// Client sends a single INumberVectorProperty with values
+sendNewNumber("ALIGN_POINT_NEW", {JD, RA, DEC, VX, VY, VZ});
+```
+
+### Deleting a Sync Point (New API)
+
+```cpp
+// Delete the sync point at index 2
+sendNewNumber("ALIGN_POINT_DELETE_INDEX", {2});
+```
+
+### Reading Sync Points (Deprecated API)
+
+The deprecated cursor-based API remains functional. Clients set `ALIGNMENT_POINTSET_ACTION` to `READ` or `READ_INCREMENT`, then commit, receiving one entry per round-trip via `ALIGNMENT_POINT_MANDATORY_NUMBERS`.
 
 See the documentation for the ClientAPIForAlignmentDatabase and ClientAPIForMathPluginManagement to see what other functionality is available.
