@@ -118,6 +118,8 @@ class AlpacaCCD : public INDI::CCD
         std::string m_Description, m_DriverInfo, m_DriverVersion, m_CameraName;
         double m_GainMin {0}, m_GainMax {0};
         uint8_t m_BayerOffsetX {0}, m_BayerOffsetY {0};
+        double m_ElectronsPerADU {0};
+        double m_FullWellCapacity {0};
 
         // Alpaca Communication
         std::unique_ptr<httplib::Client> httpClient; // Declared here
@@ -180,6 +182,18 @@ class AlpacaCCD : public INDI::CCD
         INDI::PropertyNumber OffsetNP {1}; // CCD_OFFSET
         INDI::PropertyNumber CoolerPowerNP {1}; // Cooler power percentage
 
+        // Gain/Offset as named presets (used instead of GainNP/OffsetNP when the device
+        // reports a non-empty Gains/Offsets list rather than a Min/Max numeric range)
+        INDI::PropertySwitch GainSP {0};
+        INDI::PropertySwitch OffsetSP {0};
+        bool m_GainIsList {false};
+        bool m_OffsetIsList {false};
+
+        // Fast readout mode (only defined if the device reports canfastreadout=true)
+        INDI::PropertySwitch FastReadoutSP {2};
+        enum { FAST_READOUT_ENABLE, FAST_READOUT_DISABLE };
+        bool m_HasFastReadout {false};
+
         INDI::PropertyText DeviceInfoTP {4}; // Description, DriverInfo, DriverVersion, Name
 
         INDI::PropertySwitch CoolerSP {2}; // Declared here
@@ -189,7 +203,16 @@ class AlpacaCCD : public INDI::CCD
         bool m_HasGain {false}; // Flag to track if device supports Gain
         bool m_HasOffset {false}; // Flag to track if device supports Offset
         bool m_CanPulseGuide {false}; // Flag to track if device supports pulse guiding
-        bool m_CanStopExposure {false}; // Flag to track if device supports stopping exposure
+        bool m_CanAbortExposure {false}; // Flag to track if device supports aborting (discarding) an exposure
+        bool m_CanStopExposure {false}; // Flag to track if device supports stopping (reading out) an exposure
+        bool m_CanAsymmetricBin {false}; // Flag to track if device supports different X/Y binning factors
+        bool m_HasCoolerPower {false}; // Flag to track if device can report cooler power
+        bool m_HasPercentCompleted {true};
+        bool m_HasLastExposureDuration {true};
+
+        // Pulse guiding state (tracks an in-progress /pulseguide command)
+        bool m_PulseGuiding {false};
+        INDI_EQ_AXIS m_PulseGuideAxis {AXIS_RA};
 
         // Temperature and cooler monitoring
         INDI::Timer mTimerTemperature;

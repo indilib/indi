@@ -26,7 +26,7 @@ static std::unique_ptr<AlpacaFilterWheel> alpacaFilterWheel(new AlpacaFilterWhee
 
 AlpacaFilterWheel::AlpacaFilterWheel()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 const char *AlpacaFilterWheel::getDefaultName()
@@ -73,6 +73,14 @@ bool AlpacaFilterWheel::initProperties()
     addDebugControl();
 
     return true;
+}
+
+void AlpacaFilterWheel::ISGetProperties(const char *dev)
+{
+    INDI::FilterWheel::ISGetProperties(dev);
+
+    // Always define the server address so it can be configured before connecting
+    defineProperty(ServerAddressTP);
 }
 
 bool AlpacaFilterWheel::updateProperties()
@@ -185,20 +193,39 @@ bool AlpacaFilterWheel::setupFilterWheel()
     if (sendAlpacaGET("/names", response) && response.contains("Value"))
     {
         auto names = response["Value"];
-        if (names.is_array())
+        if (names.is_array() && !names.empty())
         {
-            // Resize filter name property
-            FilterNameTP.resize(names.size());
-            
-            // Set filter names
+            // Rebuild the filter name property with properly named/labeled widgets.
+            // A plain resize() leaves new widgets without a "name" attribute, which
+            // causes the receiving end to discard them as "defTextVector with no
+            // valid members".
+            FilterNameTP.resize(0);
+
             for (size_t i = 0; i < names.size(); i++)
             {
                 std::string name = names[i].get<std::string>();
-                FilterNameTP[i].setText(name.c_str());
+
+                char filterName[MAXINDINAME];
+                char filterLabel[MAXINDILABEL];
+                snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%zu", i + 1);
+                snprintf(filterLabel, MAXINDILABEL, "Filter#%zu", i + 1);
+
+                INDI::WidgetText oneText;
+                oneText.fill(filterName, filterLabel, name.c_str());
+                FilterNameTP.push(std::move(oneText));
+
                 LOGF_INFO("Filter %zu: %s", i, name.c_str());
             }
 
-            FilterNameTP.apply();
+            FilterNameTP.fill(getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.getGroupName(), IP_RW, 60, IPS_IDLE);
+            FilterNameTP.shrink_to_fit();
+
+            // Match the filter slot range to the number of filters reported
+            FilterSlotNP[0].setMax(static_cast<double>(names.size()));
+
+            if (isConnected())
+                FilterNameTP.apply();
+
             LOGF_INFO("Found %zu filters", names.size());
         }
     }
@@ -244,6 +271,7 @@ bool AlpacaFilterWheel::SelectFilter(int position)
     if (currentPos == targetPos)
     {
         LOGF_INFO("Already at position %d, no movement needed", targetPos);
+        SelectFilterDone(position);
         return true;
     }
 
@@ -270,6 +298,10 @@ bool AlpacaFilterWheel::SelectFilter(int position)
     }
 
     LOGF_INFO("Filter position set to %d", targetPos);
+
+    // Notify the client that the filter change has completed
+    SelectFilterDone(position);
+
     return true;
 }
 
@@ -290,6 +322,15 @@ int AlpacaFilterWheel::QueryFilter()
     }
 
     return -1;
+}
+
+bool AlpacaFilterWheel::saveConfigItems(FILE *fp)
+{
+    INDI::FilterWheel::saveConfigItems(fp);
+
+    ServerAddressTP.save(fp);
+
+    return true;
 }
 
 bool AlpacaFilterWheel::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
