@@ -91,10 +91,10 @@ bool PegasusFlatMasterNeo::initProperties()
     DeviceStatusNP[STATUS_CAP_ACTUAL_ANGLE].fill("STATUS_CAP_ACTUAL",      "Cap Actual Angle (°)",  "%.0f", 0, 270,  1, 0);
     DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].fill("STATUS_CAP_TARGET",      "Cap Target Angle (°)",  "%.0f", 0, 270,  1, 0);
     DeviceStatusNP[STATUS_CAP_STATUS].fill(      "STATUS_CAP_STATUS",      "Cap Status",            "%.0f", 0, 9999, 1, 0);
-    DeviceStatusNP[STATUS_VALUE_6].fill(        "STATUS_VALUE_6",          "Value 6",               "%.0f", 0, 9999, 1, 0);
+    DeviceStatusNP[STATUS_DEW_POWER].fill(        "STATUS_DEW_POWER",          "Dew Power",               "%.0f", 0, 100, 1, 0);
     DeviceStatusNP[STATUS_AUTO_DEW].fill(        "STATUS_AUTO_DEW",         "Auto Dew Active",       "%.0f", 0, 1,    1, 0);
-    DeviceStatusNP[STATUS_VALUE_8].fill(        "STATUS_VALUE_8",          "Value 8",               "%.0f", 0, 9999, 1, 0);
-    DeviceStatusNP[STATUS_VALUE_9].fill(        "STATUS_VALUE_9",          "Value 9",               "%.0f", 0, 9999, 1, 0);
+    DeviceStatusNP[STATUS_DEW_AGGRESSIVE].fill(        "STATUS_DEW_AGGRESSIVE",          "Dew Aggressive",               "%.0f", 0, 1, 1, 0);
+    DeviceStatusNP[STATUS_LIGHT_SENSOR].fill(        "STATUS_LIGHT_SENSOR",          "Light Sensor",               "%.0f", 0, 100, 1, 0);
     DeviceStatusNP.fill(getDeviceName(), "DEVICE_STATUS", "Device Status", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
     addAuxControls();
