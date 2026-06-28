@@ -439,7 +439,7 @@ IPState PegasusFlatMasterNeo::UnParkCap()
 IPState PegasusFlatMasterNeo::AbortCap()
 {
     char response[16] = {0};
-    if (sendCommand("FS:0", response) && strstr(response, "FS:") != nullptr)
+    if (sendCommand("FH", response) && strstr(response, "FH:1") != nullptr)
         return IPS_OK;
     return IPS_ALERT;
 }
