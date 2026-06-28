@@ -117,10 +117,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
             FA_CAP_ACTUAL_ANGLE,
             FA_CAP_TARGET_ANGLE,
             FA_CAP_STATUS,
-            FA_VALUE_6,
+            FA_DEW_POWER,
             FA_AUTO_DEW_STATUS,
-            FA_VALUE_8,
-            FA_VALUE_9,
+            FA_DEW_AGGRESSIVE,
+            FA_LIGHT_SENSOR,
             FA_N,
         };
 
@@ -138,10 +138,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
             STATUS_CAP_ACTUAL_ANGLE,
             STATUS_CAP_TARGET_ANGLE,
             STATUS_CAP_STATUS,
-            STATUS_VALUE_6,
+            STATUS_DEW_POWER,
             STATUS_AUTO_DEW,
-            STATUS_VALUE_8,
-            STATUS_VALUE_9,
+            STATUS_DEW_AGGRESSIVE,
+            STATUS_LIGHT_SENSOR,
         };
 
         // ES response field indices

@@ -510,7 +510,7 @@ bool PegasusFlatMasterNeo::getStatusData()
         return false;
     }
 
-    // FA response: "FMNEO:lightIntensity:lightActive:capActual:capTarget:capStatus:v6:autoDew:v8:v9"
+    // FA response: "FMNEO:lightIntensity:lightActive:capActual:capTarget:capStatus:dewPower:autoDew:dewAggressive:lightSensor"
     std::vector<std::string> result = split(response, ":");
 
     if (result.size() < FA_N)
@@ -531,6 +531,11 @@ bool PegasusFlatMasterNeo::getStatusData()
         const double capTargetAngle  = std::stod(result[FA_CAP_TARGET_ANGLE]);
         const double capActualAngle  = std::stod(result[FA_CAP_ACTUAL_ANGLE]);
         const double capStatus       = std::stod(result[FA_CAP_STATUS]);
+        const double dewPower        = std::stod(result[FA_DEW_POWER]);
+        const double autoDew         = std::stod(result[FA_AUTO_DEW_STATUS]);
+        const double dewAggressive   = std::stod(result[FA_DEW_AGGRESSIVE]);
+        const double lightSensor     = std::stod(result[FA_LIGHT_SENSOR]);  
+
 
         // --- Overview tab ---
         DeviceStatusNP[STATUS_LIGHT_INTENSITY].setValue(lightIntensity);
@@ -538,10 +543,10 @@ bool PegasusFlatMasterNeo::getStatusData()
         DeviceStatusNP[STATUS_CAP_TARGET_ANGLE].setValue(capTargetAngle);
         DeviceStatusNP[STATUS_CAP_ACTUAL_ANGLE].setValue(capActualAngle);
         DeviceStatusNP[STATUS_CAP_STATUS].setValue(capStatus);
-        DeviceStatusNP[STATUS_VALUE_6].setValue(std::stod(result[FA_VALUE_6]));
-        DeviceStatusNP[STATUS_AUTO_DEW].setValue(std::stod(result[FA_AUTO_DEW_STATUS]));
-        DeviceStatusNP[STATUS_VALUE_8].setValue(std::stod(result[FA_VALUE_8]));
-        DeviceStatusNP[STATUS_VALUE_9].setValue(std::stod(result[FA_VALUE_9]));
+        DeviceStatusNP[STATUS_DEW_POWER].setValue(dewPower);
+        DeviceStatusNP[STATUS_AUTO_DEW].setValue(autoDew);
+        DeviceStatusNP[STATUS_DEW_AGGRESSIVE].setValue(dewAggressive);
+        DeviceStatusNP[STATUS_LIGHT_SENSOR].setValue(lightSensor);
         DeviceStatusNP.setState(IPS_OK);
         DeviceStatusNP.apply();
 
