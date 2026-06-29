@@ -86,7 +86,7 @@ bool TemmaMount::initProperties()
 
     // TODO enable later
 #if 0
-    InitAlignmentProperties(this);
+    initAlignmentProperties(this);
 
     // Force the alignment system to always be on
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;

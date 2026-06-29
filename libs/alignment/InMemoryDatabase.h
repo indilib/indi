@@ -12,6 +12,7 @@
 
 #include "libastro.h"
 
+#include <string>
 #include <vector>
 
 namespace INDI
@@ -80,6 +81,16 @@ class InMemoryDatabase
         /// \param[in] CallbackPointer A pointer to the class function to call
         /// \param[in] ThisPointer A pointer to the class object of the callback function
         void SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void *ThisPointer);
+
+        /// \brief Serialize the entire model (including reference position and mount alignment) to a JSON string.
+        /// \param[in] MountAlignment The approximate mount alignment (ZENITH, NORTH_CELESTIAL_POLE, SOUTH_CELESTIAL_POLE).
+        /// \return A JSON string representing the complete alignment model.
+        std::string SerializeModelToJSON(MountAlignment_t MountAlignment) const;
+
+        /// \brief Deserialize a JSON string and replace the in-memory database.
+        /// \param[in] JSONData The JSON string to deserialize.
+        /// \return True if successful, false if the JSON is malformed or has an unsupported version.
+        bool DeserializeModelFromJSON(const std::string &JSONData);
 
     private:
         AlignmentDatabaseType MySyncPoints;

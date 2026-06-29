@@ -116,7 +116,7 @@ bool AstroTrac::initProperties()
 
     addAuxControls();
 
-    InitAlignmentProperties(this);
+    initAlignmentProperties(this);
     // set mount type to alignment subsystem
     SetApproximateMountAlignmentFromMountType(EQUATORIAL);
     // Init Math plugin
@@ -134,6 +134,8 @@ bool AstroTrac::initProperties()
 void AstroTrac::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
+
+    ISGetAlignmentProperties(this);
 
     defineProperty(MountTypeSP);
 }

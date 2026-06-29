@@ -203,7 +203,7 @@ bool ScopeSim::initProperties()
     addDebugControl();
 
     // Add alignment properties
-    InitAlignmentProperties(this);
+    initAlignmentProperties(this);
 
     return true;
 }

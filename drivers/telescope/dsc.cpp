@@ -107,9 +107,15 @@ bool DSC::initProperties()
 
     addAuxControls();
 
-    InitAlignmentProperties(this);
+    initAlignmentProperties(this);
 
     return true;
+}
+
+void DSC::ISGetProperties(const char *dev)
+{
+    INDI::Telescope::ISGetProperties(dev);
+    ISGetAlignmentProperties(this);
 }
 
 bool DSC::updateProperties()

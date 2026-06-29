@@ -45,10 +45,18 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
         /// \brief Virtual destructor
         virtual ~MathPluginManagement() {}
 
-        /** \brief Initialize alignment math plugin properties. It is recommended to call this function within initProperties() of your primary device
+        /** \brief Initialize alignment math plugin property structures (fill only, no registerProperty).
+             * Call this from initProperties() of your primary device.
              * \param[in] pTelescope Pointer to the child INDI::Telecope class
             */
-        void InitProperties(Telescope *pTelescope);
+        void initProperties(Telescope *pTelescope);
+
+        /** \brief Register alignment math plugin properties with the INDI client.
+             * Call this from ISGetProperties() of your primary device, after the base class,
+             * to ensure the "Alignment" tab appears after "Main Control".
+             * \param[in] pTelescope Pointer to the child INDI::Telecope class
+            */
+        void ISGetProperties(Telescope *pTelescope);
 
         /** \brief Call this function from within the ISNewSwitch processing path. The function will
              * handle any math plugin switch properties.

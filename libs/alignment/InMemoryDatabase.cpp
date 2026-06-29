@@ -10,6 +10,7 @@
 
 #include "basedevice.h"
 #include "indicom.h"
+#include "../indijson.hpp"
 
 #include <cerrno>
 #include <cstdlib>
@@ -255,6 +256,116 @@ void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t Cal
 {
     LoadDatabaseCallback            = CallbackPointer;
     LoadDatabaseCallbackThisPointer = ThisPointer;
+}
+
+// Helper: map MountAlignment_t enum to JSON string
+static const char *MountAlignmentToString(MountAlignment_t alignment)
+{
+    switch (alignment)
+    {
+        case ZENITH:
+            return "ZENITH";
+        case NORTH_CELESTIAL_POLE:
+            return "NORTH_CELESTIAL_POLE";
+        case SOUTH_CELESTIAL_POLE:
+            return "SOUTH_CELESTIAL_POLE";
+        default:
+            return "ZENITH";
+    }
+}
+
+std::string InMemoryDatabase::SerializeModelToJSON(MountAlignment_t MountAlignment) const
+{
+    using json = nlohmann::json;
+
+    json model;
+    model["version"] = 1;
+
+    model["referencePosition"] =
+    {
+        {"latitude",  DatabaseReferencePosition.latitude},
+        {"longitude", DatabaseReferencePosition.longitude}
+    };
+
+    model["mountAlignment"] = MountAlignmentToString(MountAlignment);
+
+    json points = json::array();
+    for (const auto &entry : MySyncPoints)
+    {
+        json point;
+        point["julianDate"] = entry.ObservationJulianDate;
+        point["ra"]         = entry.RightAscension;
+        point["dec"]        = entry.Declination;
+        point["vector"] =
+        {
+            {"x", entry.TelescopeDirection.x},
+            {"y", entry.TelescopeDirection.y},
+            {"z", entry.TelescopeDirection.z}
+        };
+        points.push_back(point);
+    }
+    model["points"] = points;
+
+    return model.dump();
+}
+
+bool InMemoryDatabase::DeserializeModelFromJSON(const std::string &JSONData)
+{
+    using json = nlohmann::json;
+
+    json model;
+    try
+    {
+        model = json::parse(JSONData);
+    }
+    catch (const json::parse_error &)
+    {
+        return false;
+    }
+
+    // Version check
+    if (!model.contains("version") || model["version"].get<int>() != 1)
+        return false;
+
+    // Restore reference position
+    if (model.contains("referencePosition"))
+    {
+        auto &ref = model["referencePosition"];
+        if (ref.contains("latitude") && ref.contains("longitude"))
+        {
+            DatabaseReferencePosition.latitude  = ref["latitude"].get<double>();
+            DatabaseReferencePosition.longitude = ref["longitude"].get<double>();
+            DatabaseReferencePosition.elevation = 0;
+            DatabaseReferencePositionIsValid    = true;
+        }
+    }
+
+    // Clear and repopulate the database
+    MySyncPoints.clear();
+
+    if (model.contains("points") && model["points"].is_array())
+    {
+        for (const auto &jp : model["points"])
+        {
+            AlignmentDatabaseEntry entry;
+            entry.ObservationJulianDate = jp.value("julianDate", 0.0);
+            entry.RightAscension        = jp.value("ra",  0.0);
+            entry.Declination           = jp.value("dec", 0.0);
+
+            if (jp.contains("vector"))
+            {
+                auto &v = jp["vector"];
+                entry.TelescopeDirection.x = v.value("x", 0.0);
+                entry.TelescopeDirection.y = v.value("y", 0.0);
+                entry.TelescopeDirection.z = v.value("z", 0.0);
+            }
+
+            entry.PrivateDataSize = 0;
+            MySyncPoints.push_back(entry);
+        }
+    }
+
+    return true;
 }
 
 } // namespace AlignmentSubsystem

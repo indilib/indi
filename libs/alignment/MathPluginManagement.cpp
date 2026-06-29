@@ -26,7 +26,7 @@ MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
     memset(&AlignmentSubsystemCurrentMathPlugin, 0, sizeof(IText));
 }
 
-void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
+void MathPluginManagement::initProperties(Telescope *ChildTelescope)
 {
     EnumeratePlugins();
     AlignmentSubsystemMathPlugins.reset(new ISwitch[MathPluginDisplayNames.size() + 1]);
@@ -69,19 +69,16 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
             }
         }
     }
-    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginsV);
 
     IUFillSwitch(&AlignmentSubsystemMathPluginInitialise, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "OK", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemMathPluginInitialiseV, &AlignmentSubsystemMathPluginInitialise, 1,
                        ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE",
                        "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInitialiseV);
 
     IUFillSwitch(&AlignmentSubsystemActive, "ALIGNMENT SUBSYSTEM ACTIVE", "Alignment Subsystem Active", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemActiveV, &AlignmentSubsystemActive, 1, ChildTelescope->getDeviceName(),
                        "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1,
                        60, IPS_IDLE);
-    ChildTelescope->registerProperty(&AlignmentSubsystemActiveV);
 
     // The following property is used for configuration purposes only and is not exposed to the client.
     IUFillText(&AlignmentSubsystemCurrentMathPlugin, "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
@@ -89,6 +86,13 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
     IUFillTextVector(&AlignmentSubsystemCurrentMathPluginV, &AlignmentSubsystemCurrentMathPlugin, 1,
                      ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
                      ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+}
+
+void MathPluginManagement::ISGetProperties(Telescope *ChildTelescope)
+{
+    ChildTelescope->defineProperty(&AlignmentSubsystemMathPluginsV);
+    ChildTelescope->defineProperty(&AlignmentSubsystemMathPluginInitialiseV);
+    ChildTelescope->defineProperty(&AlignmentSubsystemActiveV);
 }
 
 void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const char *name, char *texts[], char *names[],

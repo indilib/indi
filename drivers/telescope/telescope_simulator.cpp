@@ -144,7 +144,7 @@ bool ScopeSim::initProperties()
 
     setDefaultPollingPeriod(250);
 
-    InitAlignmentProperties(this);
+    initAlignmentProperties(this);
 
     EqPENP[PE_RA].fill("RA_PE",  "RA (hh:mm:ss)",  "%010.6m", 0,   24, 0, 0);
     EqPENP[PE_DEC].fill("DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -179,6 +179,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineProperty(PACDeviceTP);
     PACDeviceTP.load();
 #endif
+    ISGetAlignmentProperties(this);
+
     m_currentAz  = axisPrimary.position.Degrees();
     m_currentAlt = axisSecondary.position.Degrees();
 }

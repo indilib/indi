@@ -43,6 +43,7 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
         virtual bool Handshake() override;
 
         virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool updateProperties() override;
         virtual bool saveConfigItems(FILE *fp) override;
         virtual bool ReadScopeStatus() override;

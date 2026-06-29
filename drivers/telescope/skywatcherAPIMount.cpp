@@ -117,7 +117,7 @@ bool SkywatcherAPIMount::initProperties()
     addConfigurationControl();
 
     // Add alignment properties
-    InitAlignmentProperties(this);
+    initAlignmentProperties(this);
 
     // Force the alignment system to always be on
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")[0].setState(ISS_ON);
@@ -636,6 +636,8 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
 void SkywatcherAPIMount::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
+
+    ISGetAlignmentProperties(this);
 
     if (isConnected())
     {
