@@ -577,7 +577,7 @@ void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *src, long int WIDTH,
 					dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col]+src[(row-1)*width+col])/2; //Blues are above and below.
 					} else { // EDGE
 						if (row == 0) {dst[(row*width+col)*3+BLUE]=src[(row+1)*width+col];}
-						if (row == WIDTH -1) {dst[(row*width+col)*3+BLUE]=src[(row-1)*width+col];}
+						if (row == HEIGHT -1) {dst[(row*width+col)*3+BLUE]=src[(row-1)*width+col];}
 					}
 				} else { // Over RED
 					dst[(row*width+col)*3+RED]=src[row*width+col]; 
@@ -612,7 +612,9 @@ void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *src, long int WIDTH,
 							//.G*
 							//.BG
 							//...
-							dst[(row*width+col)*3+GREEN]=(src[(row-1)*width+col]+src[(row+0)*width+col-1]+src[(row+1)*width+col])/3;
+							// Only two valid green neighbors: left (row,col-1) and below (row+1,col).
+							// There is no row above (row-1 would be out-of-bounds).
+							dst[(row*width+col)*3+GREEN]=(src[(row+0)*width+col-1]+src[(row+1)*width+col])/2;
 							dst[(row*width+col)*3+BLUE]=src[(row+1)*width+col-1];
 						}
 						if (col == 1 && row !=0) { //Unnecessary Left here to explain why 
