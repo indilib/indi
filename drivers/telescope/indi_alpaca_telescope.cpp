@@ -41,7 +41,8 @@ alpacaTelescopeDriver::alpacaTelescopeDriver()
         TELESCOPE_CAN_GOTO |
         TELESCOPE_CAN_SYNC |
         TELESCOPE_CAN_ABORT |
-        TELESCOPE_CAN_PARK,
+        TELESCOPE_CAN_PARK |
+        TELESCOPE_HAS_TIME,
         4
     );
     setTelescopeConnection(CONNECTION_TCP);
@@ -103,8 +104,6 @@ bool alpacaTelescopeDriver::updateProperties()
             SetAxis1ParkDefault(-6.);
             SetAxis2ParkDefault(0.);
         }
-
-        sendTimeFromSystem();
     }
     else
     {
@@ -144,6 +143,11 @@ bool alpacaTelescopeDriver::Connect()
         httpClient.reset();
         return false;
     }
+
+    // Query device capabilities, location, time, and initial status now that the
+    // HTTP client is ready (Handshake() also defines TrackModeSP via AddTrackMode(),
+    // which must happen before updateProperties() is called)
+    Handshake();
 
     // Start the timer
     SetTimer(getCurrentPollingPeriod());
@@ -250,6 +254,18 @@ bool alpacaTelescopeDriver::Handshake()
         locationValid = false;
     }
 
+    // Site elevation is optional - default to 0 if the device doesn't report it
+    double elevation = 0.0;
+    if (sendAlpacaGET("/siteelevation", response) && response.contains("Value"))
+    {
+        elevation = response["Value"].get<double>();
+        LOGF_INFO("Site elevation from device: %.1fm", elevation);
+    }
+    else
+    {
+        LOG_WARN("Failed to get site elevation from device");
+    }
+
     // Update INDI location property if we got valid data
     if (locationValid)
     {
@@ -257,7 +273,7 @@ bool alpacaTelescopeDriver::Handshake()
         // Alpaca uses same convention
         LocationNP[LOCATION_LATITUDE].setValue(latitude);
         LocationNP[LOCATION_LONGITUDE].setValue(longitude);
-        LocationNP[LOCATION_ELEVATION].setValue(0); // Elevation not available from Alpaca
+        LocationNP[LOCATION_ELEVATION].setValue(elevation);
         LocationNP.setState(IPS_OK);
         LocationNP.apply();
 
@@ -267,6 +283,22 @@ bool alpacaTelescopeDriver::Handshake()
         m_cosLat = cos(latRad);
 
         LOGF_INFO("Site location set: Lat=%.6f° Long=%.6f°", latitude, longitude);
+    }
+
+    // Get UTC date/time from device
+    if (sendAlpacaGET("/utcdate", response) && response.contains("Value"))
+    {
+        std::string utcDate = response["Value"].get<std::string>();
+        TimeTP[UTC].setText(utcDate.c_str());
+        TimeTP[OFFSET].setText("0");
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
+        LOGF_INFO("Device UTC date/time: %s", utcDate.c_str());
+    }
+    else
+    {
+        LOG_WARN("Failed to get UTC date/time from device, using system time");
+        sendTimeFromSystem();
     }
 
     // Query tracking capability
@@ -285,6 +317,83 @@ bool alpacaTelescopeDriver::Handshake()
     else
     {
         LOG_WARN("Failed to query tracking capability from device");
+    }
+
+    // Query whether the mount supports the non-blocking slewtotargetasync/slewtoaltazasync
+    // commands. If not, fall back to the blocking slewtotarget/slewtoaltaz commands.
+    if (sendAlpacaGET("/canslewasync", response) && response.contains("Value"))
+        m_CanSlewAsync = response["Value"].get<bool>();
+    else
+        m_CanSlewAsync = false;
+    LOGF_INFO("Telescope supports async slew: %s", m_CanSlewAsync ? "Yes" : "No");
+
+    // Query the list of supported tracking rates (Alpaca DriveRate enum: 0=Sidereal,
+    // 1=Lunar, 2=Solar, 3=King) and build the TrackModeSP property accordingly.
+    m_TrackModeAlpacaRates.clear();
+    TrackModeSP.resize(0);
+    if (sendAlpacaGET("/trackingrates", response) && response.contains("Value") && response["Value"].is_array())
+    {
+        static const struct { int rate; const char *name; const char *label; } alpacaRates[] =
+        {
+            {0, "TRACK_SIDEREAL", "Sidereal"},
+            {1, "TRACK_LUNAR", "Lunar"},
+            {2, "TRACK_SOLAR", "Solar"},
+            {3, "TRACK_KING", "King"},
+        };
+
+        for (const auto &entry : alpacaRates)
+        {
+            for (const auto &value : response["Value"])
+            {
+                if (value.get<int>() == entry.rate)
+                {
+                    AddTrackMode(entry.name, entry.label, entry.rate == 0);
+                    m_TrackModeAlpacaRates.push_back(entry.rate);
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!m_TrackModeAlpacaRates.empty())
+    {
+        SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_TRACK_MODE, 4);
+        LOGF_INFO("Telescope supports %zu tracking rate(s)", m_TrackModeAlpacaRates.size());
+
+        // Sync the current tracking rate
+        if (sendAlpacaGET("/trackingrate", response) && response.contains("Value"))
+        {
+            int currentRate = response["Value"].get<int>();
+            for (size_t i = 0; i < m_TrackModeAlpacaRates.size(); i++)
+            {
+                if (m_TrackModeAlpacaRates[i] == currentRate)
+                {
+                    TrackModeSP.reset();
+                    TrackModeSP[i].setState(ISS_ON);
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        LOG_WARN("Failed to query supported tracking rates from device");
+    }
+
+    // Query support for custom (offset) tracking rates
+    m_CanSetRaRate = sendAlpacaGET("/cansetrightascensionrate", response) && response.contains("Value")
+                     && response["Value"].get<bool>();
+    m_CanSetDecRate = sendAlpacaGET("/cansetdeclinationrate", response) && response.contains("Value")
+                      && response["Value"].get<bool>();
+
+    if (m_CanSetRaRate && m_CanSetDecRate)
+    {
+        SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_TRACK_RATE, 4);
+        LOG_INFO("Telescope supports custom tracking rates - TELESCOPE_TRACK_RATE enabled");
+    }
+    else
+    {
+        LOG_INFO("Telescope does not support custom tracking rates");
     }
 
     // Get initial coordinates
@@ -345,6 +454,24 @@ bool alpacaTelescopeDriver::ReadScopeStatus()
     // Get tracking state
     if (sendAlpacaGET("/tracking", response) && response.contains("Value"))
         isTracking = response["Value"].get<bool>();
+
+    // Keep TrackModeSP in sync with the device's current tracking rate
+    if (HasTrackMode() && sendAlpacaGET("/trackingrate", response) && response.contains("Value"))
+    {
+        int currentRate = response["Value"].get<int>();
+        int currentIndex = TrackModeSP.findOnSwitchIndex();
+        for (size_t i = 0; i < m_TrackModeAlpacaRates.size(); i++)
+        {
+            if (m_TrackModeAlpacaRates[i] == currentRate && static_cast<int>(i) != currentIndex)
+            {
+                TrackModeSP.reset();
+                TrackModeSP[i].setState(ISS_ON);
+                TrackModeSP.setState(IPS_OK);
+                TrackModeSP.apply();
+                break;
+            }
+        }
+    }
 
     // Get park state
     if (sendAlpacaGET("/atpark", response) && response.contains("Value"))
@@ -411,16 +538,19 @@ bool alpacaTelescopeDriver::Goto(double ra, double dec)
         return false;
     }
 
-    // Step 3: Start slew to target
+    // Step 3: Start slew to target. Prefer the non-blocking /slewtotargetasync if the
+    // device supports it, since /slewtotarget blocks the HTTP request (and therefore
+    // this driver) until the slew completes.
     nlohmann::json emptyRequest;
-    if (!sendAlpacaPUT("/slewtotarget", emptyRequest, response))
+    const char *slewEndpoint = m_CanSlewAsync ? "/slewtotargetasync" : "/slewtotarget";
+    if (!sendAlpacaPUT(slewEndpoint, emptyRequest, response))
     {
         LOG_ERROR("Failed to send GoTo command");
         return false;
     }
 
     TrackState = SCOPE_SLEWING;
-    LOG_INFO("GoTo command sent - slewing to target");
+    LOGF_INFO("GoTo command sent (%s) - slewing to target", m_CanSlewAsync ? "async" : "sync");
     return true;
 }
 
@@ -571,9 +701,14 @@ bool alpacaTelescopeDriver::SetTrackEnabled(bool enabled)
 
 bool alpacaTelescopeDriver::SetTrackMode(uint8_t mode)
 {
+    if (mode >= m_TrackModeAlpacaRates.size())
+    {
+        LOG_ERROR("Invalid track mode index");
+        return false;
+    }
+
     nlohmann::json request, response;
-    // Mode: 0=Sidereal, 1=Lunar, 2=Solar
-    request["TrackingRate"] = static_cast<int>(mode);
+    request["TrackingRate"] = m_TrackModeAlpacaRates[mode];
 
     if (!sendAlpacaPUT("/trackingrate", request, response))
     {
@@ -581,7 +716,39 @@ bool alpacaTelescopeDriver::SetTrackMode(uint8_t mode)
         return false;
     }
 
-    LOG_INFO("Track mode set");
+    LOGF_INFO("Track mode set to %s", TrackModeSP[mode].getLabel());
+    return true;
+}
+
+bool alpacaTelescopeDriver::SetTrackRate(double raRate, double deRate)
+{
+    if (!m_CanSetRaRate || !m_CanSetDecRate)
+    {
+        LOG_WARN("Custom tracking rates are not supported by this telescope");
+        return false;
+    }
+
+    nlohmann::json request, response;
+
+    // Alpaca's RightAscensionRate is expressed in seconds of RA per sidereal second,
+    // while INDI's raRate is in arcseconds/second. 1 second of RA = 15 arcseconds, and
+    // the sidereal/solar second difference (~0.27%) is negligible for this offset.
+    request["RightAscensionRate"] = raRate / 15.0;
+    if (!sendAlpacaPUT("/rightascensionrate", request, response))
+    {
+        LOG_ERROR("Failed to set RA tracking rate");
+        return false;
+    }
+
+    request.clear();
+    request["DeclinationRate"] = deRate;
+    if (!sendAlpacaPUT("/declinationrate", request, response))
+    {
+        LOG_ERROR("Failed to set DEC tracking rate");
+        return false;
+    }
+
+    LOGF_INFO("Custom tracking rate set: RA=%.6f arcsec/s, DEC=%.6f arcsec/s", raRate, deRate);
     return true;
 }
 
@@ -697,6 +864,12 @@ bool alpacaTelescopeDriver::updateLocation(double latitude, double longitude, do
         return false;
     }
 
+    // Set elevation (not all Alpaca devices support this, so just warn on failure)
+    request.clear();
+    request["SiteElevation"] = elevation;
+    if (!sendAlpacaPUT("/siteelevation", request, response))
+        LOG_WARN("Failed to set site elevation on device");
+
     // Calculate and cache sin/cos for coordinate transformations
     double latRad = latitude * M_PI / 180.0;
     m_sinLat = sin(latRad);
@@ -706,6 +879,26 @@ bool alpacaTelescopeDriver::updateLocation(double latitude, double longitude, do
 
     // Call base class to update INDI properties
     return INDI::Telescope::updateLocation(latitude, longitude, elevation);
+}
+
+bool alpacaTelescopeDriver::updateTime(ln_date *utc, double utc_offset)
+{
+    INDI_UNUSED(utc_offset);
+
+    // Alpaca utcdate is always UTC, expressed as an ISO 8601 string
+    char isoDate[32];
+    snprintf(isoDate, sizeof(isoDate), "%04d-%02d-%02dT%02d:%02d:%06.3fZ",
+             utc->years, utc->months, utc->days, utc->hours, utc->minutes, utc->seconds);
+
+    nlohmann::json request, response;
+    request["UTCDate"] = isoDate;
+    if (!sendAlpacaPUT("/utcdate", request, response))
+    {
+        LOG_ERROR("Failed to set UTC date/time on device");
+        return false;
+    }
+
+    return true;
 }
 
 // Alpaca helper methods

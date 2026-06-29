@@ -49,6 +49,7 @@ class AlpacaFocuser : public INDI::Focuser
         virtual bool Handshake() override;
 
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         // Focuser interface
@@ -63,6 +64,11 @@ class AlpacaFocuser : public INDI::Focuser
 
         // Temperature property
         INDI::PropertyNumber TemperatureNP {1};
+
+        // Temperature compensation switch (only defined if the device reports tempcompavailable=true)
+        INDI::PropertySwitch TempCompSP {2};
+        enum { TEMP_COMP_ENABLE, TEMP_COMP_DISABLE };
+        bool m_TempCompAvailable = false;
 
         // Alpaca communication
         std::unique_ptr<httplib::Client> m_AlpacaClient;

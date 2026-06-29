@@ -45,6 +45,9 @@ std::unique_ptr<AlpacaCCD> alpaca_ccd(new AlpacaCCD());
 AlpacaCCD::AlpacaCCD()
 {
     // Set initial CCD capabilities based on ASCOM Alpaca Camera API
+    // CCD_CAN_ABORT, CCD_HAS_COOLER and CCD_HAS_SHUTTER are refined in Connect()
+    // once the device's CanAbortExposure/CanStopExposure/CanSetCCDTemperature/
+    // HasShutter properties are known.
     SetCCDCapability(INDI::CCD::CCD_CAN_ABORT | INDI::CCD::CCD_CAN_BIN | INDI::CCD::CCD_CAN_SUBFRAME |
                      INDI::CCD::CCD_HAS_COOLER | INDI::CCD::CCD_HAS_SHUTTER);
 }
@@ -117,6 +120,12 @@ bool AlpacaCCD::initProperties()
     CoolerPowerNP[0].fill("CCD_COOLER_VALUE", "Power (%)", "%.0f", 0, 100, 1, 0);
     CoolerPowerNP.fill(getDeviceName(), "CCD_COOLER_POWER", "Cooler Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Fast readout mode (only defined if the device reports CanFastReadout=true)
+    FastReadoutSP[FAST_READOUT_ENABLE].fill("FAST_READOUT_ENABLE", "Enable", ISS_OFF);
+    FastReadoutSP[FAST_READOUT_DISABLE].fill("FAST_READOUT_DISABLE", "Disable", ISS_ON);
+    FastReadoutSP.fill(getDeviceName(), "CCD_FAST_READOUT", "Fast Readout", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
+                        IPS_IDLE);
+
     // Device Info property
     DeviceInfoTP[0].fill("DESCRIPTION", "Description", "");
     DeviceInfoTP[1].fill("DRIVER_INFO", "Driver Info", "");
@@ -129,6 +138,9 @@ bool AlpacaCCD::initProperties()
     CameraStateTP.fill(getDeviceName(), "CCD_CAMERA_STATE", "Camera State", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     addAuxControls();
+
+    // Default server address (subclasses may override via setDefaultServerAddress()).
+    setDefaultServerAddress("alpaca.local", "32323");
 
     return true;
 }
@@ -145,7 +157,7 @@ void AlpacaCCD::ISGetProperties(const char *dev)
 
 bool AlpacaCCD::Connect()
 {
-    if (ServerAddressTP[0].getText() == nullptr || ServerAddressTP[1].getText() == nullptr)
+    if (ServerAddressTP[0].isEmpty() || ServerAddressTP[1].isEmpty())
     {
         LOG_ERROR("Server address or port is not set.");
         return false;
@@ -241,7 +253,10 @@ bool AlpacaCCD::Connect()
         m_CanPulseGuide = false;
     }
 
-    // Check can stop exposure capability
+    // Check abort/stop exposure capability
+    success = sendAlpacaGET("/canabortexposure", response);
+    m_CanAbortExposure = success && response["Value"].get<bool>();
+
     success = sendAlpacaGET("/canstopexposure", response);
     if (success)
     {
@@ -260,6 +275,45 @@ bool AlpacaCCD::Connect()
         LOG_WARN("Failed to query CanStopExposure, assuming no stop exposure support.");
         m_CanStopExposure = false;
     }
+
+    if (m_CanAbortExposure || m_CanStopExposure)
+    {
+        cap |= INDI::CCD::CCD_CAN_ABORT;
+        LOG_INFO("Camera supports aborting exposure.");
+    }
+    else
+    {
+        cap &= ~INDI::CCD::CCD_CAN_ABORT;
+        LOG_INFO("Camera does not support aborting exposure.");
+    }
+
+    // Check if camera has a mechanical shutter
+    success = sendAlpacaGET("/hasshutter", response);
+    if (success && response["Value"].get<bool>())
+    {
+        cap |= INDI::CCD::CCD_HAS_SHUTTER;
+        LOG_INFO("Camera has a mechanical shutter.");
+    }
+    else
+    {
+        cap &= ~INDI::CCD::CCD_HAS_SHUTTER;
+        LOG_INFO("Camera does not have a mechanical shutter.");
+    }
+
+    // Check if camera can report cooler power
+    success = sendAlpacaGET("/cangetcoolerpower", response);
+    m_HasCoolerPower = success && response["Value"].get<bool>();
+    LOGF_INFO("Camera supports reading cooler power: %s", m_HasCoolerPower ? "Yes" : "No");
+
+    // Check if camera supports asymmetric binning
+    success = sendAlpacaGET("/canasymmetricbin", response);
+    m_CanAsymmetricBin = success && response["Value"].get<bool>();
+    LOGF_INFO("Camera supports asymmetric binning: %s", m_CanAsymmetricBin ? "Yes" : "No");
+
+    // Check if camera supports a fast readout mode
+    success = sendAlpacaGET("/canfastreadout", response);
+    m_HasFastReadout = success && response["Value"].get<bool>();
+    LOGF_INFO("Camera supports fast readout mode: %s", m_HasFastReadout ? "Yes" : "No");
 
     // Check camera sensor type for Bayer pattern support
     success = sendAlpacaGET("/sensortype", response);
@@ -365,6 +419,30 @@ void AlpacaCCD::updateCameraCapabilities()
     // Update CCDParams
     SetCCDParams(m_CameraXSize, m_CameraYSize, PrimaryCCD.getBPP(), m_PixelSizeX, m_PixelSizeY);
 
+    // Update binning limits (HOR_BIN/VER_BIN default to a max of 4)
+    double maxBinX = 1, maxBinY = 1;
+    success = sendAlpacaGET("/maxbinx", response);
+    if (success) maxBinX = response["Value"].get<double>();
+
+    success = sendAlpacaGET("/maxbiny", response);
+    if (success) maxBinY = response["Value"].get<double>();
+
+    PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBinX, 1, false);
+    PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBinY, 1, false);
+
+    // Update exposure limits from the device (defaults are 0.01-3600s, step 1.0)
+    double expMin = 0.01, expMax = 3600, expStep = 1.0;
+    success = sendAlpacaGET("/exposuremin", response);
+    if (success) expMin = response["Value"].get<double>();
+
+    success = sendAlpacaGET("/exposuremax", response);
+    if (success) expMax = response["Value"].get<double>();
+
+    success = sendAlpacaGET("/exposureresolution", response);
+    if (success) expStep = response["Value"].get<double>();
+
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", expMin, expMax, expStep, false);
+
     success = sendAlpacaGET("/description", response);
     if (success) m_Description = response["Value"].get<std::string>();
 
@@ -379,15 +457,67 @@ void AlpacaCCD::updateCameraCapabilities()
 
     if (m_HasGain)
     {
-        success = sendAlpacaGET("/gainmin", response);
-        if (success) m_GainMin = response["Value"].get<double>();
+        // Some cameras expose Gain as a numeric range (GainMin/GainMax), others as a list of
+        // named presets (Gains). Per the Alpaca spec, only one of the two is implemented.
+        success = sendAlpacaGET("/gains", response);
+        if (success && response.contains("Value") && response["Value"].is_array() && !response["Value"].empty())
+        {
+            m_GainIsList = true;
+            auto gains = response["Value"];
+            GainSP.resize(gains.size());
+            for (size_t i = 0; i < gains.size(); ++i)
+            {
+                std::string gainName = gains[i].get<std::string>();
+                char nameBuf[MAXINDINAME];
+                snprintf(nameBuf, sizeof(nameBuf), "GAIN_%zu", i);
+                GainSP[i].fill(nameBuf, gainName.c_str(), ISS_OFF);
+            }
+            GainSP.fill(getDeviceName(), "CCD_GAIN_PRESET", "Gain", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+        }
+        else
+        {
+            m_GainIsList = false;
 
-        success = sendAlpacaGET("/gainmax", response);
-        if (success) m_GainMax = response["Value"].get<double>();
+            success = sendAlpacaGET("/gainmin", response);
+            if (success) m_GainMin = response["Value"].get<double>();
+
+            success = sendAlpacaGET("/gainmax", response);
+            if (success) m_GainMax = response["Value"].get<double>();
+        }
+    }
+
+    if (m_HasOffset)
+    {
+        // As with Gain, Offset is either a numeric range or a list of named presets, never both.
+        success = sendAlpacaGET("/offsets", response);
+        if (success && response.contains("Value") && response["Value"].is_array() && !response["Value"].empty())
+        {
+            m_OffsetIsList = true;
+            auto offsets = response["Value"];
+            OffsetSP.resize(offsets.size());
+            for (size_t i = 0; i < offsets.size(); ++i)
+            {
+                std::string offsetName = offsets[i].get<std::string>();
+                char nameBuf[MAXINDINAME];
+                snprintf(nameBuf, sizeof(nameBuf), "OFFSET_%zu", i);
+                OffsetSP[i].fill(nameBuf, offsetName.c_str(), ISS_OFF);
+            }
+            OffsetSP.fill(getDeviceName(), "CCD_OFFSET_PRESET", "Offset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+        }
+        else
+        {
+            m_OffsetIsList = false;
+        }
     }
 
     success = sendAlpacaGET("/maxadu", response);
     if (success) m_MaxADU = response["Value"].get<uint32_t>();
+
+    success = sendAlpacaGET("/electronsperadu", response);
+    if (success) m_ElectronsPerADU = response["Value"].get<double>();
+
+    success = sendAlpacaGET("/fullwellcapacity", response);
+    if (success) m_FullWellCapacity = response["Value"].get<double>();
 
     if (m_SensorType >= 2)
     {
@@ -478,7 +608,7 @@ bool AlpacaCCD::ISNewNumber(const char *dev, const char *name, double values[], 
             updateProperty(GainNP, values, names, n, [this, values]()
             {
                 nlohmann::json response;
-                nlohmann::json body = {{"Gain", values[0]}};
+                nlohmann::json body = {{"Gain", static_cast<int>(values[0])}};
                 return sendAlpacaPUT("/gain", body, response);
             }, true);
             return true;
@@ -488,7 +618,7 @@ bool AlpacaCCD::ISNewNumber(const char *dev, const char *name, double values[], 
             updateProperty(OffsetNP, values, names, n, [this, values]()
             {
                 nlohmann::json response;
-                nlohmann::json body = {{"Offset", values[0]}};
+                nlohmann::json body = {{"Offset", static_cast<int>(values[0])}};
                 return sendAlpacaPUT("/offset", body, response);
             }, true);
             return true;
@@ -550,6 +680,67 @@ bool AlpacaCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             ReadoutModeSP.apply();
             return true;
         }
+        else if (m_GainIsList && GainSP.isNameMatch(name))
+        {
+            if (GainSP.update(states, names, n) == false)
+            {
+                GainSP.setState(IPS_ALERT);
+                GainSP.apply();
+                return true;
+            }
+
+            int index = GainSP.findOnSwitchIndex();
+            nlohmann::json response;
+            nlohmann::json body = {{"Gain", index}};
+            if (index != -1 && sendAlpacaPUT("/gain", body, response))
+            {
+                GainSP.setState(IPS_OK);
+                LOGF_INFO("Gain set to %s", GainSP[index].getLabel());
+            }
+            else
+            {
+                LOG_ERROR("Failed to set gain.");
+                GainSP.setState(IPS_ALERT);
+            }
+            GainSP.apply();
+            return true;
+        }
+        else if (m_OffsetIsList && OffsetSP.isNameMatch(name))
+        {
+            if (OffsetSP.update(states, names, n) == false)
+            {
+                OffsetSP.setState(IPS_ALERT);
+                OffsetSP.apply();
+                return true;
+            }
+
+            int index = OffsetSP.findOnSwitchIndex();
+            nlohmann::json response;
+            nlohmann::json body = {{"Offset", index}};
+            if (index != -1 && sendAlpacaPUT("/offset", body, response))
+            {
+                OffsetSP.setState(IPS_OK);
+                LOGF_INFO("Offset set to %s", OffsetSP[index].getLabel());
+            }
+            else
+            {
+                LOG_ERROR("Failed to set offset.");
+                OffsetSP.setState(IPS_ALERT);
+            }
+            OffsetSP.apply();
+            return true;
+        }
+        else if (FastReadoutSP.isNameMatch(name))
+        {
+            updateProperty(FastReadoutSP, states, names, n, [this, states]()
+            {
+                bool enable = states[0] == ISS_ON;
+                nlohmann::json response;
+                nlohmann::json body = {{"FastReadout", enable}};
+                return sendAlpacaPUT("/fastreadout", body, response);
+            });
+            return true;
+        }
     }
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
@@ -579,46 +770,97 @@ bool AlpacaCCD::updateProperties()
 
         if (m_HasGain)
         {
-            // Get current gain
+            // Get current gain (a preset index if m_GainIsList, otherwise a raw value)
             success = sendAlpacaGET("/gain", response);
-            if (success)
+            if (m_GainIsList)
             {
-                defineProperty(GainNP);
-                GainNP[0].setValue(response["Value"].get<double>());
-                GainNP.setState(IPS_OK);
-                GainNP.apply();
+                defineProperty(GainSP);
+                if (success)
+                {
+                    int index = response["Value"].get<int>();
+                    if (index >= 0 && static_cast<size_t>(index) < GainSP.count())
+                    {
+                        GainSP.reset();
+                        GainSP[index].setState(ISS_ON);
+                    }
+                }
+                GainSP.setState(IPS_OK);
+                GainSP.apply();
             }
             else
             {
-                LOG_WARN("Failed to get gain.");
-            }
+                if (success)
+                {
+                    defineProperty(GainNP);
+                    GainNP[0].setValue(response["Value"].get<double>());
+                    GainNP.setState(IPS_OK);
+                    GainNP.apply();
+                }
+                else
+                {
+                    LOG_WARN("Failed to get gain.");
+                }
 
-            // Set gain min/max from cached values
-            GainNP[0].setMin(m_GainMin);
-            GainNP[0].setMax(m_GainMax);
+                // Set gain min/max from cached values
+                GainNP[0].setMin(m_GainMin);
+                GainNP[0].setMax(m_GainMax);
+            }
         }
 
         if (m_HasOffset)
         {
-            // Get current offset
+            // Get current offset (a preset index if m_OffsetIsList, otherwise a raw value)
             success = sendAlpacaGET("/offset", response);
-            if (success)
+            if (m_OffsetIsList)
             {
-                defineProperty(OffsetNP);
-                OffsetNP[0].setValue(response["Value"].get<double>());
-                OffsetNP.setState(IPS_OK);
-                OffsetNP.apply();
+                defineProperty(OffsetSP);
+                if (success)
+                {
+                    int index = response["Value"].get<int>();
+                    if (index >= 0 && static_cast<size_t>(index) < OffsetSP.count())
+                    {
+                        OffsetSP.reset();
+                        OffsetSP[index].setState(ISS_ON);
+                    }
+                }
+                OffsetSP.setState(IPS_OK);
+                OffsetSP.apply();
             }
             else
             {
-                LOG_WARN("Failed to get offset.");
+                if (success)
+                {
+                    defineProperty(OffsetNP);
+                    OffsetNP[0].setValue(response["Value"].get<double>());
+                    OffsetNP.setState(IPS_OK);
+                    OffsetNP.apply();
+                }
+                else
+                {
+                    LOG_WARN("Failed to get offset.");
+                }
             }
         }
 
         // Cooler properties
         defineProperty(CoolerSP);
         defineProperty(TemperatureNP);
-        defineProperty(CoolerPowerNP);
+        if (m_HasCoolerPower)
+            defineProperty(CoolerPowerNP);
+
+        // Fast readout mode
+        if (m_HasFastReadout)
+        {
+            success = sendAlpacaGET("/fastreadout", response);
+            if (success)
+            {
+                bool fastReadout = response["Value"].get<bool>();
+                FastReadoutSP.reset();
+                FastReadoutSP[fastReadout ? FAST_READOUT_ENABLE : FAST_READOUT_DISABLE].setState(ISS_ON);
+                FastReadoutSP.setState(IPS_OK);
+            }
+            defineProperty(FastReadoutSP);
+        }
 
         defineProperty(ReadoutModeSP);
         updateReadoutModes();
@@ -640,8 +882,11 @@ bool AlpacaCCD::updateProperties()
         deleteProperty(CoolerSP);
         deleteProperty(TemperatureNP);
         deleteProperty(GainNP);
+        deleteProperty(GainSP);
         deleteProperty(OffsetNP);
+        deleteProperty(OffsetSP);
         deleteProperty(CoolerPowerNP);
+        deleteProperty(FastReadoutSP);
         deleteProperty(DeviceInfoTP);
         deleteProperty(ReadoutModeSP);
         deleteProperty(CameraStateTP);
@@ -667,11 +912,11 @@ bool AlpacaCCD::saveConfigItems(FILE *fp)
     ServerAddressTP.save(fp);
     DeviceNumberNP.save(fp);
     ConnectionSettingsNP.save(fp);
-    if (m_HasGain)
+    if (m_HasGain && !m_GainIsList)
     {
         GainNP.save(fp);
     }
-    if (m_HasOffset)
+    if (m_HasOffset && !m_OffsetIsList)
     {
         OffsetNP.save(fp);
     }
@@ -699,17 +944,25 @@ bool AlpacaCCD::AbortExposure()
     // Stop the worker thread
     mWorker.quit();
 
-    // Send abort command to Alpaca camera
+    // Prefer AbortExposure (discards the image); fall back to StopExposure
+    // (reads out the image normally) if that's all the device supports.
     nlohmann::json response;
-    bool success = sendAlpacaPUT("/abortexposure", {}, response);
+    bool success = false;
+
+    if (m_CanAbortExposure)
+        success = sendAlpacaPUT("/abortexposure", {}, response);
+    else if (m_CanStopExposure)
+        success = sendAlpacaPUT("/stopexposure", {}, response);
+    else
+        LOG_WARN("Camera does not support aborting or stopping exposures.");
 
     if (success)
     {
         LOG_INFO("Exposure aborted.");
     }
-    else
+    else if (m_CanAbortExposure || m_CanStopExposure)
     {
-        LOG_ERROR("Failed to send abort command to Alpaca camera.");
+        LOG_ERROR("Failed to send abort/stop command to Alpaca camera.");
     }
 
     return true;
@@ -796,6 +1049,12 @@ bool AlpacaCCD::UpdateCCDBin(int hor, int ver)
     {
         LOG_ERROR("Not connected to Alpaca camera.");
         return false;
+    }
+
+    if (!m_CanAsymmetricBin && hor != ver)
+    {
+        LOG_WARN("Camera does not support asymmetric binning, using the horizontal value for both axes.");
+        ver = hor;
     }
 
     nlohmann::json response;
@@ -891,9 +1150,12 @@ bool AlpacaCCD::sendPulseGuide(ALPACA_GUIDE_DIRECTION direction, long duration)
 ////////////////////////////////////////////////////////////////////////////////////////////
 IPState AlpacaCCD::GuideNorth(uint32_t ms)
 {
-    if (sendPulseGuide(ALPACA_GUIDE_NORTH, ms))
-        return IPS_OK;
-    return IPS_ALERT;
+    if (!sendPulseGuide(ALPACA_GUIDE_NORTH, ms))
+        return IPS_ALERT;
+
+    m_PulseGuideAxis = AXIS_DE;
+    m_PulseGuiding = true;
+    return IPS_BUSY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -901,9 +1163,12 @@ IPState AlpacaCCD::GuideNorth(uint32_t ms)
 ////////////////////////////////////////////////////////////////////////////////////////////
 IPState AlpacaCCD::GuideSouth(uint32_t ms)
 {
-    if (sendPulseGuide(ALPACA_GUIDE_SOUTH, ms))
-        return IPS_OK;
-    return IPS_ALERT;
+    if (!sendPulseGuide(ALPACA_GUIDE_SOUTH, ms))
+        return IPS_ALERT;
+
+    m_PulseGuideAxis = AXIS_DE;
+    m_PulseGuiding = true;
+    return IPS_BUSY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -911,9 +1176,12 @@ IPState AlpacaCCD::GuideSouth(uint32_t ms)
 ////////////////////////////////////////////////////////////////////////////////////////////
 IPState AlpacaCCD::GuideEast(uint32_t ms)
 {
-    if (sendPulseGuide(ALPACA_GUIDE_EAST, ms))
-        return IPS_OK;
-    return IPS_ALERT;
+    if (!sendPulseGuide(ALPACA_GUIDE_EAST, ms))
+        return IPS_ALERT;
+
+    m_PulseGuideAxis = AXIS_RA;
+    m_PulseGuiding = true;
+    return IPS_BUSY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -921,9 +1189,12 @@ IPState AlpacaCCD::GuideEast(uint32_t ms)
 ////////////////////////////////////////////////////////////////////////////////////////////
 IPState AlpacaCCD::GuideWest(uint32_t ms)
 {
-    if (sendPulseGuide(ALPACA_GUIDE_WEST, ms))
-        return IPS_OK;
-    return IPS_ALERT;
+    if (!sendPulseGuide(ALPACA_GUIDE_WEST, ms))
+        return IPS_ALERT;
+
+    m_PulseGuideAxis = AXIS_RA;
+    m_PulseGuiding = true;
+    return IPS_BUSY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1065,7 +1336,7 @@ bool AlpacaCCD::sendAlpacaPUT(const std::string& endpoint, const nlohmann::json&
     }
     catch (const nlohmann::json::exception& e)
     {
-        LOGF_ERROR("JSON parse error for %s: %s", e.what());
+        LOGF_ERROR("JSON parse error for %s: %s", endpoint.c_str(), e.what());
         return false;
     }
 }
@@ -1573,6 +1844,17 @@ void AlpacaCCD::updateStatus()
     // Update camera state
     if (PrimaryCCD.isExposing())
         updateCameraState();
+
+    // Poll for completion of an in-progress pulse guide command
+    if (m_PulseGuiding)
+    {
+        nlohmann::json response;
+        if (!sendAlpacaGET("/ispulseguiding", response) || !response["Value"].get<bool>())
+        {
+            m_PulseGuiding = false;
+            GuideComplete(m_PulseGuideAxis);
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1635,6 +1917,17 @@ void AlpacaCCD::workerExposure(const std::atomic_bool &isAboutToQuit, float dura
     PrimaryCCD.setExposureLeft(0);
     LOG_INFO("Exposure time complete, waiting for image...");
 
+    if (m_HasLastExposureDuration)
+    {
+        if (sendAlpacaGET("/lastexposureduration", response))
+        {
+            double actualDuration = response["Value"].get<double>();
+            LOGF_DEBUG("Last exposure duration: %.3fs (requested %.3fs)", actualDuration, duration);
+        }
+        else
+            m_HasLastExposureDuration = false;
+    }
+
     // Poll for image ready status
     int maxWaitTime = 30; // Maximum 30 seconds to wait for image
     int waitCount = 0;
@@ -1649,6 +1942,15 @@ void AlpacaCCD::workerExposure(const std::atomic_bool &isAboutToQuit, float dura
             LOG_INFO("Image ready, downloading...");
             downloadImage();
             return;
+        }
+
+        // Report download progress every second, if the camera supports it
+        if (m_HasPercentCompleted && waitCount % 10 == 0)
+        {
+            if (sendAlpacaGET("/percentcompleted", response))
+                LOGF_DEBUG("Percent completed: %d%%", response["Value"].get<int>());
+            else
+                m_HasPercentCompleted = false;
         }
 
         usleep(100 * 1000); // Wait 100ms
@@ -1686,16 +1988,19 @@ void AlpacaCCD::updateCoolerStatus()
     }
 
     // Get CoolerPower
-    success = sendAlpacaGET("/coolerpower", response);
-    if (success)
+    if (m_HasCoolerPower)
     {
-        CoolerPowerNP[0].setValue(response["Value"].get<double>());
-        CoolerPowerNP.setState(IPS_OK);
-        CoolerPowerNP.apply();
-    }
-    else
-    {
-        LOG_WARN("Failed to get cooler power.");
+        success = sendAlpacaGET("/coolerpower", response);
+        if (success)
+        {
+            CoolerPowerNP[0].setValue(response["Value"].get<double>());
+            CoolerPowerNP.setState(IPS_OK);
+            CoolerPowerNP.apply();
+        }
+        else
+        {
+            LOG_WARN("Failed to get cooler power.");
+        }
     }
 }
 
@@ -1811,6 +2116,11 @@ bool AlpacaCCD::processImageBytesData(uint8_t* buffer, size_t buffer_size, const
         return false;
     }
 
+    // Copy source data before reallocating the frame buffer, since `buffer`
+    // points into the current PrimaryCCD frame buffer and setFrameBufferSize
+    // may realloc/free it.
+    std::vector<uint8_t> src_copy(buffer, buffer + buffer_size);
+
     // Convert ImageBytes data to INDI format (typically 16-bit)
     size_t indi_buffer_size = width * height * sizeof(uint16_t);
     PrimaryCCD.setFrameBufferSize(indi_buffer_size);
@@ -1832,14 +2142,14 @@ bool AlpacaCCD::processImageBytesData(uint8_t* buffer, size_t buffer_size, const
     {
         // 2D monochrome/Bayer image
         LOG_DEBUG("Converting 2D image data");
-        convertImageBytesToINDI2D(buffer, indi_buffer, width, height, metadata.TransmissionElementType);
+        convertImageBytesToINDI2D(src_copy.data(), indi_buffer, width, height, metadata.TransmissionElementType);
     }
     else if (metadata.Rank == 3)
     {
         // 3D color image - for now, just take the first plane or convert to grayscale
         // This is a simplified implementation; full color support would require more work
         LOGF_DEBUG("Converting 3D image data (averaging %d planes to grayscale)", planes);
-        convertImageBytesToINDI3D(buffer, indi_buffer, width, height, planes, metadata.TransmissionElementType);
+        convertImageBytesToINDI3D(src_copy.data(), indi_buffer, width, height, planes, metadata.TransmissionElementType);
     }
     else
     {
@@ -2015,11 +2325,11 @@ void AlpacaCCD::temperatureTimerTimeout()
 void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buffer, uint32_t width, uint32_t height,
         int32_t transmission_type)
 {
-    // Convert ImageBytes 2D data to INDI 16-bit format
-    // ImageBytes uses row-major ordering as per ASCOM Alpaca API v10 section 8.8.1
-    // For 2D arrays: rightmost dimension (height) changes most quickly
-
-    size_t dst_index = 0;
+    // ASCOM ImageBytes stores 2D data in column-major order: the rightmost
+    // dimension (Dimension2 = height/rows) varies fastest, so each contiguous
+    // block of `height` elements is one column.
+    // FITS/INDI expects row-major order: each contiguous block of `width`
+    // elements is one row.  We transpose here: src[x*height+y] -> dst[y*width+x].
 
     switch (transmission_type)
     {
@@ -2030,8 +2340,7 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
             {
                 for (uint32_t y = 0; y < height; y++)
                 {
-                    // Scale 8-bit to 16-bit
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(src[x * height + y]) << 8;
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(src[x * height + y]) << 8;
                 }
             }
             break;
@@ -2043,9 +2352,8 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
             {
                 for (uint32_t y = 0; y < height; y++)
                 {
-                    // Convert signed to unsigned, handle negative values
                     int16_t val = src[x * height + y];
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(val + 32768);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(val + 32768);
                 }
             }
             break;
@@ -2057,8 +2365,7 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
             {
                 for (uint32_t y = 0; y < height; y++)
                 {
-                    // Direct copy
-                    dst_buffer[dst_index++] = src[x * height + y];
+                    dst_buffer[y * width + x] = src[x * height + y];
                 }
             }
             break;
@@ -2070,9 +2377,8 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
             {
                 for (uint32_t y = 0; y < height; y++)
                 {
-                    // Scale down from 32-bit to 16-bit
                     int32_t val = src[x * height + y];
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(val);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(val);
                 }
             }
             break;
@@ -2084,9 +2390,8 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
             {
                 for (uint32_t y = 0; y < height; y++)
                 {
-                    // Scale down from 32-bit to 16-bit
                     uint32_t val = src[x * height + y];
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(val);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(val);
                 }
             }
             break;
@@ -2098,16 +2403,14 @@ void AlpacaCCD::convertImageBytesToINDI2D(uint8_t* src_buffer, uint16_t* dst_buf
             {
                 for (uint32_t y = 0; y < height; y++)
                 {
-                    // Convert float to 16-bit, assuming 0.0-1.0 range
                     float val = src[x * height + y];
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(val * 65535.0f);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(val * 65535.0f);
                 }
             }
             break;
         }
         default:
             LOGF_ERROR("Unsupported transmission type for 2D conversion: %d", transmission_type);
-            // Fill with zeros as fallback
             memset(dst_buffer, 0, width * height * sizeof(uint16_t));
             break;
     }
@@ -2117,14 +2420,8 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
         uint32_t planes,
         int32_t transmission_type)
 {
-    // Convert ImageBytes 3D data to INDI 16-bit format
-    // ImageBytes uses row-major ordering as per ASCOM Alpaca API v10 section 8.8.1
-    // For 3D arrays: rightmost dimension (color plane) changes most quickly
-
-    // For now, we'll convert 3D color data to grayscale by averaging the planes
-    // A full color implementation would require more complex handling
-
-    size_t dst_index = 0;
+    // ASCOM ImageBytes 3D data: column-major with color plane as the fastest
+    // dimension.  Transpose to FITS row-major (grayscale average of planes).
 
     switch (transmission_type)
     {
@@ -2140,9 +2437,8 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
                     {
                         sum += src[(x * height + y) * planes + p];
                     }
-                    // Average the planes and scale to 16-bit
                     uint16_t avg = static_cast<uint16_t>((sum / planes)) << 8;
-                    dst_buffer[dst_index++] = avg;
+                    dst_buffer[y * width + x] = avg;
                 }
             }
             break;
@@ -2159,9 +2455,8 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
                     {
                         sum += src[(x * height + y) * planes + p];
                     }
-                    // Average and convert to unsigned
                     int16_t avg = static_cast<int16_t>(sum / planes);
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(avg + 32768);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(avg + 32768);
                 }
             }
             break;
@@ -2178,8 +2473,7 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
                     {
                         sum += src[(x * height + y) * planes + p];
                     }
-                    // Average the planes
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(sum / planes);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(sum / planes);
                 }
             }
             break;
@@ -2196,9 +2490,8 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
                     {
                         sum += src[(x * height + y) * planes + p];
                     }
-                    // Average and scale down
                     int32_t avg = static_cast<int32_t>(sum / planes);
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(avg >> 16);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(avg >> 16);
                 }
             }
             break;
@@ -2215,9 +2508,8 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
                     {
                         sum += src[(x * height + y) * planes + p];
                     }
-                    // Average and scale down
                     uint32_t avg = static_cast<uint32_t>(sum / planes);
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(avg >> 16);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(avg >> 16);
                 }
             }
             break;
@@ -2234,16 +2526,14 @@ void AlpacaCCD::convertImageBytesToINDI3D(uint8_t* src_buffer, uint16_t* dst_buf
                     {
                         sum += src[(x * height + y) * planes + p];
                     }
-                    // Average and convert to 16-bit
                     float avg = sum / planes;
-                    dst_buffer[dst_index++] = static_cast<uint16_t>(avg * 65535.0f);
+                    dst_buffer[y * width + x] = static_cast<uint16_t>(avg * 65535.0f);
                 }
             }
             break;
         }
         default:
             LOGF_ERROR("Unsupported transmission type for 3D conversion: %d", transmission_type);
-            // Fill with zeros as fallback
             memset(dst_buffer, 0, width * height * sizeof(uint16_t));
             break;
     }
@@ -2290,10 +2580,38 @@ void AlpacaCCD::addFITSKeywords(INDI::CCDChip * targetChip, std::vector<INDI::FI
     // Gain and Offset (if supported by the camera and not already added by base class)
     if (m_HasGain)
     {
-        fitsKeywords.push_back({"GAIN", GainNP[0].getValue(), 3, "Camera Gain setting"});
+        if (m_GainIsList)
+        {
+            int index = GainSP.findOnSwitchIndex();
+            if (index != -1)
+                fitsKeywords.push_back({"GAIN", GainSP[index].getLabel(), "Camera Gain setting"});
+        }
+        else
+        {
+            fitsKeywords.push_back({"GAIN", GainNP[0].getValue(), 3, "Camera Gain setting"});
+        }
     }
     if (m_HasOffset)
     {
-        fitsKeywords.push_back({"OFFSET", OffsetNP[0].getValue(), 3, "Camera Offset setting"});
+        if (m_OffsetIsList)
+        {
+            int index = OffsetSP.findOnSwitchIndex();
+            if (index != -1)
+                fitsKeywords.push_back({"OFFSET", OffsetSP[index].getLabel(), "Camera Offset setting"});
+        }
+        else
+        {
+            fitsKeywords.push_back({"OFFSET", OffsetNP[0].getValue(), 3, "Camera Offset setting"});
+        }
+    }
+
+    // Electrons per ADU and full well capacity (if reported by the camera)
+    if (m_ElectronsPerADU > 0)
+    {
+        fitsKeywords.push_back({"EGAIN", m_ElectronsPerADU, 3, "Electrons per ADU"});
+    }
+    if (m_FullWellCapacity > 0)
+    {
+        fitsKeywords.push_back({"FULLWELL", m_FullWellCapacity, 3, "Full well capacity in electrons"});
     }
 }
