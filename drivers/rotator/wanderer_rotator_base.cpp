@@ -313,7 +313,7 @@ bool WandererRotatorBase::Handshake()
             return false;
         }
     }
-    GotoRotatorNP[0].setValue(this->reader.angle().second);
+    GotoRotatorNP[0].setValue(range360(this->reader.angle().second));
     //backlash//////////////////////////////////////////////////////////////////
     BacklashNP[0].setValue(this->reader.backlash().second);
     BacklashNP.setState(IPS_OK);
@@ -386,7 +386,7 @@ WandererRotatorBase::move(double abs_angle)
         this->state = State::MOVING;
         this->tracking.t0 = t0.value();
         this->tracking.angle_0 = current_angle;
-        this->tracking.angle_f = abs_angle;
+        this->tracking.angle_f = current_angle + delta;
     }
     return t0;
 }
@@ -446,7 +446,7 @@ void WandererRotatorBase::TimerHit()
         } else if (this->state == State::HALTED) {
             /* Query the position of the motor and update INDI. */
             send_handshake();
-            GotoRotatorNP[0].setValue(this->reader.angle().second);
+            GotoRotatorNP[0].setValue(range360(this->reader.angle().second));
             GotoRotatorNP.setState(IPS_OK);
             GotoRotatorNP.apply();
         } else if (this->state == State::MOVING) {
@@ -457,7 +457,7 @@ void WandererRotatorBase::TimerHit()
                  * that the only way this would have happened is that the motion
                  * was interrupted or stopped. */
                 this->state = State::HALTED;
-                GotoRotatorNP[0].setValue(current.second);
+                GotoRotatorNP[0].setValue(range360(current.second));
                 GotoRotatorNP.setState(IPS_OK);
                 GotoRotatorNP.apply();
             } else {
@@ -475,7 +475,7 @@ void WandererRotatorBase::TimerHit()
                 else
                     angle =std::clamp(angle, tracking.angle_0,tracking.angle_f);
 
-                GotoRotatorNP[0].setValue(angle);
+                GotoRotatorNP[0].setValue(range360(angle));
                 GotoRotatorNP.setState(IPS_BUSY);
                 GotoRotatorNP.apply();
             }
