@@ -449,6 +449,8 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
                 BackfocusOffsetNP[0].setValue(0.0);
                 BackfocusOffsetNP.setState(IPS_OK);
                 BackfocusOffsetNP.apply();
+                LOGF_INFO("Backfocus offset applied successfully. New positions: P1=%.3f, P2=%.3f, P3=%.3f",
+                          targets[0], targets[1], targets[2]);
             }
 
             ApplyOffsetSP.setState(success ? IPS_OK : IPS_ALERT);
@@ -465,7 +467,10 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
             bool success = moveAllPoints(targets);
 
             if (success)
+            {
                 updateAllTargets(targets);
+                LOG_INFO("All points moved to zero position successfully");
+            }
 
             ZeroAllSP.setState(success ? IPS_OK : IPS_ALERT);
             ZeroAllSP[ZERO_ALL].setState(ISS_OFF);
