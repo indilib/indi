@@ -290,7 +290,17 @@ bool WandererRotatorBase::Handshake()
     this->reader.start(PortFD);
 
     if (!send_handshake())
-        return false;
+    {
+        /* For some reason, when this is the first time attempting to
+         * communicate to the wanderer rotator after connecting the USB, it does
+         * not respond to the first query immediately after connection.  We will
+         * attempt to send the handshake one more time after having waited for
+         * the handshake response to timeout.  If this does not work, there must
+         * be a real issue.
+         */
+        if (!send_handshake())
+            return false;
+    }
 
     //Device Model//////////////////////////////////////////////////////////////
     LOGF_INFO("Connected to device %s", this->getRotatorHandshakeName());
