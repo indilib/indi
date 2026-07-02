@@ -99,7 +99,7 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
 
         // Rotator Overrides
         virtual IPState HomeRotator() override;
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool ReverseRotator(bool enabled) override;
         virtual bool SetRotatorBacklash(int32_t steps) override;
         virtual bool SetRotatorBacklashEnabled(bool enabled) override;

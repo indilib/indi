@@ -47,7 +47,7 @@ class DeepSkyDadFR1 : public INDI::Rotator
         virtual void TimerHit() override;
 
         // Rotator Overrides
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool ReverseRotator(bool enabled) override;
         virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;

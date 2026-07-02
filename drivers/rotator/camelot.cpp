@@ -156,7 +156,7 @@ bool Camelot::Handshake()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-IPState Camelot::MoveRotator(double degrees)
+IPState Camelot::MoveRotator(double degrees, double delta)
 {
     char cmd[DRIVER_LEN] = {0};
     // Command is T#### where #### is degrees * 10

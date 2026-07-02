@@ -24,6 +24,7 @@
 #include "indilogger.h"
 
 #include <cstring>
+#include <cmath>
 
 namespace INDI
 {
@@ -93,45 +94,7 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
         ////////////////////////////////////////////
         if (GotoRotatorNP.isNameMatch(name))
         {
-            if (values[0] == GotoRotatorNP[0].getValue())
-            {
-                GotoRotatorNP.setState(IPS_OK);
-                GotoRotatorNP.apply();
-                return true;
-            }
-
-            // Lazily initialize the cable-neutral reference from the first known hardware
-            // position. By the time the first goto is commanded, GotoRotatorNP[0] will
-            // have been populated (either in the driver's updateProperties or via TimerHit).
-            if (m_RotatorOffset < 0)
-                m_RotatorOffset = GotoRotatorNP[0].getValue();
-
-            // If value is outside safe zone, then prevent motion.
-            // The safe zone is a symmetric window of ±(limit/2) degrees centered on the
-            // cable-neutral reference point (m_RotatorOffset). This prevents cable wrap
-            // regardless of how many incremental moves are commanded.
-            // limit=0 disables the check entirely.
-            if (RotatorLimitsNP[0].getValue() > 0)
-            {
-                double limit  = RotatorLimitsNP[0].getValue();
-                // Compute signed angular distance from the reference point, normalized to [-180, +180].
-                double delta  = values[0] - m_RotatorOffset;
-                while (delta >  180.0) delta -= 360.0;
-                while (delta < -180.0) delta += 360.0;
-                if (std::abs(delta) > limit / 2.0)
-                {
-                    GotoRotatorNP.setState(IPS_ALERT);
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
-                                 "Rotator target %.2f exceeds safe limits (±%.1f° from reference %.2f°)...",
-                                 values[0], limit / 2.0, m_RotatorOffset);
-                    GotoRotatorNP.apply();
-                    return true;
-                }
-            }
-            GotoRotatorNP.setState(MoveRotator(values[0]));
-            GotoRotatorNP.apply();
-            if (GotoRotatorNP.getState() == IPS_BUSY)
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
+            moveRotatorSafely(values[0]);
             return true;
         }
         ////////////////////////////////////////////
@@ -209,6 +172,97 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
     }
 
     return false;
+}
+
+std::optional<std::pair<double,double> >
+RotatorInterface::calculateBestPath(double angle)
+{
+    double current = GotoRotatorNP[0].getValue();
+
+    // First calculate the shortest -180-180° distance to the target
+    double delta = range180(angle - current);
+
+    if (RotatorLimitsNP[0].getValue() <= 0)
+        /* no safe-zone defined, so rotating to shortest distance is fine. */
+        return {{angle, delta}};
+
+    // Need to ensure that we stay inside the safe zone.  This means that we
+    // never take a shorter path through the non-safe zone.  If the requested
+    // angle is *outside* the safe zone, then prevent motion.
+
+    // The safe zone is a symmetric window of ±(limit/2) degrees centered on the
+    // cable-neutral reference point (m_RotatorOffset). This prevents cable wrap
+    // regardless of how many incremental moves are commanded.
+    // limit=0 disables the check entirely.
+    double limit  = RotatorLimitsNP[0].getValue();
+
+    // for most of the following tests, we ignore the 0-360° requirement and do
+    // things on a ±∞ scale centered on the safe-zone offset to avoid
+    // ambiguities.  When the motion is finally returned, this is done on the
+    // correct scale and zero definition.
+    // Define safe zone, centered around safe-zone offset
+    double safe_zone[2] {-limit/2, +limit/2};
+
+    double _curr   = range180(current - m_RotatorOffset);
+    double _target = range180(  angle - m_RotatorOffset);
+
+    if (_curr < safe_zone[0] || safe_zone[1] < _curr)
+    {
+        DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                     "Rotator position (%.2f) already exceeds safe limits! "
+                     "Disable safe-zone, move device, then re-enable safe-zone "
+                     "(±%.2f° from reference %.2f°)",
+                     current, limit, m_RotatorOffset);
+        return {};
+    }
+    if (_target < safe_zone[0] || safe_zone[1] < _target)
+    {
+        DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                     "Rotator target (%.2f) exceeds safe limits! "
+                     "(±%.2f° from reference %.2f°)",
+                     angle, limit, m_RotatorOffset);
+        return {};
+    }
+    delta = _target - _curr; // do *not* fix for shortest distance
+
+    return {{angle, delta}};
+}
+
+bool RotatorInterface::moveRotatorSafely(double angle)
+{
+    double current_angle = GotoRotatorNP[0].getValue();
+    if (angle == current_angle)
+    {
+        GotoRotatorNP.setState(IPS_OK);
+        GotoRotatorNP.apply();
+        return true;
+    }
+
+    // Lazily initialize the cable-neutral reference from the first known hardware
+    // position. By the time the first goto is commanded, GotoRotatorNP[0] will
+    // have been populated (either in the driver's updateProperties or via TimerHit).
+    if (m_RotatorOffset < 0)
+        m_RotatorOffset = current_angle;
+
+    auto best_path = calculateBestPath(angle);
+    if (!best_path)
+    {
+        /* Reject move request and stay inside safe zone (or tell user to fix a
+         * bad starting condition). */
+        GotoRotatorNP.setState(IPS_ALERT);
+        GotoRotatorNP.apply();
+        return false;
+    }
+    auto [target_angle, delta] = best_path.value();
+
+    GotoRotatorNP.setState(MoveRotator(target_angle, delta));
+    GotoRotatorNP.apply();
+    if (GotoRotatorNP.getState() == IPS_BUSY)
+        DEBUGFDEVICE(m_defaultDevice->getDeviceName(),
+                     Logger::DBG_SESSION,
+                     "Rotator moving by Δ=%.2f° to %.2f°...",
+                     delta, target_angle);
+    return true;
 }
 
 bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
