@@ -374,18 +374,14 @@ bool nFrameRotator::getStartupValues()
     return (rc1 && rc2 );
 }
 
-IPState nFrameRotator::MoveRotator(double angle)
+IPState nFrameRotator::MoveRotator(double angle, double delta)
 {
     requestedAngle = angle ;
 
-    LOGF_DEBUG("Angle = <%f> Step/Deg=<%d>", angle, (int)SettingNP[PARAM_STEPS_DEGREE].getValue());
-    // Find closest distance
-    double r = (angle > 180) ? 360 - angle : angle;
-    int sign = (angle >= 0 && angle <= 180) ? 1 : -1;
-    sign = 1;
-    r = angle;
-
-    r *= sign;
+    LOGF_DEBUG("Move to Angle=%f° by Δ=%f° Step/Deg=%d/°",
+               angle, delta, (int)SettingNP[PARAM_STEPS_DEGREE].getValue());
+    // Use requested delta for safest and/or otherwise closest distance:
+    double r = delta;
     r *= ReverseRotatorSP.findOnSwitchIndex() == INDI_ENABLED ? -1 : 1;
 
     double newTarget = r * SettingNP[PARAM_STEPS_DEGREE].getValue() + m_ZeroPosition;

@@ -3323,7 +3323,7 @@ bool Gemini::saveConfigItems(FILE *fp)
 /************************************************************************************
  *
 * ***********************************************************************************/
-IPState Gemini::MoveRotator(double angle)
+IPState Gemini::MoveRotator(double angle, double delta)
 {
     IPState state = MoveAbsRotatorAngle(angle);
     RotatorAbsPosNP.setState(state);

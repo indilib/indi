@@ -48,7 +48,7 @@ class nFrameRotator : public INDI::Rotator
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool AbortRotator() override;
         virtual bool SyncRotator(double angle) override;
         bool SetRotatorSpeed(uint8_t speed) ;

@@ -190,7 +190,7 @@ protected:
     virtual int getMinimumCompatibleFirmwareVersion() = 0;
     virtual int getStepsPerDegree() = 0;
 
-    virtual IPState MoveRotator(double angle) override;
+    virtual IPState MoveRotator(double angle, double delta) override;
     virtual IPState HomeRotator() override;
     virtual bool ReverseRotator(bool enabled) override;
     virtual bool AbortRotator() override;
@@ -212,7 +212,8 @@ protected:
     std::optional<std::chrono::system_clock::time_point>
     send_handshake(bool wait=true);
     std::optional<std::chrono::system_clock::time_point> stop();
-    std::optional<std::chrono::system_clock::time_point> move(double abs_angle);
+    std::optional<std::chrono::system_clock::time_point>
+    move(double abs_angle, std::optional<double> delta = {});
 
     /** Send a serial command to the rotator.
      * @return If successful, returns system_clock time immediately before the

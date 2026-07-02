@@ -458,7 +458,7 @@ IPState Pyxis::HomeRotator()
     return IPS_BUSY;
 }
 
-IPState Pyxis::MoveRotator(double angle)
+IPState Pyxis::MoveRotator(double angle, double delta)
 {
     char cmd[PYRIX_BUF] = {0};
 

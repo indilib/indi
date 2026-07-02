@@ -4270,7 +4270,7 @@ int LX200_OnStep::OSUpdateRotator()
     return 0;
 }
 
-IPState LX200_OnStep::MoveRotator(double angle)
+IPState LX200_OnStep::MoveRotator(double angle, double delta)
 {
     char cmd[CMD_MAX_LEN] = {0};
     int d, m, s;

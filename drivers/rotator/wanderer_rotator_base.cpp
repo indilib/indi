@@ -214,6 +214,11 @@ bool WandererRotatorBase::initProperties()
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
+    /* for the Wanderer, we will just *always* have the center of the safe zone
+     * (if used) be at mechanical angle == 0.0.  The user should reset the
+     * mechanical zero if they need it at a specific location. */
+    m_RotatorOffset = 0.0;
+
     return true;
 }
 
@@ -351,15 +356,15 @@ bool WandererRotatorBase::Disconnect()
     return this->INDI::Rotator::Disconnect();
 }
 
-IPState WandererRotatorBase::MoveRotator(double angle)
+IPState WandererRotatorBase::MoveRotator(double angle, double delta)
 {
-    if (this->move(angle))
+    if (this->move(angle, delta))
         return IPS_BUSY;
     return IPS_ALERT;
 }
 
 std::optional<std::chrono::system_clock::time_point>
-WandererRotatorBase::move(double abs_angle)
+WandererRotatorBase::move(double abs_angle, std::optional<double> delta)
 {
     typedef WandererReader::UPDATES UP;
     if (this->state == State::MOVING)
@@ -369,9 +374,14 @@ WandererRotatorBase::move(double abs_angle)
     }
 
     double current_angle = this->reader.angle().second;
-    /* move in shortest direction. */
-    double delta = range180(abs_angle - current_angle);
-    int steps = static_cast<int>(std::round(delta * getStepsPerDegree()));
+    if (!delta) {
+        auto best_path = calculateBestPath(abs_angle);
+        if (!best_path)
+            return {};
+        abs_angle = best_path.value().first;
+        delta = {best_path.value().second};
+    }
+    int steps = static_cast<int>(std::round(delta.value()*getStepsPerDegree()));
 
     if (steps == 0)
       return std::chrono::system_clock::now();
@@ -396,7 +406,7 @@ WandererRotatorBase::move(double abs_angle)
         this->state = State::MOVING;
         this->tracking.t0 = t0.value();
         this->tracking.angle_0 = current_angle;
-        this->tracking.angle_f = current_angle + delta;
+        this->tracking.angle_f = current_angle + delta.value();
     }
     return t0;
 }

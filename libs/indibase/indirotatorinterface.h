@@ -24,6 +24,8 @@
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
 #include <stdint.h>
+#include <optional>
+#include <utility>
 
 using RI = INDI::RotatorInterface;
 
@@ -144,9 +146,10 @@ class RotatorInterface
         /**
          * @brief MoveRotator Go to specific angle
          * @param angle Target angle in degrees.
+         * @param delta Requested relative signed angle of motion to reach target.
          * @return State of operation: IPS_OK is motion is completed, IPS_BUSY if motion in progress, IPS_ALERT on error.
          */
-        virtual IPState MoveRotator(double angle) = 0;
+        virtual IPState MoveRotator(double angle, double delta) = 0;
 
         /**
          * @brief SyncRotator Set current angle as the supplied angle without moving the rotator.
@@ -194,6 +197,31 @@ class RotatorInterface
          * @return Always return true
          */
         bool saveConfigItems(FILE * fp);
+
+        /**
+         * @brief moveRotatorSafely Calculate the best path for movement, while
+         * staying in the safe zone, and request the driver to make the motion
+         * (via MoveRotator).
+         * @return Return true if already at the position or the driver was
+         * requested to move, otherwise false.
+         */
+        bool moveRotatorSafely(double angle);
+
+        /**
+         * @brief calculateBestPath Utility function to calculate the actual
+         * target angle and delta angle that best arrives at the desired angle.
+         * The target angle returned is returned as modulo 360.  The delta angle
+         * returned is either (1) the shortest path to the desired target
+         * (assuming that the rotator can rotate in either direction to reach
+         * the desired angle) or (2) the path to the desired target that will
+         * avoid traversing the region outside of the safe zone, defined by the
+         * RotatorLimitsNP property.  This function is already used before
+         * MoveRotator is called, but may be of use for drivers in other cases.
+         * @return Returns a std::optional<std::pair<double,double> > where the
+         * contents are either like {target, delta} if the rotation can stay in
+         * the safe zone, else the optional contents are empty.
+         */
+        std::optional<std::pair<double,double>> calculateBestPath(double angle);
 
 
         // Goto rotator angle

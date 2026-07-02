@@ -142,12 +142,8 @@ bool Rotator::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             PresetGotoSP.update(states, names, n);
             int index = PresetGotoSP.findOnSwitchIndex();
 
-            if (MoveRotator(PresetNP[index].getValue()) != IPS_ALERT)
+            if (moveRotatorSafely(PresetNP[index].getValue()))
             {
-                // Ensure Goto Rotator is set to busy.
-                GotoRotatorNP.setState(IPS_BUSY);
-                GotoRotatorNP.apply();
-
                 PresetGotoSP.setState(IPS_OK);
                 DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with angle %g degrees.", index + 1, PresetNP[index].getValue());
                 PresetGotoSP.apply();

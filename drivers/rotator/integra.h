@@ -59,7 +59,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
         virtual bool AbortFocuser() override;
 
         // Rotator
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool AbortRotator() override;
         virtual bool SyncRotator(double angle) override;
         virtual bool ReverseRotator(bool enabled) override;
