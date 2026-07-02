@@ -180,7 +180,7 @@ bool PegasusFalcon::ISNewSwitch(const char * dev, const char * name, ISState * s
 //////////////////////////////////////////////////////////////////////
 /// move to degrees (Command "MD:nn.nn"; Response "MD:nn.nn")
 //////////////////////////////////////////////////////////////////////
-IPState PegasusFalcon::MoveRotator(double angle)
+IPState PegasusFalcon::MoveRotator(double angle, double delta)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "MD:%.2f", angle);

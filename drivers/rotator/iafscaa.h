@@ -48,7 +48,7 @@ class iAFSRotator : public INDI::Focuser, public INDI::RotatorInterface
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
  	// Rotator Overrides
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool ReverseRotator(bool enabled) override;
      	virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;

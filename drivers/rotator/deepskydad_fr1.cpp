@@ -190,7 +190,7 @@ bool DeepSkyDadFR1::ISNewSwitch(const char * dev, const char * name, ISState * s
     return Rotator::ISNewSwitch(dev, name, states, names, n);
 }
 
-IPState DeepSkyDadFR1::MoveRotator(double angle)
+IPState DeepSkyDadFR1::MoveRotator(double angle, double delta)
 {
     char response[DSD_RES];
     char cmd[DSD_CMD];
