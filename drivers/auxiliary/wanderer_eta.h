@@ -101,6 +101,7 @@ class WandererETA : public INDI::DefaultDevice
         std::timed_mutex serialPortMutex;
         bool m_SendingCommand {false};
         bool m_Initializing {true};
+        bool m_FirstRead {true};
         bool waitForPosition(int pointIndex, double target, int timeoutMs);
         bool moveAllPoints(double targets[3]);
         void setPositionNP(int index, double values[], char *names[], int n, IPState state);

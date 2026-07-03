@@ -167,6 +167,16 @@ bool WandererETA::getData()
     {
         PortFD = serialConnection->getPortFD();
 
+        // On first read (handshake), flush stale serial buffer data.
+        // The ETA device streams status continuously; the first bytes after
+        // opening the port may contain garbage from power-on or prior session.
+        if (m_FirstRead)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            usleep(100000);  // Wait 100ms for a fresh status line to start
+            m_FirstRead = false;
+        }
+
         char buffer[512] = {0};
         int nbytes_read = 0, rc = -1;
 
