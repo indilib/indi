@@ -167,6 +167,37 @@ bool WandererETA::getData()
     {
         PortFD = serialConnection->getPortFD();
 
+        // On first read (handshake), flush stale serial buffer data.
+        // The ETA device streams status continuously (~every 2s); the first bytes after
+        // opening the port may contain garbage from power-on or prior session.
+        // After flushing, we need to wait long enough for a fresh complete status line.
+        if (m_FirstRead)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            m_FirstRead = false;
+
+            // Try up to 3 reads with 3s timeout each to get a valid status line.
+            // The device streams every ~2s, so worst case we wait one full cycle.
+            char firstBuffer[512] = {0};
+            int firstBytes = 0;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                memset(firstBuffer, 0, sizeof(firstBuffer));
+                firstBytes = 0;
+                int firstRc = tty_read_section(PortFD, firstBuffer, '\n', 3, &firstBytes);
+                if (firstRc == TTY_OK && parseDeviceData(firstBuffer))
+                {
+                    LOG_INFO("Wanderer ETA M54 is online.");
+                    return true;
+                }
+                // If we got data but it didn't parse (partial/garbage), flush and retry
+                if (firstBytes > 0)
+                    tcflush(PortFD, TCIOFLUSH);
+            }
+            LOG_WARN("Handshake: could not get valid data after 3 attempts");
+            return false;
+        }
+
         char buffer[512] = {0};
         int nbytes_read = 0, rc = -1;
 
@@ -224,7 +255,11 @@ bool WandererETA::parseDeviceData(const char *data)
         // Validate device identifier
         if (tokens[0] != "WandererTilterM54")
         {
-            LOGF_WARN("Unknown device: %s (expected WandererTilterM54)", tokens[0].c_str());
+            // During handshake, garbage on first read is expected — suppress warning
+            if (m_Initializing)
+                LOGF_DEBUG("Handshake: skipping invalid data: %s", tokens[0].c_str());
+            else
+                LOGF_WARN("Unknown device: %s (expected WandererTilterM54)", tokens[0].c_str());
             return false;
         }
 
