@@ -50,6 +50,9 @@ int mkdir(const char *path, mode_t mode)
 
 int mkpath(std::string s, mode_t mode)
 {
+    if (s.empty())
+        return -1;
+
     size_t pre = 0, pos;
     std::string dir;
     int mdret = 0;
