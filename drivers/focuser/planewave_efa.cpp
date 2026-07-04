@@ -3,7 +3,7 @@
 
     Hendrick Focuser
 
-    Copyright (C) 2020 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2020-2027 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -40,14 +40,16 @@ static std::unique_ptr<EFA> steelDrive(new EFA());
 /////////////////////////////////////////////////////////////////////////////
 EFA::EFA()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 
     // Focuser Capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
-                      FOCUSER_CAN_ABORT |
-                      FOCUSER_CAN_REVERSE |
-                      FOCUSER_CAN_SYNC);
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_HAS_VARIABLE_SPEED |
+                      FOCUSER_HAS_BACKLASH);
 }
 
 bool EFA::initProperties()
@@ -68,32 +70,51 @@ bool EFA::initProperties()
     FanStateSP[FAN_ON].fill("FAN_ON", "On", ISS_OFF);
     FanStateSP[FAN_OFF].fill("FAN_OFF", "Off", ISS_ON);
     FanStateSP.fill(getDeviceName(), "FOCUS_FAN", "Fans", FAN_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+                    IPS_IDLE);
 
     // Fan Control Mode
     FanControlSP[FAN_MANUAL].fill("FAN_MANUAL", "Manual", ISS_ON);
     FanControlSP[FAN_AUTOMATIC_ABSOLUTE].fill("FAN_AUTOMATIC_ABSOLUTE", "Auto. Absolute", ISS_OFF);
     FanControlSP[FAN_AUTOMATIC_RELATIVE].fill("FAN_AUTOMATIC_RELATIVE", "Auto. Relative", ISS_OFF);
     FanControlSP.fill(getDeviceName(), "FOCUS_FAN_CONTROL", "Control Mode", FAN_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+                      ISR_1OFMANY, 0, IPS_IDLE);
 
     // Fan Control Parameters
     FanControlNP[FAN_MAX_ABSOLUTE].fill("FAN_MAX_ABSOLUTE", "Max Primary (c)", "%.2f", 0, 50., 5., 25.);
     FanControlNP[FAN_MAX_RELATIVE].fill("FAN_MAX_RELATIVE", "Max Relative (c)", "%.2f", 0., 30., 1., 2.5);
     FanControlNP[FAN_DEADZONE].fill("FAN_DEADZONE", "Deadzone (c)", "%.2f", 0.1, 10, 0.5, 0.5);
     FanControlNP.fill(getDeviceName(), "FOCUS_FAN_PARAMS", "Control Params",
-                       FAN_TAB, IP_RW, 0, IPS_IDLE);
+                      FAN_TAB, IP_RW, 0, IPS_IDLE);
 
     // Fan Off on Disconnect
     FanDisconnectSP[FAN_OFF_ON_DISCONNECT].fill("FAN_OFF_ON_DISCONNECT", "Switch Off", ISS_ON);
     FanDisconnectSP.fill(getDeviceName(), "FOCUS_FAN_DISCONNECT", "On Disconnect", FAN_TAB,
-                       IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+                         IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Calibration Control
     CalibrationStateSP[CALIBRATION_ON].fill("CALIBRATION_ON", "Calibrated", ISS_OFF);
     CalibrationStateSP[CALIBRATION_OFF].fill("CALIBRATION_OFF", "Not Calibrated", ISS_ON);
     CalibrationStateSP.fill(getDeviceName(), "FOCUS_CALIBRATION", "Calibration",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                            MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Approach Direction: determines from which direction the focuser always reaches a target.
+    // This provides consistent positioning and effective hardware-level backlash compensation.
+    ApproachDirectionSP[APPROACH_POSITIVE].fill("APPROACH_POSITIVE", "Positive (Outward)", ISS_ON);
+    ApproachDirectionSP[APPROACH_NEGATIVE].fill("APPROACH_NEGATIVE", "Negative (Inward)", ISS_OFF);
+    ApproachDirectionSP.fill(getDeviceName(), "FOCUS_APPROACH", "Approach Direction",
+                             OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Stop Detection: enables hardware end-of-travel limit-switch detection.
+    StopDetectSP[STOP_DETECT_ON].fill("STOP_DETECT_ON", "Enabled", ISS_ON);
+    StopDetectSP[STOP_DETECT_OFF].fill("STOP_DETECT_OFF", "Disabled", ISS_OFF);
+    StopDetectSP.fill(getDeviceName(), "FOCUS_STOP_DETECT", "Stop Detection",
+                      OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Setup focuser speed limits (rates 1–9 supported by the EFA hardware)
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(9);
+    FocusSpeedNP[0].setValue(4);
+    FocusSpeedNP[0].setStep(1);
 
     // Setup limits
     FocusMaxPosNP[0].setValue(1e7);
@@ -112,10 +133,6 @@ bool EFA::initProperties()
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     setDefaultPollingPeriod(500);
-
-    // Lower RTS so serial port not monopolized and hand controller can work
-    int bits = TIOCM_RTS;
-    (void) ioctl(PortFD, TIOCMBIC, &bits);
 
     return true;
 }
@@ -141,6 +158,10 @@ bool EFA::updateProperties()
         defineProperty(FanDisconnectSP);
 
         defineProperty(TemperatureNP);
+
+        // Options
+        defineProperty(ApproachDirectionSP);
+        defineProperty(StopDetectSP);
     }
     else
     {
@@ -153,6 +174,9 @@ bool EFA::updateProperties()
         deleteProperty(FanDisconnectSP);
 
         deleteProperty(TemperatureNP);
+
+        deleteProperty(ApproachDirectionSP);
+        deleteProperty(StopDetectSP);
     }
 
     return true;
@@ -175,6 +199,11 @@ bool EFA::Disconnect()
 bool EFA::Handshake()
 {
     std::string version;
+
+    // Lower RTS so the serial port is not monopolized and the hand controller can work.
+    // This must be done AFTER the port is open (i.e. here in Handshake, not in initProperties).
+    int bits = TIOCM_RTS;
+    (void) ioctl(PortFD, TIOCMBIC, &bits);
 
     uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
 
@@ -289,6 +318,42 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             FanDisconnectSP.apply();
             return true;
         }
+        // Approach Direction
+        else if (ApproachDirectionSP.isNameMatch(name))
+        {
+            const bool positiveApproach =
+                strcmp(ApproachDirectionSP[APPROACH_POSITIVE].getName(), IUFindOnSwitchName(states, names, n)) == 0;
+            if (setApproachDirection(positiveApproach ? 0 : 1))
+            {
+                ApproachDirectionSP.update(states, names, n);
+                ApproachDirectionSP.setState(IPS_OK);
+                LOGF_INFO("Approach direction set to %s.", positiveApproach ? "Positive (Outward)" : "Negative (Inward)");
+            }
+            else
+            {
+                ApproachDirectionSP.setState(IPS_ALERT);
+            }
+            ApproachDirectionSP.apply();
+            return true;
+        }
+        // Stop Detection
+        else if (StopDetectSP.isNameMatch(name))
+        {
+            const bool enabled =
+                strcmp(StopDetectSP[STOP_DETECT_ON].getName(), IUFindOnSwitchName(states, names, n)) == 0;
+            if (setStopDetect(enabled))
+            {
+                StopDetectSP.update(states, names, n);
+                StopDetectSP.setState(IPS_OK);
+                LOGF_INFO("Stop detection %s.", enabled ? "enabled" : "disabled");
+            }
+            else
+            {
+                StopDetectSP.setState(IPS_ALERT);
+            }
+            StopDetectSP.apply();
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -383,6 +448,54 @@ IPState EFA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Abort Focuser
+/// Stops any in-progress motion by commanding a GOTO to the current position.
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::AbortFocuser()
+{
+    // Re-read current position to make sure we have the latest value
+    readPosition();
+    uint32_t currentPos = static_cast<uint32_t>(FocusAbsPosNP[0].getValue());
+    return MoveAbsFocuser(currentPos) != IPS_ALERT;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Focuser Speed
+/// Maps the INDI speed (1-9) to the EFA positive and negative slew rates.
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::SetFocuserSpeed(int speed)
+{
+    return setMotorSlewRate(static_cast<uint8_t>(speed));
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Focuser Backlash Steps
+/// The INDI framework handles the software backlash compensation using this value.
+/// No hardware command is needed since EFA manages approach direction separately.
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::SetFocuserBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Focuser Backlash Enabled
+/// When the framework enables backlash compensation, we also configure the
+/// hardware approach direction to match the current ApproachDirectionSP setting.
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::SetFocuserBacklashEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        // Sync the hardware approach direction with the UI selection
+        const bool positiveApproach = ApproachDirectionSP[APPROACH_POSITIVE].getState() == ISS_ON;
+        return setApproachDirection(positiveApproach ? 0 : 1);
+    }
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
 void EFA::TimerHit()
@@ -400,6 +513,10 @@ void EFA::TimerHit()
         bool aboveThreshold = false;
         for (size_t i = 0; i < TemperatureNP.count(); i++)
         {
+            // Skip invalid sentinel temperature values
+            if (std::fabs(TemperatureNP[i].getValue() - TEMPERATURE_INVALID) < 0.1)
+                continue;
+
             if (std::fabs(TemperatureNP[i].getValue() - m_LastTemperature[i]) > TEMPERATURE_THRESHOLD)
             {
                 aboveThreshold = true;
@@ -419,24 +536,33 @@ void EFA::TimerHit()
             // Check if we need to do automatic regulation of fan
             if (FanControlSP[FAN_AUTOMATIC_ABSOLUTE].getState() == ISS_ON)
             {
-                // Adjust delta for deadzone
-                double min_delta = FanControlNP[FAN_MAX_ABSOLUTE].getValue() - FanControlNP[FAN_DEADZONE].getValue();
-                double max_delta = FanControlNP[FAN_MAX_ABSOLUTE].getValue() + FanControlNP[FAN_DEADZONE].getValue();
+                // Only regulate if primary temperature is valid
+                if (std::fabs(TemperatureNP[TEMPERATURE_PRIMARY].getValue() - TEMPERATURE_INVALID) > 0.1)
+                {
+                    // Adjust delta for deadzone
+                    double min_delta = FanControlNP[FAN_MAX_ABSOLUTE].getValue() - FanControlNP[FAN_DEADZONE].getValue();
+                    double max_delta = FanControlNP[FAN_MAX_ABSOLUTE].getValue() + FanControlNP[FAN_DEADZONE].getValue();
 
-                turnOn = TemperatureNP[TEMPERATURE_PRIMARY].getValue() > max_delta;
-                turnOff = TemperatureNP[TEMPERATURE_PRIMARY].getValue() < min_delta;
+                    turnOn = TemperatureNP[TEMPERATURE_PRIMARY].getValue() > max_delta;
+                    turnOff = TemperatureNP[TEMPERATURE_PRIMARY].getValue() < min_delta;
+                }
             }
             else if (FanControlSP[FAN_AUTOMATIC_RELATIVE].getState() == ISS_ON)
             {
-                // Temperature delta
-                double tDiff = TemperatureNP[TEMPERATURE_PRIMARY].getValue() - TemperatureNP[TEMPERATURE_AMBIENT].getValue();
-                // Adjust delta for deadzone
-                double min_delta = FanControlNP[FAN_MAX_RELATIVE].getValue() - FanControlNP[FAN_DEADZONE].getValue();
-                double max_delta = FanControlNP[FAN_MAX_RELATIVE].getValue() + FanControlNP[FAN_DEADZONE].getValue();
+                // Only regulate if both temperatures are valid
+                if (std::fabs(TemperatureNP[TEMPERATURE_PRIMARY].getValue() - TEMPERATURE_INVALID) > 0.1 &&
+                        std::fabs(TemperatureNP[TEMPERATURE_AMBIENT].getValue() - TEMPERATURE_INVALID) > 0.1)
+                {
+                    // Temperature delta
+                    double tDiff = TemperatureNP[TEMPERATURE_PRIMARY].getValue() - TemperatureNP[TEMPERATURE_AMBIENT].getValue();
+                    // Adjust delta for deadzone
+                    double min_delta = FanControlNP[FAN_MAX_RELATIVE].getValue() - FanControlNP[FAN_DEADZONE].getValue();
+                    double max_delta = FanControlNP[FAN_MAX_RELATIVE].getValue() + FanControlNP[FAN_DEADZONE].getValue();
 
-                // Check if we need to turn off/on fan
-                turnOn = tDiff > max_delta;
-                turnOff = tDiff < min_delta;
+                    // Check if we need to turn off/on fan
+                    turnOn = tDiff > max_delta;
+                    turnOff = tDiff < min_delta;
+                }
             }
 
             if (isFanOn && turnOff)
@@ -480,15 +606,6 @@ void EFA::TimerHit()
     IN_TIMER = false;
 
     SetTimer(getCurrentPollingPeriod());
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::AbortFocuser()
-{
-    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -537,6 +654,8 @@ bool EFA::saveConfigItems(FILE * fp)
     if (FanControlNP.getState() == IPS_OK)
         FanControlNP.save(fp);
     FanDisconnectSP.save(fp);
+    ApproachDirectionSP.save(fp);
+    StopDetectSP.save(fp);
     return true;
 }
 
@@ -549,6 +668,9 @@ void EFA::getStartupValues()
     readCalibrationState();
     readFanState();
     readTemperature();
+    readSlewRate();
+    readApproachDirection();
+    readStopDetect();
 
     if (readMaxSlewLimit())
     {
@@ -855,7 +977,188 @@ bool EFA::readMaxSlewLimit()
     }
 
     return false;
+}
 
+/////////////////////////////////////////////////////////////////////////////
+/// Read Motor Slew Rate
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readSlewRate()
+{
+    // Read the positive (outward) slew rate and use it as the current speed
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_PMSLEW_RATE;
+    cmd[5] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    uint8_t rate = res[5];
+    if (rate >= 1 && rate <= 9)
+    {
+        FocusSpeedNP[0].setValue(rate);
+        FocusSpeedNP.setState(IPS_OK);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Motor Slew Rate
+/// Sets both positive (outward) and negative (inward) slew rates to the same value.
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::setMotorSlewRate(uint8_t rate)
+{
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
+
+    // Set positive (outward) rate
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x04;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_PMSLEW_RATE;
+    cmd[5] = rate;
+    cmd[6] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    if (res[5] != 1)
+        return false;
+
+    // Set negative (inward) rate
+    memset(cmd, 0, sizeof(cmd));
+    memset(res, 0, sizeof(res));
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x04;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_NMSLEW_RATE;
+    cmd[5] = rate;
+    cmd[6] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    return (res[5] == 1);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read Approach Direction
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readApproachDirection()
+{
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_GET_APPROACH_DIRECTION;
+    cmd[5] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    // 0 = positive (outward) approach, 1 = negative (inward) approach
+    bool positiveApproach = (res[5] == 0);
+    ApproachDirectionSP[APPROACH_POSITIVE].setState(positiveApproach ? ISS_ON : ISS_OFF);
+    ApproachDirectionSP[APPROACH_NEGATIVE].setState(positiveApproach ? ISS_OFF : ISS_ON);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Approach Direction
+/// direction = 0: positive (outward) approach
+/// direction = 1: negative (inward) approach
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::setApproachDirection(uint8_t direction)
+{
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x04;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_APPROACH_DIRECTION;
+    cmd[5] = direction;
+    cmd[6] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    return (res[5] == 1);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read Stop Detect State
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readStopDetect()
+{
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_GET_STOP_DETECT;
+    cmd[5] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    bool enabled = (res[5] == 1);
+    StopDetectSP[STOP_DETECT_ON].setState(enabled ? ISS_ON : ISS_OFF);
+    StopDetectSP[STOP_DETECT_OFF].setState(enabled ? ISS_OFF : ISS_ON);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Stop Detect State
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::setStopDetect(bool enabled)
+{
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x04;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_STOP_DETECT;
+    cmd[5] = enabled ? 1 : 0;
+    cmd[6] = calculateCheckSum(cmd, len);
+
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -907,6 +1210,7 @@ bool EFA::setFanEnabled(bool enabled)
 
 /////////////////////////////////////////////////////////////////////////////
 /// Get Fan State
+/// The hardware returns 1 when the fan is running, 0 when it is stopped.
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readFanState()
 {
@@ -925,7 +1229,8 @@ bool EFA::readFanState()
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
-    bool enabled = (res[5] == 0);
+    // Protocol: 1 = fan is ON, 0 = fan is OFF (consistent with FANS_SET command)
+    bool enabled = (res[5] == 1);
 
     FanStateSP[FAN_ON].setState(enabled ? ISS_ON : ISS_OFF);
     FanStateSP[FAN_OFF].setState(enabled ? ISS_OFF : ISS_ON);
@@ -989,6 +1294,8 @@ bool EFA::readCalibrationState()
 
 /////////////////////////////////////////////////////////////////////////////
 /// Get Temperature
+/// Reads primary (sensor 0) and ambient (sensor 1) temperatures.
+/// When a sensor returns 0x7F/0x7F the temperature is invalid and is skipped.
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readTemperature()
 {
@@ -1010,7 +1317,18 @@ bool EFA::readTemperature()
         if (!sendCommand(cmd, res, len, DRIVER_LEN))
             return false;
 
-        TemperatureNP[i].setValue(calculateTemperature(res[5], res[6]));
+        double temperature = calculateTemperature(res[5], res[6]);
+
+        if (std::fabs(temperature - TEMPERATURE_INVALID) < 0.1)
+        {
+            // Sensor reports invalid data (0x7F 0x7F) — mark as alert but do not update the value
+            LOGF_DEBUG("Temperature sensor %d returned invalid data.", i);
+            TemperatureNP.setState(IPS_ALERT);
+        }
+        else
+        {
+            TemperatureNP[i].setValue(temperature);
+        }
     }
 
     return true;
@@ -1022,7 +1340,7 @@ bool EFA::readTemperature()
 double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 {
     if (byte2 == 0x7F && byte3 == 0x7F)
-        return -100;
+        return TEMPERATURE_INVALID;
 
     int raw_temperature = byte3 << 8 | byte2;
     if (raw_temperature & 0x8000)
