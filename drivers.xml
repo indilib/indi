@@ -450,6 +450,10 @@
             <driver name="Camelot Rotator">indi_camelot_rotator</driver>
             <version>1.0</version>
         </device>
+        <device label="PlaneWave Rotator" manufacturer="PlaneWave Instruments">
+            <driver name="PlaneWave Rotator">indi_planewave_rotator</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Focusers">
         <device label="Alpaca Focuser" manufacturer="Alpaca">
