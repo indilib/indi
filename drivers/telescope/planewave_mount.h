@@ -2,7 +2,7 @@
  Copyright(c) 2023 Jasem Mutlaq. All rights reserved.
 
  Planewave Mount
- API Communication
+ API Communication via PWI4 HTTP Interface
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -23,14 +23,20 @@
 
 #include "inditelescope.h"
 #include "indipropertytext.h"
-
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include "inicpp.h"
+
+#include <httplib.h>
+#include <memory>
 
 class PlaneWave : public INDI::Telescope
 {
     public:
         PlaneWave();
-        virtual ~PlaneWave() = default;
+        // Destructor must be declared here (not = default) because the unique_ptr
+        // to the incomplete httplib::Client type must be destroyed in the .cpp.
+        virtual ~PlaneWave();
 
         virtual const char *getDefaultName() override;
         virtual bool Handshake() override;
@@ -72,38 +78,106 @@ class PlaneWave : public INDI::Telescope
 
     private:
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        /// Utility
+        /// Internal helpers
         ///////////////////////////////////////////////////////////////////////////////////////////////
         bool getStatus();
+        bool enableAxis(int axis, bool enable);
+        double getSlewRateArcsecPerSec() const;
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        /// GOTO & SYNC
+        /// HTTP communication
         ///////////////////////////////////////////////////////////////////////////////////////////////
-
-
-        ///////////////////////////////////////////////////////////////////////////////////////////////
-        /// Communication
-        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /**
+         * @brief dispatch Send an HTTP GET request, parse the key=value status
+         *        response body into m_Status, and return true on HTTP 200.
+         */
         bool dispatch(const std::string &request);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        /// INDI Properties
-        ///////////////////////////////////////////////////////////////////////////////////////////////        
-        // Firmware Version
+        /// INDI Properties — Info tab
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// PWI4 software version string
         INDI::PropertyText FirmwareTP {1};
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////
-        /// Variables
-        ///////////////////////////////////////////////////////////////////////////////////////////////
-        ini::IniSectionBase<std::less<std::basic_string<char>>> m_Status;
+        /// Human-readable mount geometry (Alt-Az, Eq Fork, GEM)
+        INDI::PropertyText MountGeometryTP {1};
+
+        /// Current azimuth and altitude (read-only, updated every poll)
+        INDI::PropertyNumber AltAzNP {2};
+        enum { AZ_VALUE, ALT_VALUE };
+
+        /// Per-axis servo diagnostics (read-only, updated every poll)
+        INDI::PropertyNumber Axis0TelemetryNP {4};
+        INDI::PropertyNumber Axis1TelemetryNP {4};
+        enum
+        {
+            TELEMETRY_RMS_ERROR,
+            TELEMETRY_DIST_TO_TARGET,
+            TELEMETRY_SERVO_ERROR,
+            TELEMETRY_MOTOR_CURRENT
+        };
+
+        /// Angular distance from the current pointing direction to the Sun
+        INDI::PropertyNumber DistanceToSunNP {1};
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        /// Static Constants
+        /// INDI Properties — Main Control tab
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        // 0xA is the stop char
-        static const char DRIVER_STOP_CHAR { 0xA };
-        // Wait up to a maximum of 3 seconds for serial input
-        static constexpr const uint8_t DRIVER_TIMEOUT {3};
-        // Maximum buffer for sending/receiving.
-        static constexpr const uint8_t DRIVER_LEN {128};
+
+        /// Enable / disable the primary (AZ / RA) axis motor
+        INDI::PropertySwitch Axis0MotorSP {2};
+        /// Enable / disable the secondary (ALT / Dec) axis motor
+        INDI::PropertySwitch Axis1MotorSP {2};
+
+        /// Initiate a home-finding sequence (L-series mounts)
+        INDI::PropertySwitch FindHomeSP {1};
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// INDI Properties — Pointing Model tab
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// Filename of the currently-loaded pointing model (read-only)
+        INDI::PropertyText  ModelFilenameTP {1};
+
+        /// Model statistics: total points, enabled points, RMS error (read-only)
+        INDI::PropertyNumber ModelInfoNP {3};
+        enum { MODEL_POINTS_TOTAL, MODEL_POINTS_ENABLED, MODEL_RMS_ERROR };
+
+        /// One-click model operations: Save as Default, Clear all points
+        INDI::PropertySwitch ModelOperationSP {2};
+        enum { MODEL_SAVE_AS_DEFAULT, MODEL_CLEAR_POINTS };
+
+        /// Type a filename and Apply to load that model from PWI4's model directory
+        INDI::PropertyText ModelLoadFilenameTP {1};
+
+        /// Type a filename and Apply to save the current model under that name
+        INDI::PropertyText ModelSaveFilenameTP {1};
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// INDI Properties — Options tab
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// Slew time constant (seconds) — smaller = more aggressive approach to target
+        INDI::PropertyNumber SlewTimeConstantNP {1};
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// Member variables
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// Parsed key=value pairs from the last PWI4 status response
+        ini::IniSectionBase<std::less<std::basic_string<char>>> m_Status;
+
+        /// Persistent HTTP client — created once in Handshake(), reused for all calls
+        std::unique_ptr<httplib::Client> m_HttpClient;
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// Static constants
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// Slew rates in arcsec/sec corresponding to the 4 INDI slew-rate buttons
+        /// (≈ 0.5×, 2×, 8×, and 50× sidereal respectively)
+        static constexpr double SLEW_RATES[4] {7.5, 30.0, 120.0, 750.0};
+        /// Custom tab label for pointing-model properties
+        static constexpr const char *MODEL_TAB {"Pointing Model"};
 };

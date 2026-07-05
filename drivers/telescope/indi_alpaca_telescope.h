@@ -22,6 +22,7 @@
 
 #include <inditelescope.h>
 #include <memory>
+#include <vector>
 #include <httplib.h>
 
 #ifdef _USE_SYSTEM_JSONLIB
@@ -60,6 +61,7 @@ class alpacaTelescopeDriver : public INDI::Telescope
         // Tracking
         virtual bool SetTrackEnabled(bool enabled) override;
         virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
         // Motion Control
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
@@ -70,6 +72,9 @@ class alpacaTelescopeDriver : public INDI::Telescope
 
         // Site location
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+
+        // Time
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
     private:
         // State tracking
@@ -84,6 +89,17 @@ class alpacaTelescopeDriver : public INDI::Telescope
         bool isSlewing{false};
         bool isTracking{false};
         double currentSlewRate{0.5};  // Current slew rate in deg/sec
+
+        // Async slew support: prefer /slewtotargetasync over the blocking /slewtotarget
+        bool m_CanSlewAsync{false};
+
+        // Track modes: maps an index in TrackModeSP to the corresponding Alpaca
+        // DriveRate value (0=Sidereal, 1=Lunar, 2=Solar, 3=King) reported by /trackingrates
+        std::vector<int> m_TrackModeAlpacaRates;
+
+        // Custom tracking rate support (TELESCOPE_HAS_TRACK_RATE)
+        bool m_CanSetRaRate{false};
+        bool m_CanSetDecRate{false};
 
         // used by GoTo and Park
         void StartSlew(double ra, double dec, TelescopeStatus status);

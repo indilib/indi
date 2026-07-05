@@ -78,6 +78,9 @@ class EFA : public INDI::Focuser
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
         virtual bool AbortFocuser() override;
+        virtual bool SetFocuserSpeed(int speed) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
         virtual void TimerHit() override;
         virtual bool Disconnect() override;
 
@@ -93,17 +96,22 @@ class EFA : public INDI::Focuser
         bool readFanState();
         bool readCalibrationState();
         bool readMaxSlewLimit();
+        bool readSlewRate();
+        bool readApproachDirection();
+        bool readStopDetect();
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions
         ///////////////////////////////////////////////////////////////////////////////////
         bool setFanEnabled(bool enabled);
         bool setCalibrationEnabled(bool enabled);
+        bool setMotorSlewRate(uint8_t rate);
+        bool setApproachDirection(uint8_t direction);
+        bool setStopDetect(bool enabled);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
-        //bool readResponse(uint8_t * res, uint32_t res_len, int *nbytes_read);
         int readByte(int fd, uint8_t *buf, int timeout, int *nbytes_read);
         int readBytes(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_read);
         int writeBytes(int fd, const uint8_t *buf, int nbytes, int *nbytes_written);
@@ -127,12 +135,10 @@ class EFA : public INDI::Focuser
 
         // Focuser Information
         INDI::PropertyText InfoTP {1};
-        // IText InfoT[1] {};
         enum
         {
             INFO_VERSION
         };
-
 
         // FAN State
         INDI::PropertySwitch FanStateSP {2};
@@ -153,7 +159,6 @@ class EFA : public INDI::Focuser
 
         // Fan Control Parameters
         INDI::PropertyNumber FanControlNP {3};
-        // INumber FanControlN[3];
         enum
         {
             FAN_MAX_ABSOLUTE,
@@ -176,6 +181,22 @@ class EFA : public INDI::Focuser
             CALIBRATION_OFF
         };
 
+        // Approach Direction for consistent backlash compensation
+        INDI::PropertySwitch ApproachDirectionSP {2};
+        enum
+        {
+            APPROACH_POSITIVE,
+            APPROACH_NEGATIVE
+        };
+
+        // Stop Detection (end-of-travel limit switch detection)
+        INDI::PropertySwitch StopDetectSP {2};
+        enum
+        {
+            STOP_DETECT_ON,
+            STOP_DETECT_OFF
+        };
+
         // Read Only Temperature Reporting
         INDI::PropertyNumber TemperatureNP {2};
         enum
@@ -187,7 +208,7 @@ class EFA : public INDI::Focuser
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
-        double m_LastTemperature[2];
+        double m_LastTemperature[2] {0, 0};
         double m_LastPosition {0};
 
         bool IN_TIMER = false;
@@ -199,6 +220,8 @@ class EFA : public INDI::Focuser
         static const uint8_t DRIVER_SOM { 0x3B };
         // Temperature Reporting threshold
         static constexpr double TEMPERATURE_THRESHOLD { 0.05 };
+        // Invalid temperature sentinel value returned by hardware (0x7F, 0x7F)
+        static constexpr double TEMPERATURE_INVALID { -100.0 };
 
         static constexpr const uint8_t DRIVER_LEN {9};
         // Wait up to a maximum of 3 seconds for serial input

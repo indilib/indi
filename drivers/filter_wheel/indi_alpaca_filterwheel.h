@@ -41,12 +41,15 @@ public:
 
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
 
     virtual bool Connect() override;
     virtual bool Disconnect() override;
 
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+
+    virtual bool saveConfigItems(FILE *fp) override;
 
 protected:
     // FilterWheel interface

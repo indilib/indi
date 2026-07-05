@@ -3050,6 +3050,13 @@ int CCD::getFileIndex(const std::string &dir, const std::string &prefix, const s
 {
     INDI_UNUSED(ext);
 
+    // Refuse to operate on an empty directory path — would crash mkpath via unsigned underflow.
+    if (dir.empty())
+    {
+        LOG_ERROR("Upload directory is not set. Please configure the upload directory.");
+        return -1;
+    }
+
     DIR * dpdf = nullptr;
     struct dirent * epdf = nullptr;
     std::vector<std::string> files = std::vector<std::string>();
@@ -3081,7 +3088,11 @@ int CCD::getFileIndex(const std::string &dir, const std::string &prefix, const s
     {
         while ((epdf = readdir(dpdf)))
         {
-            if (strstr(epdf->d_name, prefixIndex.c_str()))
+            // Skip the current and parent directory entries.
+            if (strcmp(epdf->d_name, ".") == 0 || strcmp(epdf->d_name, "..") == 0)
+                continue;
+            // Only collect files whose name contains the (possibly empty) prefix.
+            if (prefixIndex.empty() || strstr(epdf->d_name, prefixIndex.c_str()))
                 files.push_back(epdf->d_name);
         }
     }
@@ -3096,9 +3107,9 @@ int CCD::getFileIndex(const std::string &dir, const std::string &prefix, const s
         std::string file  = files.at(i);
         std::size_t start = file.find_last_of("_");
         std::size_t end   = file.find_last_of(".");
-        if (start != std::string::npos)
+        if (start != std::string::npos && end != std::string::npos && end > start)
         {
-            index = atoi(file.substr(start + 1, end).c_str());
+            index = atoi(file.substr(start + 1, end - start - 1).c_str());
             if (index > maxIndex)
                 maxIndex = index;
         }

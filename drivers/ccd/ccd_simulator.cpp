@@ -146,11 +146,12 @@ bool CCDSim::initProperties()
     // doesn't update the other fields of the group with the "old" contents.
     SimulatorSettingsNP.load();
 
-    // RGB Simulation
-    SimulateBayerSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
-    SimulateBayerSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    SimulateBayerSP.fill(getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
-                         ISR_1OFMANY, 60, IPS_IDLE);
+    // Sim Tests
+    SimTestsSP[SIM_TESTS_BAYER].fill("BAYER", "Bayer", ISS_OFF);
+    SimTestsSP[SIM_TESTS_CRASH].fill("CRASH", "Crash", ISS_OFF);
+    SimTestsSP[SIM_TESTS_TIMEOUT].fill("TIMEOUT", "Timeout", ISS_OFF);
+    SimTestsSP.fill(getDeviceName(), "SIM_TESTS", "Sim Tests", SIMULATOR_TAB, IP_RW,
+                    ISR_NOFMANY, 60, IPS_IDLE);
 
     // Simulate focusing
     FocusSimulationNP[SIM_FOCUS_POSITION].fill("SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
@@ -158,11 +159,6 @@ bool CCDSim::initProperties()
     FocusSimulationNP[SIM_SEEING].fill("SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
     FocusSimulationNP.fill(getDeviceName(), "SIM_FOCUSING", "Focus Simulation",
                            SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
-
-    // Simulate Crash
-    CrashSP[0].fill("CRASH", "Crash driver", ISS_OFF);
-    CrashSP.fill(getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
-                 ISR_ATMOST1, 0, IPS_IDLE);
 
     // Periodic Error
     EqPENP[AXIS_RA].fill("RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
@@ -274,8 +270,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineProperty(SimulatorSettingsNP);
     defineProperty(EqPENP);
     defineProperty(FocusSimulationNP);
-    defineProperty(SimulateBayerSP);
-    defineProperty(CrashSP);
+    defineProperty(SimTestsSP);
 }
 
 bool CCDSim::updateProperties()
@@ -402,7 +397,7 @@ void CCDSim::TimerHit()
     if (!isConnected())
         return;
 
-    if (InExposure)
+    if (InExposure && !m_SimulateTimeout)
     {
         if (AbortPrimaryFrame)
         {
@@ -781,27 +776,44 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Simulate RGB
-        if (SimulateBayerSP.isNameMatch(name))
+        // Sim Tests
+        if (SimTestsSP.isNameMatch(name))
         {
-            SimulateBayerSP.update(states, names, n);
-            int index = SimulateBayerSP.findOnSwitchIndex();
-            if (index == -1)
-            {
-                SimulateBayerSP.setState(IPS_ALERT);
-                LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-                SimulateBayerSP.apply();
-                return false;
-            }
+            SimTestsSP.update(states, names, n);
 
-            m_SimulateBayer = index == 0;
+            // Bayer
+            if (SimTestsSP[SIM_TESTS_BAYER].getState() == ISS_ON)
+            {
+                m_SimulateBayer = true;
+                SimTestsSP[SIM_TESTS_BAYER].setState(ISS_ON);
+            }
+            else
+            {
+                m_SimulateBayer = false;
+                SimTestsSP[SIM_TESTS_BAYER].setState(ISS_OFF);
+            }
             setBayerEnabled(m_SimulateBayer);
 
-            SimulateBayerSP[INDI_ENABLED].setState(m_SimulateBayer ? ISS_ON : ISS_OFF);
-            SimulateBayerSP[INDI_DISABLED].setState(m_SimulateBayer ? ISS_OFF : ISS_ON);
-            SimulateBayerSP.setState(IPS_OK);
-            SimulateBayerSP.apply();
+            // Crash
+            if (SimTestsSP[SIM_TESTS_CRASH].getState() == ISS_ON)
+            {
+                abort();
+            }
 
+            // Timeout
+            if (SimTestsSP[SIM_TESTS_TIMEOUT].getState() == ISS_ON)
+            {
+                m_SimulateTimeout = true;
+                SimTestsSP[SIM_TESTS_TIMEOUT].setState(ISS_ON);
+            }
+            else
+            {
+                m_SimulateTimeout = false;
+                SimTestsSP[SIM_TESTS_TIMEOUT].setState(ISS_OFF);
+            }
+
+            SimTestsSP.setState(IPS_OK);
+            SimTestsSP.apply();
             return true;
         }
         else if (CoolerSP.isNameMatch(name))
@@ -841,7 +853,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             {
                 m_RemainingFiles.clear();
                 DirectorySP.setState(IPS_OK);
-                setBayerEnabled(SimulateBayerSP[INDI_ENABLED].getState() == ISS_ON);
+                setBayerEnabled(SimTestsSP[SIM_TESTS_BAYER].getState() == ISS_ON);
                 LOG_INFO("Directory-based images are disabled.");
             }
             DirectorySP.apply(nullptr);
@@ -870,10 +882,6 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 SimulatorSettingsNP.apply();
             }
             return true;
-        }
-        else if (CrashSP.isNameMatch(name))
-        {
-            abort();
         }
     }
 
@@ -1046,9 +1054,6 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Resolution
     ResolutionSP.save(fp);
-
-    // Bayer
-    SimulateBayerSP.save(fp);
 
     // Focus simulation
     FocusSimulationNP.save(fp);

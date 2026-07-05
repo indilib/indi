@@ -64,6 +64,12 @@ bool AlpacaFocuser::initProperties()
     TemperatureNP[0].fill("TEMPERATURE", "Temperature (°C)", "%.2f", -50, 100, 0, 0);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Temperature compensation switch (only defined if the device supports it)
+    TempCompSP[TEMP_COMP_ENABLE].fill("TEMP_COMP_ENABLE", "Enable", ISS_OFF);
+    TempCompSP[TEMP_COMP_DISABLE].fill("TEMP_COMP_DISABLE", "Disable", ISS_ON);
+    TempCompSP.fill(getDeviceName(), "FOCUS_TEMP_COMP", "Temp. Compensation", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
+                     IPS_IDLE);
+
     addDebugControl();
     setDefaultPollingPeriod(500); // Poll every 500ms
 
@@ -78,11 +84,15 @@ bool AlpacaFocuser::updateProperties()
     {
         defineProperty(DeviceInfoTP);
         defineProperty(TemperatureNP);
+
+        if (m_TempCompAvailable)
+            defineProperty(TempCompSP);
     }
     else
     {
         deleteProperty(DeviceInfoTP);
         deleteProperty(TemperatureNP);
+        deleteProperty(TempCompSP);
     }
 
     return true;
@@ -232,6 +242,21 @@ bool AlpacaFocuser::setupFocuser()
         }
     }
 
+    // Check if temperature compensation is available
+    if (sendAlpacaGET("/tempcompavailable", response) && response.contains("Value"))
+    {
+        m_TempCompAvailable = response["Value"].get<bool>();
+        LOGF_INFO("Temperature compensation available: %s", m_TempCompAvailable ? "yes" : "no");
+
+        if (m_TempCompAvailable && sendAlpacaGET("/tempcomp", response) && response.contains("Value"))
+        {
+            bool tempComp = response["Value"].get<bool>();
+            TempCompSP.reset();
+            TempCompSP[tempComp ? TEMP_COMP_ENABLE : TEMP_COMP_DISABLE].setState(ISS_ON);
+            TempCompSP.setState(IPS_OK);
+        }
+    }
+
     return true;
 }
 
@@ -312,6 +337,20 @@ void AlpacaFocuser::TimerHit()
         }
     }
 
+    // Update temperature compensation state
+    if (m_TempCompAvailable && sendAlpacaGET("/tempcomp", response) && response.contains("Value"))
+    {
+        bool tempComp = response["Value"].get<bool>();
+        int activeIndex = tempComp ? TEMP_COMP_ENABLE : TEMP_COMP_DISABLE;
+        if (TempCompSP[activeIndex].getState() != ISS_ON)
+        {
+            TempCompSP.reset();
+            TempCompSP[activeIndex].setState(ISS_ON);
+            TempCompSP.setState(IPS_OK);
+            TempCompSP.apply();
+        }
+    }
+
     // Check if moving
     if (m_Moving)
     {
@@ -380,6 +419,37 @@ int AlpacaFocuser::getPosition()
     }
 
     return -1;
+}
+
+bool AlpacaFocuser::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (TempCompSP.isNameMatch(name))
+        {
+            TempCompSP.update(states, names, n);
+
+            bool enable = TempCompSP[TEMP_COMP_ENABLE].getState() == ISS_ON;
+
+            nlohmann::json response;
+            std::string data = std::string("TempComp=") + (enable ? "true" : "false");
+
+            if (!sendAlpacaPUT("/tempcomp", data, response))
+            {
+                LOG_ERROR("Failed to set temperature compensation");
+                TempCompSP.setState(IPS_ALERT);
+                TempCompSP.apply();
+                return false;
+            }
+
+            LOGF_INFO("Temperature compensation %s", enable ? "enabled" : "disabled");
+            TempCompSP.setState(IPS_OK);
+            TempCompSP.apply();
+            return true;
+        }
+    }
+
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool AlpacaFocuser::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
