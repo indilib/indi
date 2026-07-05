@@ -1121,11 +1121,11 @@ bool PegasusFlatMasterNeo::setHotspot(const char *ssid, const char *password)
     char response[16] = {0};
 
     snprintf(cmd, sizeof(cmd), "AN:%s", ssid);
-    if (!sendCommand(cmd, response) || atoi(response) == 0)
+    if (!sendCommand(cmd, response) || strstr(response, "AN:") == nullptr)
         return false;
 
     snprintf(cmd, sizeof(cmd), "AP:%s", password);
-    if (!sendCommand(cmd, response) || atoi(response) == 0)
+    if (!sendCommand(cmd, response) || strstr(response, "AP:") == nullptr)
         return false;
 
     return true;
@@ -1179,13 +1179,13 @@ bool PegasusFlatMasterNeo::connectToWifi(const char *ssid, const char *password)
     char response[16]  = {0};
 
     snprintf(cmd, sizeof(cmd), "WN:%s", ssid);
-    if (!sendCommand(cmd, response) || atoi(response) == 0)
+    if (!sendCommand(cmd, response) || strstr(response, "WN:") == nullptr)
         return false;
 
     // Empty password: send "PASSWORD" placeholder; otherwise min 8 chars
     if (!password || password[0] == '\0')
     {
-        if (!sendCommand("WP:PASSWORD", response) || atoi(response) == 0)
+        if (!sendCommand("WP:PASSWORD", response) || strstr(response, "WP:") == nullptr)
             return false;
     }
     else
@@ -1196,7 +1196,7 @@ bool PegasusFlatMasterNeo::connectToWifi(const char *ssid, const char *password)
             return false;
         }
         snprintf(cmd, sizeof(cmd), "WP:%s", password);
-        if (!sendCommand(cmd, response) || atoi(response) == 0)
+        if (!sendCommand(cmd, response) || strstr(response, "WP:") == nullptr)
             return false;
     }
 
