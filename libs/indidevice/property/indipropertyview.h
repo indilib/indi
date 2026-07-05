@@ -358,7 +358,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
                 p.clear();
             }
             //free(widget()); // #PS: do not delete items, they may be on the stack.
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
     public: // internal use only
         static PropertyView<T> *cast(PropertyType *raw)
@@ -383,7 +383,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
     public:
         WidgetView()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         WidgetView(const WidgetView<Type> &other): Type(other)
         {
@@ -413,7 +413,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         void clear()
         {
             free(this->text);
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
@@ -527,7 +527,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
     public:
         WidgetView()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         WidgetView(const WidgetView<Type> &other): Type(other)       { }
         WidgetView(WidgetView<Type> &&other): Type(other)
@@ -546,7 +546,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
         ~WidgetView()                                          { }
         void clear()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
@@ -691,7 +691,7 @@ struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
     public:
         WidgetView()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         WidgetView(const WidgetView<Type> &other): Type(other)       { }
         WidgetView(WidgetView<Type> &&other): Type(other)
@@ -710,7 +710,7 @@ struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
         ~WidgetView()                                          { }
         void clear()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
@@ -820,7 +820,7 @@ struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
     public:
         WidgetView()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         WidgetView(const WidgetView<Type> &other): Type(other)       { }
         WidgetView(WidgetView<Type> &&other): Type(other)
@@ -839,7 +839,7 @@ struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
         ~WidgetView()                                          { }
         void clear()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
@@ -949,7 +949,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
     public:
         WidgetView()
         {
-            memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         WidgetView(const WidgetView<Type> &other): Type(other)       { }
         WidgetView(WidgetView<Type> &&other): Type(other)
@@ -968,7 +968,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         ~WidgetView()                                          { /* free(this->blob); */ }
         void clear()
         {
-            /* free(this->blob); */ memset(this, 0, sizeof(*this));
+            memset((void*)this, 0, sizeof(*this));
         }
         // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
@@ -1113,7 +1113,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 template <typename T>
 inline PropertyView<T>::PropertyView()
 {
-    memset(this, 0, sizeof(*this));
+    memset((void*)this, 0, sizeof(*this));
 }
 
 template <typename T>
