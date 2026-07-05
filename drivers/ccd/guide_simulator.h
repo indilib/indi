@@ -204,11 +204,12 @@ class GuideSim : public INDI::CCD
         INDI::PropertyNumber SimulatorSettingsNP {SIM_NUM_PROPERTIES};
 
 
-        INDI::PropertySwitch SimulateRgbSP {2};
+        INDI::PropertySwitch SimTestsSP {3};
         enum
         {
-            SIMULATE_YES,
-            SIMULATE_NO
+            SIM_TESTS_RGB,
+            SIM_TESTS_CRASH,
+            SIM_TESTS_TIMEOUT
         };
 
         INDI::PropertyNumber EqPENP {2};
@@ -220,7 +221,7 @@ class GuideSim : public INDI::CCD
 
         INDI::PropertyNumber GainNP {1};
 
-        INDI::PropertySwitch ToggleTimeoutSP {2};
+        bool m_SimulateTimeout { false };
 
         static constexpr const char *SIMULATOR_TAB {"Simulator Settings"};
 };

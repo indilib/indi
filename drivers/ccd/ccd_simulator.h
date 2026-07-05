@@ -168,6 +168,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float m_RotationOffset { 0 };
 
         bool m_SimulateBayer { false };
+        bool m_SimulateTimeout { false };
 
         //  our zero point calcs used for drawing stars
         //float k { 0 };
@@ -208,11 +209,12 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         //  And this lives in our simulator settings page
         INDI::PropertyNumber SimulatorSettingsNP {16};
 
-        INDI::PropertySwitch SimulateBayerSP {2};
+        INDI::PropertySwitch SimTestsSP {3};
         enum
         {
-            INDI_ENABLED,
-            INDI_DISABLED
+            SIM_TESTS_BAYER,
+            SIM_TESTS_CRASH,
+            SIM_TESTS_TIMEOUT
         };
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
@@ -242,8 +244,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INDI::PropertyText DirectoryTP {1};
         INDI::PropertySwitch DirectorySP {2};
-
-        INDI::PropertySwitch CrashSP {1};
 
         INDI::PropertySwitch ResolutionSP {3};
         inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =
