@@ -67,15 +67,32 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         bool getStatusData();
         bool getWeatherData();
         bool getWeatherOffsets();
+        bool getUptime();
+        bool getThreshold();
+        bool getWifiChannel();
+        bool getAutoClose();
+        bool getHotspotStatus();
+        bool getHotspot();
+        bool getCurrentWifi();
         bool setTemperatureOffset(double value);
         bool setHumidityOffset(double value);
         bool setDewHeater(uint8_t value);
         bool setAutoDew(bool enable);
+        bool setDewAggressiveness(uint8_t level);
+        bool saveDewLevels();
+        bool setThreshold(uint8_t value);
         bool setCapAngle(uint16_t angle);
+        bool setAutoClose(bool enable);
+        bool setHotspotStatus(bool enable);
+        bool setHotspot(const char *ssid, const char *password);
+        bool connectToWifi(const char *ssid, const char *password);
+        bool scanWifiNetworks();
+        bool setWifiChannel(uint8_t channel);
+        bool wifiFactoryReset();
         std::vector<std::string> split(const std::string &input, const std::string &sep);
 
         int PortFD{ -1 };
-        bool sendCommand(const char* cmd, char* response);
+        bool sendCommand(const char *cmd, char *response, int timeout_sec = 3);
         void updateFirmwareVersion();
 
         // Firmware version
@@ -85,6 +102,12 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         // Dew Control
         INDI::PropertyNumber DewHeaterNP {1};
         INDI::PropertySwitch AutoDewSP {2};
+        INDI::PropertyNumber DewAggressivenessNP {1};
+        INDI::PropertyNumber ThresholdNP {1};
+        INDI::PropertySwitch SaveDewSP {1};
+
+        // Auto-close (DC command)
+        INDI::PropertySwitch AutoCloseSP {2};
 
         // Cap angle
         INDI::PropertyNumber CapAngleNP {1};
@@ -94,6 +117,35 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
 
         // Device overview status (FA command)
         INDI::PropertyNumber DeviceStatusNP {9};
+
+        // Uptime (FU command)
+        INDI::PropertyNumber UptimeNP {1};
+
+        // Reboot (FQ command)
+        INDI::PropertySwitch RebootSP {1};
+
+        // WiFi channel (AC command)
+        INDI::PropertyNumber WifiChannelNP {1};
+
+        // Hotspot control (A? / AE commands)
+        INDI::PropertySwitch HotspotStatusSP {2};
+
+        // Hotspot credentials (AL / AN / AP commands)
+        INDI::PropertyText HotspotCredentialsTP {2};
+
+        // Current WiFi connection (WI command)
+        INDI::PropertyText CurrentWifiTP {1};
+
+        // WiFi scan (WS command)
+        INDI::PropertySwitch WifiScanSP {1};
+        INDI::PropertyText WifiScanTP {1};
+
+        // WiFi connect (WN / WP commands)
+        INDI::PropertyText WifiConnectTP {2};
+        INDI::PropertySwitch WifiConnectSP {1};
+
+        // WiFi factory reset (WZ command)
+        INDI::PropertySwitch WifiFactoryResetSP {1};
 
         Connection::Serial *serialConnection{ nullptr };
 
@@ -105,6 +157,7 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         static constexpr const char *DUSTCAP_TAB {"Dust Cap"};
         static constexpr const char *DEW_TAB {"Dew Control"};
         static constexpr const char *STATUS_TAB {"Overview"};
+        static constexpr const char *NETWORK_TAB {"Network"};
         static constexpr const uint8_t NEO_LEN {64};
 
         // FA response field indices
@@ -117,10 +170,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
             FA_CAP_ACTUAL_ANGLE,
             FA_CAP_TARGET_ANGLE,
             FA_CAP_STATUS,
-            FA_VALUE_6,
+            FA_DEW_POWER,
             FA_AUTO_DEW_STATUS,
-            FA_VALUE_8,
-            FA_VALUE_9,
+            FA_DEW_AGGRESSIVE,
+            FA_LIGHT_SENSOR,
             FA_N,
         };
 
@@ -138,10 +191,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
             STATUS_CAP_ACTUAL_ANGLE,
             STATUS_CAP_TARGET_ANGLE,
             STATUS_CAP_STATUS,
-            STATUS_VALUE_6,
+            STATUS_DEW_POWER,
             STATUS_AUTO_DEW,
-            STATUS_VALUE_8,
-            STATUS_VALUE_9,
+            STATUS_DEW_AGGRESSIVE,
+            STATUS_LIGHT_SENSOR,
         };
 
         // ES response field indices
