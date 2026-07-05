@@ -48,6 +48,47 @@ bool FilterInterface::updateProperties()
 {
     if (m_defaultDevice->isConnected())
     {
+        // Reconcile filter name count with hardware slot count.
+        // Handles both wheel upgrades (5→7) and downgrades (7→5).
+        int maxSlots = static_cast<int>(FilterSlotNP[0].getMax());
+        int nameCount = static_cast<int>(FilterNameTP.size());
+        if (nameCount > 0 && nameCount < maxSlots)
+        {
+            // Wheel got larger — extend with default names
+            char filterName[MAXINDINAME];
+            char filterLabel[MAXINDILABEL];
+            for (int i = nameCount; i < maxSlots; i++)
+            {
+                snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+                snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+
+                INDI::WidgetText oneWidget;
+                oneWidget.fill(filterName, filterLabel, filterLabel);
+                FilterNameTP.push(std::move(oneWidget));
+            }
+            FilterNameTP.shrink_to_fit();
+
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                         "Filter wheel has %d slots but only %d names were saved. "
+                         "Added default names for slots %d-%d.",
+                         maxSlots, nameCount, nameCount + 1, maxSlots);
+
+            m_defaultDevice->saveConfig();
+        }
+        else if (nameCount > maxSlots)
+        {
+            // Wheel got smaller — trim excess names
+            FilterNameTP.resize(maxSlots);
+            FilterNameTP.shrink_to_fit();
+
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                         "Filter wheel has %d slots but %d names were saved. "
+                         "Trimmed to %d.",
+                         maxSlots, nameCount, maxSlots);
+
+            m_defaultDevice->saveConfig();
+        }
+
         // Define the Filter Slot and name properties
         m_defaultDevice->defineProperty(FilterSlotNP);
         if (FilterNameTP.size() == 0)
