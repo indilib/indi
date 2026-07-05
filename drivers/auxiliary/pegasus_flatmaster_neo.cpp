@@ -43,7 +43,7 @@ static std::unique_ptr<PegasusFlatMasterNeo> flatmaster(new PegasusFlatMasterNeo
 
 PegasusFlatMasterNeo::PegasusFlatMasterNeo() : LightBoxInterface(this), DustCapInterface(this), WeatherInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 2);
 }
 
 bool PegasusFlatMasterNeo::initProperties()
