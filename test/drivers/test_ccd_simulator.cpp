@@ -550,10 +550,10 @@ TEST_F(SkyRendererTest, draw_star_benchmark)
     int const loops = 200000;
     for (int i = 0; i < loops; i++)
     {
-        float const m = (15.0f * rand()) / RAND_MAX;
-        float const x = static_cast<float>(xres * rand()) / RAND_MAX;
-        float const y = static_cast<float>(yres * rand()) / RAND_MAX;
-        float const e = (100.0f * rand()) / RAND_MAX;
+        float const m = (15.0f * rand()) / static_cast<float>(RAND_MAX);
+        float const x = static_cast<float>(xres * rand()) / static_cast<float>(RAND_MAX);
+        float const y = static_cast<float>(yres * rand()) / static_cast<float>(RAND_MAX);
+        float const e = (100.0f * rand()) / static_cast<float>(RAND_MAX);
         renderer.drawImageStar(&chip, m, x, y, e);
     }
     auto const after = std::chrono::steady_clock::now();
