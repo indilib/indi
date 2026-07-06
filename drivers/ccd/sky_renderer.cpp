@@ -56,9 +56,29 @@ int SkyRenderer::drawImageStar(INDI::CCDChip *chip, float mag, float x, float y,
 
     float const totalFlux = static_cast<float>(flux(mag) * exp_s);
 
-    int const boxsizey = static_cast<int>(3.0f * m_Cfg.seeing / m_ImageScaleY) + 1;
+    // Compute position-dependent seeing to simulate sensor tilt.
+    // Instead of a global seeing, compute per-star seeing by shifting the
+    // effective focus position based on star location on the sensor.
+    // This causes each tile's V-curve minimum to land at a different focuser
+    // position — which is exactly what the Aberration Inspector detects as tilt.
+    float effectiveSeeing = m_Cfg.seeing;
+    if (m_Cfg.tiltLR != 0.0f || m_Cfg.tiltTB != 0.0f)
+    {
+        float const cx = chip->getXRes() / 2.0f;
+        float const cy = chip->getYRes() / 2.0f;
+        float const dx = (x - cx) / cx;  // normalized [-1, +1]
+        float const dy = (y - cy) / cy;
+        // tiltLR/tiltTB in arcsec: directly added to seeing at that position.
+        // This shifts where the V-curve minimum occurs for edge tiles vs center.
+        float const tiltOffset = m_Cfg.tiltLR * dx + m_Cfg.tiltTB * dy;
+        effectiveSeeing += tiltOffset;
+        if (effectiveSeeing < 0.5f)
+            effectiveSeeing = 0.5f;  // Floor to prevent degenerate PSF
+    }
 
-    float const sigma    = m_Cfg.seeing / (2.0f * std::sqrt(2.0f * std::log(2.0f)));
+    int const boxsizey = static_cast<int>(3.0f * effectiveSeeing / m_ImageScaleY) + 1;
+
+    float const sigma    = effectiveSeeing / (2.0f * std::sqrt(2.0f * std::log(2.0f)));
     float const norm     = 1.0f / (sigma * std::sqrt(2.0f * float(M_PI)));
     float const inv2sig2 = 1.0f / (2.0f * sigma * sigma);
 

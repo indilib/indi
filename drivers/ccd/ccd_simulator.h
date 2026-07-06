@@ -234,6 +234,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_SEEING
         };
 
+        INDI::PropertyNumber TiltSimulationNP {2};
+        enum
+        {
+            SIM_TILT_LR,
+            SIM_TILT_TB
+        };
+
         INDI::PropertyNumber EqPENP {2};
 
         INDI::PropertySwitch CoolerSP {2};

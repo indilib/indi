@@ -160,6 +160,12 @@ bool CCDSim::initProperties()
     FocusSimulationNP.fill(getDeviceName(), "SIM_FOCUSING", "Focus Simulation",
                            SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Simulate sensor tilt (extra defocus in arcsec at sensor edge)
+    TiltSimulationNP[SIM_TILT_LR].fill("SIM_TILT_LR", "Left-Right (arcsec)", "%4.2f", 0, 20, 0.5, 0);
+    TiltSimulationNP[SIM_TILT_TB].fill("SIM_TILT_TB", "Top-Bottom (arcsec)", "%4.2f", 0, 20, 0.5, 0);
+    TiltSimulationNP.fill(getDeviceName(), "SIM_TILT", "Tilt Simulation",
+                          SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+
     // Periodic Error
     EqPENP[AXIS_RA].fill("RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     EqPENP[AXIS_DE].fill("DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -270,6 +276,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineProperty(SimulatorSettingsNP);
     defineProperty(EqPENP);
     defineProperty(FocusSimulationNP);
+    defineProperty(TiltSimulationNP);
     defineProperty(SimTestsSP);
 }
 
@@ -593,6 +600,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         cfg.limitingMag   = m_LimitingMag;
         cfg.saturationMag = m_SaturationMag;
         cfg.seeing        = m_Seeing;
+        cfg.tiltLR        = TiltSimulationNP[SIM_TILT_LR].getValue();
+        cfg.tiltTB        = TiltSimulationNP[SIM_TILT_TB].getValue();
         // Sky glow: 30% boost for realistic light-frame backgrounds; flat frames use diffuser daylight level
         cfg.skyGlow = isLight ? m_SkyGlow * 1.3f : m_SkyGlow / 10.0f;
         m_Renderer.setConfig(cfg);
@@ -766,6 +775,12 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             FocusSimulationNP.update(values, names, n);
             FocusSimulationNP.setState(IPS_OK);
             FocusSimulationNP.apply();
+        }
+        else if (TiltSimulationNP.isNameMatch(name))
+        {
+            TiltSimulationNP.update(values, names, n);
+            TiltSimulationNP.setState(IPS_OK);
+            TiltSimulationNP.apply();
         }
     }
 
@@ -1057,6 +1072,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Focus simulation
     FocusSimulationNP.save(fp);
+
+    // Tilt simulation
+    TiltSimulationNP.save(fp);
 
     return true;
 }
