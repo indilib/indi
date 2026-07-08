@@ -131,7 +131,7 @@
             <driver name="ZWO AM5">indi_lx200am5</driver>
             <version>1.5</version>
         </device>
-        <device label="TOUPTEK SH20" manufacturer="TOUPTEK">
+        <device label="TOUPTEK SH20" manufacturer="Touptek">
             <driver name="TOUPTEK SH20">indi_touptek_sh20</driver>
             <version>1.0</version>
         </device>
