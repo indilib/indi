@@ -10,6 +10,8 @@ struct RenderConfig
     float saturationMag = 2.0f;     // magnitude that saturates in 1 s
     float seeing        = 3.5f;     // atmospheric FWHM (arcsec)
     float skyGlow       = 19.5f;    // sky background brightness (magnitudes)
+    float tiltLR        = 0.0f;     // Left-to-Right tilt: extra defocus (arcsec) at sensor edge
+    float tiltTB        = 0.0f;     // Top-to-Bottom tilt: extra defocus (arcsec) at sensor edge
 };
 
 // SkyRenderer renders a synthetic sky scene into an INDI::CCDChip frame buffer.
