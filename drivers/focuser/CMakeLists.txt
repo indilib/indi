@@ -417,3 +417,11 @@ SET(alpaca_focuser_SRC
 add_executable(indi_alpaca_focuser ${alpaca_focuser_SRC})
 target_link_libraries(indi_alpaca_focuser indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_focuser RUNTIME DESTINATION bin)
+
+# ############### Askar WAF Focuser ################
+SET(askar_waf_SRC
+    askar_waf.cpp)
+
+add_executable(indi_askar_waf_focus ${askar_waf_SRC})
+target_link_libraries(indi_askar_waf_focus indidriver)
+install(TARGETS indi_askar_waf_focus RUNTIME DESTINATION bin)

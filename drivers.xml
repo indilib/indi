@@ -464,6 +464,10 @@
             <driver name="Alpaca Focuser">indi_alpaca_focuser</driver>
             <version>1.0</version>
         </device>
+        <device label="Askar WAF" manufacturer="Askar">
+            <driver name="Askar WAF">indi_askar_waf_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="Focuser Simulator" manufacturer="Simulator">
             <driver name="Focuser Simulator">indi_simulator_focus</driver>
             <version>1.0</version>
