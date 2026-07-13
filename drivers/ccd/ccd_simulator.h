@@ -19,6 +19,9 @@
 #pragma once
 
 #include <deque>
+#include <vector>
+#include <map>
+#include <string>
 
 #include <indiccd.h>
 #include "sky_renderer.h"
@@ -37,7 +40,10 @@
  *
  * Video streaming can be enabled from the Stream property group with several encoders and recorders supported.
  *
- * @author Gerry Rozema
+ * Planet simulation mode uses xplanet to render solar system bodies at the correct angular scale based on
+ * focal length, pixel size, and planet angular diameter.
+ *
+m * @author Gerry Rozema
  * @author Jasem Mutlaq
  */
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
@@ -125,6 +131,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool watchDirectory();
         bool loadNextImage();
         bool setupParameters();
+        bool renderPlanet();
 
         // Turns on/off Bayer RGB simulation.
         void setBayerEnabled(bool onOff);
@@ -259,6 +266,81 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             {6000, 4000},
             {0, 0} // Custom
         };
+
+        // ==================== Planet Simulation ====================
+
+        // Lookup table: average angular diameter at opposition (arcsec)
+        // Moon and Sun are mean apparent diameters
+        inline static const std::map<std::string, float> PlanetAngularDiameter =
+        {
+            {"mercury", 11.0f},
+            {"venus",   35.0f},
+            {"mars",    18.0f},
+            {"jupiter", 42.0f},
+            {"saturn",  42.0f},   // including rings
+            {"uranus",   3.7f},
+            {"neptune",  2.3f},
+            {"moon",   1860.0f},  // ~0.5°
+            {"sun",    1920.0f}   // ~0.53°
+        };
+
+        // Planet mode toggle
+        INDI::PropertySwitch PlanetModeSP {2};
+        enum
+        {
+            PLANET_ENABLED,
+            PLANET_DISABLED
+        };
+
+        // Planet selection switch (one per body)
+        INDI::PropertySwitch PlanetSelectSP {9};
+        enum
+        {
+            PLANET_MERCURY,
+            PLANET_VENUS,
+            PLANET_MARS,
+            PLANET_JUPITER,
+            PLANET_SATURN,
+            PLANET_URANUS,
+            PLANET_NEPTUNE,
+            PLANET_MOON,
+            PLANET_SUN
+        };
+
+        // Planet refresh interval in minutes, and optional size override in arcsec (0 = use lookup table)
+        INDI::PropertyNumber PlanetSettingsNP {2};
+        enum
+        {
+            PLANET_REFRESH,
+            PLANET_SIZE
+        };
+
+        // xplanet executable path and config file path
+        INDI::PropertyText PlanetPathsTP {2};
+        enum
+        {
+            PLANET_XPLANET_PATH,
+            PLANET_XPLANET_CONFIG
+        };
+
+        // Planet simulation state
+        bool m_PlanetMode {false};
+        bool m_IsRGBFormat {false};
+        std::string m_SelectedPlanet {"jupiter"};
+        float m_PlanetRefreshMinutes {60.0f};
+        float m_PlanetSizeOverride {0.0f};  // 0 = use lookup table
+        std::string m_XPlanetBinary {"xplanet"};
+        std::string m_XPlanetConfig {"/usr/share/xplanet/config/default"};
+        time_t m_LastPlanetRenderTime {0};
+        bool m_LastRenderWasCacheHit {false};
+        std::vector<uint8_t> m_CachedPlanetBuffer;
+        std::vector<uint8_t> m_CachedStreamBuffer;   // raw xplanet PNG bytes for direct streaming
+        uint32_t m_CachedPlanetWidth {0};
+        uint32_t m_CachedPlanetHeight {0};
+        float m_CachedFocalLength {0};
+        float m_CachedPixelSizeX {0};
+        uint32_t m_CachedWidth {0};
+        std::string m_CachedPlanet;
 
         static const constexpr char* SIMULATOR_TAB = "Simulator Config";
 };
