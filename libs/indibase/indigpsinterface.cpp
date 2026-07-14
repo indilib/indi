@@ -164,6 +164,11 @@ bool GPSInterface::updateProperties()
         m_DefaultDevice->defineProperty(PeriodNP);
         m_DefaultDevice->defineProperty(SystemTimeUpdateSP);
 
+#ifdef __linux__
+        // Disable NTP once on connect so GPS can set authoritative system time
+        disableNTPForGPSTime();
+#endif
+
         if (state != IPS_OK)
         {
             if (state == IPS_BUSY)
@@ -187,6 +192,11 @@ bool GPSInterface::updateProperties()
         m_DefaultDevice->deleteProperty(SystemTimeUpdateSP);
         m_UpdateTimer.stop();
         m_SystemTimeUpdated = false;
+
+#ifdef __linux__
+        // Restore NTP on disconnect if we were the ones who disabled it
+        restoreNTPOnDisconnect();
+#endif
     }
 
     return true;
@@ -316,25 +326,183 @@ bool GPSInterface::setSystemTime(time_t &raw_time)
         return true;
     }
 
-    // Native (non-Flatpak) path
-#if defined(__GNU_LIBRARY__)
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
-    timespec sTime = {};
-    sTime.tv_sec = raw_time;
-    if (clock_settime(CLOCK_REALTIME, &sTime) == -1)
-        DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
-                     "Failed to update system time: %s", strerror(errno));
-#else
-    stime(&raw_time);
-#endif
-#else
-    stime(&raw_time);
-#endif
+    // Native (non-Flatpak) path: use D-Bus via busctl to call systemd-timedated
+    // This avoids the EPERM issue with clock_settime() even when CAP_SYS_TIME is set.
+    else
+    {
+        int64_t usec = static_cast<int64_t>(raw_time) * 1000000LL;
+        char usecStr[32];
+        snprintf(usecStr, sizeof(usecStr), "%lld", static_cast<long long>(usec));
+
+        const char *args[] =
+        {
+            "busctl", "call",
+            "org.freedesktop.timedate1",
+            "/org/freedesktop/timedate1",
+            "org.freedesktop.timedate1",
+            "SetTime", "xbb",
+            usecStr, "false", "false",
+            nullptr
+        };
+
+        if (!runCommand(args))
+        {
+            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                        "Failed to update system time via busctl timedate1 SetTime");
+            return false;
+        }
+    }
 #else
     INDI_UNUSED(raw_time);
 #endif
     return true;
 }
+
+
+#ifdef __linux__
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPSInterface::runCommand(const char *args[])
+{
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+        // Child process
+        execvp(args[0], const_cast<char * const *>(args));
+        _exit(EXIT_FAILURE);
+    }
+    else if (pid > 0)
+    {
+        int status = 0;
+        waitpid(pid, &status, 0);
+        return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    }
+    else
+    {
+        DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                     "Failed to fork for command %s: %s", args[0], strerror(errno));
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPSInterface::isNTPActive()
+{
+    int pipefd[2];
+    if (pipe(pipefd) != 0)
+        return false;
+
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+        // Child: redirect stdout to pipe
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+
+        const char *args[] =
+        {
+            "timedatectl", "show", "-p", "NTP", "--value", nullptr
+        };
+        execvp("timedatectl", const_cast<char * const *>(args));
+        _exit(EXIT_FAILURE);
+    }
+    else if (pid > 0)
+    {
+        // Parent: read output from pipe
+        close(pipefd[1]);
+
+        char buffer[32] = {};
+        ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+        close(pipefd[0]);
+
+        int status = 0;
+        waitpid(pid, &status, 0);
+
+        if (n <= 0)
+            return false;
+
+        // Strip trailing newline
+        if (n > 0 && buffer[n - 1] == '\n')
+            buffer[n - 1] = '\0';
+
+        return strcmp(buffer, "yes") == 0;
+    }
+    else
+    {
+        close(pipefd[0]);
+        close(pipefd[1]);
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPSInterface::setNTPEnabled(bool enabled)
+{
+    const char *args[] =
+    {
+        "timedatectl", "set-ntp", enabled ? "true" : "false", nullptr
+    };
+    return runCommand(args);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+void GPSInterface::disableNTPForGPSTime()
+{
+    if (isNTPActive())
+    {
+        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                    "NTP is active; disabling for GPS time authority...");
+        if (setNTPEnabled(false))
+        {
+            m_NTPDisabledByGPS = true;
+            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                        "NTP disabled by GPS interface.");
+        }
+        else
+        {
+            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                        "Failed to disable NTP.");
+        }
+    }
+    else
+    {
+        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                    "NTP already inactive; GPS will not re-enable it on disconnect.");
+        m_NTPDisabledByGPS = false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+void GPSInterface::restoreNTPOnDisconnect()
+{
+    if (m_NTPDisabledByGPS)
+    {
+        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                    "Restoring NTP after GPS disconnect...");
+        if (setNTPEnabled(true))
+        {
+            m_NTPDisabledByGPS = false;
+            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                        "NTP re-enabled.");
+        }
+        else
+        {
+            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                        "Failed to re-enable NTP.");
+        }
+    }
+}
+#endif
 
 
 //////////////////////////////////////////////////////////////////////

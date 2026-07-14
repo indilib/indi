@@ -93,6 +93,23 @@ class GPSInterface
          */
         bool setSystemTime(time_t &raw_time);
 
+#ifdef __linux__
+        /** \brief Run a command via fork+execvp, no shell. Returns true if exit code is 0. */
+        bool runCommand(const char *args[]);
+
+        /** \brief Check if systemd-timesyncd NTP is active via timedatectl show. */
+        bool isNTPActive();
+
+        /** \brief Enable or disable NTP via timedatectl set-ntp. */
+        bool setNTPEnabled(bool enabled);
+
+        /** \brief Disable NTP on connect (idempotent). Sets m_NTPDisabledByGPS if NTP was active. */
+        void disableNTPForGPSTime();
+
+        /** \brief Re-enable NTP on disconnect, only if we were the ones who disabled it. */
+        void restoreNTPOnDisconnect();
+#endif
+
         /**
              * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
              * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
@@ -128,6 +145,9 @@ class GPSInterface
 
         // Track whether system time was updated
         bool m_SystemTimeUpdated {false};
+
+        // Track whether this GPS interface disabled NTP (so we can restore on disconnect)
+        bool m_NTPDisabledByGPS { false };
 
         DefaultDevice * m_DefaultDevice { nullptr };
 };
