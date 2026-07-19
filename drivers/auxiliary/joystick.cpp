@@ -618,10 +618,16 @@ void JoyStick::axisEvent(int axis_n, int value)
     }
 
     // Apply EMA low-pass filter to smooth out rapid jitter.
+    // Smooth on deflection (moving away from center) to reduce noise,
+    // but track instantly on release (moving toward center) so that
+    // both analog sticks and digital D-pads reach zero without delay.
     const double alpha = FilterNP[0].getValue();
     if (axis_n < static_cast<int>(m_axisEMA.size()))
     {
-        m_axisEMA[axis_n] = alpha * static_cast<double>(value) + (1.0 - alpha) * m_axisEMA[axis_n];
+        if (std::abs(value) < std::abs(static_cast<int>(m_axisEMA[axis_n])))
+            m_axisEMA[axis_n] = static_cast<double>(value);
+        else
+            m_axisEMA[axis_n] = alpha * static_cast<double>(value) + (1.0 - alpha) * m_axisEMA[axis_n];
         value = static_cast<int>(std::round(m_axisEMA[axis_n]));
     }
 

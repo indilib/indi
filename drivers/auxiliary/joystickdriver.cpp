@@ -520,10 +520,11 @@ joystick_position JoyStickDriver::joystickPosition(int n)
     pos.y = y0;
     pos.r = std::sqrt(x * x + y * y);
 
-    // Compass / bearing convention: N=0°, E=90°, S=180°, W=270°.
+    // Math angle convention: E=0°, N=90°, S=270°, W=180°.
+    // This matches processNSWE() in inditelescope.cpp.
     if (pos.r > 0.001f)
     {
-        pos.theta = std::atan2(x, y) * (180.0f / 3.141592653589793f);
+        pos.theta = std::atan2(y, x) * (180.0f / 3.141592653589793f);
         if (pos.theta < 0.0f)
             pos.theta += 360.0f;
     }
