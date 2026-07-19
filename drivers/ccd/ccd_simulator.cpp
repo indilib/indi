@@ -1854,8 +1854,5 @@ bool CCDSim::SetCaptureFormat(uint8_t index)
     PrimaryCCD.setFrameBufferSize(nbuf);
     Streamer->setPixelFormat(isRGB ? INDI_RGB : INDI_MONO, 16);
     m_IsRGBFormat = isRGB;
-
-    LOGF_INFO("Capture format set to %s (%s, NAXIS=%d)", format.label.c_str(),
-              isRGB ? "RGB" : "Mono", isRGB ? 3 : 2);
     return true;
 }
