@@ -2451,11 +2451,16 @@ void Telescope::processButton(const char *button_n, ISState state)
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
     {
+        // Re-arm the one-shot gate — button events don't pass through the
+        // mag < 0.5 re-arm path that analog joystick pairs use.
+        m_slewPresetArmed = true;
         // angle=90 (RIGHT) falls in the (45°,225°] "increase-index" branch
         processSlewPresets(1, 90);
     }
     else if (!strcmp(button_n, "SLEWPRESETDOWN"))
     {
+        // Re-arm the one-shot gate — same reason as above.
+        m_slewPresetArmed = true;
         // angle=270 (LEFT) falls in the "decrease-index" branch
         processSlewPresets(1, 270);
     }
