@@ -852,6 +852,16 @@ class Telescope : public DefaultDevice
             LOCK_AXIS_1,
             LOCK_AXIS_2
         };
+
+        // Joystick reverse motion and swapping (joystick only, does not affect MoveNS/MoveWE)
+        INDI::PropertySwitch JoystickReverseSP {3};
+        enum
+        {
+            JOYSTICK_REVERSE_NS,
+            JOYSTICK_REVERSE_WE,
+            JOYSTICK_REVERSE_SWAP
+        };
+
         // Pier Side
         INDI::PropertySwitch PierSideSP {2};
 

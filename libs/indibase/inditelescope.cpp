@@ -247,6 +247,13 @@ bool Telescope::initProperties()
     LockAxisSP.fill(getDeviceName(), "JOYSTICK_LOCK_AXIS", "Lock Axis", "Joystick", IP_RW,
                     ISR_ATMOST1, 60, IPS_IDLE);
 
+    // Joystick reverse motion and swapping (joystick only)
+    JoystickReverseSP[JOYSTICK_REVERSE_NS].fill("JOYSTICK_REVERSE_NS", "N/S", ISS_OFF);
+    JoystickReverseSP[JOYSTICK_REVERSE_WE].fill("JOYSTICK_REVERSE_WE", "W/E", ISS_OFF);
+    JoystickReverseSP[JOYSTICK_REVERSE_SWAP].fill("JOYSTICK_REVERSE_SWAP", "Swap N/S<->W/E", ISS_OFF);
+    JoystickReverseSP.fill(getDeviceName(), "TELESCOPE_JOYSTICK_REVERSE", "Axis Reverse", "Joystick", IP_RW, ISR_NOFMANY, 60,
+                           IPS_IDLE);
+
     TrackState = SCOPE_IDLE;
 
     setDriverInterface(TELESCOPE_INTERFACE);
@@ -484,20 +491,25 @@ bool Telescope::updateProperties()
                 if (useJoystick[0].getState() == ISS_ON)
                 {
                     defineProperty(MotionControlModeTP);
-                    loadConfig(true, "MOTION_CONTROL_MODE");
                     defineProperty(LockAxisSP);
-                    loadConfig(true, "LOCK_AXIS");
+                    defineProperty(JoystickReverseSP);
+
+                    LockAxisSP.load();
+                    MotionControlModeTP.load();
+                    JoystickReverseSP.load();
                 }
                 else
                 {
                     deleteProperty(MotionControlModeTP);
                     deleteProperty(LockAxisSP);
+                    deleteProperty(JoystickReverseSP);
                 }
             }
             else
             {
                 deleteProperty(MotionControlModeTP);
                 deleteProperty(LockAxisSP);
+                deleteProperty(JoystickReverseSP);
             }
         }
     }
@@ -654,6 +666,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     controller->saveConfigItems(fp);
     MotionControlModeTP.save(fp);
     LockAxisSP.save(fp);
+    JoystickReverseSP.save(fp);
     SimulatePierSideSP.save(fp);
 
     return true;
@@ -1570,6 +1583,18 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 LOG_INFO("Joystick motion is unlocked.");
             return true;
         }
+
+        ///////////////////////////////////
+        // Joystick Reverse/Swap Motion
+        ///////////////////////////////////
+        if (JoystickReverseSP.isNameMatch(name))
+        {
+            JoystickReverseSP.update(states, names, n);
+            JoystickReverseSP.setState(IPS_OK);
+            JoystickReverseSP.apply();
+            saveConfig(JoystickReverseSP);
+            return true;
+        }
     }
 
     bool rc = controller->ISNewSwitch(dev, name, states, names, n);
@@ -1580,11 +1605,17 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             defineProperty(MotionControlModeTP);
             defineProperty(LockAxisSP);
+            defineProperty(JoystickReverseSP);
+
+            LockAxisSP.load();
+            MotionControlModeTP.load();
+            JoystickReverseSP.load();
         }
         else
         {
             deleteProperty(MotionControlModeTP);
             deleteProperty(LockAxisSP);
+            deleteProperty(JoystickReverseSP);
         }
 
     }
@@ -2586,6 +2617,14 @@ void Telescope::processNSWE(double mag, double angle)
         {
             angle = 0;
         }
+
+        // Apply joystick reverse/swap transforms
+        if (JoystickReverseSP[JOYSTICK_REVERSE_SWAP].getState() == ISS_ON)
+            angle = fmod(angle + 90.0, 360.0);
+        if (JoystickReverseSP[JOYSTICK_REVERSE_NS].getState() == ISS_ON)
+            angle = fmod(360.0 - angle, 360.0);
+        if (JoystickReverseSP[JOYSTICK_REVERSE_WE].getState() == ISS_ON)
+            angle = fmod(540.0 - angle, 360.0);
 
         // North
         if (angle > 0 && angle < 180)
