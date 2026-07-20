@@ -151,10 +151,6 @@ bool WandererETA::updateProperties()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererETA::getData()
 {
-    // Skip reading while commands are being sent
-    if (m_SendingCommand)
-        return true;
-
     if (!serialPortMutex.try_lock_for(std::chrono::milliseconds(500)))
     {
         LOG_DEBUG("Serial port is busy, skipping status update");
@@ -166,6 +162,37 @@ bool WandererETA::getData()
     try
     {
         PortFD = serialConnection->getPortFD();
+
+        // On first read (handshake), flush stale serial buffer data.
+        // The ETA device streams status continuously (~every 2s); the first bytes after
+        // opening the port may contain garbage from power-on or prior session.
+        // After flushing, we need to wait long enough for a fresh complete status line.
+        if (m_FirstRead)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            m_FirstRead = false;
+
+            // Try up to 3 reads with 3s timeout each to get a valid status line.
+            // The device streams every ~2s, so worst case we wait one full cycle.
+            char firstBuffer[512] = {0};
+            int firstBytes = 0;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                memset(firstBuffer, 0, sizeof(firstBuffer));
+                firstBytes = 0;
+                int firstRc = tty_read_section(PortFD, firstBuffer, '\n', 3, &firstBytes);
+                if (firstRc == TTY_OK && parseDeviceData(firstBuffer))
+                {
+                    LOG_INFO("Wanderer ETA M54 is online.");
+                    return true;
+                }
+                // If we got data but it didn't parse (partial/garbage), flush and retry
+                if (firstBytes > 0)
+                    tcflush(PortFD, TCIOFLUSH);
+            }
+            LOG_WARN("Handshake: could not get valid data after 3 attempts");
+            return false;
+        }
 
         char buffer[512] = {0};
         int nbytes_read = 0, rc = -1;
@@ -224,7 +251,11 @@ bool WandererETA::parseDeviceData(const char *data)
         // Validate device identifier
         if (tokens[0] != "WandererTilterM54")
         {
-            LOGF_WARN("Unknown device: %s (expected WandererTilterM54)", tokens[0].c_str());
+            // During handshake, garbage on first read is expected — suppress warning
+            if (m_Initializing)
+                LOGF_DEBUG("Handshake: skipping invalid data: %s", tokens[0].c_str());
+            else
+                LOGF_WARN("Unknown device: %s (expected WandererTilterM54)", tokens[0].c_str());
             return false;
         }
 
@@ -349,45 +380,16 @@ bool WandererETA::ISNewNumber(const char *dev, const char *name, double values[]
                 return true;
             }
 
+            // Don't allow new moves while one is in progress
+            if (m_Move.active)
+            {
+                LOG_WARN("A move is already in progress. Please wait for it to complete.");
+                setPositionState(pointIndex, IPS_IDLE);
+                return true;
+            }
+
             setPositionNP(pointIndex, values, names, n, IPS_BUSY);
-
-            // Block polling while sending command
-            m_SendingCommand = true;
-
-            usleep(200000);
-            tcflush(PortFD, TCIOFLUSH);
-            usleep(100000);
-
-            char cmd[32];
-            snprintf(cmd, sizeof(cmd), "%d%.3f\n", pointIndex + 1, target);
-
-            tcflush(PortFD, TCIOFLUSH);
-            usleep(100000);
-
-            int nbytes_written = 0, rc = -1;
-            bool success = true;
-
-            if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
-            {
-                char errorMessage[MAXRBUF];
-                tty_error_msg(rc, errorMessage, MAXRBUF);
-                LOGF_ERROR("Serial write error: %s", errorMessage);
-                success = false;
-            }
-            else
-            {
-                tcdrain(PortFD);
-                LOGF_INFO("Moving Point %d to %.3f mm", pointIndex + 1, target);
-
-                if (!waitForPosition(pointIndex, target, 15000))
-                {
-                    LOGF_WARN("Point %d did not reach target %.3f within timeout", pointIndex + 1, target);
-                }
-            }
-
-            m_SendingCommand = false;
-
-            setPositionState(pointIndex, success ? IPS_OK : IPS_ALERT);
+            startMove(pointIndex, target);
             return true;
         }
     }
@@ -405,6 +407,12 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
         // Apply backfocus offset to all 3 points equally
         if (ApplyOffsetSP.isNameMatch(name))
         {
+            if (m_Move.active)
+            {
+                LOG_WARN("A move is already in progress. Please wait for it to complete.");
+                return true;
+            }
+
             double offset = BackfocusOffsetNP[0].getValue();
 
             if (std::abs(offset) < 0.001)
@@ -441,40 +449,26 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
             LOGF_INFO("Applying backfocus offset %.3f mm to all points (P1: %.3f→%.3f, P2: %.3f→%.3f, P3: %.3f→%.3f)",
                       offset, pos1, targets[0], pos2, targets[1], pos3, targets[2]);
 
-            bool success = moveAllPoints(targets);
-
-            if (success)
-            {
-                updateAllTargets(targets);
-                BackfocusOffsetNP[0].setValue(0.0);
-                BackfocusOffsetNP.setState(IPS_OK);
-                BackfocusOffsetNP.apply();
-                LOGF_INFO("Backfocus offset applied successfully. New positions: P1=%.3f, P2=%.3f, P3=%.3f",
-                          targets[0], targets[1], targets[2]);
-            }
-
-            ApplyOffsetSP.setState(success ? IPS_OK : IPS_ALERT);
-            ApplyOffsetSP[APPLY_OFFSET].setState(ISS_OFF);
+            ApplyOffsetSP.setState(IPS_BUSY);
             ApplyOffsetSP.apply();
+            startMultiPointMove(targets, false, true);
             return true;
         }
 
         if (ZeroAllSP.isNameMatch(name))
         {
+            if (m_Move.active)
+            {
+                LOG_WARN("A move is already in progress. Please wait for it to complete.");
+                return true;
+            }
+
             double targets[3] = {0.0, 0.0, 0.0};
             LOG_INFO("Moving all points to zero position");
 
-            bool success = moveAllPoints(targets);
-
-            if (success)
-            {
-                updateAllTargets(targets);
-                LOG_INFO("All points moved to zero position successfully");
-            }
-
-            ZeroAllSP.setState(success ? IPS_OK : IPS_ALERT);
-            ZeroAllSP[ZERO_ALL].setState(ISS_OFF);
+            ZeroAllSP.setState(IPS_BUSY);
             ZeroAllSP.apply();
+            startMultiPointMove(targets, true, false);
             return true;
         }
     }
@@ -483,44 +477,197 @@ bool WandererETA::ISNewSwitch(const char *dev, const char *name, ISState *states
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Move all 3 points to specified targets (shared logic for ZeroAll and ApplyOffset)
+/// Start a single-point move (non-blocking)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererETA::moveAllPoints(double targets[3])
+void WandererETA::startMove(int pointIndex, double target)
 {
-    m_SendingCommand = true;
-    usleep(200000);
-    tcflush(PortFD, TCIOFLUSH);
-    usleep(100000);
+    m_Move.active = true;
+    m_Move.isZeroAll = false;
+    m_Move.isApplyOffset = false;
+    m_Move.target[pointIndex] = target;
+    m_Move.pending[0] = m_Move.pending[1] = m_Move.pending[2] = false;
+    m_Move.pending[pointIndex] = true;
+    m_Move.graceCount = 3;
 
-    bool success = true;
+    // Calculate timeout: travel distance / motor speed + safety margin
+    double distance = std::abs(target - PositionReadNP[pointIndex].getValue());
+    m_Move.timeoutCount[pointIndex] = static_cast<int>((distance / MOTOR_SPEED_MMS + TIMEOUT_SAFETY_S) / 2.0);
+    m_Move.startPosition[pointIndex] = PositionReadNP[pointIndex].getValue();
+
+    sendPointCommand(pointIndex, target);
+    LOGF_INFO("Moving Point %d to %.3f mm", pointIndex + 1, target);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Start a multi-point move (non-blocking, sequential)
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void WandererETA::startMultiPointMove(double targets[3], bool isZeroAll, bool isApplyOffset)
+{
+    m_Move.active = true;
+    m_Move.isZeroAll = isZeroAll;
+    m_Move.isApplyOffset = isApplyOffset;
+    m_Move.currentPoint = 0;
+    m_Move.graceCount = 3;
+
     for (int i = 0; i < 3; i++)
     {
-        char cmd[32];
-        snprintf(cmd, sizeof(cmd), "%d%.3f\n", i + 1, targets[i]);
+        m_Move.target[i] = targets[i];
+        m_Move.pending[i] = true;
+        m_Move.startPosition[i] = PositionReadNP[i].getValue();
+        double distance = std::abs(targets[i] - m_Move.startPosition[i]);
+        m_Move.timeoutCount[i] = static_cast<int>((distance / MOTOR_SPEED_MMS + TIMEOUT_SAFETY_S) / 2.0);
+    }
 
-        tcflush(PortFD, TCIOFLUSH);
-        usleep(100000);
+    // Set all target properties to BUSY
+    setPositionState(0, IPS_BUSY);
+    setPositionState(1, IPS_BUSY);
+    setPositionState(2, IPS_BUSY);
 
-        int nbytes_written = 0, rc = -1;
-        if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    // Send command for first point
+    sendPointCommand(0, targets[0]);
+    LOGF_INFO("Moving Point 1 to %.3f mm", targets[0]);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Send a move command for a single point
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void WandererETA::sendPointCommand(int pointIndex, double target)
+{
+    char cmd[32];
+    snprintf(cmd, sizeof(cmd), "%d%.3f\n", pointIndex + 1, target);
+
+    // Flush input buffer to ensure clean command delivery.
+    // The device streams status continuously; we need a clear window to send.
+    tcflush(PortFD, TCIFLUSH);
+    usleep(50000);  // 50ms settling time
+
+    int nbytes_written = 0, rc = -1;
+    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    {
+        char errorMessage[MAXRBUF];
+        tty_error_msg(rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Serial write error on Point %d: %s", pointIndex + 1, errorMessage);
+        m_Move.pending[pointIndex] = false;
+        setPositionState(pointIndex, IPS_ALERT);
+    }
+    tcdrain(PortFD);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Check move progress (called from TimerHit every polling cycle)
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void WandererETA::checkMoveProgress()
+{
+    if (!m_Move.active)
+        return;
+
+    // Grace period: skip first few polls after a command to allow device to respond
+    if (m_Move.graceCount > 0)
+    {
+        m_Move.graceCount--;
+        return;
+    }
+
+    bool allDone = true;
+
+    for (int i = 0; i < 3; i++)
+    {
+        if (!m_Move.pending[i])
+            continue;
+
+        allDone = false;
+        double currentPos = PositionReadNP[i].getValue();
+
+        // Check if target reached (device reported updated position after motor stopped)
+        if (std::abs(currentPos - m_Move.target[i]) < POSITION_TOLERANCE)
         {
-            char errorMessage[MAXRBUF];
-            tty_error_msg(rc, errorMessage, MAXRBUF);
-            LOGF_ERROR("Serial write error on Point %d: %s", i + 1, errorMessage);
-            success = false;
-            break;
+            m_Move.pending[i] = false;
+            setPositionState(i, IPS_OK);
+            LOGF_INFO("Point %d reached target %.3f mm", i + 1, m_Move.target[i]);
+
+            // For multi-point sequential moves: start next point
+            if ((m_Move.isZeroAll || m_Move.isApplyOffset) && i == m_Move.currentPoint)
+            {
+                m_Move.currentPoint++;
+                if (m_Move.currentPoint < 3 && m_Move.pending[m_Move.currentPoint])
+                {
+                    sendPointCommand(m_Move.currentPoint, m_Move.target[m_Move.currentPoint]);
+                    m_Move.graceCount = 3;
+                    double dist = std::abs(m_Move.target[m_Move.currentPoint] - m_Move.startPosition[m_Move.currentPoint]);
+                    m_Move.timeoutCount[m_Move.currentPoint] = static_cast<int>((dist / MOTOR_SPEED_MMS + TIMEOUT_SAFETY_S) / 2.0);
+                    LOGF_INFO("Moving Point %d to %.3f mm", m_Move.currentPoint + 1,
+                              m_Move.target[m_Move.currentPoint]);
+                    return;
+                }
+            }
+            continue;
         }
-        tcdrain(PortFD);
-        LOGF_INFO("Moving Point %d to %.3f mm", i + 1, targets[i]);
 
-        if (!waitForPosition(i, targets[i], 15000))
+        // Timeout: count down polls until expected travel time is exceeded
+        if (m_Move.timeoutCount[i] > 0)
         {
-            LOGF_WARN("Point %d did not reach target %.3f within timeout", i + 1, targets[i]);
+            m_Move.timeoutCount[i]--;
+            continue;
+        }
+
+        // Timeout expired — motor should be done; accept current position
+        double finalPos = PositionReadNP[i].getValue();
+        m_Move.pending[i] = false;
+        if (std::abs(finalPos - m_Move.target[i]) < POSITION_TOLERANCE)
+        {
+            setPositionState(i, IPS_OK);
+            LOGF_INFO("Point %d reached target %.3f mm", i + 1, m_Move.target[i]);
+        }
+        else
+        {
+            LOGF_WARN("Point %d timeout: reported %.3f mm (target %.3f mm) — motor likely completed, verify by reconnecting",
+                      i + 1, finalPos, m_Move.target[i]);
+            setPositionState(i, IPS_OK);
+        }
+
+        // For multi-point: continue with next point
+        if ((m_Move.isZeroAll || m_Move.isApplyOffset) && i == m_Move.currentPoint)
+        {
+            m_Move.currentPoint++;
+            if (m_Move.currentPoint < 3 && m_Move.pending[m_Move.currentPoint])
+            {
+                sendPointCommand(m_Move.currentPoint, m_Move.target[m_Move.currentPoint]);
+                m_Move.graceCount = 3;
+                double dist = std::abs(m_Move.target[m_Move.currentPoint] - m_Move.startPosition[m_Move.currentPoint]);
+                m_Move.timeoutCount[m_Move.currentPoint] = static_cast<int>((dist / MOTOR_SPEED_MMS + TIMEOUT_SAFETY_S) / 2.0);
+                LOGF_INFO("Moving Point %d to %.3f mm", m_Move.currentPoint + 1,
+                          m_Move.target[m_Move.currentPoint]);
+                return;
+            }
         }
     }
 
-    m_SendingCommand = false;
-    return success;
+    // Check if all points are done
+    if (allDone || (!m_Move.pending[0] && !m_Move.pending[1] && !m_Move.pending[2]))
+    {
+        m_Move.active = false;
+
+        if (m_Move.isZeroAll)
+        {
+            updateAllTargets(m_Move.target);
+            LOG_INFO("All points moved to zero position successfully");
+            ZeroAllSP.setState(IPS_OK);
+            ZeroAllSP[ZERO_ALL].setState(ISS_OFF);
+            ZeroAllSP.apply();
+        }
+        else if (m_Move.isApplyOffset)
+        {
+            updateAllTargets(m_Move.target);
+            BackfocusOffsetNP[0].setValue(0.0);
+            BackfocusOffsetNP.setState(IPS_OK);
+            BackfocusOffsetNP.apply();
+            LOGF_INFO("Backfocus offset applied successfully. New positions: P1=%.3f, P2=%.3f, P3=%.3f",
+                      m_Move.target[0], m_Move.target[1], m_Move.target[2]);
+            ApplyOffsetSP.setState(IPS_OK);
+            ApplyOffsetSP[APPLY_OFFSET].setState(ISS_OFF);
+            ApplyOffsetSP.apply();
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -537,58 +684,6 @@ void WandererETA::updateAllTargets(double targets[3])
     Position3NP[0].setValue(targets[2]);
     Position3NP.setState(IPS_OK);
     Position3NP.apply();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Wait for a motor to reach target position by reading status stream
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererETA::waitForPosition(int pointIndex, double target, int timeoutMs)
-{
-    auto start = std::chrono::steady_clock::now();
-    char buffer[512] = {0};
-    int nbytes_read = 0;
-
-    while (true)
-    {
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start).count();
-        if (elapsed > timeoutMs)
-            return false;
-
-        nbytes_read = 0;
-        int rc = tty_read_section(PortFD, buffer, '\n', 3, &nbytes_read);
-        if (rc != TTY_OK)
-            continue;
-
-        // Parse the status line to extract positions
-        std::string data(buffer);
-        std::vector<std::string> tokens;
-        std::string token;
-        std::istringstream tokenStream(data);
-        while (std::getline(tokenStream, token, 'A'))
-        {
-            if (!token.empty())
-                tokens.push_back(token);
-        }
-
-        if (tokens.size() >= 5 && tokens[0] == "WandererTilterM54")
-        {
-            double pos = std::strtod(tokens[2 + pointIndex].c_str(), nullptr);
-
-            // Update readback display
-            PositionReadNP[POINT_1].setValue(std::strtod(tokens[2].c_str(), nullptr));
-            PositionReadNP[POINT_2].setValue(std::strtod(tokens[3].c_str(), nullptr));
-            PositionReadNP[POINT_3].setValue(std::strtod(tokens[4].c_str(), nullptr));
-            PositionReadNP.setState(IPS_OK);
-            PositionReadNP.apply();
-
-            // Check if target reached (within 0.005mm tolerance)
-            if (std::abs(pos - target) < 0.005)
-                return true;
-        }
-
-        memset(buffer, 0, sizeof(buffer));
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -636,6 +731,10 @@ void WandererETA::TimerHit()
         m_Initializing = false;
 
     getData();
+
+    // Check if any moves are in progress and update their status
+    checkMoveProgress();
+
     SetTimer(getPollingPeriod());
 }
 

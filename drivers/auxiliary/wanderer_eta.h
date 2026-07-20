@@ -99,10 +99,32 @@ class WandererETA : public INDI::DefaultDevice
 
         // Mutex for thread safety
         std::timed_mutex serialPortMutex;
-        bool m_SendingCommand {false};
         bool m_Initializing {true};
-        bool waitForPosition(int pointIndex, double target, int timeoutMs);
-        bool moveAllPoints(double targets[3]);
+        bool m_FirstRead {true};
+
+        // Non-blocking move state machine
+        struct MoveState
+        {
+            bool active {false};
+            double target[3] {0, 0, 0};
+            bool pending[3] {false, false, false};
+            int currentPoint {0};
+            double startPosition[3] {0, 0, 0};  // Position when move started
+            int graceCount {0};
+            int timeoutCount[3] {0, 0, 0};  // Polls remaining before timeout
+            bool isZeroAll {false};
+            bool isApplyOffset {false};
+        };
+        MoveState m_Move;
+        static constexpr double POSITION_TOLERANCE = 0.005;  // mm
+        static constexpr double MOTOR_SPEED_MMS = 0.015;     // mm/s (conservative estimate)
+        static constexpr int    TIMEOUT_SAFETY_S = 25;       // extra seconds added to calculated timeout
+
+        void startMove(int pointIndex, double target);
+        void startMultiPointMove(double targets[3], bool isZeroAll, bool isApplyOffset);
+        void checkMoveProgress();
+        void sendPointCommand(int pointIndex, double target);
+
         void setPositionNP(int index, double values[], char *names[], int n, IPState state);
         void setPositionState(int index, IPState state);
         void updateAllTargets(double targets[3]);
