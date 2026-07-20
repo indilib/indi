@@ -235,7 +235,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         //RotatorInterface
 
-        IPState MoveRotator(double angle) override;
+        IPState MoveRotator(double angle, double delta) override;
         IPState HomeRotator() override;
         bool AbortRotator() override;
         bool SetRotatorBacklash (int32_t steps) override;

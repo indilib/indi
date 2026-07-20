@@ -1397,7 +1397,7 @@ IPState NightCrawler::HomeRotator()
     }
 }
 
-IPState NightCrawler::MoveRotator(double angle)
+IPState NightCrawler::MoveRotator(double angle, double delta)
 {
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW

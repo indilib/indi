@@ -747,7 +747,7 @@ bool iAFSRotator::MoveMyRotator(double angle)
 /************************************************************************************
  *
 * ***********************************************************************************/
-IPState iAFSRotator::MoveRotator(double angle)
+IPState iAFSRotator::MoveRotator(double angle, double delta)
 {
     IPState state = MoveAbsRotatorAngle(angle);
     GotoRotatorNP.setState(state);

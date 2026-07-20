@@ -35,7 +35,7 @@ class RotatorSimulator : public INDI::Rotator
         virtual bool Connect() override;
         virtual bool Disconnect() override;
         // Rotator Overrides
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;
 
@@ -45,6 +45,7 @@ class RotatorSimulator : public INDI::Rotator
 
     private:
         double m_TargetAngle {-1};
+        double m_sign {1};
         // 10 degrees per second
         static const uint8_t ROTATION_RATE {10};
 };

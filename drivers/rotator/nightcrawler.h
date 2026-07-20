@@ -50,7 +50,7 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
 
         // Rotator
         virtual IPState HomeRotator() override;
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;
         virtual bool ReverseRotator(bool enabled) override;

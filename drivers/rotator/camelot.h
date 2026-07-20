@@ -41,7 +41,7 @@ class Camelot : public INDI::Rotator
 
     protected:
         // Rotator specific functions
-        IPState MoveRotator(double degrees) override;
+        IPState MoveRotator(double degrees, double delta) override;
         bool SyncRotator(double degrees) override;
         bool AbortRotator() override;
         bool ReverseRotator(bool enabled) override;

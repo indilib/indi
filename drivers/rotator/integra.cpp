@@ -827,14 +827,17 @@ bool Integra::saveConfigItems(FILE *fp)
 // We need to map the Integra frame to that of the IndiRotatorInterface.
 // INDI rotatorInterface: Only absolute position Rotators are supported.
 // Angle is ranged from 0 to 360 increasing clockwise when looking at the back of the camera.
-IPState Integra::MoveRotator(double angle)
+IPState Integra::MoveRotator(double angle, double delta)
 {
     uint32_t p1 = lastRotatorPosition;
     uint32_t p2 = rotatorDegreesToTicks(angle);
 
     LOGF_INFO("MoveRotator from %.2f to %.2f degrees, from position %d to %d ...",
               rotatorTicksToDegrees(lastRotatorPosition), angle, p1, p2);
-    bool rc = relativeGotoMotor(MOTOR_ROTATOR, p2 - p1);
+    // We use the sign of delta to program the direction to take.  This
+    // leverages efforts in RotatorInterface to implement a safe zone and ensure
+    // the safest *and* fasted rotation to the target.
+    bool rc = relativeGotoMotor(MOTOR_ROTATOR, std::copysign(p2 - p1, delta));
     if (rc)
     {
         RotatorAbsPosNP.setState(IPS_BUSY);

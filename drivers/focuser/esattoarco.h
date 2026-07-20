@@ -56,7 +56,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         virtual bool SetFocuserBacklash(int32_t steps) override;
 
         // Rotator
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;
         virtual bool ReverseRotator(bool enabled) override;

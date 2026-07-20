@@ -41,7 +41,7 @@ class Pyxis : public INDI::Rotator
     protected:
         // Rotator Overrides
         virtual IPState HomeRotator() override;
-        virtual IPState MoveRotator(double angle) override;
+        virtual IPState MoveRotator(double angle, double delta) override;
         virtual bool ReverseRotator(bool enabled) override;
 
         // Misc.

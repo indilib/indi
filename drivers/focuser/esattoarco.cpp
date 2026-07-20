@@ -795,7 +795,7 @@ bool EsattoArco::saveConfigItems(FILE *fp)
 /************************************************************************************************************
  *
 *************************************************************************************************************/
-IPState EsattoArco::MoveRotator(double angle)
+IPState EsattoArco::MoveRotator(double angle, double delta)
 {
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW
