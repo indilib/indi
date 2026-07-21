@@ -93,8 +93,9 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
             FullSpectrum,
             VisualSpectrum,
             InfraredSpectrum,
+            Lux,
         };
-        INDI::PropertyNumber SkyQualityNP {5};
+        INDI::PropertyNumber SkyQualityNP {6};
         INDI::PropertyNumber SkyQualityUpdateNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
@@ -122,10 +123,11 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
             Latitude,
             Longitude,
             SatelliteNumber,
+            Altitude,
             GPSSpeed,
             GPSBearing
         };
-        INDI::PropertyNumber GPSNP {8};
+        INDI::PropertyNumber GPSNP {9};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Moon Report

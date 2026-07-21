@@ -94,6 +94,7 @@ bool UranusMeteo::initProperties()
     SkyQualityNP[FullSpectrum].fill("FullSpectrum",  "Full Spectrum", "%.2f", -1000, 1000, 10, 0);
     SkyQualityNP[VisualSpectrum].fill("VisualSpectrum",  "Visual Spectrum", "%.2f", -1000, 1000, 10, 0);
     SkyQualityNP[InfraredSpectrum].fill("InfraredSpectrum",  "Infrared Spectrum", "%.2f", 0, 1, 0.1, 0);
+    SkyQualityNP[Lux].fill("Lux",  "Lux", "%.2f", 0, 1e6, 10, 0);
     SkyQualityNP.fill(getDeviceName(), "SKYQUALITY", "Sky Quality", SKYQUALITY_TAB, IP_RO, 60, IPS_IDLE);
 
     SkyQualityUpdateNP[0].fill("VALUE", "Period (s)", "%.f", 0, 3600, 60, 60);
@@ -108,6 +109,7 @@ bool UranusMeteo::initProperties()
     GPSNP[Latitude].fill("Latitude",  "Latitude", "%.2f", -90, 90, 10, 0);
     GPSNP[Longitude].fill("Longitude",  "Longitude", "%.2f", -180, 180, 10, 0);
     GPSNP[SatelliteNumber].fill("SatelliteNumber",  "Sat. #", "%.f", 0, 30, 10, 0);
+    GPSNP[Altitude].fill("Altitude",  "Altitude (m)", "%.2f", -1000, 10000, 10, 0);
     GPSNP[GPSSpeed].fill("GPSSpeed",  "Speed (kph)", "%.2f", 0, 30, 10, 0);
     GPSNP[GPSBearing].fill("GPSBearing",  "Bearing (deg)", "%.2f", 0, 360, 10, 0);
     GPSNP.fill(getDeviceName(), "GPS", "GPS", GPS_TAB, IP_RO, 60, IPS_IDLE);
@@ -229,6 +231,7 @@ IPState UranusMeteo::updateGPS()
             GPSNP[Latitude].setValue(std::stod(result[Latitude]));
             GPSNP[Longitude].setValue(std::stod(result[Longitude]));
             GPSNP[SatelliteNumber].setValue(std::stod(result[SatelliteNumber]));
+            GPSNP[Altitude].setValue(std::stod(result[Altitude]));
             GPSNP[GPSSpeed].setValue(std::stod(result[GPSSpeed]));
             GPSNP[GPSBearing].setValue(std::stod(result[GPSBearing]));
 
@@ -244,27 +247,28 @@ IPState UranusMeteo::updateGPS()
             if (LocationNP[LOCATION_LONGITUDE].value < 0)
                 LocationNP[LOCATION_LONGITUDE].value += 360;
 
-            LocationNP[LOCATION_ELEVATION].value = SensorNP[BarometricAltitude].getValue();
+            // GPS altitude is a real position fix and, unlike barometric altitude,
+            // does not drift with weather (pressure changes of a few tens of hPa
+            // shift the barometric estimate by tens of meters for a stationary site).
+            LocationNP[LOCATION_ELEVATION].value = GPSNP[Altitude].getValue();
 
             // Get GPS Time
             char ts[32] = {0};
-            time_t raw_time = GPSNP[GPSTime].getValue();
+            time_t raw_time = static_cast<time_t>(GPSNP[GPSTime].getValue());
 
-            // Convert to UTC
-            // JM 2022.12.28: Uranus returns LOCAL TIME, not UTC.
-            struct tm *local = localtime(&raw_time);
-            // Get UTC Offset
-            auto utcOffset = local->tm_gmtoff / 3600.0;
-            // Convert to UTC time
-            time_t utcTime = raw_time - utcOffset * 3600.0;
-            // Store in GPS
-            m_GPSTime = utcTime;
-            // Get tm struct in UTC
-            struct tm *utc = gmtime(&utcTime);
+            // GP already reports Unix UTC time directly (verified against wall-clock
+            // UTC on real hardware: the raw field matched `date -u` exactly). The
+            // previous code assumed it was local time and subtracted the host's UTC
+            // offset, which shifted TIME_UTC by exactly that offset -- e.g. 2 hours
+            // off under CEST. No conversion is needed; use the offset the device
+            // itself reports instead of deriving one from the host's timezone.
+            m_GPSTime = raw_time;
+            struct tm *utc = gmtime(&raw_time);
             // Format it
             strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
             IUSaveText(&TimeTP[0], ts);
 
+            auto utcOffset = GPSNP[UTCOffset].getValue();
             snprintf(ts, sizeof(ts), "%.2f", utcOffset);
             IUSaveText(&TimeTP[1], ts);
 
@@ -437,6 +441,7 @@ bool UranusMeteo::readSkyQuality()
             SkyQualityNP[FullSpectrum].setValue(std::stod(result[FullSpectrum]));
             SkyQualityNP[VisualSpectrum].setValue(std::stod(result[VisualSpectrum]));
             SkyQualityNP[InfraredSpectrum].setValue(std::stod(result[InfraredSpectrum]));
+            SkyQualityNP[Lux].setValue(std::stod(result[Lux]));
 
             SkyQualityNP.setState(IPS_OK);
             SkyQualityNP.apply();
