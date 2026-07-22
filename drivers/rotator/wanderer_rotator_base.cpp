@@ -57,6 +57,11 @@ bool WandererRotatorBase::initProperties()
     BacklashNP[BACKLASH].fill( "BACKLASH", "Degree", "%.2f", 0, 3, 0.1, 0);
     BacklashNP.fill(getDeviceName(), "BACKLASH", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    // ACCURACY
+    IUGetConfigNumber(getDeviceName(), "ACCURACY", "ACCURACY", &accuracy);
+    AccuracyNP[ACCURACY].fill("ACCURACY", "Degree (0=off)", "%.2f", 0, 10, 0.1, accuracy);
+    AccuracyNP.fill(getDeviceName(), "ACCURACY", "Accuracy", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
 
@@ -71,11 +76,13 @@ bool WandererRotatorBase::updateProperties()
     {
         defineProperty(SetZeroSP);
         defineProperty(BacklashNP);
+        defineProperty(AccuracyNP);
     }
     else
     {
         deleteProperty(SetZeroSP);
         deleteProperty(BacklashNP);
+        deleteProperty(AccuracyNP);
     }
     return true;
 }
@@ -121,8 +128,26 @@ bool WandererRotatorBase::ISNewNumber(const char * dev, const char * name, doubl
             return true;
         }
 
+        // accuracy
+        if (AccuracyNP.isNameMatch(name))
+        {
+            AccuracyNP.update(values, names, n);
+            accuracy = AccuracyNP[ACCURACY].getValue();
+            AccuracyNP.setState(IPS_OK);
+            AccuracyNP.apply();
+            saveConfig(AccuracyNP);
+            return true;
+        }
+
     }
     return Rotator::ISNewNumber(dev, name, values, names, n);
+}
+
+bool WandererRotatorBase::saveConfigItems(FILE *fp)
+{
+    INDI::Rotator::saveConfigItems(fp);
+    AccuracyNP.save(fp);
+    return true;
 }
 
 bool WandererRotatorBase::Handshake()
@@ -233,7 +258,15 @@ bool WandererRotatorBase::Handshake()
 
 IPState WandererRotatorBase::MoveRotator(double angle)
 {
+    if (accuracy > 0)
+        angle = round(angle / accuracy) * accuracy;
+
     angle = angle - GotoRotatorNP[0].getValue();
+
+    // Rounded target matches the current position: nothing to move, and the
+    // firmware won't report a position update for a zero-step command.
+    if (std::abs(angle) < 1e-6)
+        return IPS_OK;
 
     char cmd[16];
     int position = (int)(angle * getStepsPerDegree() + 1000000);
