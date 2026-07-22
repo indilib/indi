@@ -42,6 +42,8 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         // From LightBoxInterface
         bool SetLightBoxBrightness(uint16_t value) override;
         bool EnableLightBox(bool enable) override;
+        void FilterNamesUpdated(const std::vector<std::string> &filterNames) override;
+        void FilterSlotChanged(int index) override;
 
         // From DustCapInterface
         virtual IPState ParkCap() override;
@@ -124,6 +126,9 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         INDI::PropertyText ConfigurationTP{1};
         INDI::PropertySwitch BeepSP{2};
         INDI::PropertySwitch BrightnessModeSP{2};
+
+        // Per-filter brightness mode presets (Low/High), one independent switch per filter name
+        INDI::PropertySwitch FilterBrightnessModeSP{0};
 
         // Limit properties
         enum
