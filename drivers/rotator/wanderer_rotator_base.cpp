@@ -155,7 +155,7 @@ bool WandererRotatorBase::Handshake()
         {
             char errorMessage[MAXRBUF];
             tty_error_msg(rc, errorMessage, MAXRBUF);
-            LOGF_INFO("No data received, the device may not be WandererRotator, please check the serial port!", "Updated");
+            LOG_INFO("No data received, the device may not be WandererRotator, please check the serial port!");
             LOGF_ERROR("Device read error: %s", errorMessage);
             return false;
         }
@@ -178,7 +178,7 @@ bool WandererRotatorBase::Handshake()
     if(firmware < getMinimumCompatibleFirmwareVersion())
     {
         LOG_ERROR("The firmware is outdated, please upgrade to the latest firmware!");
-        LOGF_ERROR("The current firmware is %s.", firmware);
+        LOGF_ERROR("The current firmware is %d.", firmware);
         return false;
     }
 
@@ -189,7 +189,7 @@ bool WandererRotatorBase::Handshake()
     M_angle[nbytes_read_M_angle - 1] = '\0';
     M_angleread = std::strtod(M_angle, NULL);
 
-    if(abs(M_angleread) > 400000)
+    if(std::fabs(M_angleread) > 400000)
     {
         rc = sendCommand("1500002");
         LOG_WARN("Virtual Mechanical Angle is too large, it is now set to zero!");
@@ -200,7 +200,7 @@ bool WandererRotatorBase::Handshake()
         M_angle[nbytes_read_M_angle - 1] = '\0';
         M_angleread = std::strtod(M_angle, NULL);
     }
-    GotoRotatorNP[0].setValue(abs(M_angleread / 1000));
+    GotoRotatorNP[0].setValue(std::fabs(M_angleread / 1000));
     //backlash/////////////////////////////////////////////////////////////////////
     char M_backlash[64] = {0};
     int nbytes_read_M_backlash = 0;
@@ -215,7 +215,7 @@ bool WandererRotatorBase::Handshake()
     char M_reverse[64] = {0};
     int nbytes_read_M_reverse = 0;
     tty_read_section(PortFD, M_reverse, 'A', 5, &nbytes_read_M_reverse);
-    M_reverse[nbytes_read_M_angle - 1] = '\0';
+    M_reverse[nbytes_read_M_reverse - 1] = '\0';
     M_reverseread = std::strtod(M_reverse, NULL);
     if(M_reverseread == 0)
     {
@@ -327,7 +327,7 @@ void WandererRotatorBase::TimerHit()
 
         if(nowtime < estime && haltcommand == false)
         {
-            GotoRotatorNP[0].setValue(GotoRotatorNP[0].getValue() + 1 * positionhistory / abs(positionhistory));
+            GotoRotatorNP[0].setValue(GotoRotatorNP[0].getValue() + std::copysign(1.0, positionhistory));
             GotoRotatorNP.apply();
             nowtime = nowtime + 240;
             SetTimer(240);
@@ -353,7 +353,7 @@ void WandererRotatorBase::TimerHit()
 
             M_angle[nbytes_read_M_angle - 1] = '\0';
             M_angleread = std::strtod(M_angle, NULL);
-            GotoRotatorNP[0].setValue(abs(M_angleread / 1000));
+            GotoRotatorNP[0].setValue(std::fabs(M_angleread / 1000));
             GotoRotatorNP.setState(IPS_OK);
             GotoRotatorNP.apply();
             haltcommand = false;
