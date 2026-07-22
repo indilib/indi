@@ -38,6 +38,7 @@ public:
     bool updateProperties() override;
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    bool saveConfigItems(FILE *fp) override;
 
 protected:
     virtual const char * getDefaultName() override = 0;
@@ -57,6 +58,7 @@ protected:
 
     INDI::PropertySwitch SetZeroSP{1};
     INDI::PropertyNumber BacklashNP{1};
+    INDI::PropertyNumber AccuracyNP{1};
 
     int firmware = 0;
     double M_angleread = 0;
@@ -66,6 +68,7 @@ protected:
     bool haltcommand = false;
     bool ReverseState = false;
     double backlash = 0.5;
+    double accuracy = 0.0;
     double positionhistory = 0;
     int estime = 0;
     int nowtime = 0;
@@ -73,5 +76,10 @@ protected:
     enum
     {
         BACKLASH,
+    };
+
+    enum
+    {
+        ACCURACY,
     };
 };

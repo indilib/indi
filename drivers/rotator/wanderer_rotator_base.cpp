@@ -57,6 +57,11 @@ bool WandererRotatorBase::initProperties()
     BacklashNP[BACKLASH].fill( "BACKLASH", "Degree", "%.2f", 0, 3, 0.1, 0);
     BacklashNP.fill(getDeviceName(), "BACKLASH", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    // ACCURACY
+    IUGetConfigNumber(getDeviceName(), "ACCURACY", "ACCURACY", &accuracy);
+    AccuracyNP[ACCURACY].fill("ACCURACY", "Degree (0=off)", "%.2f", 0, 10, 0.1, accuracy);
+    AccuracyNP.fill(getDeviceName(), "ACCURACY", "Accuracy", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
 
@@ -71,11 +76,13 @@ bool WandererRotatorBase::updateProperties()
     {
         defineProperty(SetZeroSP);
         defineProperty(BacklashNP);
+        defineProperty(AccuracyNP);
     }
     else
     {
         deleteProperty(SetZeroSP);
         deleteProperty(BacklashNP);
+        deleteProperty(AccuracyNP);
     }
     return true;
 }
@@ -121,8 +128,25 @@ bool WandererRotatorBase::ISNewNumber(const char * dev, const char * name, doubl
             return true;
         }
 
+        // accuracy
+        if (AccuracyNP.isNameMatch(name))
+        {
+            AccuracyNP.update(values, names, n);
+            accuracy = AccuracyNP[ACCURACY].getValue();
+            AccuracyNP.setState(IPS_OK);
+            AccuracyNP.apply();
+            return true;
+        }
+
     }
     return Rotator::ISNewNumber(dev, name, values, names, n);
+}
+
+bool WandererRotatorBase::saveConfigItems(FILE *fp)
+{
+    INDI::Rotator::saveConfigItems(fp);
+    AccuracyNP.save(fp);
+    return true;
 }
 
 bool WandererRotatorBase::Handshake()
@@ -233,10 +257,20 @@ bool WandererRotatorBase::Handshake()
 
 IPState WandererRotatorBase::MoveRotator(double angle)
 {
+    if (accuracy > 0)
+        angle = std::round(angle / accuracy) * accuracy;
+
     angle = angle - GotoRotatorNP[0].getValue();
 
+    // Gate on the actual step delta the firmware will see. Anything that
+    // rounds to zero steps is a no-op the firmware won't acknowledge, so
+    // return immediately instead of blocking in TimerHit ("not powered").
+    int steps = static_cast<int>(std::round(angle * getStepsPerDegree()));
+    if (steps == 0)
+        return IPS_OK;
+
     char cmd[16];
-    int position = (int)(angle * getStepsPerDegree() + 1000000);
+    int position = steps + 1000000;
     positionhistory = angle;
     snprintf(cmd, 16, "%d", position);
     Move(cmd);
