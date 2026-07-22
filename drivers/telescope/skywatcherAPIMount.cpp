@@ -1615,8 +1615,8 @@ bool SkywatcherAPIMount::trackByRate(AXISID axis, double rate)
     if (AxesStatus[axis].FullStop && rate == 0)
         return true;
     // If rate is zero, or direction changed then we should stop.
-    else if (!AxesStatus[axis].FullStop && (rate == 0 || (AxesStatus[AXIS1].SlewingForward && rate < 0)
-                                            || (!AxesStatus[AXIS1].SlewingForward && rate > 0)))
+    else if (!AxesStatus[axis].FullStop && (rate == 0 || (AxesStatus[axis].SlewingForward && rate < 0)
+                                            || (!AxesStatus[axis].SlewingForward && rate > 0)))
     {
         SlowStop(axis);
         LOGF_DEBUG("Tracking -> %s direction change.", (axis == AXIS1 ? "Axis 1" : "Axis 2"));
@@ -1628,12 +1628,16 @@ bool SkywatcherAPIMount::trackByRate(AXISID axis, double rate)
                           AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC].value : AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC].value)));
     auto clockRate = (StepperClockFrequency[axis] / std::max(1u, stepsPerSecond));
 
-    SetClockTicksPerMicrostep(axis, clockRate);
     if (AxesStatus[axis].FullStop)
     {
         LOGF_DEBUG("Tracking -> %s restart.", (axis == AXIS1 ? "Axis 1" : "Axis 2"));
         SetAxisMotionMode(axis, '1', Direction);
+        SetClockTicksPerMicrostep(axis, clockRate);
         StartAxisMotion(axis);
+    }
+    else
+    {
+        SetClockTicksPerMicrostep(axis, clockRate);
     }
 
     return true;
