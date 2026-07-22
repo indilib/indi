@@ -135,7 +135,6 @@ bool WandererRotatorBase::ISNewNumber(const char * dev, const char * name, doubl
             accuracy = AccuracyNP[ACCURACY].getValue();
             AccuracyNP.setState(IPS_OK);
             AccuracyNP.apply();
-            saveConfig(AccuracyNP);
             return true;
         }
 
@@ -259,17 +258,19 @@ bool WandererRotatorBase::Handshake()
 IPState WandererRotatorBase::MoveRotator(double angle)
 {
     if (accuracy > 0)
-        angle = round(angle / accuracy) * accuracy;
+        angle = std::round(angle / accuracy) * accuracy;
 
     angle = angle - GotoRotatorNP[0].getValue();
 
-    // Rounded target matches the current position: nothing to move, and the
-    // firmware won't report a position update for a zero-step command.
-    if (std::abs(angle) < 1e-6)
+    // Gate on the actual step delta the firmware will see. Anything that
+    // rounds to zero steps is a no-op the firmware won't acknowledge, so
+    // return immediately instead of blocking in TimerHit ("not powered").
+    int steps = static_cast<int>(std::round(angle * getStepsPerDegree()));
+    if (steps == 0)
         return IPS_OK;
 
     char cmd[16];
-    int position = (int)(angle * getStepsPerDegree() + 1000000);
+    int position = steps + 1000000;
     positionhistory = angle;
     snprintf(cmd, 16, "%d", position);
     Move(cmd);
