@@ -37,6 +37,15 @@ namespace Connection
 class TCP : public Interface
 {
     public:
+        // Max base delay for the exponential backoff retry
+        static const long long MAX_BACKOFF_BASE_DELAY = 10000LL;
+        // Max delay to wait for the next backoff retry
+        static const long long MAX_BACKOFF_DELAY = 30000LL;
+        // Max retry time
+        static const long long MAX_TOTAL_RETRY_TIME_MS = 300000LL; // 5 minutes
+
+        static constexpr double MAX_CONNECT_RETRIES = 10;
+        static constexpr double MAX_BACKOFF_SHIFT = 10;
         enum ConnectionType
         {
             TYPE_TCP = 0,
@@ -47,6 +56,7 @@ class TCP : public Interface
         virtual ~TCP() = default;
 
         virtual bool Connect() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         virtual bool Disconnect() override;
 
@@ -113,6 +123,14 @@ class TCP : public Interface
         // Auto search
         ISwitch LANSearchS[2];
         ISwitchVectorProperty LANSearchSP;
+        // Retry/backoff configuration
+        enum RetryIndex
+        {
+            RETRY_RETRIES = 0,
+            RETRY_BACKOFF_MS = 1,
+        };
+        INumber RetryN[2];
+        INumberVectorProperty RetryNP;
 
         // Variables
         IPerm m_Permission = IP_RW;
@@ -122,5 +140,8 @@ class TCP : public Interface
         int m_SockFD {-1};
         int PortFD = -1;
         static constexpr uint8_t SOCKET_TIMEOUT {5};
-};
+        // Runtime-configurable connection retry parameters
+        int m_ConnectRetries {3};
+        int m_BackoffBaseMs {500}; // milliseconds};
+  };
 }
