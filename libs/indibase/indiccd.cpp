@@ -1438,7 +1438,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 }
             }
 
-            int rc = SetTemperature(nextTemperature);
+            int rc = SetTemperature(nextTemperature, true);
 
             if (rc == 0)
             {
@@ -1929,9 +1929,10 @@ bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsize
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int CCD::SetTemperature(double temperature)
+int CCD::SetTemperature(double temperature, bool enableCooler)
 {
     INDI_UNUSED(temperature);
+    INDI_UNUSED(enableCooler);
     DEBUGF(Logger::DBG_WARNING, "CCD::SetTemperature %4.2f -  Should never get here", temperature);
     return -1;
 }

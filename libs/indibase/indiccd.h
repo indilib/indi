@@ -278,7 +278,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * value, change the state to OK.
          * \note This function is not implemented in CCD, it must be implemented in the child class
          */
-        virtual int SetTemperature(double temperature);
+        virtual int SetTemperature(double temperature, bool enableCooler = false);
 
         /**
          * @brief SetCoolerEnabled Turn the cooler on or off.

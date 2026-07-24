@@ -54,7 +54,7 @@ class SeestarCCD : public AlpacaCCD
         virtual bool updateProperties() override;
         
         // Disable cooler controls (Seestar doesn't have active cooling)
-        virtual int SetTemperature(double temperature) override;
+        virtual int SetTemperature(double temperature, bool enableCooler = false) override;
 
         /**
          * @brief Build Alpaca form data with Seestar-specific parameter ordering

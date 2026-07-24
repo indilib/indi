@@ -368,7 +368,7 @@ bool CCDSim::updateProperties()
     return true;
 }
 
-int CCDSim::SetTemperature(double temperature)
+int CCDSim::SetTemperature(double temperature, bool enableCooler)
 {
     TemperatureRequest = temperature;
     if (std::abs(temperature - TemperatureNP[0].getValue()) < 0.1)
@@ -377,11 +377,14 @@ int CCDSim::SetTemperature(double temperature)
         return 1;
     }
 
-    auto isCooling = TemperatureRequest < temperature;
-    CoolerSP[INDI_ENABLED].setState(isCooling ? ISS_ON : ISS_OFF);
-    CoolerSP[INDI_DISABLED].setState(isCooling ? ISS_OFF : ISS_ON);
-    CoolerSP.setState(isCooling ? IPS_BUSY : IPS_IDLE);
-    CoolerSP.apply();
+    if (enableCooler)
+    {
+        auto isCooling = TemperatureRequest < temperature;
+        CoolerSP[INDI_ENABLED].setState(isCooling ? ISS_ON : ISS_OFF);
+        CoolerSP[INDI_DISABLED].setState(isCooling ? ISS_OFF : ISS_ON);
+        CoolerSP.setState(isCooling ? IPS_BUSY : IPS_IDLE);
+        CoolerSP.apply();
+    }
     return 0;
 }
 
