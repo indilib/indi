@@ -62,6 +62,15 @@
 const char * IMAGE_SETTINGS_TAB = "Image Settings";
 const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
+
+// Warm-up target when switching the cooler off. No new property: TECs need to reach a safe
+// temperature before power is cut; 30 °C is high enough to ensure the sensor is at or above
+// the dew point in virtually all observing conditions.
+static constexpr double WARMUP_TARGET_C    = 30.0;
+// Stability window: the reading must not change by more than this to count as "settled".
+static constexpr double WARMUP_STABLE_DELTA = 0.5;
+// How long (ms) the temperature must stay within WARMUP_STABLE_DELTA to be considered done.
+static constexpr int64_t WARMUP_STABLE_MS  = 60000;
 //const char * RAPIDGUIDE_TAB     = "Rapid Guide";
 
 
@@ -1410,6 +1419,10 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 return false;
             }
 
+            // An explicit temperature request cancels any cooler warm-up in progress.
+            if (m_CoolerWarmingUp)
+                m_CoolerWarmingUp = false;
+
             double nextTemperature = values[0];
             // If temperature ramp is enabled, find
             if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
@@ -1425,7 +1438,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 }
             }
 
-            int rc = SetTemperature(nextTemperature);
+            int rc = SetTemperature(nextTemperature, true);
 
             if (rc == 0)
             {
@@ -1919,9 +1932,10 @@ bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsize
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int CCD::SetTemperature(double temperature)
+int CCD::SetTemperature(double temperature, bool enableCooler)
 {
     INDI_UNUSED(temperature);
+    INDI_UNUSED(enableCooler);
     DEBUGF(Logger::DBG_WARNING, "CCD::SetTemperature %4.2f -  Should never get here", temperature);
     return -1;
 }
@@ -2901,7 +2915,9 @@ bool CCD::saveConfigItems(FILE * fp)
         EncodeFormatSP.save(fp);
 
     if (HasCooler())
+    {
         TemperatureRampNP.save(fp);
+    }
 
     if (HasGuideHead())
     {
@@ -3152,6 +3168,134 @@ bool CCD::StopStreaming()
 /////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////
+bool CCD::SetCoolerEnabled(bool enable)
+{
+    INDI_UNUSED(enable);
+    LOG_ERROR("SetCoolerEnabled() is not implemented. Override it in the driver.");
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void CCD::beginCoolerWarmup(double currentTemperature)
+{
+    // Save the user's actual target before we overwrite m_TargetTemperature with the ramp target.
+    m_SavedCoolingTarget = m_TargetTemperature;
+
+    if (TemperatureRampNP[RAMP_SLOPE].getValue() == 0 || currentTemperature >= WARMUP_TARGET_C)
+    {
+        // No ramp configured, or already warm — cut the cooler immediately.
+        // The driver should have set its CoolerSP to IPS_BUSY before calling us; SetCoolerEnabled
+        // will update it to IPS_IDLE.
+        SetCoolerEnabled(false);
+        return;
+    }
+
+    double nextTemperature = std::min(WARMUP_TARGET_C,
+                                      currentTemperature + TemperatureRampNP[RAMP_SLOPE].getValue());
+    int rc = SetTemperature(nextTemperature);
+    if (rc == -1)
+    {
+        LOG_ERROR("Failed to start cooler warm-up; turning cooler off immediately.");
+        SetCoolerEnabled(false);
+        return;
+    }
+
+    m_CoolerWarmingUp = true;
+    m_WarmupLastTemperature = currentTemperature;
+    m_WarmupStableTimer.start();
+
+    if (rc == 0)
+    {
+        m_TemperatureElapsedTimer.start();
+        m_TargetTemperature = WARMUP_TARGET_C;
+        m_TemperatureCheckTimer.start();
+        TemperatureNP.setState(IPS_BUSY);
+        TemperatureNP.apply();
+    }
+
+    LOGF_INFO("Cooler warming up to %.0f C...", WARMUP_TARGET_C);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void CCD::cancelCoolerWarmup()
+{
+    if (!m_CoolerWarmingUp)
+        return;
+
+    m_CoolerWarmingUp = false;
+    m_TemperatureCheckTimer.stop();
+
+    if (TemperatureNP.getState() == IPS_BUSY)
+    {
+        TemperatureNP.setState(IPS_OK);
+        TemperatureNP.apply();
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void CCD::resumeCoolingAfterWarmup()
+{
+    if (m_SavedCoolingTarget >= TemperatureNP[0].getValue())
+        return; // no saved target, or already cooler than the saved target — nothing to do
+
+    double nextTemperature = m_SavedCoolingTarget;
+    if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+        nextTemperature = std::max(m_SavedCoolingTarget,
+                                   TemperatureNP[0].getValue() - TemperatureRampNP[RAMP_SLOPE].getValue());
+
+    int rc = SetTemperature(nextTemperature);
+    if (rc == 0)
+    {
+        if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+            m_TemperatureElapsedTimer.start();
+        m_TargetTemperature = m_SavedCoolingTarget;
+        m_TemperatureCheckTimer.start();
+        TemperatureNP.setState(IPS_BUSY);
+        TemperatureNP.apply();
+        LOGF_INFO("Resuming cooling to %.2f C.", m_SavedCoolingTarget);
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void CCD::coolerWarmupTick(double currentTemperature)
+{
+    if (!m_CoolerWarmingUp)
+        return;
+
+    if (std::abs(currentTemperature - m_WarmupLastTemperature) > WARMUP_STABLE_DELTA)
+    {
+        m_WarmupLastTemperature = currentTemperature;
+        m_WarmupStableTimer.start();
+    }
+    else if (m_WarmupStableTimer.hasExpired(WARMUP_STABLE_MS))
+    {
+        m_CoolerWarmingUp = false;
+        m_TemperatureCheckTimer.stop();
+
+        if (TemperatureNP.getState() == IPS_BUSY)
+        {
+            TemperatureNP.setState(IPS_OK);
+            TemperatureNP.apply();
+        }
+
+        if (SetCoolerEnabled(false))
+            LOG_INFO("Cooler is now off, temperature has stabilized.");
+        else
+            LOG_ERROR("Failed to turn cooler off after warm-up.");
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
 void CCD::checkTemperatureTarget()
 {
     if (TemperatureNP.getState() == IPS_BUSY)
@@ -3161,6 +3305,16 @@ void CCD::checkTemperatureTarget()
             TemperatureNP.setState(IPS_OK);
             m_TemperatureCheckTimer.stop();
             TemperatureNP.apply();
+
+            // If this was a warm-up ramp, switch the cooler off now.
+            if (m_CoolerWarmingUp)
+            {
+                m_CoolerWarmingUp = false;
+                if (SetCoolerEnabled(false))
+                    LOG_INFO("Cooler is now off, ambient temperature reached.");
+                else
+                    LOG_ERROR("Failed to turn cooler off after warm-up.");
+            }
         }
         // When warming up, check if temperature has stabilized at ambient limit
         // TEC coolers cannot heat above ambient, so if the target is warmer and

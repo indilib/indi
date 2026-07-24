@@ -278,7 +278,17 @@ class CCD : public DefaultDevice, GuiderInterface
          * value, change the state to OK.
          * \note This function is not implemented in CCD, it must be implemented in the child class
          */
-        virtual int SetTemperature(double temperature);
+        virtual int SetTemperature(double temperature, bool enableCooler = false);
+
+        /**
+         * @brief SetCoolerEnabled Turn the cooler on or off.
+         * @param enable True to enable, false to disable.
+         * @return true if the hardware call succeeded, false otherwise.
+         * \note This function is not implemented in CCD, it must be implemented in the child class
+         *       if CCD_HAS_COOLER capability is set.  When called with enable=false at the end of
+         *       a warm-up sequence the driver should also update its own CoolerSP switch to IPS_IDLE.
+         */
+        virtual bool SetCoolerEnabled(bool enable);
 
         /**
          * \brief Start exposing primary CCD chip
@@ -530,6 +540,41 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual void checkTemperatureTarget();
 
         /**
+         * @brief coolerWarmupTick Must be called by the driver's temperature polling loop to feed
+         *        the current temperature reading into the warm-up state machine. When the cooler is
+         *        not warming up this is a no-op. When warming up it checks whether the temperature
+         *        has been stable (changed less than WARMUP_STABLE_DELTA) for WARMUP_STABLE_MS and
+         *        finalises the warm-up by calling SetCoolerEnabled(false) once stable.
+         * @param currentTemperature Latest temperature reading in °C.
+         */
+        void coolerWarmupTick(double currentTemperature);
+
+        /**
+         * @brief beginCoolerWarmup Start a gradual warm-up ramp toward WARMUP_TARGET_C (30 °C).
+         *        Saves the current m_TargetTemperature so it can be restored if the cooler is
+         *        switched back on. The driver must set its own CoolerSP to IPS_BUSY before calling
+         *        this, and must override SetCoolerEnabled() to transition CoolerSP to IPS_IDLE
+         *        when the base class finally calls SetCoolerEnabled(false) on completion.
+         * @param currentTemperature Current sensor reading used to kick off the first ramp step.
+         */
+        void beginCoolerWarmup(double currentTemperature);
+
+        /**
+         * @brief cancelCoolerWarmup Abort an in-progress warm-up (e.g. because the cooler was
+         *        switched back on). Stops the temperature timer and clears the warming-up flag.
+         *        Does NOT touch the hardware or any property — the caller is responsible for that.
+         */
+        void cancelCoolerWarmup();
+
+        /**
+         * @brief resumeCoolingAfterWarmup If a valid cooling target was saved before the last
+         *        warm-up, this issues a new SetTemperature() ramp toward that target and sets
+         *        TemperatureNP to IPS_BUSY.  Call this after SetCoolerEnabled(true) succeeds when
+         *        the user re-enables the cooler.
+         */
+        void resumeCoolingAfterWarmup();
+
+        /**
          * @brief processFastExposure After an exposure is complete, check if fast
          * exposure was enabled. If it is, then immediately start the next exposure
          * if possible and decrement the counter.
@@ -602,6 +647,12 @@ class CCD : public DefaultDevice, GuiderInterface
         // Tracking for warming-up stabilization detection (can't heat above ambient)
         double m_TemperatureStabilizationValue {0};
         INDI::ElapsedTimer m_TemperatureStabilizationTimer;
+
+        // Cooler warm-up state machine
+        bool m_CoolerWarmingUp {false};
+        double m_WarmupLastTemperature {0};
+        double m_SavedCoolingTarget {100.0}; // sentinel: no prior cooling target
+        INDI::ElapsedTimer m_WarmupStableTimer;
 
         // Threading
         std::mutex ccdBufferLock;

@@ -112,7 +112,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         virtual bool saveConfigItems(FILE *fp) override;
         virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeyword) override;
         virtual void activeDevicesUpdated() override;
-        virtual int SetTemperature(double temperature) override;
+        virtual int SetTemperature(double temperature, bool enableCooler = false) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
         virtual bool UpdateGuiderBin(int hor, int ver) override;

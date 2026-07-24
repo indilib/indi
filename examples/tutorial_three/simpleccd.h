@@ -41,7 +41,7 @@ class SimpleCCD : public INDI::CCD
         // CCD specific functions
         bool StartExposure(float duration) override;
         bool AbortExposure() override;
-        int SetTemperature(double temperature) override;
+        int SetTemperature(double temperature, bool enableCooler = false) override;
         void TimerHit() override;
 
     private:

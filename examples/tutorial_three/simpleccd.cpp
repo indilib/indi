@@ -141,8 +141,9 @@ bool SimpleCCD::AbortExposure()
 /**************************************************************************************
 ** Client is asking us to set a new temperature
 ***************************************************************************************/
-int SimpleCCD::SetTemperature(double temperature)
+int SimpleCCD::SetTemperature(double temperature, bool enableCooler)
 {
+    INDI_UNUSED(enableCooler);
     TemperatureRequest = temperature;
 
     // 0 means it will take a while to change the temperature
