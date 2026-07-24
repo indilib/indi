@@ -956,7 +956,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 {
                     LOG_DEBUG("No mount is set. Clearing all mount watchers.");
                     RA = Dec = J2000RA = J2000DE = Latitude = Longitude = Airmass = Azimuth = Altitude =
-                                                       std::numeric_limits<double>::quiet_NaN();
+                            std::numeric_limits<double>::quiet_NaN();
                 }
             }
 
@@ -1447,6 +1447,9 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
                 m_TargetTemperature = values[0];
                 m_TemperatureCheckTimer.start();
+                // Initialize stabilization tracking for warming-up case (can't heat above ambient)
+                m_TemperatureStabilizationValue = TemperatureNP[0].getValue();
+                m_TemperatureStabilizationTimer.start();
                 TemperatureNP.setState(IPS_BUSY);
             }
             else if (rc == 1)
@@ -3311,6 +3314,31 @@ void CCD::checkTemperatureTarget()
                     LOG_INFO("Cooler is now off, ambient temperature reached.");
                 else
                     LOG_ERROR("Failed to turn cooler off after warm-up.");
+            }
+        }
+        // When warming up, check if temperature has stabilized at ambient limit
+        // TEC coolers cannot heat above ambient, so if the target is warmer and
+        // the temperature stops changing, we declare it stable.
+        else if (m_TargetTemperature > TemperatureNP[0].getValue())
+        {
+            // Temperature hasn't changed significantly since last check
+            if (std::abs(TemperatureNP[0].getValue() - m_TemperatureStabilizationValue) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
+            {
+                // If stable for 2+ minutes, declare success (ambient limit reached)
+                if (m_TemperatureStabilizationTimer.elapsed() >= 120000)
+                {
+                    LOGF_INFO("Temperature stabilized at %.2f°C (target %.2f°C not reachable, likely limited by ambient temperature).",
+                              TemperatureNP[0].getValue(), m_TargetTemperature);
+                    TemperatureNP.setState(IPS_OK);
+                    m_TemperatureCheckTimer.stop();
+                    TemperatureNP.apply();
+                }
+            }
+            else
+            {
+                // Temperature still changing — reset stabilization tracking
+                m_TemperatureStabilizationValue = TemperatureNP[0].getValue();
+                m_TemperatureStabilizationTimer.restart();
             }
         }
         // If we are beyond a minute, check for next step
