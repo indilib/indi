@@ -599,6 +599,9 @@ class CCD : public DefaultDevice, GuiderInterface
         double m_TargetTemperature {0};
         INDI::Timer m_TemperatureCheckTimer;
         INDI::ElapsedTimer m_TemperatureElapsedTimer;
+        // Tracking for warming-up stabilization detection (can't heat above ambient)
+        double m_TemperatureStabilizationValue {0};
+        INDI::ElapsedTimer m_TemperatureStabilizationTimer;
 
         // Threading
         std::mutex ccdBufferLock;
