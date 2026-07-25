@@ -105,8 +105,10 @@ bool GeminiFlatpanel::updateProperties()
         if (adapter && adapter->supportsDustCap())
         {
             defineProperty(ConfigureSP);
+            defineProperty(ClosedPositionCoarseSP);
             defineProperty(ClosedPositionSP);
             defineProperty(SetClosedSP);
+            defineProperty(OpenPositionCoarseSP);
             defineProperty(OpenPositionSP);
             defineProperty(SetOpenSP);
         }
@@ -135,8 +137,10 @@ bool GeminiFlatpanel::updateProperties()
         if (adapter && adapter->supportsDustCap())
         {
             deleteProperty(ConfigureSP);
+            deleteProperty(ClosedPositionCoarseSP);
             deleteProperty(ClosedPositionSP);
             deleteProperty(SetClosedSP);
+            deleteProperty(OpenPositionCoarseSP);
             deleteProperty(OpenPositionSP);
             deleteProperty(SetOpenSP);
         }
@@ -403,6 +407,21 @@ void GeminiFlatpanel::initLimitsProperties()
     ConfigureSP.onUpdate([this]
     { startConfiguration(); });
 
+    ClosedPositionCoarseSP.fill(
+        getDeviceName(),
+        "CLOSE_LIMIT_COARSE",
+        "Close position (coarse)",
+        MOTION_TAB,
+        IP_RW,
+        ISR_ATMOST1,
+        0,
+        IPS_IDLE);
+    ClosedPositionCoarseSP[MOVEMENT_COARSE_270].fill("270", "-270", ISS_OFF);
+    ClosedPositionCoarseSP[MOVEMENT_COARSE_180].fill("180", "-180", ISS_OFF);
+    ClosedPositionCoarseSP[MOVEMENT_COARSE_90].fill("90", "-90", ISS_OFF);
+    ClosedPositionCoarseSP.onUpdate([this]
+    { onMove(ClosedPositionCoarseSP, GEMINI_DIRECTION_CLOSE); });
+
     ClosedPositionSP.fill(
         getDeviceName(),
         "CLOSE_LIMIT",
@@ -412,11 +431,11 @@ void GeminiFlatpanel::initLimitsProperties()
         ISR_ATMOST1,
         0,
         IPS_IDLE);
-    ClosedPositionSP[MOVEMENT_LIMITS_45].fill("45", "-45", ISS_OFF);
-    ClosedPositionSP[MOVEMENT_LIMITS_10].fill("10", "-10", ISS_OFF);
-    ClosedPositionSP[MOVEMENT_LIMITS_01].fill("1", "-1", ISS_OFF);
+    ClosedPositionSP[MOVEMENT_FINE_45].fill("45", "-45", ISS_OFF);
+    ClosedPositionSP[MOVEMENT_FINE_10].fill("10", "-10", ISS_OFF);
+    ClosedPositionSP[MOVEMENT_FINE_01].fill("1", "-1", ISS_OFF);
     ClosedPositionSP.onUpdate([this]
-    { onMove(GEMINI_DIRECTION_CLOSE); });
+    { onMove(ClosedPositionSP, GEMINI_DIRECTION_CLOSE); });
 
     SetClosedSP.fill(
         getDeviceName(),
@@ -431,6 +450,21 @@ void GeminiFlatpanel::initLimitsProperties()
     SetClosedSP.onUpdate([this]
     { onSetPosition(GEMINI_DIRECTION_CLOSE); });
 
+    OpenPositionCoarseSP.fill(
+        getDeviceName(),
+        "OPEN_LIMIT_COARSE",
+        "Open position (coarse)",
+        MOTION_TAB,
+        IP_RW,
+        ISR_ATMOST1,
+        0,
+        IPS_IDLE);
+    OpenPositionCoarseSP[MOVEMENT_COARSE_270].fill("270", "270", ISS_OFF);
+    OpenPositionCoarseSP[MOVEMENT_COARSE_180].fill("180", "180", ISS_OFF);
+    OpenPositionCoarseSP[MOVEMENT_COARSE_90].fill("90", "90", ISS_OFF);
+    OpenPositionCoarseSP.onUpdate([this]
+    { onMove(OpenPositionCoarseSP, GEMINI_DIRECTION_OPEN); });
+
     OpenPositionSP.fill(
         getDeviceName(),
         "OPEN_LIMIT",
@@ -440,11 +474,11 @@ void GeminiFlatpanel::initLimitsProperties()
         ISR_ATMOST1,
         0,
         IPS_IDLE);
-    OpenPositionSP[MOVEMENT_LIMITS_45].fill("45", "45", ISS_OFF);
-    OpenPositionSP[MOVEMENT_LIMITS_10].fill("10", "10", ISS_OFF);
-    OpenPositionSP[MOVEMENT_LIMITS_01].fill("1", "1", ISS_OFF);
+    OpenPositionSP[MOVEMENT_FINE_45].fill("45", "45", ISS_OFF);
+    OpenPositionSP[MOVEMENT_FINE_10].fill("10", "10", ISS_OFF);
+    OpenPositionSP[MOVEMENT_FINE_01].fill("1", "1", ISS_OFF);
     OpenPositionSP.onUpdate([this]
-    { onMove(GEMINI_DIRECTION_OPEN); });
+    { onMove(OpenPositionSP, GEMINI_DIRECTION_OPEN); });
 
     SetOpenSP.fill(
         getDeviceName(),
@@ -467,44 +501,65 @@ void GeminiFlatpanel::TimerHit()
         return;
     }
 
-    int coverStatus = 0, lightStatus = 0, motorStatus = 0, brightness = 0;
-    bool error = false;
-
-    // Use adapter for both real hardware and simulation
-    error |= !getStatus(&coverStatus, &lightStatus, &motorStatus);
-    error |= !getBrightness(&brightness);
-
-    if (error)
-    {
-        return;
-    }
-
-    if (updateBrightness(brightness))
+    int brightness = 0;
+    if (getBrightness(&brightness) && updateBrightness(brightness))
     {
         LightIntensityNP.apply();
     }
 
-    bool statusUpdated = updateCoverStatus(coverStatus) ||
-                         updateLightStatus(lightStatus) ||
-                         updateMotorStatus(motorStatus);
+    refreshStatus();
 
-    if (statusUpdated)
+    if (configStatus == GEMINI_CONFIG_READY)
+    {
+        SetTimer(getCurrentPollingPeriod());
+    }
+}
+
+// Poll the device once, push any cover/light/motor status change to clients, and
+// flag a stuck motor. Used both by the periodic TimerHit() and right after a
+// blocking move/park/unpark call, since polling is otherwise suspended for the
+// whole duration of calibration (TimerHit doesn't reschedule itself until
+// endConfiguration() runs) and while any single blocking serial call is in flight.
+void GeminiFlatpanel::refreshStatus()
+{
+    int coverStatus = 0, lightStatus = 0, motorStatus = 0;
+    if (!getStatus(&coverStatus, &lightStatus, &motorStatus))
+    {
+        return;
+    }
+
+    // Each call has side effects (updates prev*Status and the status text), so all
+    // three must run regardless of the others' result -- don't short-circuit with ||.
+    bool coverChanged = updateCoverStatus(coverStatus);
+    bool lightChanged = updateLightStatus(lightStatus);
+    bool motorChanged = updateMotorStatus(motorStatus);
+
+    if (coverChanged || lightChanged || motorChanged)
     {
         StatusTP.apply();
     }
 
-    const bool isPro = (adapter && adapter->getRevision() == GEMINI_REVISION_PRO);
-    if (motorStatus == GEMINI_MOTOR_STATUS_RUNNING && (coverStatus == GEMINI_COVER_STATUS_TIMED_OUT
-            || (!isPro && coverStatus == GEMINI_COVER_STATUS_MOVING)))
+    if (motorStatus == GEMINI_MOTOR_STATUS_RUNNING && coverStatus == GEMINI_COVER_STATUS_TIMED_OUT)
     {
         LOG_WARN("Motor running with unknown cover status.");
         configStatus = GEMINI_CONFIG_NOTREADY;
         updateConfigStatus();
     }
+}
 
-    if (configStatus == GEMINI_CONFIG_READY)
+// Optimistically flag the cover/motor as moving before issuing a blocking move
+// command, since the device only reports this itself once TimerHit gets to poll
+// again -- which never happens while a blocking serial call is in flight, and
+// not at all during calibration (TimerHit stops rescheduling itself until
+// endConfiguration() runs).
+void GeminiFlatpanel::markMoving()
+{
+    bool motorChanged = updateMotorStatus(GEMINI_MOTOR_STATUS_RUNNING);
+    bool coverChanged = updateCoverStatus(GEMINI_COVER_STATUS_MOVING);
+
+    if (motorChanged || coverChanged)
     {
-        SetTimer(getCurrentPollingPeriod());
+        StatusTP.apply();
     }
 }
 
@@ -536,7 +591,10 @@ IPState GeminiFlatpanel::ParkCap()
     }
     ParkCapSP.setState(IPS_BUSY);
     ParkCapSP.apply();
-    if (closeCover())
+    markMoving();
+    bool result = closeCover();
+    refreshStatus();
+    if (result)
     {
         return (adapter && adapter->getRevision() == GEMINI_REVISION_PRO) ? IPS_BUSY : IPS_OK;
     }
@@ -551,7 +609,10 @@ IPState GeminiFlatpanel::UnParkCap()
     }
     ParkCapSP.setState(IPS_BUSY);
     ParkCapSP.apply();
-    if (openCover())
+    markMoving();
+    bool result = openCover();
+    refreshStatus();
+    if (result)
     {
         return (adapter && adapter->getRevision() == GEMINI_REVISION_PRO) ? IPS_BUSY : IPS_OK;
     }
@@ -975,12 +1036,13 @@ bool GeminiFlatpanel::validateCalibrationOperation(int direction)
 
 void GeminiFlatpanel::cleanupSwitch(INDI::PropertySwitch &currentSwitch, int switchIndex)
 {
-    currentSwitch[switchIndex].setState(ISS_OFF);
+    if (switchIndex >= 0)
+        currentSwitch[switchIndex].setState(ISS_OFF);
     currentSwitch.setState(IPS_IDLE);
     currentSwitch.apply();
 }
 
-void GeminiFlatpanel::onMove(int direction)
+void GeminiFlatpanel::onMove(INDI::PropertySwitch &positionSwitch, int direction)
 {
     // Check if dust cap functionality is supported
     if (!adapter || !adapter->supportsDustCap())
@@ -989,35 +1051,24 @@ void GeminiFlatpanel::onMove(int direction)
         return;
     }
 
-    // Determine the switch based solely on the direction.
-    auto &currentSwitch = (direction == GEMINI_DIRECTION_CLOSE) ? ClosedPositionSP : OpenPositionSP;
-    int switchIndex = currentSwitch.findOnSwitchIndex();
+    int switchIndex = positionSwitch.findOnSwitchIndex();
 
     if (!validateCalibrationOperation(direction))
     {
-        cleanupSwitch(currentSwitch, switchIndex);
+        cleanupSwitch(positionSwitch, switchIndex);
         return;
     }
 
-    // Perform movement based on the current switch state.
-    int steps = 0;
-    switch (currentSwitch.findOnSwitchIndex())
-    {
-        case MOVEMENT_LIMITS_45:
-            steps = 45;
-            break;
-        case MOVEMENT_LIMITS_10:
-            steps = 10;
-            break;
-        case MOVEMENT_LIMITS_01:
-            steps = 1;
-            break;
-    }
+    // Each switch is named after the step count it represents (e.g. "180", "45"),
+    // so the value can be parsed directly instead of mapping it via a case list.
+    int steps = (switchIndex >= 0) ? atoi(positionSwitch[switchIndex].getName()) : 0;
 
     // Use adapter for both real hardware and simulation
+    markMoving();
     move(steps, direction);
+    refreshStatus();
 
-    cleanupSwitch(currentSwitch, switchIndex);
+    cleanupSwitch(positionSwitch, switchIndex);
 }
 
 void GeminiFlatpanel::onSetPosition(int direction)

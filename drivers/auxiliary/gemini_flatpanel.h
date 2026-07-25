@@ -55,7 +55,7 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         void endConfiguration();
         bool validateOperation();
         bool validateCalibrationOperation(int direction);
-        void onMove(int direction);
+        void onMove(INDI::PropertySwitch &positionSwitch, int direction);
         void onSetPosition(int direction);
         void cleanupSwitch(INDI::PropertySwitch &currentSwitch, int switchIndex);
         void onBeepChange();
@@ -90,6 +90,8 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         bool updateMotorStatus(char motorStatus);
         bool updateBrightness(int brightness);
         void updateConfigStatus();
+        void refreshStatus();
+        void markMoving();
 
         // Commands
         bool sendCommand(const char *command, char *response, int timeout = SERIAL_TIMEOUT_SEC);
@@ -131,16 +133,29 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         INDI::PropertySwitch FilterBrightnessModeSP{0};
 
         // Limit properties
+        // Split into "coarse" (270/180/90) and "fine" (45/10/1) groups because
+        // KStars' generic INDI panel renders any switch property with more than 4
+        // elements as a dropdown instead of buttons -- keeping each group small
+        // keeps them clickable buttons.
         enum
         {
-            MOVEMENT_LIMITS_45,
-            MOVEMENT_LIMITS_10,
-            MOVEMENT_LIMITS_01,
-            MOVEMENT_LIMITS_N
+            MOVEMENT_COARSE_270,
+            MOVEMENT_COARSE_180,
+            MOVEMENT_COARSE_90,
+            MOVEMENT_COARSE_N
         };
-        INDI::PropertySwitch ClosedPositionSP{MOVEMENT_LIMITS_N};
+        enum
+        {
+            MOVEMENT_FINE_45,
+            MOVEMENT_FINE_10,
+            MOVEMENT_FINE_01,
+            MOVEMENT_FINE_N
+        };
+        INDI::PropertySwitch ClosedPositionCoarseSP{MOVEMENT_COARSE_N};
+        INDI::PropertySwitch ClosedPositionSP{MOVEMENT_FINE_N};
         INDI::PropertySwitch SetClosedSP{1};
-        INDI::PropertySwitch OpenPositionSP{MOVEMENT_LIMITS_N};
+        INDI::PropertySwitch OpenPositionCoarseSP{MOVEMENT_COARSE_N};
+        INDI::PropertySwitch OpenPositionSP{MOVEMENT_FINE_N};
         INDI::PropertySwitch SetOpenSP{1};
         INDI::PropertySwitch ConfigureSP{1};
 
