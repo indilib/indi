@@ -347,12 +347,18 @@ void GeminiFlatpanel::onBrightnessModeChange()
 
 void GeminiFlatpanel::FilterNamesUpdated(const std::vector<std::string> &filterNames)
 {
-    if (!adapter || !adapter->supportsBrightnessMode())
-        return;
+    // Build the list unconditionally, even before the device is connected: a snoop
+    // update can arrive as soon as the driver starts (IDSnoopDevice is registered in
+    // initProperties()), well before adapter exists. If we bailed out here, the
+    // property would stay permanently empty since the same snoop value is only
+    // delivered once, and updateProperties() would never have anything to define
+    // once the user actually connects.
+    bool wasDefined = adapter && adapter->supportsBrightnessMode() && !FilterBrightnessModeSP.isEmpty();
 
     if (!FilterBrightnessModeSP.isEmpty())
     {
-        deleteProperty(FilterBrightnessModeSP);
+        if (wasDefined)
+            deleteProperty(FilterBrightnessModeSP);
         FilterBrightnessModeSP.resize(0);
     }
 
@@ -367,7 +373,9 @@ void GeminiFlatpanel::FilterNamesUpdated(const std::vector<std::string> &filterN
         return;
 
     FilterBrightnessModeSP.load();
-    defineProperty(FilterBrightnessModeSP);
+
+    if (adapter && adapter->supportsBrightnessMode())
+        defineProperty(FilterBrightnessModeSP);
 }
 
 void GeminiFlatpanel::FilterSlotChanged(int index)
