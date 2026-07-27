@@ -1430,7 +1430,10 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             if (rc == 0)
             {
                 if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+                {
                     m_TemperatureElapsedTimer.start();
+                    m_InitialRampTemperature = TemperatureNP[0].getValue();
+                }
 
                 m_TargetTemperature = values[0];
                 m_TemperatureCheckTimer.start();
@@ -3167,7 +3170,27 @@ void CCD::checkTemperatureTarget()
         // the temperature stops changing, we declare it stable.
         else if (m_TargetTemperature > TemperatureNP[0].getValue())
         {
-            // Temperature hasn't changed significantly since last check
+            double rampSlope = TemperatureRampNP[RAMP_SLOPE].getValue();
+            if (rampSlope > 0)
+            {
+                // Calculate minimum expected time to traverse the full temperature range
+                double tempDelta = std::abs(m_TargetTemperature - m_InitialRampTemperature);
+                long minTimeToTarget_ms = static_cast<long>((tempDelta / rampSlope) * 60000);
+                if (m_TemperatureElapsedTimer.elapsed() < minTimeToTarget_ms)
+                {
+                    // Ramp still in progress — advance temperature by one step if >= 60s elapsed
+                    if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+                    {
+                        double nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + rampSlope);
+                        m_TemperatureElapsedTimer.restart();
+                        SetTemperature(nextTemperature);
+                    }
+                    return;
+                }
+            }
+
+            // After expected ramp time has elapsed (or no ramp configured),
+            // check if temperature has stabilized at ambient limit.
             if (std::abs(TemperatureNP[0].getValue() - m_TemperatureStabilizationValue) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
             {
                 // If stable for 2+ minutes, declare success (ambient limit reached)
@@ -3187,7 +3210,7 @@ void CCD::checkTemperatureTarget()
                 m_TemperatureStabilizationTimer.restart();
             }
         }
-        // If we are beyond a minute, check for next step
+        // If we are beyond a minute, check for next step (cooling ramp)
         else if (TemperatureRampNP[RAMP_SLOPE].getValue() > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
         {
             double nextTemperature = 0;

@@ -602,6 +602,8 @@ class CCD : public DefaultDevice, GuiderInterface
         // Tracking for warming-up stabilization detection (can't heat above ambient)
         double m_TemperatureStabilizationValue {0};
         INDI::ElapsedTimer m_TemperatureStabilizationTimer;
+        // Temperature when the ramp was initiated, used to compute expected ramp duration
+        double m_InitialRampTemperature {0};
 
         // Threading
         std::mutex ccdBufferLock;
