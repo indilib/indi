@@ -129,7 +129,6 @@ bool Beaver::initProperties()
     tcpConnection->setDefaultHost("192.168.1.1");
     tcpConnection->setDefaultPort(10000);
     tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
-    tty_set_generic_udp_format(1);
     addDebugControl();
     return true;
 }
@@ -195,6 +194,15 @@ bool Beaver::updateProperties()
 //////////////////////////////////////////////////////////////////////////////
 bool Beaver::Handshake()
 {
+    // tty_generic_udp_format is a process-global flag in indicom.c: it must
+    // only be on while the active connection is really our UDP socket. Left
+    // on unconditionally (as it used to be, set once in initProperties()) it
+    // also hijacks the serial connection's tty_nread_section reads, which
+    // then do a single non-looping datagram-style read instead of accumulating
+    // bytes until the stop character — corrupting any reply that arrives
+    // split across more than one low-level USB-serial read.
+    tty_set_generic_udp_format(getActiveConnection() == tcpConnection ? 1 : 0);
+
     if (echo())
     {
         // Check if shutter is online
