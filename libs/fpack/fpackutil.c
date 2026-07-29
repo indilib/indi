@@ -20,6 +20,7 @@
 #include <fitsio.h>
 #include <fitsio2.h>
 #include "fpack.h"
+#include <inttypes.h>
 
 /* these filename buffer are used to delete temporary files */
 /* in case the program is aborted */
@@ -245,14 +246,9 @@ int fp_list (int argc, char *argv[], fpstate fpvar)
 
         snprintf (msg, SZ_STR,"# %s (", infits); fp_msg (msg);
 
-#if defined(_MSC_VER)
-        /* Microsoft Visual C++ 6.0 uses '%I64d' syntax  for 8-byte integers */
-        snprintf(msg, SZ_STR,"%I64d bytes)\n", sizell); fp_msg (msg);
-#elif (USE_LL_SUFFIX == 1)
-        snprintf(msg, SZ_STR,"%lld bytes)\n", sizell); fp_msg (msg);
-#else
-        snprintf(msg, SZ_STR,"%ld bytes)\n", sizell); fp_msg (msg);
-#endif
+	snprintf(msg, SZ_STR, "%" PRId64 " bytes)\n", (int64_t) sizell);
+        fp_msg (msg);
+
         fp_info_hdu (infptr);
 
         fits_close_file (infptr, &stat);
@@ -1879,15 +1875,10 @@ int fp_test (char *infits, char *outfits, char *outfits2, fpstate fpvar)
 
             fits_get_num_rowsll(inputfptr, &nrows, &stat);
             fits_get_num_cols(inputfptr, &ncols, &stat);
-#if defined(_MSC_VER)
-            /* Microsoft Visual C++ 6.0 uses '%I64d' syntax  for 8-byte integers */
-            printf("\n File: %s, HDU %d,  %d cols X %I64d rows\n", infits, extnum, ncols, nrows);
-#elif (USE_LL_SUFFIX == 1)
-            printf("\n File: %s, HDU %d,  %d cols X %lld rows\n", infits, extnum, ncols, nrows);
-#else
-            printf("\n File: %s, HDU %d,  %d cols X %ld rows\n", infits, extnum, ncols, nrows);
-#endif
-            fp_test_table(inputfptr, outfptr, outfptr2, fpvar, &stat);
+            
+	    printf("\n File: %s, HDU %d,  %d cols X %" PRId64 " rows\n",
+                                 infits, extnum, ncols, (int64_t)nrows);
+	    fp_test_table(inputfptr, outfptr, outfptr2, fpvar, &stat);
 
         } else {
             fits_copy_hdu (inputfptr, outfptr, 0, &stat);
