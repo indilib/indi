@@ -236,6 +236,11 @@ bool Beaver::echo()
     LOGF_DEBUG("Version string returned %s", resString.c_str());
     std::regex e(R"(.*:\d*:(.*))");
     std::sregex_iterator iter(resString.begin(), resString.end(), e);
+    if (iter == std::sregex_iterator())
+    {
+        LOGF_ERROR("Unexpected version response: %s", resString.c_str());
+        return false;
+    }
     VersionTP[0].setText((*iter)[1]);
 
     // retrieve the current az from the dome
@@ -1270,7 +1275,12 @@ bool Beaver::sendRawCommand(const char * cmd, char * response)
 
         if (rc != TTY_OK)
         {
-            // wait and try again
+            // Response didn't arrive whole (e.g. the USB-serial link delivered
+            // it in more than one chunk and we only caught part of it). Drop
+            // whatever is still pending before resending, otherwise the next
+            // read picks up the tail of this reply and misreads it as the
+            // answer to the retry.
+            tcflush(PortFD, TCIFLUSH);
             usleep(100000);
             continue;
         }
