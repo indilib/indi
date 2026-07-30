@@ -6,6 +6,7 @@ TAGS
 # Ignore build directory
 build/
 build-*/
+.claude-worktrees/*
 
 # Gedit backup files
 *~

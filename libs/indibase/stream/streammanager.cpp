@@ -670,6 +670,12 @@ bool StreamManagerPrivate::startRecording()
 
     recorder->setFPS(FpsNP[FPS_AVERAGE].getValue());
 
+    // _HOME_ expands to this machine's home directory. Clients (e.g. Ekos) cannot know
+    // in advance what the home directory of a remote INDI server is, so they send the
+    // _HOME_ token literally and let the driver resolve it locally.
+    if (const char * home = getenv("HOME"))
+        patterns["_HOME_"] = home;
+
     /* pattern substitution */
     recordfiledir.assign(RecordFileTP[0].getText());
     expfiledir = expand(recordfiledir, patterns);
