@@ -1875,9 +1875,6 @@ int fp_test (char *infits, char *outfits, char *outfits2, fpstate fpvar)
 
             fits_get_num_rowsll(inputfptr, &nrows, &stat);
             fits_get_num_cols(inputfptr, &ncols, &stat);
-            
-	    printf("\n File: %s, HDU %d,  %d cols X %" PRId64 " rows\n",
-                                 infits, extnum, ncols, (int64_t)nrows);
 	    fp_test_table(inputfptr, outfptr, outfptr2, fpvar, &stat);
 
         } else {
