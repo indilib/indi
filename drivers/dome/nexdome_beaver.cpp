@@ -199,7 +199,7 @@ bool Beaver::Handshake()
     // on unconditionally (as it used to be, set once in initProperties()) it
     // also hijacks the serial connection's tty_nread_section reads, which
     // then do a single non-looping datagram-style read instead of accumulating
-    // bytes until the stop character — corrupting any reply that arrives
+    // bytes until the stop character, corrupting any reply that arrives
     // split across more than one low-level USB-serial read.
     tty_set_generic_udp_format(getActiveConnection() == tcpConnection ? 1 : 0);
 
@@ -1283,9 +1283,8 @@ bool Beaver::sendRawCommand(const char * cmd, char * response)
 
         if (rc != TTY_OK)
         {
-            // Response didn't arrive whole (e.g. the USB-serial link delivered
-            // it in more than one chunk and we only caught part of it). Drop
-            // whatever is still pending before resending, otherwise the next
+            // Response didn't arrive whole 
+            // Drop whatever is still pending before resending, otherwise the next
             // read picks up the tail of this reply and misreads it as the
             // answer to the retry.
             tcflush(PortFD, TCIFLUSH);
