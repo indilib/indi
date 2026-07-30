@@ -58,9 +58,9 @@ bool WandererRotatorBase::initProperties()
     BacklashNP.fill(getDeviceName(), "BACKLASH", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // ACCURACY
-    IUGetConfigNumber(getDeviceName(), "ACCURACY", "ACCURACY", &accuracy);
-    AccuracyNP[ACCURACY].fill("ACCURACY", "Degree (0=off)", "%.2f", 0, 10, 0.1, accuracy);
+    AccuracyNP[0].fill("ACCURACY", "Degree (0=off)", "%.2f", 0, 10, 0.1, 0);
     AccuracyNP.fill(getDeviceName(), "ACCURACY", "Accuracy", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    AccuracyNP.load();
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -131,11 +131,11 @@ bool WandererRotatorBase::ISNewNumber(const char * dev, const char * name, doubl
         // accuracy
         if (AccuracyNP.isNameMatch(name))
         {
-            AccuracyNP.update(values, names, n);
-            accuracy = AccuracyNP[ACCURACY].getValue();
-            AccuracyNP.setState(IPS_OK);
-            AccuracyNP.apply();
-            return true;
+            return updateProperty(AccuracyNP, values, names, n, [this, values]()
+            {
+                accuracy = values[0];
+                return true;
+            });
         }
 
     }

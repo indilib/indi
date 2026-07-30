@@ -77,9 +77,4 @@ protected:
     {
         BACKLASH,
     };
-
-    enum
-    {
-        ACCURACY,
-    };
 };
