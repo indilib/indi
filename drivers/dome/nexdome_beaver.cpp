@@ -88,6 +88,7 @@ bool Beaver::initProperties()
     // Rotator Calibrations
     RotatorCalibrationSP[ROTATOR_HOME_FIND].fill("ROTATOR_HOME_FIND", "Find Home", ISS_OFF);
     RotatorCalibrationSP[ROTATOR_HOME_MEASURE].fill("ROTATOR_HOME_MEASURE", "Measure Home", ISS_OFF);
+    RotatorCalibrationSP[ROTATOR_FULL_MEASURE].fill("ROTATOR_FULL_MEASURE", "Full Measurement", ISS_OFF);
     RotatorCalibrationSP.fill(getDefaultName(), "ROTATOR_CALIBRATION", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60,
                               IPS_IDLE);
 
@@ -313,6 +314,11 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     rc = rotatorMeasureHome();
                     RotatorCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
                     break;
+
+                case ROTATOR_FULL_MEASURE:
+                    rc = rotatorFullMeasure();
+                    RotatorCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
+                    break;
             }
             RotatorCalibrationSP.apply();
             return true;
@@ -519,6 +525,16 @@ void Beaver::TimerHit()
         }
         // Finding Home completed
         else if (!strcmp(RotatorStatusTP[0].getText(), "Finding Home"))
+        {
+            setDomeState(DOME_IDLE);
+            RotatorCalibrationSP.setState(IPS_OK);
+            RotatorCalibrationSP.apply();
+            std::string rStatus = "Home";
+            RotatorStatusTP[0].setText(rStatus);
+            RotatorStatusTP.setState(IPS_OK);
+        }
+        // Full dome measurement completed
+        else if (!strcmp(RotatorStatusTP[0].getText(), "Measuring Full Dome"))
         {
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
@@ -919,6 +935,24 @@ bool Beaver::rotatorFindHome()
     {
         setDomeState(DOME_MOVING);
         std::string rStatus = "Finding Home";
+        RotatorStatusTP[0].setText(rStatus);
+        RotatorStatusTP.apply();
+        return true;
+    }
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// full dome measurement: one complete turn to measure steps/degree plus
+/// home position, then a final home measurement pass
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorFullMeasure()
+{
+    double res = 0;
+    if (sendCommand("!dome autocalrot 2#", res))
+    {
+        setDomeState(DOME_MOVING);
+        std::string rStatus = "Measuring Full Dome";
         RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         return true;

@@ -100,6 +100,7 @@ class Beaver : public INDI::Dome
         bool rotatorGotoHome();
         bool rotatorMeasureHome();
         bool rotatorFindHome();
+        bool rotatorFullMeasure();
         bool rotatorIsHome();
         bool rotatorIsParked();
         bool rotatorUnPark();
@@ -153,11 +154,12 @@ class Beaver : public INDI::Dome
         // Shutter Status
         INDI::PropertyText ShutterStatusTP {1};
         // Rotator Calibration
-        INDI::PropertySwitch RotatorCalibrationSP {2};
+        INDI::PropertySwitch RotatorCalibrationSP {3};
         enum
         {
             ROTATOR_HOME_FIND,
-            ROTATOR_HOME_MEASURE
+            ROTATOR_HOME_MEASURE,
+            ROTATOR_FULL_MEASURE
         };
         // Shutter Calibration
         INDI::PropertySwitch ShutterCalibrationSP {1};
