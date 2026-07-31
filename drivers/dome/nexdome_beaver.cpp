@@ -301,7 +301,7 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         /////////////////////////////////////////////
         if (RotatorCalibrationSP.isNameMatch(name))
         {
-            bool wasBusy = RotatorCalibrationSP.getState() == IPS_BUSY;
+            bool wasMoving = getDomeState() == DOME_MOVING;
             RotatorCalibrationSP.update(states, names, n);
             bool rc = false;
             switch (RotatorCalibrationSP.findOnSwitchIndex())
@@ -322,9 +322,11 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     break;
 
                 default:
-                    // Button toggled off while a calibration was running: treat it as an abort request,
+                    // Button toggled off while the dome was still moving: treat it as an abort request,
                     // otherwise the switch goes idle in the UI while the dome keeps calibrating regardless.
-                    if (wasBusy)
+                    // Checked against actual dome motion (not just this property's state), since a rejected
+                    // re-start attempt (dome already busy) leaves the property in IPS_ALERT, not IPS_BUSY.
+                    if (wasMoving)
                     {
                         rc = abortAll();
                         RotatorCalibrationSP.setState(rc ? IPS_IDLE : IPS_ALERT);
@@ -927,6 +929,11 @@ bool Beaver::rotatorMeasureHome()
     double res = 0;
     if (sendCommand("!dome autocalrot 1#", res))
     {
+        if (res < 0)
+        {
+            LOGF_ERROR("Rotator refused to start measuring home, error code: %.0f", res);
+            return false;
+        }
         setDomeState(DOME_MOVING);
         std::string rStatus = "Measuring Home";
         RotatorStatusTP[0].setText(rStatus);
@@ -944,6 +951,11 @@ bool Beaver::rotatorFindHome()
     double res = 0;
     if (sendCommand("!dome autocalrot 0#", res))
     {
+        if (res < 0)
+        {
+            LOGF_ERROR("Rotator refused to start finding home, error code: %.0f", res);
+            return false;
+        }
         setDomeState(DOME_MOVING);
         std::string rStatus = "Finding Home";
         RotatorStatusTP[0].setText(rStatus);
@@ -962,6 +974,11 @@ bool Beaver::rotatorFullMeasure()
     double res = 0;
     if (sendCommand("!dome autocalrot 2#", res))
     {
+        if (res < 0)
+        {
+            LOGF_ERROR("Rotator refused to start full measurement, error code: %.0f", res);
+            return false;
+        }
         setDomeState(DOME_MOVING);
         std::string rStatus = "Measuring Full Dome";
         RotatorStatusTP[0].setText(rStatus);
