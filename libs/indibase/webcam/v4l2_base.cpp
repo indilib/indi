@@ -45,6 +45,7 @@
 #include <ctime>
 #include <cmath>
 #include <sys/time.h>
+#include <inttypes.h>
 
 #ifdef __linux__
 #include <asm/types.h> /* for videodev2.h */
@@ -2117,7 +2118,7 @@ void V4L2_Base::enumerate_menu()
             {
                 char menuname[19];
                 menuname[18] = '\0';
-                snprintf(menuname, 19, "0x%016llX", querymenu.value);
+                snprintf(menuname, 19, "0x%016" PRIX64, static_cast<int64_t>(querymenu.value));
                 cerr << "  " << menuname << endl;
             }
 #endif
@@ -2303,7 +2304,7 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
                         }
                         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
                         {
-                            snprintf(sname, 19, "0x%016llX", querymenu.value);
+                            snprintf(sname, 19, "0x%016" PRIX64, static_cast<int64_t>(querymenu.value));
                             sname[31] = '\0';
                         }
 #else
@@ -2458,7 +2459,7 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
                         }
                         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
                         {
-                            snprintf(sname, 19, "0x%016llX", querymenu.value);
+                            snprintf(sname, 19, "0x%016" PRIX64, static_cast<int64_t>(querymenu.value));
                             sname[31] = '\0';
                         }
 #else
@@ -2918,7 +2919,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnu
                     }
                     if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
                     {
-                        snprintf(sname, 19, "0x%016llX", querymenu.value);
+                        snprintf(sname, 19, "0x%016" PRIX64, static_cast<int64_t>(querymenu.value));
                         sname[31] = '\0';
                     }
 #else

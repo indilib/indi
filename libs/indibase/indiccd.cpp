@@ -2647,13 +2647,18 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
         std::string directory = UploadSettingsTP[UPLOAD_DIR].getText();
 
+        // Expand _HOME_ to this machine's home directory. Clients (e.g. Ekos) cannot
+        // know in advance what the home directory of a remote INDI server is, so they
+        // send the _HOME_ token literally and let the driver resolve it locally.
+        if (const char * home = getenv("HOME"))
+            replace_all(directory, "_HOME_", home);
 
         int maxIndex       = getFileIndex(directory, prefix,
                                           targetChip->FitsBP[0].getFormat());
 
         if (maxIndex < 0)
         {
-            LOGF_ERROR("Error iterating directory %s. %s", UploadSettingsTP[UPLOAD_DIR].getText(),
+            LOGF_ERROR("Error iterating directory %s. %s", directory.c_str(),
                        strerror(errno));
             return false;
         }
@@ -2681,7 +2686,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        std::string imageFileName = std::string(UploadSettingsTP[UPLOAD_DIR].getText()) + "/" + prefix + std::string(
+        std::string imageFileName = directory + "/" + prefix + std::string(
                                         targetChip->FitsBP[0].getFormat());
 
         fp = fopen(imageFileName.c_str(), "w");

@@ -40,7 +40,7 @@ static std::unique_ptr<EFA> steelDrive(new EFA());
 /////////////////////////////////////////////////////////////////////////////
 EFA::EFA()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     // Focuser Capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
@@ -48,8 +48,7 @@ EFA::EFA()
                       FOCUSER_CAN_ABORT    |
                       FOCUSER_CAN_REVERSE  |
                       FOCUSER_CAN_SYNC     |
-                      FOCUSER_HAS_VARIABLE_SPEED |
-                      FOCUSER_HAS_BACKLASH);
+                      FOCUSER_HAS_VARIABLE_SPEED);
 }
 
 bool EFA::initProperties()
@@ -323,6 +322,19 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         {
             const bool positiveApproach =
                 strcmp(ApproachDirectionSP[APPROACH_POSITIVE].getName(), IUFindOnSwitchName(states, names, n)) == 0;
+
+            // Skip redundant hardware write if the requested direction already matches
+            // what was read from hardware at startup (getStartupValues→readApproachDirection).
+            const bool currentPositive = (ApproachDirectionSP[APPROACH_POSITIVE].getState() == ISS_ON);
+            if (positiveApproach == currentPositive)
+            {
+                LOGF_DEBUG("Approach direction already %s; skipping hardware command.",
+                           positiveApproach ? "Positive (Outward)" : "Negative (Inward)");
+                ApproachDirectionSP.setState(IPS_OK);
+                ApproachDirectionSP.apply();
+                return true;
+            }
+
             if (setApproachDirection(positiveApproach ? 0 : 1))
             {
                 ApproachDirectionSP.update(states, names, n);
@@ -341,6 +353,19 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         {
             const bool enabled =
                 strcmp(StopDetectSP[STOP_DETECT_ON].getName(), IUFindOnSwitchName(states, names, n)) == 0;
+
+            // Skip redundant hardware write if the requested state already matches
+            // what was read from hardware at startup (getStartupValues→readStopDetect).
+            const bool currentEnabled = (StopDetectSP[STOP_DETECT_ON].getState() == ISS_ON);
+            if (enabled == currentEnabled)
+            {
+                LOGF_DEBUG("Stop detection already %s; skipping hardware command.",
+                           enabled ? "enabled" : "disabled");
+                StopDetectSP.setState(IPS_OK);
+                StopDetectSP.apply();
+                return true;
+            }
+
             if (setStopDetect(enabled))
             {
                 StopDetectSP.update(states, names, n);
@@ -466,33 +491,6 @@ bool EFA::AbortFocuser()
 bool EFA::SetFocuserSpeed(int speed)
 {
     return setMotorSlewRate(static_cast<uint8_t>(speed));
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Set Focuser Backlash Steps
-/// The INDI framework handles the software backlash compensation using this value.
-/// No hardware command is needed since EFA manages approach direction separately.
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::SetFocuserBacklash(int32_t steps)
-{
-    INDI_UNUSED(steps);
-    return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Set Focuser Backlash Enabled
-/// When the framework enables backlash compensation, we also configure the
-/// hardware approach direction to match the current ApproachDirectionSP setting.
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::SetFocuserBacklashEnabled(bool enabled)
-{
-    if (enabled)
-    {
-        // Sync the hardware approach direction with the UI selection
-        const bool positiveApproach = ApproachDirectionSP[APPROACH_POSITIVE].getState() == ISS_ON;
-        return setApproachDirection(positiveApproach ? 0 : 1);
-    }
-    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -654,8 +652,10 @@ bool EFA::saveConfigItems(FILE * fp)
     if (FanControlNP.getState() == IPS_OK)
         FanControlNP.save(fp);
     FanDisconnectSP.save(fp);
-    ApproachDirectionSP.save(fp);
-    StopDetectSP.save(fp);
+    // ApproachDirectionSP and StopDetectSP are stored in hardware EEPROM.
+    // They are read back at startup via getStartupValues() and should not
+    // be saved to or restored from config to avoid sending redundant
+    // configuration commands that could trigger focuser movement.
     return true;
 }
 
