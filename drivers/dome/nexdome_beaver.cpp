@@ -92,6 +92,10 @@ bool Beaver::initProperties()
     RotatorCalibrationSP.fill(getDefaultName(), "ROTATOR_CALIBRATION", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60,
                               IPS_IDLE);
 
+    // Rotator Abort
+    RotatorAbortSP[0].fill("ROTATOR_ABORT", "Abort", ISS_OFF);
+    RotatorAbortSP.fill(getDefaultName(), "ROTATOR_ABORT", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // Rotator Settings
     RotatorSettingsNP[ROTATOR_MAX_SPEED].fill("ROTATOR_MAX_SPEED", "Max Speed (m/s)", "%.f", 1, 1000, 10, 800);
     RotatorSettingsNP[ROTATOR_MIN_SPEED].fill("ROTATOR_MIN_SPEED", "Min Speed (m/s)", "%.f", 1, 1000, 10, 400);
@@ -105,6 +109,10 @@ bool Beaver::initProperties()
     // Shutter Home (calibrate, reset)
     ShutterCalibrationSP[SHUTTER_HOME_FIND].fill("SHUTTER_HOME_FIND", "AutoCalibrate", ISS_OFF);
     ShutterCalibrationSP.fill(getDeviceName(), "SHUTTER_CALIBRATION", "Shutter", SHUTTER_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Shutter Abort
+    ShutterAbortSP[0].fill("SHUTTER_ABORT", "Abort", ISS_OFF);
+    ShutterAbortSP.fill(getDeviceName(), "SHUTTER_ABORT", "Shutter", SHUTTER_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Shutter Settings
     ShutterSettingsNP[SHUTTER_MAX_SPEED].fill("SHUTTER_MAX_SPEED", "Max Speed (m/s)", "%.f", 1, 1000, 10, 800);
@@ -158,12 +166,14 @@ bool Beaver::updateProperties()
         defineProperty(HomePositionNP);
         defineProperty(HomeOptionsSP);
         defineProperty(RotatorCalibrationSP);
+        defineProperty(RotatorAbortSP);
         defineProperty(GotoHomeSP);
         defineProperty(RotatorSettingsNP);
         defineProperty(RotatorStatusTP);
         if (shutterOnLine())
         {
             defineProperty(ShutterCalibrationSP);
+            defineProperty(ShutterAbortSP);
             defineProperty(ShutterSettingsNP);
             defineProperty(ShutterSettingsTimeoutNP);
             defineProperty(ShutterStatusTP);
@@ -174,6 +184,7 @@ bool Beaver::updateProperties()
     {
         deleteProperty(VersionTP.getName());
         deleteProperty(RotatorCalibrationSP.getName());
+        deleteProperty(RotatorAbortSP.getName());
         deleteProperty(GotoHomeSP.getName());
         deleteProperty(HomePositionNP.getName());
         deleteProperty(HomeOptionsSP.getName());
@@ -181,6 +192,7 @@ bool Beaver::updateProperties()
         deleteProperty(ShutterSettingsTimeoutNP.getName());
         deleteProperty(RotatorStatusTP.getName());
         deleteProperty(ShutterCalibrationSP.getName());
+        deleteProperty(ShutterAbortSP.getName());
         deleteProperty(ShutterSettingsNP.getName());
         deleteProperty(ShutterStatusTP.getName());
         deleteProperty(ShutterVoltsNP.getName());
@@ -338,6 +350,18 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
 
         /////////////////////////////////////////////
+        // Rotator Abort
+        /////////////////////////////////////////////
+        if (RotatorAbortSP.isNameMatch(name))
+        {
+            RotatorAbortSP.update(states, names, n);
+            bool rc = rotatorAbort();
+            RotatorAbortSP.setState(rc ? IPS_OK : IPS_ALERT);
+            RotatorAbortSP.apply();
+            return true;
+        }
+
+        /////////////////////////////////////////////
         // Rotator Go Home
         /////////////////////////////////////////////
         if (GotoHomeSP.isNameMatch(name))
@@ -390,6 +414,18 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 setShutterState(SHUTTER_MOVING);
             ShutterCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
             ShutterCalibrationSP.apply();
+            return true;
+        }
+
+        /////////////////////////////////////////////
+        // Shutter Abort
+        /////////////////////////////////////////////
+        if (ShutterAbortSP.isNameMatch(name))
+        {
+            ShutterAbortSP.update(states, names, n);
+            bool rc = shutterAbort();
+            ShutterAbortSP.setState(rc ? IPS_OK : IPS_ALERT);
+            ShutterAbortSP.apply();
             return true;
         }
     }
@@ -1086,6 +1122,25 @@ bool Beaver::abortAll()
 {
     double res = 0;
     if (sendCommand("!dome abort 1 1 1#", res))
+    {
+        std::string rStatus = "Idle";
+        RotatorStatusTP[0].setText(rStatus);
+        RotatorStatusTP.apply();
+        if (!rotatorGetAz())
+            return false;
+        return true;
+    }
+
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// abort rotator only
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorAbort()
+{
+    double res = 0;
+    if (sendCommand("!dome abort 0 1#", res))
     {
         std::string rStatus = "Idle";
         RotatorStatusTP[0].setText(rStatus);
