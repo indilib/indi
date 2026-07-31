@@ -301,6 +301,7 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         /////////////////////////////////////////////
         if (RotatorCalibrationSP.isNameMatch(name))
         {
+            bool wasBusy = RotatorCalibrationSP.getState() == IPS_BUSY;
             RotatorCalibrationSP.update(states, names, n);
             bool rc = false;
             switch (RotatorCalibrationSP.findOnSwitchIndex())
@@ -318,6 +319,16 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 case ROTATOR_FULL_MEASURE:
                     rc = rotatorFullMeasure();
                     RotatorCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
+                    break;
+
+                default:
+                    // Button toggled off while a calibration was running: treat it as an abort request,
+                    // otherwise the switch goes idle in the UI while the dome keeps calibrating regardless.
+                    if (wasBusy)
+                    {
+                        rc = abortAll();
+                        RotatorCalibrationSP.setState(rc ? IPS_IDLE : IPS_ALERT);
+                    }
                     break;
             }
             RotatorCalibrationSP.apply();
