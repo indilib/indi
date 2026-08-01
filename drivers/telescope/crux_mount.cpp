@@ -45,7 +45,7 @@ TitanTCS::TitanTCS() : GI(this)
         TELESCOPE_CAN_ABORT |
         TELESCOPE_HAS_TIME |
         TELESCOPE_HAS_LOCATION |
-        //TELESCOPE_HAS_PIER_SIDE |
+        TELESCOPE_HAS_PIER_SIDE |
 #if USE_PEC
         TELESCOPE_HAS_PEC |
 #endif
@@ -1135,6 +1135,16 @@ bool TitanTCS::GetMountParams(bool bAll)
         {
             LOGF_DEBUG("RA %g, DEC %g", info.ra, info.dec);
             NewRaDec(info.ra, info.dec);
+
+            // Report pier side for Ekos meridian-flip automation. This mount's
+            // LX200 subset exposes no pier-side query (the ASCOM driver derives
+            // it from a separate encoder protocol we don't use), so we report the
+            // INDI-convention expected side computed from the hour angle:
+            //   HA <= 0 -> PIER_WEST, HA > 0 -> PIER_EAST.
+            // NOTE: this is the INDI convention Ekos expects; its label reads
+            // OPPOSITE to the ASCOM app's SideOfPier for the same position — that
+            // is a known INDI/ASCOM naming difference, not an error.
+            setPierSide(expectedPierSide(info.ra));
         }
     }
 
