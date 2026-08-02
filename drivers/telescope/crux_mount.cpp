@@ -126,6 +126,14 @@ bool TitanTCS::initProperties()
     IUFillTextVector(&MountInfoTP, MountInfoT, 2, getDeviceName(), "MOUNT_INFOS", "Mount Info", MAIN_CONTROL_TAB,
                      IP_RO, 60, IPS_IDLE);
 
+    // Park mode, mirroring the two options in the TitanTCS ASCOM application:
+    // park at the saved point (':hP1#', default) or lock at the current
+    // position (':hP8#'). See Park() for details.
+    ParkModeSP[PARK_MODE_AT_CURRENT].fill("PARK_MODE_AT_CURRENT", "At current position", ISS_OFF);
+    ParkModeSP[PARK_MODE_AT_SAVED].fill("PARK_MODE_AT_SAVED", "At saved position", ISS_ON);
+    ParkModeSP.fill(getDeviceName(), "PARK_MODE", "Park", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    ParkModeSP.load();
+
     TrackState = SCOPE_IDLE;
 
     return true;
@@ -143,10 +151,26 @@ bool TitanTCS::updateProperties()
         defineProperty(&PECInfoTP);
 #endif
         defineProperty(&MountInfoTP);
+        defineProperty(ParkModeSP);
         //
         TrackModeSP.reset();
         TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
         TrackState = SCOPE_TRACKING;
+        //
+        // Load saved park position, or fall back to sensible defaults (pole).
+        if(InitPark())
+        {
+            LOG_INFO("Park data loaded from file.");
+        }
+        else
+        {
+            // No saved park data — default to the celestial pole, which is
+            // where this mount physically parks (telescope points north).
+            SetAxis1ParkDefault(0.0);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 90.0 : -90.0);
+            SetAxis1Park(0.0);
+            SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 90.0 : -90.0);
+        }
         //
         GetMountParams();
     }
@@ -157,6 +181,7 @@ bool TitanTCS::updateProperties()
         deleteProperty(PECInfoTP.name);
 #endif
         deleteProperty(MountInfoTP.name);
+        deleteProperty(ParkModeSP);
         //
     }
 
@@ -183,6 +208,20 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         // Our Park()/UnPark() functions are called by the base class, and
         // GetMountParams() updates TrackState from the mount's reported status.
         // ---------------------------------------------------------------------
+        if (ParkModeSP.isNameMatch(name))
+        {
+            ParkModeSP.update(states, names, n);
+            ParkModeSP.setState(IPS_OK);
+            ParkModeSP.apply();
+            saveConfig(true, ParkModeSP.getName());
+
+            if(ParkModeSP.findOnSwitchIndex() == PARK_MODE_AT_CURRENT)
+                LOG_INFO("Park mode: lock the mount at its current position.");
+            else
+                LOG_INFO("Park mode: slew to the saved park position, then lock.");
+
+            return true;
+        }
 #if USE_PEC
         if (PECStateSP.isNameMatch(name))
         {
@@ -1046,9 +1085,9 @@ bool TitanTCS::GetMountParamsLight()
             if(m_StableCount >= 2)
             {
                 // Mount has stopped moving — safe to query full status now.
-                LOG_DEBUG("Slew/park appears complete, querying full status");
                 m_HaveLastPos = false;
                 m_StableCount = 0;
+                LOG_DEBUG("Slew/park appears complete, querying full status");
                 GetMountParams();
                 return true;
             }
@@ -1485,20 +1524,34 @@ bool TitanTCS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return SendCommand(szCommand);
 }
 // -----------------------------------------------------------------------------
+// Park. Two modes, selectable via the "Park" property on the Options tab, using
+// the mount's own firmware park commands (decoded from the TitanTCS ASCOM driver
+// serial trace):
+//
+//  PARK_MODE_AT_SAVED (default): ':hP1#' — the firmware moves to the saved park
+//    point and parks. The park point is stored in the mount (see SetCurrentPark,
+//    ':hS#'). The firmware knows the true MECHANICAL position, so this reaches
+//    the correct home on the correct side of the pier every time — something the
+//    driver cannot compute from sky coordinates near the pole.
+//
+//  PARK_MODE_AT_CURRENT: ':hP8#' — park (lock) wherever the mount currently points.
 bool TitanTCS::Park()
 {
-    LOG_INFO("Parking ...");
+    bool atCurrent = (ParkModeSP.findOnSwitchIndex() == PARK_MODE_AT_CURRENT);
+    const char *cmd = atCurrent ? ":hP8#" : ":hP1#";
 
-    if(SendCommand(":hP8#"))
-    {
-        ParkSP.setState(IPS_BUSY);
-        TrackState = SCOPE_PARKING;
-        // Reset lightweight-poll completion detection for the park slew
-        m_HaveLastPos = false;
-        m_StableCount = 0;
-        return true;
-    }
-    return false;
+    LOGF_INFO("Parking (%s) ...", atCurrent ? "at current position" : "to saved park point");
+
+    if(!SendCommand(cmd))
+        return false;
+
+    ParkSP.setState(IPS_BUSY);
+    TrackState = SCOPE_PARKING;
+    // The firmware performs any slew and the lock itself. Reset the lightweight
+    // poll detector so completion (mount stopped + $hP=2) transitions to PARKED.
+    m_HaveLastPos = false;
+    m_StableCount = 0;
+    return true;
 }
 // -----------------------------------------------------------------------------
 bool TitanTCS::UnPark()
@@ -1549,19 +1602,51 @@ bool TitanTCS::SetTrackEnabled(bool enabled)
 // -----------------------------------------------------------------------------
 bool TitanTCS::SetParkPosition(double Axis1Value, double Axis2Value)
 {
-    INDI_UNUSED(Axis1Value);
-    INDI_UNUSED(Axis2Value);
-
+    // Park data type is PARK_HA_DEC, so Axis1 = Hour Angle, Axis2 = DEC.
+    // The base class stores these values; the driver just accepts them.
+    SetAxis1Park(Axis1Value);
+    SetAxis2Park(Axis2Value);
+    LOGF_INFO("Park position set to HA %.4f h, DEC %.4f deg", Axis1Value, Axis2Value);
     return true;
 }
 
+// -----------------------------------------------------------------------------
+// Save the CURRENT mount position as the park position.
+// Park data type is PARK_HA_DEC → Axis1 = Hour Angle, Axis2 = DEC.
 bool TitanTCS::SetCurrentPark()
 {
+    // Save the current mount position as the firmware's park point using ':hS#'
+    // (the same command the TitanTCS controller and ASCOM driver use — the
+    // controller beeps and shows "Park point saved"). The firmware stores the
+    // true mechanical position, which is then reached by ':hP1#' on park. This is
+    // far more reliable than storing sky coordinates, which are degenerate at the
+    // pole where this mount homes.
+    if(!SendCommand(":hS#"))
+    {
+        LOG_ERROR("SetCurrentPark: failed to send save-park command (:hS#)");
+        return false;
+    }
+    LOG_INFO("Saved current position as the mount's park point (:hS#).");
+
+    // Keep INDI's park-position fields in sync for display only (not used for the
+    // actual firmware park, which uses the mount's own stored point).
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    double ha  = get_local_hour_angle(lst, info.ra);
+    SetAxis1Park(ha);
+    SetAxis2Park(info.dec);
     return true;
 }
 // -----------------------------------------------------------------------------
+// Default park position: the celestial pole (this mount physically parks
+// pointing north). HA is arbitrary at the pole, so use 0.
 bool TitanTCS::SetDefaultPark()
 {
+    double poleDec = (LocationNP[LOCATION_LATITUDE].getValue() >= 0) ? 90.0 : -90.0;
+
+    SetAxis1Park(0.0);
+    SetAxis2Park(poleDec);
+
+    LOGF_INFO("Default park position set: HA 0.0 h, DEC %.1f deg (pole)", poleDec);
     return true;
 }
 
