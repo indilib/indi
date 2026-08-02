@@ -587,6 +587,11 @@ bool TitanTCS::Goto(double ra, double dec)
     if(rtnCode != '0')
     {
         LOGF_ERROR("Goto / Error Code = '%c'", rtnCode);
+        // Send abort to clear the mount's internal goto-error state.
+        // Without this, the firmware retains the failed target and may
+        // set tracking status bit5 (goto-error flag), which can cause
+        // the mount to self-park after a timeout.
+        SendCommand("#:Q#");
         return false;
     }
 
@@ -1048,9 +1053,34 @@ bool TitanTCS::GetMountParams(bool bAll)
     {
         LOGF_DEBUG("Tracking Status %d", info.TrackingStatus);
 
-        if(info.TrackingStatus & 0x3C)
+        // Bits 2-3 indicate actual axis motion (RA/DEC slewing).
+        // Bits 4-5 are goto status flags. Bit5 alone (value 0x20) can
+        // indicate a goto-error/pending state where the mount is NOT
+        // physically moving. Only treat as SLEWING when axes are
+        // actually in motion (bits 2-3) or a valid goto is active
+        // (bit4 set together with motion).
+        bool axisMoving = (info.TrackingStatus & 0x0C) != 0;   // bit2 or bit3: RA/DEC slew
+        bool gotoActive = (info.TrackingStatus & 0x30) != 0;   // bit4 or bit5: goto status
+
+        if(axisMoving)
         {
             TrackState = SCOPE_SLEWING;
+        }
+        else if(gotoActive && !(info.TrackingStatus & 0x03))
+        {
+            // Goto flag set but no tracking bits — mount stopped, error state
+            LOGF_WARN("Goto error state detected (tracking status %d), sending abort", info.TrackingStatus);
+            SendCommand("#:Q#");
+            TrackState = SCOPE_IDLE;
+        }
+        else if(gotoActive && (info.TrackingStatus & 0x03))
+        {
+            // Goto flag set but mount is still tracking (e.g. status 35 = 0x23)
+            // This is the goto-error state where axes track but goto failed.
+            // Clear it and remain in tracking.
+            LOGF_WARN("Goto error flag with tracking active (status %d), sending abort", info.TrackingStatus);
+            SendCommand("#:Q#");
+            TrackState = SCOPE_TRACKING;
         }
         else if(info.TrackingStatus == 3)
         {
