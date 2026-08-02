@@ -570,6 +570,9 @@ bool TitanTCS::Goto(double ra, double dec)
     }
 
     TrackState = SCOPE_SLEWING;
+    // Reset lightweight-poll completion detection for the new slew
+    m_HaveLastPos = false;
+    m_StableCount = 0;
 
     LOG_INFO("Slewing ...");
     return true;
@@ -594,7 +597,19 @@ bool TitanTCS::ReadScopeStatus()
 {
     LOGF_DEBUG("ReadScopeStatus(s %d)", TrackState);
 
-    GetMountParams();
+    // During slewing/parking, use lightweight individual queries to avoid
+    // overloading the firmware's command processor. The composite \GE command
+    // requires significant parsing time which can interfere with step
+    // generation and cause the RA motor to stall.
+    // When tracking/idle, use the full composite query for efficiency.
+    if(TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+    {
+        GetMountParamsLight();
+    }
+    else
+    {
+        GetMountParams();
+    }
 
     return true;
 }
@@ -978,6 +993,77 @@ void TitanTCS::guideTimeoutHelperNS(void * p)
 void TitanTCS::guideTimeoutHelperWE(void * p)
 {
     static_cast<TitanTCS *>(p)->guideTimeoutWE();
+}
+
+bool TitanTCS::GetMountParamsLight()
+{
+    // Lightweight polling during slewing — individual short LX200 queries only.
+    // This avoids the composite \GE command which can overload the firmware's
+    // command processor and cause RA motor stalls during high-speed slewing.
+
+    double ra = 0, dec = 0;
+
+    // Get RA via standard LX200 :GR# command
+    if(!CommandResponseHour("#:GR#", "", '#', &ra))
+    {
+        LOG_ERROR("GetMountParamsLight: failed to read RA");
+        return false;
+    }
+
+    // Get DEC via standard LX200 :GD# command
+    if(!CommandResponseHour("#:GD#", "", '#', &dec))
+    {
+        LOG_ERROR("GetMountParamsLight: failed to read DEC");
+        return false;
+    }
+
+    LOGF_DEBUG("RA %g, DEC %g", ra, dec);
+    NewRaDec(ra, dec);
+
+    // Detect slew/park completion by watching for the position to stop changing.
+    // We only fire the (heavy) composite status query once the mount has clearly
+    // STOPPED — at that point the motors are idle and the composite command is
+    // safe (it only causes stalls during active high-speed slewing).
+    //
+    // To avoid firing during a slow deceleration phase (where a single sample
+    // might dip below threshold while still moving), we require TWO consecutive
+    // stable samples before declaring the mount stopped.
+    if(m_HaveLastPos)
+    {
+        double dRA = fabs(ra - m_LastRA);
+        double dDEC = fabs(dec - m_LastDEC);
+        // Handle RA wraparound across 0h/24h (e.g. crossing the pole)
+        if(dRA > 12.0)
+            dRA = 24.0 - dRA;
+
+        // Threshold ~0.01h (9 arcsec/poll) — well above sidereal drift (~0.07
+        // arcmin/poll) but far below any real slew speed.
+        bool stable = (dRA < 0.01 && dDEC < 0.01);
+
+        if(stable)
+        {
+            m_StableCount++;
+            if(m_StableCount >= 2)
+            {
+                // Mount has stopped moving — safe to query full status now.
+                LOG_DEBUG("Slew/park appears complete, querying full status");
+                m_HaveLastPos = false;
+                m_StableCount = 0;
+                GetMountParams();
+                return true;
+            }
+        }
+        else
+        {
+            m_StableCount = 0;
+        }
+    }
+
+    m_LastRA = ra;
+    m_LastDEC = dec;
+    m_HaveLastPos = true;
+
+    return true;
 }
 
 bool TitanTCS::GetMountParams(bool bAll)
@@ -1407,6 +1493,9 @@ bool TitanTCS::Park()
     {
         ParkSP.setState(IPS_BUSY);
         TrackState = SCOPE_PARKING;
+        // Reset lightweight-poll completion detection for the park slew
+        m_HaveLastPos = false;
+        m_StableCount = 0;
         return true;
     }
     return false;
