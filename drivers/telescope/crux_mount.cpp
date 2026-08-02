@@ -178,37 +178,11 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        int iVal = 0;
         // ---------------------------------------------------------------------
-        // Park $$$
-        if (ParkSP.isNameMatch(name))
-        {
-            ParkSP.update(states, names, n);
-            int nowIndex = ParkSP.findOnSwitchIndex();
-            if(nowIndex == 0)
-                Park();
-            else if(nowIndex == 1)
-                UnPark();
-
-            if(CommandResponse("#:hP?#", "$hP", '#', NULL, &iVal))
-            {
-                if(TrackState == SCOPE_PARKING)
-                {
-                    if(iVal == 2)
-                        TrackState = SCOPE_PARKED;
-                    else if(iVal == 0)
-                        TrackState = SCOPE_IDLE;
-                }
-                else if(TrackState == SCOPE_PARKED)
-                {
-                    if(iVal == 0)
-                        TrackState = SCOPE_IDLE;
-                }
-            }
-
-            return true;
-        }
-        //
+        // Park — let base class handle IsParked flag and property updates.
+        // Our Park()/UnPark() functions are called by the base class, and
+        // GetMountParams() updates TrackState from the mount's reported status.
+        // ---------------------------------------------------------------------
 #if USE_PEC
         if (PECStateSP.isNameMatch(name))
         {
@@ -1099,6 +1073,7 @@ bool TitanTCS::GetMountParams(bool bAll)
         if(info.Parking == 1)
         {
             TrackState = SCOPE_PARKING;
+            IsParked = false;
             ParkSP[PARK].setState(ISS_ON);
             ParkSP[UNPARK].setState(ISS_OFF);
             ParkSP.setState(IPS_BUSY);
@@ -1107,6 +1082,7 @@ bool TitanTCS::GetMountParams(bool bAll)
         else if(info.Parking == 2)
         {
             TrackState = SCOPE_PARKED;
+            IsParked = true;
             ParkSP[PARK].setState(ISS_ON);
             ParkSP[UNPARK].setState(ISS_OFF);
             ParkSP.setState(IPS_IDLE);
@@ -1114,6 +1090,7 @@ bool TitanTCS::GetMountParams(bool bAll)
         }
         else if(info.Parking == 0)
         {
+            IsParked = false;
             ParkSP.setState(IPS_IDLE);
             ParkSP[PARK].setState(ISS_OFF);
             ParkSP[UNPARK].setState(ISS_ON);
@@ -1442,7 +1419,10 @@ bool TitanTCS::UnPark()
     if(SendCommand(":hP0#"))
     {
         ParkSP.setState(IPS_BUSY);
-        TrackState = SCOPE_PARKING;
+        // Set to IDLE temporarily — GetMountParams() will update to
+        // SCOPE_TRACKING once the mount reports tracking status 3.
+        TrackState = SCOPE_IDLE;
+        SetParked(false);
         return true;
     }
     return false;
