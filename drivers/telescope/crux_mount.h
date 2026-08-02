@@ -47,6 +47,12 @@ class TitanTCS : public INDI::Telescope, public INDI::GuiderInterface
 
     private:
         int m_Connect;
+        // Lightweight-poll slew/park completion detection state
+        double m_LastRA {0};
+        double m_LastDEC {0};
+        bool   m_HaveLastPos {false};
+        int    m_StableCount {0};
+
 
     public:
         virtual const char *getDefaultName() override;
@@ -69,6 +75,15 @@ class TitanTCS : public INDI::Telescope, public INDI::GuiderInterface
         IText MountInfoT[2] {};
         int GuideNSTID { -1 };
         int GuideWETID { -1 };
+
+        // How Park() should behave. Mirrors the two options the TitanTCS ASCOM
+        // application offers, using the mount's own firmware park commands.
+        enum
+        {
+            PARK_MODE_AT_CURRENT = 0,  // ':hP8#' — lock wherever it points
+            PARK_MODE_AT_SAVED         // ':hP1#' — move to saved point, then park
+        };
+        INDI::PropertySwitch ParkModeSP {2};
 
         stTitanTCS  info;
 #if USE_PEC
@@ -124,6 +139,7 @@ class TitanTCS : public INDI::Telescope, public INDI::GuiderInterface
         bool CommandResponseChar(const char* pCommand, const char* pResponse, char* pReturn);
 
         bool GetMountParams(bool bAll = false);
+        bool GetMountParamsLight();
 
         bool GetParamStr(const char* pInStr, char* pOutStr, int len, const char* pResponse, char delimeter);
         bool GetParamNumber(const char* pInStr, char* pOutStr, int len, const char* pResponse, char delimeter, double *pDouble,
