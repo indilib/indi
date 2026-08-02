@@ -44,6 +44,8 @@ bool USBDewpoint::initProperties()
 
     SetCapability(INDI::PowerInterface::POWER_HAS_DEW_OUT | INDI::PowerInterface::POWER_HAS_AUTO_DEW);
     INDI::PowerInterface::initProperties(POWER_TAB, 0, 3, 0, 1, 0);
+    // Auto Dew is overall operation
+    AutoDewSP[0].fill("DEW_CHANNEL_1", "(Overall Operation)", ISS_OFF);
 
     /* Channel duty cycles */
     // OutputsNP[0].fill("CHANNEL1", "Channel 1", "%3.0f", 0., 100., 10., 0.);
@@ -529,9 +531,9 @@ bool USBDewpoint::readSettings()
     unsigned int threshold1, threshold2;
     unsigned int automode, linkout23, aggressivity;
 
-    int ok = sscanf(resp, UDP_STATUS_RESPONSE, &temp1, &temp2, &temp_ambient, &humidity, &dewpoint, &output1, &output2,
-                    &output3, &calibration1, &calibration2, &calibration_ambient, &threshold1, &threshold2, &automode,
-                    &linkout23, &aggressivity);
+    int ok = sscanf(resp, UDP_STATUS_RESPONSE, &temp1, &temp2, &temp_ambient, &humidity, &dewpoint, &output1,
+            &output2,&output3, &calibration1, &calibration2, &calibration_ambient, &threshold1, &threshold2,
+            &automode, &linkout23, &aggressivity);
 
     if (ok == 16)
     {
@@ -549,11 +551,33 @@ bool USBDewpoint::readSettings()
         DewpointNP.setState(IPS_OK);
         DewpointNP.apply();
 
+        /* handled by PowerInterface
         DewChannelsSP[0].setState(output1 > 0 ? ISS_ON : ISS_OFF);
         DewChannelsSP[1].setState(output2 > 0 ? ISS_ON : ISS_OFF);
         DewChannelsSP[2].setState(output3 > 0 ? ISS_ON : ISS_OFF);
         DewChannelsSP.setState(IPS_OK);
         DewChannelsSP.apply();
+        */
+
+        if (automode)
+        {
+            if (DewChannelsSP[0].getState())
+            {
+                SetDewPort(0, true, output1);
+                DewChannelDutyCycleNP[0].setValue(output1);
+            }
+            if (DewChannelsSP[1].getState())
+            {
+                SetDewPort(1, true, output2);
+                DewChannelDutyCycleNP[1].setValue(output2);
+            }
+            if (DewChannelsSP[2].getState() && LinkOut23SP[1].getState())
+            {
+                SetDewPort(2, true, output3);
+                DewChannelDutyCycleNP[2].setValue(output3);
+            }
+            DewChannelDutyCycleNP.apply();
+        }
 
         CalibrationsNP[0].setValue(calibration1);
         CalibrationsNP[1].setValue(calibration2);
@@ -566,10 +590,12 @@ bool USBDewpoint::readSettings()
         ThresholdsNP.setState(IPS_OK);
         ThresholdsNP.apply();
 
+        /* handled by PowerInterface
         AutoDewSP.reset();
         AutoDewSP[automode].setState(ISS_ON);
         AutoDewSP.setState(IPS_OK);
         AutoDewSP.apply();
+        */
 
         LinkOut23SP.reset();
         LinkOut23SP[linkout23].setState(ISS_ON);

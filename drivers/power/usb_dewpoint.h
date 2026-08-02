@@ -122,14 +122,14 @@ class USBDewpoint : public INDI::DefaultDevice, public INDI::PowerInterface
         Connection::Serial *serialConnection{ nullptr };
         int PortFD{ -1 };
 
-        INDI::PropertyNumber OutputsNP{3};
+        // INDI::PropertyNumber OutputsNP{3}; handled by PowerInterface
         INDI::PropertyNumber TemperaturesNP{3};
         INDI::PropertyNumber CalibrationsNP{3};
         INDI::PropertyNumber ThresholdsNP{2};
         INDI::PropertyNumber HumidityNP{1};
         INDI::PropertyNumber DewpointNP{1};
         INDI::PropertyNumber AggressivityNP{1};
-        INDI::PropertySwitch AutoModeSP{2};
+        // INDI::PropertySwitch AutoModeSP{2}; handled by PowerInterface
         INDI::PropertySwitch LinkOut23SP{2};
         INDI::PropertySwitch ResetSP{1};
         INDI::PropertyNumber FWversionNP{1};
