@@ -1316,7 +1316,7 @@ void AstroTrac::simulationTriggered(bool enable)
 /////////////////////////////////////////////////////////////////////////////
 /// Handle Simulation Command
 /////////////////////////////////////////////////////////////////////////////
-bool AstroTrac::handleSimulationCommand(const char *cmd, char *res, int cmd_len, int res_len)
+bool AstroTrac::handleSimulationCommand(const char *cmd, char *res, size_t cmd_len, size_t res_len)
 {
     INDI_UNUSED(cmd_len);
 
@@ -1389,7 +1389,7 @@ bool AstroTrac::handleSimulationCommand(const char *cmd, char *res, int cmd_len,
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool AstroTrac::sendCommand(const char *cmd, char *res, int cmd_len, int res_len)
+bool AstroTrac::sendCommand(const char *cmd, char *res, size_t cmd_len, size_t res_len)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
@@ -1398,7 +1398,7 @@ bool AstroTrac::sendCommand(const char *cmd, char *res, int cmd_len, int res_len
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if (cmd_len > 0)
+    if (cmd_len < DRIVER_LEN)
     {
         char hex_cmd[DRIVER_LEN * 3] = {0};
         hexDump(hex_cmd, cmd, cmd_len);
@@ -1425,7 +1425,7 @@ bool AstroTrac::sendCommand(const char *cmd, char *res, int cmd_len, int res_len
         return true;
     }
 
-    if (res_len > 0)
+    if (res_len < DRIVER_LEN)
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
     else
         rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
@@ -1438,7 +1438,7 @@ bool AstroTrac::sendCommand(const char *cmd, char *res, int cmd_len, int res_len
         return false;
     }
 
-    if (res_len > 0)
+    if (res_len < DRIVER_LEN)
     {
         char hex_res[DRIVER_LEN * 3] = {0};
         hexDump(hex_res, res, res_len);
@@ -1457,12 +1457,12 @@ bool AstroTrac::sendCommand(const char *cmd, char *res, int cmd_len, int res_len
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void AstroTrac::hexDump(char *buf, const char *data, int size)
+void AstroTrac::hexDump(char *buf, const char *data, size_t size)
 {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < size; i++)
         sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
 
-    if (size > 0)
+    if (size > 0 && size < DRIVER_LEN)
         buf[3 * size - 1] = '\0';
 }
 
