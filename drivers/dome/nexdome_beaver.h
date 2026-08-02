@@ -100,11 +100,13 @@ class Beaver : public INDI::Dome
         bool rotatorGotoHome();
         bool rotatorMeasureHome();
         bool rotatorFindHome();
+        bool rotatorFullMeasure();
         bool rotatorIsHome();
         bool rotatorIsParked();
         bool rotatorUnPark();
         bool rotatorSetPark();
         bool abortAll();
+        bool rotatorAbort();
 
         bool rotatorGetSettings();
         bool rotatorSetSettings(double maxSpeed, double minSpeed, double acceleration, double timeout);
@@ -153,18 +155,23 @@ class Beaver : public INDI::Dome
         // Shutter Status
         INDI::PropertyText ShutterStatusTP {1};
         // Rotator Calibration
-        INDI::PropertySwitch RotatorCalibrationSP {2};
+        INDI::PropertySwitch RotatorCalibrationSP {3};
         enum
         {
             ROTATOR_HOME_FIND,
-            ROTATOR_HOME_MEASURE
+            ROTATOR_HOME_MEASURE,
+            ROTATOR_FULL_MEASURE
         };
+        // Rotator Abort
+        INDI::PropertySwitch RotatorAbortSP {1};
         // Shutter Calibration
         INDI::PropertySwitch ShutterCalibrationSP {1};
         enum
         {
             SHUTTER_HOME_FIND
         };
+        // Shutter Abort
+        INDI::PropertySwitch ShutterAbortSP {1};
         // Shutter Configuration
         INDI::PropertyNumber ShutterSettingsNP {4};
         enum

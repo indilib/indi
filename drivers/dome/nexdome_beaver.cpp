@@ -88,8 +88,13 @@ bool Beaver::initProperties()
     // Rotator Calibrations
     RotatorCalibrationSP[ROTATOR_HOME_FIND].fill("ROTATOR_HOME_FIND", "Find Home", ISS_OFF);
     RotatorCalibrationSP[ROTATOR_HOME_MEASURE].fill("ROTATOR_HOME_MEASURE", "Measure Home", ISS_OFF);
+    RotatorCalibrationSP[ROTATOR_FULL_MEASURE].fill("ROTATOR_FULL_MEASURE", "Full Measurement", ISS_OFF);
     RotatorCalibrationSP.fill(getDefaultName(), "ROTATOR_CALIBRATION", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60,
                               IPS_IDLE);
+
+    // Rotator Abort
+    RotatorAbortSP[0].fill("ROTATOR_ABORT", "Abort", ISS_OFF);
+    RotatorAbortSP.fill(getDefaultName(), "ROTATOR_ABORT", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Rotator Settings
     RotatorSettingsNP[ROTATOR_MAX_SPEED].fill("ROTATOR_MAX_SPEED", "Max Speed (m/s)", "%.f", 1, 1000, 10, 800);
@@ -104,6 +109,10 @@ bool Beaver::initProperties()
     // Shutter Home (calibrate, reset)
     ShutterCalibrationSP[SHUTTER_HOME_FIND].fill("SHUTTER_HOME_FIND", "AutoCalibrate", ISS_OFF);
     ShutterCalibrationSP.fill(getDeviceName(), "SHUTTER_CALIBRATION", "Shutter", SHUTTER_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Shutter Abort
+    ShutterAbortSP[0].fill("SHUTTER_ABORT", "Abort", ISS_OFF);
+    ShutterAbortSP.fill(getDeviceName(), "SHUTTER_ABORT", "Shutter", SHUTTER_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Shutter Settings
     ShutterSettingsNP[SHUTTER_MAX_SPEED].fill("SHUTTER_MAX_SPEED", "Max Speed (m/s)", "%.f", 1, 1000, 10, 800);
@@ -129,7 +138,6 @@ bool Beaver::initProperties()
     tcpConnection->setDefaultHost("192.168.1.1");
     tcpConnection->setDefaultPort(10000);
     tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
-    tty_set_generic_udp_format(1);
     addDebugControl();
     return true;
 }
@@ -158,12 +166,14 @@ bool Beaver::updateProperties()
         defineProperty(HomePositionNP);
         defineProperty(HomeOptionsSP);
         defineProperty(RotatorCalibrationSP);
+        defineProperty(RotatorAbortSP);
         defineProperty(GotoHomeSP);
         defineProperty(RotatorSettingsNP);
         defineProperty(RotatorStatusTP);
         if (shutterOnLine())
         {
             defineProperty(ShutterCalibrationSP);
+            defineProperty(ShutterAbortSP);
             defineProperty(ShutterSettingsNP);
             defineProperty(ShutterSettingsTimeoutNP);
             defineProperty(ShutterStatusTP);
@@ -174,6 +184,7 @@ bool Beaver::updateProperties()
     {
         deleteProperty(VersionTP.getName());
         deleteProperty(RotatorCalibrationSP.getName());
+        deleteProperty(RotatorAbortSP.getName());
         deleteProperty(GotoHomeSP.getName());
         deleteProperty(HomePositionNP.getName());
         deleteProperty(HomeOptionsSP.getName());
@@ -181,6 +192,7 @@ bool Beaver::updateProperties()
         deleteProperty(ShutterSettingsTimeoutNP.getName());
         deleteProperty(RotatorStatusTP.getName());
         deleteProperty(ShutterCalibrationSP.getName());
+        deleteProperty(ShutterAbortSP.getName());
         deleteProperty(ShutterSettingsNP.getName());
         deleteProperty(ShutterStatusTP.getName());
         deleteProperty(ShutterVoltsNP.getName());
@@ -195,6 +207,15 @@ bool Beaver::updateProperties()
 //////////////////////////////////////////////////////////////////////////////
 bool Beaver::Handshake()
 {
+    // tty_generic_udp_format is a process-global flag in indicom.c: it must
+    // only be on while the active connection is really our UDP socket. Left
+    // on unconditionally (as it used to be, set once in initProperties()) it
+    // also hijacks the serial connection's tty_nread_section reads, which
+    // then do a single non-looping datagram-style read instead of accumulating
+    // bytes until the stop character, corrupting any reply that arrives
+    // split across more than one low-level USB-serial read.
+    tty_set_generic_udp_format(getActiveConnection() == tcpConnection ? 1 : 0);
+
     if (echo())
     {
         // Check if shutter is online
@@ -236,6 +257,11 @@ bool Beaver::echo()
     LOGF_DEBUG("Version string returned %s", resString.c_str());
     std::regex e(R"(.*:\d*:(.*))");
     std::sregex_iterator iter(resString.begin(), resString.end(), e);
+    if (iter == std::sregex_iterator())
+    {
+        LOGF_ERROR("Unexpected version response: %s", resString.c_str());
+        return false;
+    }
     VersionTP[0].setText((*iter)[1]);
 
     // retrieve the current az from the dome
@@ -287,6 +313,7 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         /////////////////////////////////////////////
         if (RotatorCalibrationSP.isNameMatch(name))
         {
+            bool wasMoving = getDomeState() == DOME_MOVING;
             RotatorCalibrationSP.update(states, names, n);
             bool rc = false;
             switch (RotatorCalibrationSP.findOnSwitchIndex())
@@ -300,8 +327,37 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     rc = rotatorMeasureHome();
                     RotatorCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
                     break;
+
+                case ROTATOR_FULL_MEASURE:
+                    rc = rotatorFullMeasure();
+                    RotatorCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
+                    break;
+
+                default:
+                    // Button toggled off while the dome was still moving: treat it as an abort request,
+                    // otherwise the switch goes idle in the UI while the dome keeps calibrating regardless.
+                    // Checked against actual dome motion (not just this property's state), since a rejected
+                    // re-start attempt (dome already busy) leaves the property in IPS_ALERT, not IPS_BUSY.
+                    if (wasMoving)
+                    {
+                        rc = abortAll();
+                        RotatorCalibrationSP.setState(rc ? IPS_IDLE : IPS_ALERT);
+                    }
+                    break;
             }
             RotatorCalibrationSP.apply();
+            return true;
+        }
+
+        /////////////////////////////////////////////
+        // Rotator Abort
+        /////////////////////////////////////////////
+        if (RotatorAbortSP.isNameMatch(name))
+        {
+            RotatorAbortSP.update(states, names, n);
+            bool rc = rotatorAbort();
+            RotatorAbortSP.setState(rc ? IPS_OK : IPS_ALERT);
+            RotatorAbortSP.apply();
             return true;
         }
 
@@ -358,6 +414,18 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 setShutterState(SHUTTER_MOVING);
             ShutterCalibrationSP.setState(rc ? IPS_BUSY : IPS_ALERT);
             ShutterCalibrationSP.apply();
+            return true;
+        }
+
+        /////////////////////////////////////////////
+        // Shutter Abort
+        /////////////////////////////////////////////
+        if (ShutterAbortSP.isNameMatch(name))
+        {
+            ShutterAbortSP.update(states, names, n);
+            bool rc = shutterAbort();
+            ShutterAbortSP.setState(rc ? IPS_OK : IPS_ALERT);
+            ShutterAbortSP.apply();
             return true;
         }
     }
@@ -506,6 +574,16 @@ void Beaver::TimerHit()
         }
         // Finding Home completed
         else if (!strcmp(RotatorStatusTP[0].getText(), "Finding Home"))
+        {
+            setDomeState(DOME_IDLE);
+            RotatorCalibrationSP.setState(IPS_OK);
+            RotatorCalibrationSP.apply();
+            std::string rStatus = "Home";
+            RotatorStatusTP[0].setText(rStatus);
+            RotatorStatusTP.setState(IPS_OK);
+        }
+        // Full dome measurement completed
+        else if (!strcmp(RotatorStatusTP[0].getText(), "Measuring Full Dome"))
         {
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
@@ -887,6 +965,11 @@ bool Beaver::rotatorMeasureHome()
     double res = 0;
     if (sendCommand("!dome autocalrot 1#", res))
     {
+        if (res < 0)
+        {
+            LOGF_ERROR("Rotator refused to start measuring home, error code: %.0f", res);
+            return false;
+        }
         setDomeState(DOME_MOVING);
         std::string rStatus = "Measuring Home";
         RotatorStatusTP[0].setText(rStatus);
@@ -904,8 +987,36 @@ bool Beaver::rotatorFindHome()
     double res = 0;
     if (sendCommand("!dome autocalrot 0#", res))
     {
+        if (res < 0)
+        {
+            LOGF_ERROR("Rotator refused to start finding home, error code: %.0f", res);
+            return false;
+        }
         setDomeState(DOME_MOVING);
         std::string rStatus = "Finding Home";
+        RotatorStatusTP[0].setText(rStatus);
+        RotatorStatusTP.apply();
+        return true;
+    }
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// full dome measurement: one complete turn to measure steps/degree plus
+/// home position, then a final home measurement pass
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorFullMeasure()
+{
+    double res = 0;
+    if (sendCommand("!dome autocalrot 2#", res))
+    {
+        if (res < 0)
+        {
+            LOGF_ERROR("Rotator refused to start full measurement, error code: %.0f", res);
+            return false;
+        }
+        setDomeState(DOME_MOVING);
+        std::string rStatus = "Measuring Full Dome";
         RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         return true;
@@ -1011,6 +1122,25 @@ bool Beaver::abortAll()
 {
     double res = 0;
     if (sendCommand("!dome abort 1 1 1#", res))
+    {
+        std::string rStatus = "Idle";
+        RotatorStatusTP[0].setText(rStatus);
+        RotatorStatusTP.apply();
+        if (!rotatorGetAz())
+            return false;
+        return true;
+    }
+
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// abort rotator only
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorAbort()
+{
+    double res = 0;
+    if (sendCommand("!dome abort 0 1#", res))
     {
         std::string rStatus = "Idle";
         RotatorStatusTP[0].setText(rStatus);
@@ -1270,7 +1400,11 @@ bool Beaver::sendRawCommand(const char * cmd, char * response)
 
         if (rc != TTY_OK)
         {
-            // wait and try again
+            // Response didn't arrive whole 
+            // Drop whatever is still pending before resending, otherwise the next
+            // read picks up the tail of this reply and misreads it as the
+            // answer to the retry.
+            tcflush(PortFD, TCIFLUSH);
             usleep(100000);
             continue;
         }
