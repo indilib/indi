@@ -43,7 +43,7 @@ static std::unique_ptr<IEQPro> scope(new IEQPro());
 
 IEQPro::IEQPro(): GI(this)
 {
-    setVersion(1, 9);
+    setVersion(1, 10);
 
     driver.reset(new Base());
 
@@ -386,10 +386,28 @@ bool IEQPro::ReadScopeStatus()
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
+                // If a Home operation was in progress, mark it complete.
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                    LOG_INFO("Mount arrived at home position.");
+                }
                 break;
             case ST_HOME:
                 TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
+                // The mount reports ST_HOME once it settles on the home switch.
+                // Clear the Home property only if a Home operation was actually
+                // requested (it is BUSY); the mount also reports ST_HOME at rest.
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                    LOG_INFO("Mount arrived at home position.");
+                }
                 break;
             case ST_SLEWING:
             case ST_MERIDIAN_FLIPPING:
