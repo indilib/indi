@@ -6,6 +6,7 @@
         Thomas Olson, Copyright (C) 2019
         Karl Rees, Copyright (C) 2019-2023
         Martin Ruiz, Copyright (C) 2023
+        Daniel Karnaukh, Copyright (C) 2026
 
     Based on IEQPro driver.
 
@@ -344,8 +345,8 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
             if (detect_pmc8(fd))
             {
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "Connected to PMC8 using a standard-configured FTDI cable."
-                                                                    "Your mount will reset and lose its position anytime you disconnect and reconnect."
-                                                                    "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");
+                            "Your mount will reset and lose its position anytime you disconnect and reconnect."
+                            "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");
                 return true;
             }
             usleep(PMC8_RETRY_DELAY);
@@ -2079,6 +2080,26 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
     }
 }
 
+INDI::Telescope::TelescopePierSide currentSideOfPier(int decCounts)
+{
+    // Northern hemisphere
+    if (pmc8_east_dir)
+    {
+        if (decCounts > 0)
+            return INDI::Telescope::PIER_WEST;
+        else
+            return INDI::Telescope::PIER_EAST;
+    }
+    // Southern hemisphere
+    else
+    {
+        if (decCounts >= 0)
+            return INDI::Telescope::PIER_EAST;
+        else
+            return INDI::Telescope::PIER_WEST;
+    }
+}
+
 bool sync_pmc8(int fd, double ra, double dec)
 {
     bool rc;
@@ -2171,7 +2192,7 @@ bool set_pmc8_radec(int fd, double ra, double dec)
     return true;
 }
 
-bool get_pmc8_coords(int fd, double &ra, double &dec)
+bool get_pmc8_coords(int fd, double &ra, double &dec, INDI::Telescope::TelescopePierSide &sop)
 {
     int racounts, deccounts;
     bool rc;
@@ -2180,8 +2201,6 @@ bool get_pmc8_coords(int fd, double &ra, double &dec)
     {
         // sortof silly but convert simulated RA/DEC to counts so we can then convert
         // back to RA/DEC to test that conversion code
-        INDI::Telescope::TelescopePierSide sop;
-
         sop = destSideOfPier(simPMC8Data.ra, simPMC8Data.dec);
 
         rc = convert_ra_to_motor(simPMC8Data.ra, sop, &racounts);
@@ -2197,6 +2216,7 @@ bool get_pmc8_coords(int fd, double &ra, double &dec)
     else
     {
         rc = get_pmc8_position(fd, racounts, deccounts);
+        sop = currentSideOfPier(deccounts);
     }
 
     if (!rc)
