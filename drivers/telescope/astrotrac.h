@@ -139,14 +139,15 @@ class AstroTrac :
                  * @param cmd Command to be sent. Can be either NULL TERMINATED or just byte buffer.
                  * @param res If not nullptr, the function will wait for a response from the device. If nullptr, it returns true immediately
                  * after the command is successfully sent.
-                 * @param cmd_len if -1, it is assumed that the @a cmd is a null-terminated string. Otherwise, it would write @a cmd_len bytes from
-                 * the @a cmd buffer.
-                 * @param res_len if -1 and if @a res is not nullptr, the function will read until it detects the default delimiter DRIVER_STOP_CHAR
-                 *  up to DRIVER_LEN length. Otherwise, the function will read @a res_len from the device and store it in @a res.
+                 * @param cmd_len if equal or bigger than DRIVER_LEN, it is assumed that the @a cmd is a null-terminated string.
+		 *  Otherwise, it would write @a cmd_len bytes from the @a cmd buffer.
+                 * @param res_len if equal or bigger than DRIVER_LEN and if @a res is not nullptr, the function will read until it
+		 *  detects the default delimiter DRIVER_STOP_CHAR up to DRIVER_LEN length. Otherwise, the function will read @a res_len
+		 *  from the device and store it in @a res.
                  * @return True if successful, false otherwise.
         */
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
-        void hexDump(char * buf, const char * data, int size);
+        bool sendCommand(const char * cmd, char * res = nullptr, size_t cmd_len = DRIVER_LEN, size_t res_len = DRIVER_LEN);
+        void hexDump(char * buf, const char * data, size_t size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -190,7 +191,7 @@ class AstroTrac :
         // Process very simply mount simulation. No meridian flips.
         void simulateMount();
         // Process basic commands.
-        bool handleSimulationCommand(const char * cmd, char * res, int cmd_len, int res_len);
+        bool handleSimulationCommand(const char * cmd, char * res, size_t cmd_len, size_t res_len);
 
         /// Mount internal coordinates
         INDI::IEquatorialCoordinates m_MountInternalCoordinates;
