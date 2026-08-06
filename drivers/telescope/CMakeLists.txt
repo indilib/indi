@@ -77,7 +77,8 @@ add_executable(indi_lx200generic
     ioptronHC8406.cpp
     eq500x.cpp
     lx200_esp32go.cpp
-    toup_sh20.cpp)
+    toup_sh20.cpp
+    lx200_proxisky.cpp)
 
 if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=700)
@@ -111,6 +112,7 @@ execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_eq500x_telescope)\n
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_esp32go)\n
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_touptek_sh20)\n
+execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_proxisky)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 
