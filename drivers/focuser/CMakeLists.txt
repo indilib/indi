@@ -425,3 +425,12 @@ SET(askar_waf_SRC
 add_executable(indi_askar_waf_focus ${askar_waf_SRC})
 target_link_libraries(indi_askar_waf_focus indidriver)
 install(TARGETS indi_askar_waf_focus RUNTIME DESTINATION bin)
+
+# ############### IKun Focuser ################
+set(ikunfocuser_SRC
+    ikunfocuser.cpp
+    ikunfocuser_protocol.cpp)
+
+add_executable(indi_ikun_focuser ${ikunfocuser_SRC})
+target_link_libraries(indi_ikun_focuser indidriver)
+install(TARGETS indi_ikun_focuser RUNTIME DESTINATION bin)
