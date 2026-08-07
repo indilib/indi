@@ -112,3 +112,15 @@ SET(svbonypowerbox_SRC
 add_executable(indi_svbony_powerbox ${svbonypowerbox_SRC})
 target_link_libraries(indi_svbony_powerbox indidriver)
 install(TARGETS indi_svbony_powerbox RUNTIME DESTINATION bin)
+
+# ########## Gemini Power Box Hub Advanced v3 ###############
+SET(gemini_pbh_SRC
+    indi_gemini_pbh.cpp
+    indi-gemini-pbh/device.cpp
+    indi-gemini-pbh/discovery.cpp
+    indi-gemini-pbh/instrumentation.cpp
+    indi-gemini-pbh/protocol.cpp)
+
+add_executable(indi_gemini_pbh ${gemini_pbh_SRC})
+target_link_libraries(indi_gemini_pbh indidriver)
+install(TARGETS indi_gemini_pbh RUNTIME DESTINATION bin)
