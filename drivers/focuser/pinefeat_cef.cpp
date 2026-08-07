@@ -34,7 +34,7 @@ static std::unique_ptr<PinefeatCEF> pinefeatCEF(new PinefeatCEF());
 
 PinefeatCEF::PinefeatCEF()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
 
