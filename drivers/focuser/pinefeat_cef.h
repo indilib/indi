@@ -78,6 +78,8 @@ class PinefeatCEF : public INDI::Focuser
 
         INDI::PropertyText FocusDistanceTP {1};
 
+        INDI::PropertyText FirmwareTP {1};
+
         // CEF Buffer Size
         static const uint8_t CEF_BUF { 16 };
 
@@ -88,4 +90,6 @@ class PinefeatCEF : public INDI::Focuser
         static const uint8_t CEF_TIMEOUT { 3 };
 
         std::chrono::steady_clock::time_point lastUpdate;
+
+        uint16_t firmwareMinor {0};
 };
