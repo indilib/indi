@@ -460,6 +460,10 @@
         </device>
     </devGroup>
     <devGroup group="Focusers">
+        <device label="IKun Focuser" manufacturer="IKun">
+            <driver name="IKun Focuser">indi_ikun_focuser</driver>
+            <version>1.0</version>
+        </device>
         <device label="Alpaca Focuser" manufacturer="Alpaca">
             <driver name="Alpaca Focuser">indi_alpaca_focuser</driver>
             <version>1.0</version>
