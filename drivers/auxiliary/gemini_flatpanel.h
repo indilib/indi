@@ -60,6 +60,7 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         void cleanupSwitch(INDI::PropertySwitch &currentSwitch, int switchIndex);
         void onBeepChange();
         void onBrightnessModeChange();
+        void applyFilterBrightnessMode(int index);
 
     private:
         // Serial connection
@@ -83,6 +84,11 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         int prevMotorStatus{-1};
         int prevBrightness{-1};
         int configStatus{GEMINI_CONFIG_NOTREADY};
+
+        // Index of the currently active filter slot (per FilterSlotChanged()), used to
+        // apply a per-filter brightness mode preset immediately when it is toggled
+        // while that filter is already selected. -1 while unknown.
+        int currentFilterIndex{-1};
 
         // State update methods
         bool updateCoverStatus(char coverStatus);

@@ -182,6 +182,22 @@ bool GeminiFlatpanel::ISNewSwitch(const char *dev, const char *name, ISState *st
             FilterBrightnessModeSP.setState(IPS_OK);
             FilterBrightnessModeSP.apply();
             saveConfig(FilterBrightnessModeSP);
+
+            // If the toggled preset belongs to the filter that is currently active,
+            // apply it to the device right away -- otherwise the change silently only
+            // takes effect the next time the filter wheel switches away and back.
+            if (currentFilterIndex >= 0 && static_cast<uint32_t>(currentFilterIndex) < FilterBrightnessModeSP.count())
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    if (FilterBrightnessModeSP[currentFilterIndex].isNameMatch(names[i]))
+                    {
+                        applyFilterBrightnessMode(currentFilterIndex);
+                        break;
+                    }
+                }
+            }
+
             return true;
         }
 
@@ -347,6 +363,11 @@ void GeminiFlatpanel::onBrightnessModeChange()
 
 void GeminiFlatpanel::FilterNamesUpdated(const std::vector<std::string> &filterNames)
 {
+    // The filter list is being rebuilt, so any previously tracked active index no
+    // longer necessarily points at the same filter -- it will be restored by the
+    // next FilterSlotChanged() call.
+    currentFilterIndex = -1;
+
     // Build the list unconditionally, even before the device is connected: a snoop
     // update can arrive as soon as the driver starts (IDSnoopDevice is registered in
     // initProperties()), well before adapter exists. If we bailed out here, the
@@ -379,6 +400,17 @@ void GeminiFlatpanel::FilterNamesUpdated(const std::vector<std::string> &filterN
 }
 
 void GeminiFlatpanel::FilterSlotChanged(int index)
+{
+    currentFilterIndex = index;
+    applyFilterBrightnessMode(index);
+}
+
+// Applies the per-filter brightness mode preset at the given index to the device,
+// and reflects the result in the global BrightnessModeSP. Called both when the
+// active filter changes and when a preset for the currently active filter is
+// toggled directly, so the toggle takes effect immediately instead of only on the
+// next filter change.
+void GeminiFlatpanel::applyFilterBrightnessMode(int index)
 {
     if (!adapter || !adapter->supportsBrightnessMode())
         return;
