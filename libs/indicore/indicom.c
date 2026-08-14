@@ -51,6 +51,7 @@
 #include <time.h>
 
 #if !defined(_WIN32) && !defined(__CYGWIN__)
+#include <sys/socket.h>
 #include <netinet/in.h>
 #endif
 
