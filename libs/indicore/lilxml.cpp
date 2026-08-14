@@ -299,7 +299,7 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
         /* EOF? */
         if (newc == 0)
         {
-            sprintf(ynot, "Line %d: early XML EOF", lp->ln);
+            snprintf(ynot, XML_ERROR_SIZE, "Line %d: early XML EOF", lp->ln);
             initParser(lp);
             curr++;
             continue;
@@ -393,7 +393,7 @@ XMLEle *readXMLEle(LilXML *lp, int newc, char ynot[])
     /* EOF? */
     if (newc == 0)
     {
-        sprintf(ynot, "Line %d: early XML EOF", lp->ln);
+        snprintf(ynot, XML_ERROR_SIZE, "Line %d: early XML EOF", lp->ln);
         initParser(lp);
         return (NULL);
     }
@@ -479,7 +479,7 @@ XMLEle *parseXML(char buf[], char ynot[])
 XMLEle *cloneXMLEle(XMLEle *ep)
 {
     char *buf;
-    char ynot[1024];
+    char ynot[XML_ERROR_SIZE];
     XMLEle *newep;
 
     buf = (char*)(*mymalloc)(sprlXMLEle(ep, 0) + 1);
@@ -1083,7 +1083,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             }
             else if (!isspace(c))
             {
-                sprintf(ynot, "Line %d: Bogus tag char %c", lp->ln, c);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: Bogus tag char %c", lp->ln, c);
                 return (-1);
             }
             break;
@@ -1112,7 +1112,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             }
             else if (!isspace(c))
             {
-                sprintf(ynot, "Line %d: Bogus leading attr name char: %c", lp->ln, c);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: Bogus leading attr name char: %c", lp->ln, c);
                 return (-1);
             }
             break;
@@ -1127,7 +1127,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             }
             else
             {
-                sprintf(ynot, "Line %d: Bogus char %c before >", lp->ln, c);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: Bogus char %c before >", lp->ln, c);
                 return (-1);
             }
             break;
@@ -1139,7 +1139,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
                 lp->cs = LOOK4ATTRV;
             else
             {
-                sprintf(ynot, "Line %d: Bogus attr name char: %c", lp->ln, c);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: Bogus attr name char: %c", lp->ln, c);
                 return (-1);
             }
             break;
@@ -1152,7 +1152,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             }
             else if (!(isspace(c) || c == '='))
             {
-                sprintf(ynot, "Line %d: No value for attribute %s", lp->ln, lp->ce->at[lp->ce->nat - 1]->name.s);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: No value for attribute %s", lp->ln, lp->ce->at[lp->ce->nat - 1]->name.s);
                 return (-1);
             }
             break;
@@ -1266,7 +1266,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             }
             else if (!isspace(c))
             {
-                sprintf(ynot, "Line %d: Bogus preend tag char %c", lp->ln, c);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: Bogus preend tag char %c", lp->ln, c);
                 return (-1);
             }
             break;
@@ -1278,7 +1278,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             {
                 if (strcmp(lp->ce->tag.s, lp->endtag.s))
                 {
-                    sprintf(ynot, "Line %d: closing tag %s does not match %s", lp->ln, lp->endtag.s, lp->ce->tag.s);
+                    snprintf(ynot, XML_ERROR_SIZE, "Line %d: closing tag %s does not match %s", lp->ln, lp->endtag.s, lp->ce->tag.s);
                     return (-1);
                 }
                 else if (lp->ce->pe)
@@ -1291,7 +1291,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
             }
             else if (!isspace(c))
             {
-                sprintf(ynot, "Line %d: Bogus end tag char %c", lp->ln, c);
+                snprintf(ynot, XML_ERROR_SIZE, "Line %d: Bogus end tag char %c", lp->ln, c);
                 return (-1);
             }
             break;
@@ -1473,7 +1473,7 @@ static void *moremem(void *old, size_t n)
 int main(int ac, char *av[])
 {
     LilXML *lp = newLilXML();
-    char ynot[1024];
+    char ynot[XML_ERROR_SIZE];
     XMLEle *root;
 
     root = readXMLFile(stdin, lp, ynot);

@@ -726,7 +726,7 @@ bool JoyStick::loadCalibrationData()
         return false; // file does not exist yet — normal on first use
 
     LilXML *lp = newLilXML();
-    static char errmsg[512];
+    static char errmsg[XML_ERROR_SIZE];
     XMLEle *root = readXMLFile(fp, lp, errmsg);
     fclose(fp);
     delLilXML(lp);
@@ -821,7 +821,7 @@ bool JoyStick::saveCalibrationData()
         if (fp)
         {
             LilXML *lp = newLilXML();
-            static char errmsg[512];
+            static char errmsg[XML_ERROR_SIZE];
             root = readXMLFile(fp, lp, errmsg);
             fclose(fp);
             delLilXML(lp);

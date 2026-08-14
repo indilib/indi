@@ -256,7 +256,7 @@ int DefaultDevicePrivate::loadINDINicknamesXML(const char *devicename)
     XMLEle *NickXmlRoot = nullptr;
     XMLEle *devicexml = nullptr;
     XMLEle *nickxml = nullptr;
-    static char errmsg[512];
+    static char errmsg[XML_ERROR_SIZE];
     memset(errmsg, 0, sizeof(errmsg)); // Clear anything from prior run
     FILE *fp = fopen(filename.c_str(), "r");
     if (fp)
@@ -343,7 +343,7 @@ int DefaultDevicePrivate::saveINDINicknamesXML(const char *devicename)
     XMLEle *NickXmlRoot = nullptr;
     XMLEle *devicexml = nullptr;
     XMLEle *nickxml = nullptr;
-    static char errmsg[512];
+    static char errmsg[XML_ERROR_SIZE];
     memset(errmsg, 0, sizeof(errmsg)); // Clear anything from prior run
     FILE *fp = fopen(filename.c_str(), "r+");
     if (fp)

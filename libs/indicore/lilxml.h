@@ -66,6 +66,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <stdio.h>
 
+/* size every caller must allocate for the errmsg[]/ynot[] buffer passed to
+ * parseXMLChunk(), readXMLEle(), readXMLFile() and parseXML(). Error text
+ * is always truncated to fit this size, no matter how long the offending
+ * XML token is. */
+#define XML_ERROR_SIZE 1024
+
 #ifdef __cplusplus
 extern "C" {
 #endif
