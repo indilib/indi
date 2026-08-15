@@ -184,7 +184,7 @@ bool Communicator::readPacket(int portFD, Packet &reply)
         return false;
     }
 
-    int len = rxbuf[0];
+    size_t len = static_cast<unsigned char>(rxbuf[0]);
     buffer packet;
     packet.reserve(2 + len + 1);
     packet.push_back(Packet::AUX_HDR);
