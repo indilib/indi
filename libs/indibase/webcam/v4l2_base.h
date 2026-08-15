@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <cstdlib>
 #include <map>
+#include <string>
 
 #include <dirent.h>
 #ifdef __OpenBSD__
