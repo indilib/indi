@@ -397,12 +397,12 @@ int tty_timeout(int fd, int timeout)
 
 int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds)
 {
-    #if defined(_WIN32) || defined(ANDROID)
+#if defined(_WIN32) || defined(ANDROID)
     INDI_UNUSED(fd);
     INDI_UNUSED(timeout_seconds);
     INDI_UNUSED(timeout_microseconds);
     return TTY_ERRNO;
-    #else
+#else
 
     if (fd == -1)
         return TTY_ERRNO;
@@ -431,7 +431,7 @@ int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microsec
     else
         return TTY_TIME_OUT;
 
-    #endif
+#endif
 }
 
 int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
