@@ -50,49 +50,30 @@
 #include <string.h>
 #include <time.h>
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <termios.h>
+#include <sys/param.h>
+#include <sys/ioctl.h>
+#define PARITY_NONE 0
+#define PARITY_EVEN 1
+#define PARITY_ODD  2
+#endif
+
 #if !defined(_WIN32) && !defined(__CYGWIN__)
 #include <sys/socket.h>
 #include <netinet/in.h>
 #endif
 
-
-#if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#include <sys/ioctl.h>
-#endif
-
 #ifdef __APPLE__
-#include <sys/param.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
-#endif
-
-#ifdef __FreeBSD__
-#include <sys/param.h>
-#endif
-
-#if defined(BSD) && !defined(__GNU__)
-#ifdef __APPLE__
 #include <IOKit/serial/ioss.h>
-#endif
-#include <sys/ioctl.h>
-#endif
-
-#ifdef __GNU__
-#include <sys/ioctl.h>
 #endif
 
 #ifdef _WIN32
 #undef CX
 #undef CY
-#endif
-
-#ifndef _WIN32
-#include <unistd.h>
-#include <termios.h>
-#include <sys/param.h>
-#define PARITY_NONE 0
-#define PARITY_EVEN 1
-#define PARITY_ODD  2
 #endif
 
 #include "userio.h"
