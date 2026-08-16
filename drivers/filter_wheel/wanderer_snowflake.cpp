@@ -129,16 +129,10 @@ bool WandererSnowflakeFW::Handshake()
     char field[64] = {0};
     int nbytes = 0;
 
-    if (tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes) == TTY_OK)
-    {
-        while (nbytes > 0 && (field[nbytes - 1] == 'A' || field[nbytes - 1] == '\r' || field[nbytes - 1] == '\n'))
-        {
-            nbytes--;
-            field[nbytes] = '\0';
-        }
-        for (int i = 0; i < WANDERER_MAX_FILTERS && i < nbytes; i++)
-            mFilterLetters[i] = field[i];
-    }
+    // Consume the hardware's per-filter single-character identifier field. These
+    // are an internal hardware concept and are intentionally not exposed as or
+    // synced with the INDI FILTER_NAME property (see GitHub issue #2478).
+    tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes);
 
     for (int i = 0; i < WANDERER_MAX_FILTERS; i++)
         tty_read_section(PortFD, field, 'A', WANDERER_STATUS_TIMEOUT, &nbytes);
@@ -412,88 +406,6 @@ bool WandererSnowflakeFW::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     if (FilterNameTP.size() > 0)
         FilterNameTP.save(fp);
-    return true;
-}
-
-bool WandererSnowflakeFW::GetFilterNames()
-{
-    FilterNameTP.resize(0);
-    for (int i = 0; i < WANDERER_MAX_FILTERS; i++)
-    {
-        char filterName[32];
-        char filterLabel[16];
-        char filterText[4];
-        snprintf(filterName, sizeof(filterName), "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, sizeof(filterLabel), "Filter %d", i + 1);
-        snprintf(filterText, sizeof(filterText), "%c", mFilterLetters[i]);
-        INDI::WidgetText oneWidget;
-
-        oneWidget.fill(filterName, filterLabel, filterText);
-        FilterNameTP.push(std::move(oneWidget));
-    }
-    FilterNameTP.fill(getDeviceName(), "FILTER_NAME", "Filter",
-                      FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
-    FilterNameTP.shrink_to_fit();
-    FilterSlotNP[0].setMax(FilterNameTP.count());
-    return true;
-}
-
-bool WandererSnowflakeFW::SetFilterNames()
-{
-    if (isSimulation())
-        return true;
-
-    bool allOk = true;
-    for (int i = 0; i < WANDERER_MAX_FILTERS; i++)
-    {
-        const char *txt = FilterNameTP[i].getText();
-        if (txt == nullptr)
-            continue;
-
-        const char *p = txt;
-        while (*p == ' ' || *p == '\t')
-            p++;
-        char c = *p;
-        if (c >= 'a' && c <= 'z')
-            c -= 32;
-        char after = p[1];
-        bool singleLetter = (c >= 'B' && c <= 'Z') &&
-                            (after == '\0' || after == ' ' || after == '\t' || after == '\r' || after == '\n');
-
-        if (!singleLetter)
-        {
-
-            LOGF_ERROR("Filter %d name '%s' invalid — must be a single letter (B-Z).", i + 1, txt);
-
-            char orig[2] = { mFilterLetters[i] ? mFilterLetters[i] : 'X', '\0' };
-            FilterNameTP[i].setText(orig);
-            allOk = false;
-            continue;
-        }
-
-        char norm[2] = { c, '\0' };
-        FilterNameTP[i].setText(norm);
-
-        int code = (161 + i) * 10000 + (c - 'A' + 1);
-        char cmd[16] = {0};
-        snprintf(cmd, sizeof(cmd), "%d", code);
-
-        if (!sendCommand(cmd, nullptr, 0, WANDERER_TIMEOUT))
-        {
-            LOGF_ERROR("Failed to set filter %d name to %c.", i + 1, c);
-            allOk = false;
-            continue;
-        }
-
-        mFilterLetters[i] = c;
-        LOGF_INFO("Filter %d name set to %c.", i + 1, c);
-    }
-
-    if (!allOk)
-    {
-        FilterNameTP.setState(IPS_ALERT);
-        FilterNameTP.apply("Invalid filter name(s): must be a single letter (B-Z). Invalid entries reverted.");
-    }
     return true;
 }
 
