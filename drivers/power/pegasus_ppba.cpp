@@ -360,22 +360,31 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             AdjOutVoltSP.setState(IPS_ALERT);
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            // if switching from off to some voltage, we first need to turn on the port
-            if (previous_index == ADJOUT_OFF)
+            // On the PPBA, port 2's adjustable output tracks a voltage setpoint and an enable
+            // flag *independently*:
+            //   - "P2:<v>" (v = 3/5/8/9/12) sets the voltage but does NOT enable the output
+            //   - "P2:1" enables the output, "P2:0" disables it; neither changes the setpoint
+            // So to switch a voltage ON we set the voltage first, then enable (setting the
+            // voltage first avoids briefly emitting the previously stored voltage). To switch
+            // OFF we just disable with "P2:0". Enabling unconditionally (not only when coming
+            // from OFF) keeps the driver in sync even if the output was disabled behind our
+            // back. Verified against PPBADV_Gen2C firmware. See indilib/indi#2471.
+            bool ok = true;
+            if (target_index == ADJOUT_OFF)
             {
-                snprintf(cmd, PEGASUS_LEN, "P2:%d", 1);
-                if (!sendCommand(cmd, res))
-                {
-                    AdjOutVoltSP.reset();
-                    AdjOutVoltSP[previous_index].setState(ISS_ON);
-                    AdjOutVoltSP.setState(IPS_ALERT);
-                    AdjOutVoltSP.apply();
-                    return true;
-                }
+                ok = sendCommand("P2:0", res);
             }
-            snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
-            if (sendCommand(cmd, res))
+            else
             {
+                snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
+                ok = sendCommand(cmd, res);
+                if (ok)
+                    ok = sendCommand("P2:1", res);
+            }
+
+            if (ok)
+            {
+                AdjOutVoltSP.reset();
                 AdjOutVoltSP[target_index].setState(ISS_ON);
                 AdjOutVoltSP.setState(IPS_OK);
                 saveConfig(AdjOutVoltSP);
@@ -729,8 +738,12 @@ bool PegasusPPBA::getSensorData()
                 PI::PowerChannelsSP.apply();
         }
         // Adjustable Power Status
+        // Use the enable flag (PA_ADJ_STATUS) to decide on/off, not the voltage setpoint
+        // (PA_PWRADJ): the two can diverge (output disabled while a non-zero setpoint is
+        // still remembered), which otherwise makes the selector display a voltage while the
+        // output is physically off (see indilib/indi#2471).
         AdjOutVoltSP.reset();
-        if (std::stoi(result[PA_PWRADJ]) == 0)
+        if (std::stoi(result[PA_ADJ_STATUS]) == 0)
             AdjOutVoltSP[ADJOUT_OFF].setState(ISS_ON);
         else
         {
