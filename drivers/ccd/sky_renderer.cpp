@@ -82,12 +82,20 @@ int SkyRenderer::drawImageStar(INDI::CCDChip *chip, float mag, float x, float y,
     float const norm     = 1.0f / (sigma * std::sqrt(2.0f * float(M_PI)));
     float const inv2sig2 = 1.0f / (2.0f * sigma * sigma);
 
+    // Sub-pixel centering: keep the fractional part of the star position so the
+    // PSF is centred on the true (floating-point) location rather than snapped to
+    // the truncated integer pixel. Without this, sub-pixel drift is discarded and
+    // the measured centroid quantises to a lattice (see indilib/indi#2465).
+    float const fracX = x - static_cast<int>(x);
+    float const fracY = y - static_cast<int>(y);
+
     for (int sy = -boxsizey; sy <= boxsizey; sy++)
     {
         for (int sx = -boxsizey; sx <= boxsizey; sx++)
         {
-            float const dc2 = sx * sx * m_ImageScaleX * m_ImageScaleX
-                              + sy * sy * m_ImageScaleY * m_ImageScaleY;
+            float const ddx = m_ImageScaleX * (sx - fracX);
+            float const ddy = m_ImageScaleY * (sy - fracY);
+            float const dc2 = ddx * ddx + ddy * ddy;
             float const fa  = norm * std::exp(-dc2 * inv2sig2);
             int const fp = static_cast<int>(fa * totalFlux);
             if (fp > 0)
