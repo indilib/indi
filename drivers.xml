@@ -910,7 +910,7 @@
         </device>
         <device label="MLAstro RPA" manufacturer="MLAstro">
             <driver name="MLAstro RPA">indi_mlastro_rpa</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Arduino ST4" manufacturer="DIY">
             <driver name="Arduino ST4">indi_arduinost4</driver>

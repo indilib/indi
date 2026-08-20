@@ -40,6 +40,12 @@
  *   - Home:   SetH:1\n / RetH:1\n / RstH:1\n
  *   - Sync:   SetH:1\n  (marks current position as 0,0 reference)
  *   - Backlash: Back:X\n, AzBl:X\n, AlBl:X\n
+ *   - Alt overshoot (2-leg P.A routine): Over:X\n, OvUp:X\n, OvDn:X\n,
+ *                                        OvD:X\n, OvM:X\n, OvS:X\n
+ *     When enabled for a given direction, a downward altitude move overshoots
+ *     the target and returns upward for the final approach so the platform
+ *     always comes to rest moving up, which settles more stably than a final
+ *     downward approach.
  *   - Reverse:  AzRD:X\n, AlRD:X\n
  *   - Motor config: chained commands + Save&Reboot:1\n
  *
@@ -170,6 +176,17 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         INDI::PropertyNumber AltSoftLimitsNP {2};
         enum { ALT_LIMIT_MIN, ALT_LIMIT_MAX };
 
+        /// Altitude overshoot routine master enable (Over:X)
+        INDI::PropertySwitch AltOvershootSP {2};
+        enum { ALT_OVERSHOOT_ENABLED, ALT_OVERSHOOT_DISABLED };
+
+        /// Altitude overshoot per-direction enable (OvUp:X, OvDn:X)
+        INDI::PropertySwitch AltOvershootDirSP {2};
+        enum { ALT_OVERSHOOT_UP, ALT_OVERSHOOT_DOWN };
+
+        /// Altitude overshoot amount in degrees (OvD/OvM/OvS)
+        INDI::PropertyNumber AltOvershootAmountNP {1};
+
         // ── Motor Config tab ──────────────────────────────────────────────
         /// Azimuth motor configuration (9 parameters)
         INDI::PropertyNumber AzMotorNP {9};
@@ -215,6 +232,9 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         bool m_IsMoving        {false};   ///< True while an axis is in motion.
         bool m_IsHoming        {false};   ///< True while returning to home.
         bool m_IsHomed         {false};   ///< True when a home position is set.
+
+        /// Latest OvD/OvM/OvS telemetry pieces, combined into AltOvershootAmountNP.
+        double m_OvshD {0}, m_OvshM {0}, m_OvshS {0};
 
         int  PortFD            {-1};
         Connection::Serial *serialConnection {nullptr};

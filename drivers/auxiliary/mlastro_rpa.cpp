@@ -39,7 +39,7 @@ static std::unique_ptr<MLAstroRPA> rpa(new MLAstroRPA());
 MLAstroRPA::MLAstroRPA()
     : PACInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     SetCapability(PAC_HAS_SPEED    |
                   PAC_CAN_REVERSE  |
                   PAC_HAS_POSITION |
@@ -99,6 +99,23 @@ bool MLAstroRPA::initProperties()
     AltSoftLimitsNP[ALT_LIMIT_MAX].fill("ALT_LIMIT_MAX", "Max (deg)", "%.2f", 0, 90, 0.5, 9.0);
     AltSoftLimitsNP.fill(getDeviceName(), "ALT_SOFT_LIMITS", "ALT Limits",
                          OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Altitude overshoot routine — the platform settles more stably when it
+    // comes to rest moving upward. When enabled for a direction, the device
+    // overshoots the target on that leg and returns for a final upward approach.
+    AltOvershootSP[ALT_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    AltOvershootSP[ALT_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    AltOvershootSP.fill(getDeviceName(), "ALT_OVERSHOOT", "Alt Overshoot",
+                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    AltOvershootDirSP[ALT_OVERSHOOT_UP].fill("OVERSHOOT_UP", "On Move Up", ISS_OFF);
+    AltOvershootDirSP[ALT_OVERSHOOT_DOWN].fill("OVERSHOOT_DOWN", "On Move Down", ISS_ON);
+    AltOvershootDirSP.fill(getDeviceName(), "ALT_OVERSHOOT_DIR", "Overshoot Direction",
+                           OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    AltOvershootAmountNP[0].fill("AMOUNT", "Amount (deg)", "%.4f", 0, 10.9997, 0.1, 2.0);
+    AltOvershootAmountNP.fill(getDeviceName(), "ALT_OVERSHOOT_AMOUNT", "Overshoot Amount",
+                              OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // ── Motor Config tab ──────────────────────────────────────────────────
 
@@ -169,6 +186,9 @@ bool MLAstroRPA::updateProperties()
         defineProperty(HomedLP);
         defineProperty(AzSoftLimitsNP);
         defineProperty(AltSoftLimitsNP);
+        defineProperty(AltOvershootSP);
+        defineProperty(AltOvershootDirSP);
+        defineProperty(AltOvershootAmountNP);
         defineProperty(AzMotorNP);
         defineProperty(AltMotorNP);
         defineProperty(SaveRebootSP);
@@ -181,6 +201,9 @@ bool MLAstroRPA::updateProperties()
         deleteProperty(HomedLP);
         deleteProperty(AzSoftLimitsNP);
         deleteProperty(AltSoftLimitsNP);
+        deleteProperty(AltOvershootSP);
+        deleteProperty(AltOvershootDirSP);
+        deleteProperty(AltOvershootAmountNP);
         deleteProperty(AzMotorNP);
         deleteProperty(AltMotorNP);
         deleteProperty(SaveRebootSP);
@@ -397,6 +420,46 @@ bool MLAstroRPA::parseTelemetry(const char *response)
                 AltSoftLimitsNP[ALT_LIMIT_MAX].setValue(v);
                 AltSoftLimitsNP.setState(IPS_OK);
                 AltSoftLimitsNP.apply();
+            }
+            // ── Altitude overshoot routine
+            else if (strcmp(key, "Over") == 0)
+            {
+                int idx = (v != 0.0) ? ALT_OVERSHOOT_ENABLED : ALT_OVERSHOOT_DISABLED;
+                AltOvershootSP.reset();
+                AltOvershootSP[idx].setState(ISS_ON);
+                AltOvershootSP.setState(IPS_OK);
+                AltOvershootSP.apply();
+            }
+            else if (strcmp(key, "OvUp") == 0)
+            {
+                AltOvershootDirSP[ALT_OVERSHOOT_UP].setState(v != 0.0 ? ISS_ON : ISS_OFF);
+                AltOvershootDirSP.setState(IPS_OK);
+                AltOvershootDirSP.apply();
+            }
+            else if (strcmp(key, "OvDn") == 0)
+            {
+                AltOvershootDirSP[ALT_OVERSHOOT_DOWN].setState(v != 0.0 ? ISS_ON : ISS_OFF);
+                AltOvershootDirSP.setState(IPS_OK);
+                AltOvershootDirSP.apply();
+            }
+            else if (strcmp(key, "OvD") == 0)
+            {
+                m_OvshD = v;
+                AltOvershootAmountNP[0].setValue(m_OvshD + m_OvshM / 60.0 + m_OvshS / 3600.0);
+                AltOvershootAmountNP.setState(IPS_OK);
+                AltOvershootAmountNP.apply();
+            }
+            else if (strcmp(key, "OvM") == 0)
+            {
+                m_OvshM = v;
+                AltOvershootAmountNP[0].setValue(m_OvshD + m_OvshM / 60.0 + m_OvshS / 3600.0);
+                AltOvershootAmountNP.apply();
+            }
+            else if (strcmp(key, "OvS") == 0)
+            {
+                m_OvshS = v;
+                AltOvershootAmountNP[0].setValue(m_OvshD + m_OvshM / 60.0 + m_OvshS / 3600.0);
+                AltOvershootAmountNP.apply();
             }
             // ── Azimuth motor config
             else if (strcmp(key, "AzIR")  == 0)
@@ -996,6 +1059,27 @@ bool MLAstroRPA::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
+        // ── Altitude overshoot amount (OvD/OvM/OvS)
+        if (AltOvershootAmountNP.isNameMatch(name))
+        {
+            AltOvershootAmountNP.update(values, names, n);
+            int d, m, s;
+            bool positive;
+            degreesToDMS(AltOvershootAmountNP[0].getValue(), d, m, s, positive);
+            char cmd[64] = {0};
+            snprintf(cmd, sizeof(cmd), "OvD:%d,OvM:%d,OvS:%d", d, m, s);
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                AltOvershootAmountNP.setState(IPS_OK);
+                saveConfig(AltOvershootAmountNP);
+            }
+            else
+                AltOvershootAmountNP.setState(IPS_ALERT);
+            AltOvershootAmountNP.apply();
+            return true;
+        }
+
         // ── Motor config (AZ)
         if (AzMotorNP.isNameMatch(name))
         {
@@ -1069,6 +1153,45 @@ bool MLAstroRPA::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // ── Altitude overshoot master enable
+        if (AltOvershootSP.isNameMatch(name))
+        {
+            AltOvershootSP.update(states, names, n);
+            bool enabled = AltOvershootSP[ALT_OVERSHOOT_ENABLED].getState() == ISS_ON;
+            char cmd[64] = {0};
+            snprintf(cmd, sizeof(cmd), "Over:%d", enabled ? 1 : 0);
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                AltOvershootSP.setState(IPS_OK);
+                saveConfig(AltOvershootSP);
+            }
+            else
+                AltOvershootSP.setState(IPS_ALERT);
+            AltOvershootSP.apply();
+            return true;
+        }
+
+        // ── Altitude overshoot per-direction enable
+        if (AltOvershootDirSP.isNameMatch(name))
+        {
+            AltOvershootDirSP.update(states, names, n);
+            bool up   = AltOvershootDirSP[ALT_OVERSHOOT_UP].getState()   == ISS_ON;
+            bool down = AltOvershootDirSP[ALT_OVERSHOOT_DOWN].getState() == ISS_ON;
+            char cmd[64] = {0};
+            snprintf(cmd, sizeof(cmd), "OvUp:%d,OvDn:%d", up ? 1 : 0, down ? 1 : 0);
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                AltOvershootDirSP.setState(IPS_OK);
+                saveConfig(AltOvershootDirSP);
+            }
+            else
+                AltOvershootDirSP.setState(IPS_ALERT);
+            AltOvershootDirSP.apply();
+            return true;
+        }
+
         // ── Save & Reboot
         if (SaveRebootSP.isNameMatch(name))
         {
