@@ -5,8 +5,8 @@
 #include <memory>
 #include <termios.h>
 #include <cstring>
-#include <sys/ioctl.h>
 #include <chrono>
+#include <thread>
 
 static std::unique_ptr<CelestronDewPower> celestronDewPower(new CelestronDewPower());
 
@@ -149,8 +149,6 @@ bool CelestronDewPower::Handshake()
 
         LOG_INFO("Setting serial speed to 9600 baud.");
 
-        m_IsRTSCTS = detectRTSCTS(); // Detect RTS/CTS if applicable
-
         // Get version
         if (!getDewPowerControllerVersion())
         {
@@ -181,8 +179,15 @@ bool CelestronDewPower::Handshake()
             {
                 if (response.command() == PORTCTRL_GET_PORT_INFO)
                 {
+                    // The controller only reports full telemetry (enabled/
+                    // shorted/power/voltage, >= 7 bytes) when a port is
+                    // actively drawing current; an idle port -- the normal
+                    // state at connection time -- replies with just the
+                    // 1-byte port type. Only require that one byte here so
+                    // capability detection doesn't silently misclassify
+                    // every idle port as DC output (portType 0).
                     AUXBuffer data = response.getDataBuffer();
-                    if (data.size() >= 7)
+                    if (!data.empty())
                     {
                         uint8_t portType = data[0];
                         m_PortTypes[i] = portType;
@@ -358,6 +363,13 @@ bool CelestronDewPower::processResponse(AUXCommand &m)
             case PORTCTRL_SET_LED_BRIGHTNESS:
                 // These are "set" commands, no specific data to process in response beyond success/failure
                 break;
+            case PORTCTRL_NAK:
+            {
+                AUXBuffer data = m.getDataBuffer();
+                LOGF_DEBUG("Controller NAK'd command 0x%02X (not applicable to that port).",
+                           data.empty() ? 0 : data[0]);
+                break;
+            }
             default:
                 break;
         }
@@ -440,7 +452,7 @@ int CelestronDewPower::sendBuffer(AUXBuffer buf)
     {
         int n;
 
-        if (aux_tty_write((char * )buf.data(), buf.size(), CTS_TIMEOUT, &n) != TTY_OK)
+        if (aux_tty_write((char * )buf.data(), buf.size(), &n) != TTY_OK)
             return 0;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -478,60 +490,18 @@ bool CelestronDewPower::sendAUXCommand(AUXCommand &command)
 ////////////////////////////////////////////////////////////////////////////////
 // Wrap functions around the standard driver communication functions tty_read
 // and tty_write.
-// When the communication is serial, these wrap functions implement the
-// Celestron hardware handshake used by telescope serial ports AUX and PC.
-// When the communication is by network, these wrap functions are trasparent.
-// Read and write calls are passed, as is, to the standard functions tty_read
-// and tty_write.
-// 16-Feb-2020 Fabrizio Pollastri <mxgbot@gmail.com>
+//
+// This controller only ever communicates over a USB CDC-ACM virtual serial
+// port (/dev/ttyACM*), never a real RS-232 half-duplex AUX/PC port, so
+// unlike INDI's CelestronAUX telescope driver (which this AUX protocol was
+// adapted from) there is no hardware RTS/CTS flow control or byte-echo to
+// handle here: USB CDC-ACM modem-control lines are virtual and commonly
+// read back as permanently asserted regardless of real hardware state,
+// which previously caused a false-positive half-duplex detection here and
+// broke every connection. Plain full-duplex tty_read/tty_write is correct,
+// matching drivers/focuser/celestronauxpacket.cpp which talks to other
+// Celestron AUX-bus accessories the same way.
 ////////////////////////////////////////////////////////////////////////////////
-void CelestronDewPower::setRTS(bool rts)
-{
-    if (ioctl(PortFD, TIOCMGET, &m_ModemControl) == -1)
-        LOGF_ERROR("Error getting handshake lines %s(%d).", strerror(errno), errno);
-    if (rts)
-        m_ModemControl |= TIOCM_RTS;
-    else
-        m_ModemControl &= ~TIOCM_RTS;
-    if (ioctl(PortFD, TIOCMSET, &m_ModemControl) == -1)
-        LOGF_ERROR("Error setting handshake lines %s(%d).", strerror(errno), errno);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////////////
-bool CelestronDewPower::waitCTS(float timeout)
-{
-    float step = timeout / 20.;
-    for (; timeout >= 0; timeout -= step)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(step)));
-        if (ioctl(PortFD, TIOCMGET, &m_ModemControl) == -1)
-        {
-            LOGF_ERROR("Error getting handshake lines %s(%d).", strerror(errno), errno);
-            return 0;
-        }
-        if (m_ModemControl & TIOCM_CTS)
-            return 1;
-    }
-    return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////////////
-bool CelestronDewPower::detectRTSCTS()
-{
-    setRTS(1);
-    bool retval = waitCTS(300.);
-    setRTS(0);
-    return retval;
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////////////
 bool CelestronDewPower::tty_set_speed(speed_t speed)
 {
     struct termios tty_setting;
@@ -578,11 +548,6 @@ int CelestronDewPower::aux_tty_read(char *buf, int bufsiz, int timeout, int *n)
     int errcode;
     DEBUGF(DBG_SERIAL, "aux_tty_read: %d", PortFD);
 
-    // if hardware flow control is required, set RTS to off to receive: PC port
-    // bahaves as half duplex.
-    if (m_IsRTSCTS)
-        setRTS(0);
-
     if((errcode = tty_read(PortFD, buf, bufsiz, timeout, n)) != TTY_OK)
     {
         char errmsg[MAXRBUF] = {0};
@@ -596,26 +561,10 @@ int CelestronDewPower::aux_tty_read(char *buf, int bufsiz, int timeout, int *n)
 /////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////
-int CelestronDewPower::aux_tty_write(char *buf, int bufsiz, float timeout, int *n)
+int CelestronDewPower::aux_tty_write(char *buf, int bufsiz, int *n)
 {
-    int errcode, ne;
+    int errcode;
     char errmsg[MAXRBUF];
-
-    //DEBUGF(DBG_CAUX, "aux_tty_write: %d", PortFD);
-
-    // if hardware flow control is required, set RTS to on then wait for CTS
-    // on to write: PC port bahaves as half duplex. RTS may be already on.
-    if (m_IsRTSCTS)
-    {
-        DEBUG(DBG_SERIAL, "aux_tty_write: set RTS");
-        setRTS(1);
-        DEBUG(DBG_SERIAL, "aux_tty_write: wait CTS");
-        if (!waitCTS(timeout))
-        {
-            LOGF_ERROR("Error getting handshake lines %s(%d).\n", strerror(errno), errno);
-            return TTY_TIME_OUT;
-        }
-    }
 
     errcode = tty_write(PortFD, buf, bufsiz, n);
 
@@ -624,32 +573,6 @@ int CelestronDewPower::aux_tty_write(char *buf, int bufsiz, float timeout, int *
         tty_error_msg(errcode, errmsg, MAXRBUF);
         LOGF_ERROR("%s", errmsg);
         return errcode;
-    }
-
-    // if hardware flow control is required, Wait for tx complete, set RTS to
-    // off, to receive (half duplex).
-    if (m_IsRTSCTS)
-    {
-        DEBUG(DBG_SERIAL, "aux_tty_write: clear RTS");
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        setRTS(0);
-
-        // ports requiring hardware flow control echo all sent characters,
-        // verify them.
-        DEBUG(DBG_SERIAL, "aux_tty_write: verify echo");
-        if ((errcode = tty_read(PortFD, errmsg, *n, READ_TIMEOUT, &ne)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            LOGF_ERROR("%s", errmsg);
-            return errcode;
-        }
-
-        if (*n != ne)
-            return TTY_WRITE_ERROR;
-
-        for (int i = 0; i < ne; i++)
-            if (buf[i] != errmsg[i])
-                return TTY_WRITE_ERROR;
     }
 
     return TTY_OK;
@@ -739,6 +662,8 @@ bool CelestronDewPower::getPortInfo(uint8_t portNumber)
         if (response.command() == PORTCTRL_GET_PORT_INFO)
         {
             // RESP: <0 type><1 enabled><2 isShorted><3:4 power(mW)><5:6 VoltageLevel (mV)>
+            // Only present in full when the port is actively drawing
+            // current; an idle port replies with just the 1-byte type.
             AUXBuffer data = response.getDataBuffer();
             if (data.size() >= 7)
             {
@@ -747,6 +672,11 @@ bool CelestronDewPower::getPortInfo(uint8_t portNumber)
                 // For now, just log
                 LOGF_DEBUG("Port %d Info: Type=%d, Enabled=%d, Shorted=%d, Power=%d mW, Voltage=%d mV",
                            portNumber, data[0], data[1], data[2], (data[3] << 8) | data[4], (data[5] << 8) | data[6]);
+                return true;
+            }
+            else if (!data.empty())
+            {
+                LOGF_DEBUG("Port %d Info: Type=%d (idle, no telemetry)", portNumber, data[0]);
                 return true;
             }
         }

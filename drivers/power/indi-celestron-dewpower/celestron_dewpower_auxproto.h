@@ -54,14 +54,26 @@ enum AUXCommands
     PORTCTRL_GET_VERSION            = 0xFE,
 
     PORTCTRL_SET_LED_BRIGHTNESS     = 0x20,
-    PORTCTRL_GET_LED_BRIGHTNESS     = 0x21
+    PORTCTRL_GET_LED_BRIGHTNESS     = 0x21,
+
+    // Observed 2026-08-20 on real hardware: NAK/error response, sent back
+    // instead of the requested command when that command does not apply
+    // to the addressed port (e.g. PORTCTRL_GET_DH_PORT_INFO on a non-dew
+    // port). Response data is 1 byte: the command that was rejected.
+    PORTCTRL_NAK                    = 0xF0
 };
 
 enum AUXTargets
 {
     HC    = 0x04,
     APP   = 0x20,
-    DEW_POWER_CTRL = 0xc0 // New target for Celestron Dew Heater & Power Controller
+    // Confirmed 2026-08-20 against a real Celestron Dew Heater & Power
+    // Controller (CGX-attached, 3-port unit) via AUX destination-address
+    // sweep + GET_VERSION/GET_NUMBER_OF_PORTS/GET_INPUT_POWER/
+    // GET_ENVIRONMENT/GET_PORT_INFO round-trip. Not in the older
+    // documented AUX target list (drivers/focuser/celestronauxpacket.h),
+    // which only goes up to LIGHT = 0xBF.
+    DEW_POWER_CTRL = 0x17
 };
 
 #define CAUX_DEFAULT_IP   "1.2.3.4"

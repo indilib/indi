@@ -7,7 +7,7 @@ TAGS
 build/
 build-*/
 .claude-worktrees/*
-
+.claude/*
 # Gedit backup files
 *~
 *.orig

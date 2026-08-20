@@ -33,10 +33,7 @@
 #include "celestron_dewpower_auxproto.h"
 
 #include <vector>
-#include <thread>
-#include <chrono>
 #include <termios.h>
-#include <sys/ioctl.h>
 
 class CelestronDewPower : public INDI::DefaultDevice, public INDI::PowerInterface, public INDI::WeatherInterface
 {
@@ -78,13 +75,10 @@ private:
     bool processResponse(AUXCommand &m); // Added processResponse
 
     // Serial port specific functions
-    void setRTS(bool rts);
-    bool waitCTS(float timeout);
-    bool detectRTSCTS();
     bool tty_set_speed(speed_t speed);
     void hex_dump(char *buf, AUXBuffer data, size_t size);
     int aux_tty_read(char *buf, int bufsiz, int timeout, int *n);
-    int aux_tty_write(char *buf, int bufsiz, float timeout, int *n);
+    int aux_tty_write(char *buf, int bufsiz, int *n);
 
     // Device specific commands
     bool getDewPowerControllerVersion();
@@ -112,10 +106,6 @@ private:
         POWER_STATUS_OVERVOLTAGE
     };
 
-    // Communication state variables from CelestronAUX
-    bool m_IsRTSCTS {false};
-    int m_ModemControl {0};
-
     // Store last received data to avoid unnecessary updates
     AUXBuffer lastInputPowerData;
     std::vector<AUXBuffer> lastPortInfoData;
@@ -136,6 +126,4 @@ private:
     // Constants
     // seconds
     static constexpr uint8_t READ_TIMEOUT {1};
-    // ms
-    static constexpr uint8_t CTS_TIMEOUT {100};
 };
