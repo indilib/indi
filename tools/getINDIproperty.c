@@ -588,7 +588,9 @@ static void oneBLOB(XMLEle *root, char *dev, char *nam, char *enam, char *p, int
     }
 
     /* rig up a file name from property name */
-    i = sprintf(fn, "%s.%s.%s%s", dev, nam, enam, format);
+    i = snprintf(fn, sizeof(fn), "%s.%s.%s%s", dev, nam, enam, format);
+    if (i >= (int)sizeof(fn))
+        i = sizeof(fn) - 1;
     if (isz)
         fn[i - 2] = '\0'; /* chop off .z */
 

@@ -478,7 +478,7 @@ int dispatch(XMLEle *root, char msg[])
         return (0);
     }
 
-    sprintf(msg, "Unknown command: %s", rtag);
+    snprintf(msg, MAXRBUF, "Unknown command: %s", rtag);
     return (1);
 }
 
