@@ -103,8 +103,8 @@ bool MLAstroRPA::initProperties()
     // Altitude overshoot routine — the platform settles more stably when it
     // comes to rest moving upward. When enabled for a direction, the device
     // overshoots the target on that leg and returns for a final upward approach.
-    AltOvershootSP[ALT_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
-    AltOvershootSP[ALT_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    AltOvershootSP[ALT_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enable Overshoot on Firmware", ISS_OFF);
+    AltOvershootSP[ALT_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disable", ISS_ON);
     AltOvershootSP.fill(getDeviceName(), "ALT_OVERSHOOT", "Alt Overshoot",
                         OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -150,11 +150,37 @@ bool MLAstroRPA::initProperties()
     SaveRebootSP.fill(getDeviceName(), "RPA_SAVE_REBOOT", "Save & Reboot",
                       MOTOR_CONFIG_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // ── Network tab ──────────────────────────────────────────────────────
+    StationSSIDTP[0].fill("STATION_SSID", "Station SSID", "");
+    StationSSIDTP.fill(getDeviceName(), "RPA_STATION_SSID", "Station SSID",
+                       NETWORK_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Write-only: never read back, never saved to the local config file.
+    StationPasswordTP[0].fill("STATION_PASSWORD", "Station Password", "");
+    StationPasswordTP.fill(getDeviceName(), "RPA_STATION_PASSWORD", "Station Password",
+                           NETWORK_TAB, IP_WO, 60, IPS_IDLE);
+
+    APConfigTP[AP_SSID].fill("AP_SSID", "AP SSID", "");
+    APConfigTP[AP_IP].fill("AP_IP", "AP IP Address", "");
+    APConfigTP.fill(getDeviceName(), "RPA_AP_CONFIG", "Access Point",
+                    NETWORK_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Write-only: never read back, never saved to the local config file.
+    APPasswordTP[0].fill("AP_PASSWORD", "AP Password", "");
+    APPasswordTP.fill(getDeviceName(), "RPA_AP_PASSWORD", "AP Password",
+                      NETWORK_TAB, IP_WO, 60, IPS_IDLE);
+
     // ── Info tab ──────────────────────────────────────────────────────────
+    FirmwareInfoTP[FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware", "");
+    FirmwareInfoTP[FIRMWARE_SERIAL].fill("FIRMWARE_SERIAL",   "Serial Number", "");
+    FirmwareInfoTP.fill(getDeviceName(), "RPA_FIRMWARE_INFO", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
+
     WiFiInfoTP[WIFI_INFO_AP_SSID].fill("AP_SSID",  "AP SSID",     "");
     WiFiInfoTP[WIFI_INFO_AP_IP].fill("AP_IP",      "AP IP",       "");
+    WiFiInfoTP[WIFI_INFO_AP_MAC].fill("AP_MAC",    "AP MAC",      "");
     WiFiInfoTP[WIFI_INFO_STA_SSID].fill("STA_SSID", "Station SSID", "");
     WiFiInfoTP[WIFI_INFO_STA_IP].fill("STA_IP",    "Station IP",  "");
+    WiFiInfoTP[WIFI_INFO_STA_MAC].fill("STA_MAC",  "Station MAC", "");
     WiFiInfoTP.fill(getDeviceName(), "RPA_WIFI_INFO", "WiFi Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     setDriverInterface(AUX_INTERFACE | PAC_INTERFACE);
@@ -192,6 +218,11 @@ bool MLAstroRPA::updateProperties()
         defineProperty(AzMotorNP);
         defineProperty(AltMotorNP);
         defineProperty(SaveRebootSP);
+        defineProperty(StationSSIDTP);
+        defineProperty(StationPasswordTP);
+        defineProperty(APConfigTP);
+        defineProperty(APPasswordTP);
+        defineProperty(FirmwareInfoTP);
         defineProperty(WiFiInfoTP);
     }
     else
@@ -207,6 +238,11 @@ bool MLAstroRPA::updateProperties()
         deleteProperty(AzMotorNP);
         deleteProperty(AltMotorNP);
         deleteProperty(SaveRebootSP);
+        deleteProperty(StationSSIDTP);
+        deleteProperty(StationPasswordTP);
+        deleteProperty(APConfigTP);
+        deleteProperty(APPasswordTP);
+        deleteProperty(FirmwareInfoTP);
         deleteProperty(WiFiInfoTP);
     }
 
@@ -246,6 +282,30 @@ bool MLAstroRPA::Handshake()
     {
         LOGF_ERROR("Unexpected handshake response: %s", res);
         return false;
+    }
+
+    // Newer firmware replies "ok,firmware X.Y.Z,SN:AA:BB:CC:DD:EE:F0".
+    // Older firmware just replies "ok" with no version/serial info.
+    const char *fwStart = strchr(res, ',');
+    const char *snField = strstr(res, "SN:");
+    if (fwStart && snField && snField > fwStart)
+    {
+        fwStart++;  // skip comma
+        size_t fwLen = static_cast<size_t>(snField - fwStart);
+        while (fwLen > 0 && (fwStart[fwLen - 1] == ',' || fwStart[fwLen - 1] == ' '))
+            fwLen--;
+
+        char fwVersion[64] = {0};
+        if (fwLen >= sizeof(fwVersion))
+            fwLen = sizeof(fwVersion) - 1;
+        strncpy(fwVersion, fwStart, fwLen);
+
+        FirmwareInfoTP[FIRMWARE_VERSION].setText(fwVersion);
+        FirmwareInfoTP[FIRMWARE_SERIAL].setText(snField + 3);
+        FirmwareInfoTP.setState(IPS_OK);
+        FirmwareInfoTP.apply();
+
+        LOGF_INFO("Connected to %s (Serial: %s).", fwVersion, snField + 3);
     }
 
     // Lock the device into relative (angle) mode for all subsequent moves
@@ -584,6 +644,11 @@ bool MLAstroRPA::parseTelemetry(const char *response)
                 WiFiInfoTP[WIFI_INFO_AP_IP].setText(val);
                 WiFiInfoTP.apply();
             }
+            else if (strcmp(key, "APma") == 0)
+            {
+                WiFiInfoTP[WIFI_INFO_AP_MAC].setText(val);
+                WiFiInfoTP.apply();
+            }
             else if (strcmp(key, "STAs") == 0)
             {
                 WiFiInfoTP[WIFI_INFO_STA_SSID].setText(val);
@@ -593,6 +658,11 @@ bool MLAstroRPA::parseTelemetry(const char *response)
             {
                 WiFiInfoTP[WIFI_INFO_STA_IP].setText(val);
                 WiFiInfoTP.setState(IPS_OK);
+                WiFiInfoTP.apply();
+            }
+            else if (strcmp(key, "STAm") == 0)
+            {
+                WiFiInfoTP[WIFI_INFO_STA_MAC].setText(val);
                 WiFiInfoTP.apply();
             }
         }
@@ -1217,6 +1287,91 @@ bool MLAstroRPA::ISNewSwitch(const char *dev, const char *name, ISState *states,
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// ISNewText
+/////////////////////////////////////////////////////////////////////////////
+bool MLAstroRPA::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // ── Station (client) WiFi SSID
+        if (StationSSIDTP.isNameMatch(name))
+        {
+            StationSSIDTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "STAs:%s", StationSSIDTP[0].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                StationSSIDTP.setState(IPS_OK);
+                LOG_INFO("Station SSID updated. Use Save & Reboot to persist.");
+            }
+            else
+                StationSSIDTP.setState(IPS_ALERT);
+            StationSSIDTP.apply();
+            return true;
+        }
+
+        // ── Station (client) WiFi password (write-only, never saved locally)
+        if (StationPasswordTP.isNameMatch(name))
+        {
+            StationPasswordTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "STAp:%s", StationPasswordTP[0].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                StationPasswordTP.setState(IPS_OK);
+                LOG_INFO("Station password updated. Use Save & Reboot to persist.");
+            }
+            else
+                StationPasswordTP.setState(IPS_ALERT);
+            StationPasswordTP.apply();
+            return true;
+        }
+
+        // ── Access Point SSID and IP
+        if (APConfigTP.isNameMatch(name))
+        {
+            APConfigTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "APss:%s,APip:%s",
+                     APConfigTP[AP_SSID].getText(),
+                     APConfigTP[AP_IP].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                APConfigTP.setState(IPS_OK);
+                LOG_INFO("Access Point settings updated. Use Save & Reboot to persist.");
+            }
+            else
+                APConfigTP.setState(IPS_ALERT);
+            APConfigTP.apply();
+            return true;
+        }
+
+        // ── Access Point password (write-only, never saved locally)
+        if (APPasswordTP.isNameMatch(name))
+        {
+            APPasswordTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "APpa:%s", APPasswordTP[0].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                APPasswordTP.setState(IPS_OK);
+                LOG_INFO("Access Point password updated. Use Save & Reboot to persist.");
+            }
+            else
+                APPasswordTP.setState(IPS_ALERT);
+            APPasswordTP.apply();
+            return true;
+        }
+    }
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 /////////////////////////////////////////////////////////////////////////////

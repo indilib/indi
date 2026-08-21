@@ -31,7 +31,8 @@
  *        via its ESP32-based serial protocol.
  *
  * Protocol summary:
- *   - Handshake:  [MLAstroRPA-TC]\n  →  ok\n
+ *   - Handshake:  [MLAstroRPA-TC]\n  →  ok\n  (older firmware) or
+ *                                        ok,firmware X.Y.Z,SN:AA:BB:CC:DD:EE:F0\n (newer)
  *   - Telemetry:  ?\n  →  <STATUS|Mpos:X.XXXXX,Y.YYYYY|>DATA_SETTING
  *   - Relative move (AZ): JoRe:1, ReDe:D,ReAM:M,ReAS:S, MAzL:1 or MAzR:1
  *   - Relative move (ALT): JoRe:1, ReDe:D,ReAM:M,ReAS:S, MAlU:1 or MAlD:1
@@ -48,6 +49,9 @@
  *     downward approach.
  *   - Reverse:  AzRD:X\n, AlRD:X\n
  *   - Motor config: chained commands + Save&Reboot:1\n
+ *   - Network:  STAs:X\n, STAp:X\n, APss:X\n, APpa:X\n, APip:X\n (set-only;
+ *               requires Save&Reboot to persist). Password fields are write-only
+ *               in the driver — never read back, never saved to the local config.
  *
  * Capabilities:
  *   PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION |
@@ -63,6 +67,7 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
 
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
         bool initProperties() override;
@@ -221,10 +226,34 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         /// Save settings to FRAM and reboot the controller
         INDI::PropertySwitch SaveRebootSP {1};
 
+        // ── Network tab ──────────────────────────────────────────────────
+        /// Station (WiFi client) SSID. Written to the controller's memory only;
+        /// requires Save & Reboot to persist across power cycles.
+        INDI::PropertyText StationSSIDTP {1};
+
+        /// Station (WiFi client) password. Write-only: the driver never reads
+        /// it back and never persists it to the local config file.
+        INDI::PropertyText StationPasswordTP {1};
+
+        /// Access Point (hotspot) SSID and IP address.
+        INDI::PropertyText APConfigTP {2};
+        enum { AP_SSID, AP_IP };
+
+        /// Access Point password. Write-only: the driver never reads it back
+        /// and never persists it to the local config file.
+        INDI::PropertyText APPasswordTP {1};
+
         // ── Info tab ──────────────────────────────────────────────────────
+        /// Firmware version and controller serial number, captured from the handshake
+        /// reply (ok,firmware X.Y.Z,SN:AA:BB:CC:DD:EE:F0). Older firmware only replies
+        /// "ok" with no version/serial, in which case this stays empty.
+        INDI::PropertyText FirmwareInfoTP {2};
+        enum { FIRMWARE_VERSION, FIRMWARE_SERIAL };
+
         /// WiFi / network information (read-only)
-        INDI::PropertyText WiFiInfoTP {4};
-        enum { WIFI_INFO_AP_SSID, WIFI_INFO_AP_IP, WIFI_INFO_STA_SSID, WIFI_INFO_STA_IP };
+        INDI::PropertyText WiFiInfoTP {6};
+        enum { WIFI_INFO_AP_SSID, WIFI_INFO_AP_IP, WIFI_INFO_AP_MAC,
+               WIFI_INFO_STA_SSID, WIFI_INFO_STA_IP, WIFI_INFO_STA_MAC };
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Internal state
@@ -246,5 +275,6 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         static constexpr uint16_t DRIVER_LEN        {2048};  ///< Max response buffer size.
         static constexpr char     DRIVER_STOP_CHAR  {'\n'};  ///< Response terminator.
         static constexpr const char *MOTOR_CONFIG_TAB {"Motor Config"};
+        static constexpr const char *NETWORK_TAB      {"Network"};
         static constexpr const char *INFO_TAB         {"Info"};
 };
