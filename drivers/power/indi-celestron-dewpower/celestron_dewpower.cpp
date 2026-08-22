@@ -13,6 +13,9 @@ static std::unique_ptr<CelestronDewPower> celestronDewPower(new CelestronDewPowe
 CelestronDewPower::CelestronDewPower() : INDI::DefaultDevice(), INDI::PowerInterface(this), INDI::WeatherInterface(this)
 {
     setVersion(1, 1);
+
+    DBG_CAUX   = INDI::Logger::getInstance().addDebugLevel("AUX Protocol", "CAUX");
+    DBG_SERIAL = INDI::Logger::getInstance().addDebugLevel("Serial Verbose", "SERIAL");
 }
 
 const char *CelestronDewPower::getDefaultName()
@@ -71,9 +74,6 @@ bool CelestronDewPower::initProperties()
     registerConnection(serialConnection);
 
     addDebugControl();
-
-    DBG_CAUX   = INDI::Logger::getInstance().addDebugLevel("AUX Protocol", "CAUX");
-    DBG_SERIAL = INDI::Logger::getInstance().addDebugLevel("Serial Verbose", "SERIAL");
 
     AUXCommand::setDebugInfo(getDeviceName(), DBG_CAUX);
 
