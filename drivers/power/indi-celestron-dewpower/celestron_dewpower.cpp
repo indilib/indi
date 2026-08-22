@@ -70,9 +70,12 @@ bool CelestronDewPower::initProperties()
     });
     registerConnection(serialConnection);
 
-    AUXCommand::setDebugInfo(getDeviceName(), DBG_CAUX);
-
     addDebugControl();
+
+    DBG_CAUX   = INDI::Logger::getInstance().addDebugLevel("AUX Protocol", "CAUX");
+    DBG_SERIAL = INDI::Logger::getInstance().addDebugLevel("Serial Verbose", "SERIAL");
+
+    AUXCommand::setDebugInfo(getDeviceName(), DBG_CAUX);
 
     return true;
 }
@@ -139,18 +142,6 @@ bool CelestronDewPower::Handshake()
 
     if (PortFD > 0)
     {
-        serialConnection->setDefaultBaudRate(Connection::Serial::B_9600); // Assuming 9600 baud for Dew/Power
-        if (!tty_set_speed(B9600))
-        {
-            LOG_ERROR("Cannot set serial speed to 9600 baud.");
-            return false;
-        }
-
-        // wait for speed to settle
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-        LOG_INFO("Setting serial speed to 9600 baud.");
-
         // Get version
         if (!getDewPowerControllerVersion())
         {
