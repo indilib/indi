@@ -12,7 +12,7 @@ static std::unique_ptr<CelestronDewPower> celestronDewPower(new CelestronDewPowe
 
 CelestronDewPower::CelestronDewPower() : INDI::DefaultDevice(), INDI::PowerInterface(this), INDI::WeatherInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 const char *CelestronDewPower::getDefaultName()
@@ -71,6 +71,8 @@ bool CelestronDewPower::initProperties()
     registerConnection(serialConnection);
 
     AUXCommand::setDebugInfo(getDeviceName(), DBG_CAUX);
+
+    addDebugControl();
 
     return true;
 }
