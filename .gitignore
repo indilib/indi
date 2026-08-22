@@ -1,5 +1,8 @@
 CMakeLists.txt.user*
 
+# Python bytecode cache (any directory level)
+__pycache__/
+
 # Projectile tags
 TAGS
 
