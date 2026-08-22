@@ -69,8 +69,8 @@ private:
 
     // AUX Command communication
     bool sendAUXCommand(AUXCommand &command);
-    bool readAUXResponse(AUXCommand c);
-    bool serialReadResponse(AUXCommand c);
+    bool readAUXResponse(AUXCommand &c);
+    bool serialReadResponse(AUXCommand &c);
     int sendBuffer(AUXBuffer buf);
     bool processResponse(AUXCommand &m); // Added processResponse
 

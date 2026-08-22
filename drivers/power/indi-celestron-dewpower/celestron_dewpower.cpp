@@ -377,14 +377,11 @@ bool CelestronDewPower::processResponse(AUXCommand &m)
 /////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////
-bool CelestronDewPower::serialReadResponse(AUXCommand c)
+bool CelestronDewPower::serialReadResponse(AUXCommand &c)
 {
     int n;
     unsigned char buf[32];
     char hexbuf[24];
-    AUXCommand cmd;
-
-    INDI_UNUSED(c);
 
     // We are not connected. Nothing to do.
     if ( PortFD <= 0 )
@@ -414,7 +411,7 @@ bool CelestronDewPower::serialReadResponse(AUXCommand c)
     AUXBuffer b(buf, buf + (n + 2));
     hex_dump(hexbuf, b, b.size());
     DEBUGF(DBG_SERIAL, "RES <%s>", hexbuf);
-    cmd.parseBuf(b);
+    c.parseBuf(b);
 
     // Got the packet, process it
     // n:length field >=3
@@ -423,14 +420,14 @@ bool CelestronDewPower::serialReadResponse(AUXCommand c)
 
     DEBUGF(DBG_SERIAL, "Got %d bytes:  ; payload length field: %d ; MSG:", n, buf[1]);
     logBytes(buf, n + 2, getDeviceName(), DBG_SERIAL);
-    processResponse(cmd);
+    processResponse(c);
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////
-bool CelestronDewPower::readAUXResponse(AUXCommand c)
+bool CelestronDewPower::readAUXResponse(AUXCommand &c)
 {
     // Assuming only serial connection for Dew/Power controller
     return serialReadResponse(c);
