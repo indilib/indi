@@ -82,7 +82,7 @@ bool CelestronDewPower::initProperties()
 
 IPState CelestronDewPower::updateWeather()
 {
-    AUXCommand cmd(PORTCTRL_GET_ENVIRONMENT, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_GET_ENVIRONMENT, APP, DEW_POWER_CTRL);
     AUXCommand response;
     if (sendAUXCommand(cmd) && readAUXResponse(response))
     {
@@ -573,7 +573,7 @@ int CelestronDewPower::aux_tty_write(char *buf, int bufsiz, int *n)
 
 bool CelestronDewPower::getDewPowerControllerVersion()
 {
-    AUXCommand cmd(PORTCTRL_GET_VERSION, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_GET_VERSION, APP, DEW_POWER_CTRL);
     AUXCommand response;
     if (sendAUXCommand(cmd) && readAUXResponse(response))
     {
@@ -590,7 +590,7 @@ bool CelestronDewPower::getDewPowerControllerVersion()
 
 bool CelestronDewPower::getNumberOfPorts()
 {
-    AUXCommand cmd(PORTCTRL_GET_NUMBER_OF_PORTS, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_GET_NUMBER_OF_PORTS, APP, DEW_POWER_CTRL);
     AUXCommand response;
     if (sendAUXCommand(cmd) && readAUXResponse(response))
     {
@@ -606,7 +606,7 @@ bool CelestronDewPower::getNumberOfPorts()
 
 bool CelestronDewPower::getInputPower()
 {
-    AUXCommand cmd(PORTCTRL_GET_INPUT_POWER, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_GET_INPUT_POWER, APP, DEW_POWER_CTRL);
     AUXCommand response;
     if (sendAUXCommand(cmd) && readAUXResponse(response))
     {
@@ -647,7 +647,7 @@ bool CelestronDewPower::getInputPower()
 
 bool CelestronDewPower::getPortInfo(uint8_t portNumber)
 {
-    AUXCommand cmd(PORTCTRL_GET_PORT_INFO, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_GET_PORT_INFO, APP, DEW_POWER_CTRL);
     cmd.setData(portNumber, 1); // Port Number is 1 byte
     AUXCommand response;
     if (sendAUXCommand(cmd) && readAUXResponse(response))
@@ -679,7 +679,7 @@ bool CelestronDewPower::getPortInfo(uint8_t portNumber)
 
 bool CelestronDewPower::getDewHeaterPortInfo(uint8_t portNumber)
 {
-    AUXCommand cmd(PORTCTRL_GET_DH_PORT_INFO, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_GET_DH_PORT_INFO, APP, DEW_POWER_CTRL);
     cmd.setData(portNumber, 1); // Port Number is 1 byte
     AUXCommand response;
     if (sendAUXCommand(cmd) && readAUXResponse(response))
@@ -705,7 +705,7 @@ bool CelestronDewPower::getDewHeaterPortInfo(uint8_t portNumber)
 
 bool CelestronDewPower::setPortEnabled(uint8_t portNumber, bool enabled)
 {
-    AUXCommand cmd(PORTCTRL_SET_PORT_ENABLED, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_SET_PORT_ENABLED, APP, DEW_POWER_CTRL);
     AUXBuffer data;
     data.push_back(portNumber);
     data.push_back(enabled ? 1 : 0);
@@ -715,7 +715,7 @@ bool CelestronDewPower::setPortEnabled(uint8_t portNumber, bool enabled)
 
 bool CelestronDewPower::setPortVoltage(uint8_t portNumber, uint16_t voltage_mV)
 {
-    AUXCommand cmd(PORTCTRL_SET_PORT_VOLTAGE, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_SET_PORT_VOLTAGE, APP, DEW_POWER_CTRL);
     AUXBuffer data;
     data.push_back(portNumber);
     data.push_back((voltage_mV >> 8) & 0xFF);
@@ -726,7 +726,7 @@ bool CelestronDewPower::setPortVoltage(uint8_t portNumber, uint16_t voltage_mV)
 
 bool CelestronDewPower::setDewHeaterAuto(uint8_t portNumber, uint8_t mode, uint8_t temp_C)
 {
-    AUXCommand cmd(PORTCTRL_DH_ENABLE_AUTO, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_DH_ENABLE_AUTO, APP, DEW_POWER_CTRL);
     AUXBuffer data;
     data.push_back(portNumber);
     data.push_back(mode);
@@ -737,7 +737,7 @@ bool CelestronDewPower::setDewHeaterAuto(uint8_t portNumber, uint8_t mode, uint8
 
 bool CelestronDewPower::setDewHeaterManual(uint8_t portNumber, uint8_t powerLevel)
 {
-    AUXCommand cmd(PORTCTRL_DH_ENABLE_MANUAL, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_DH_ENABLE_MANUAL, APP, DEW_POWER_CTRL);
     AUXBuffer data;
     data.push_back(portNumber);
     data.push_back(powerLevel);
@@ -747,7 +747,7 @@ bool CelestronDewPower::setDewHeaterManual(uint8_t portNumber, uint8_t powerLeve
 
 bool CelestronDewPower::setLEDBrightness(uint8_t brightness)
 {
-    AUXCommand cmd(PORTCTRL_SET_LED_BRIGHTNESS, HC, DEW_POWER_CTRL);
+    AUXCommand cmd(PORTCTRL_SET_LED_BRIGHTNESS, APP, DEW_POWER_CTRL);
     cmd.setData(brightness, 1);
     return sendAUXCommand(cmd);
 }
