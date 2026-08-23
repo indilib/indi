@@ -89,7 +89,7 @@ IPState CelestronDewPower::updateWeather()
         if (response.command() == PORTCTRL_GET_ENVIRONMENT)
         {
             // RESP: <0:3 the ambient temperature in mC><4:7 the dew point in mC><8 relative humidity 0-100%>
-            AUXBuffer data = response.getDataBuffer();
+            const AUXBuffer &data = response.getDataBuffer();
             if (data.size() >= 9)
             {
                 int32_t ambientTemp_mC = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
@@ -179,7 +179,7 @@ bool CelestronDewPower::Handshake()
                     // 1-byte port type. Only require that one byte here so
                     // capability detection doesn't silently misclassify
                     // every idle port as DC output (portType 0).
-                    AUXBuffer data = response.getDataBuffer();
+                    const AUXBuffer &data = response.getDataBuffer();
                     if (!data.empty())
                     {
                         uint8_t portType = data[0];
@@ -358,7 +358,7 @@ bool CelestronDewPower::processResponse(AUXCommand &m)
                 break;
             case PORTCTRL_NAK:
             {
-                AUXBuffer data = m.getDataBuffer();
+                const AUXBuffer &data = m.getDataBuffer();
                 LOGF_DEBUG("Controller NAK'd command 0x%02X (not applicable to that port).",
                            data.empty() ? 0 : data[0]);
                 break;
@@ -613,7 +613,7 @@ bool CelestronDewPower::getInputPower()
                 return true;
 
             // RESP: data[0:1] is voltage (mV), data[2:3] is current (mA), data[4] is 0, -1 or 1 if ok/under/over voltage, data[5] is 0/1 for overcurrent
-            AUXBuffer data = response.getDataBuffer();
+            const AUXBuffer &data = response.getDataBuffer();
             if (data.size() >= 6)
             {
                 uint16_t voltage_mV = (data[0] << 8) | data[1];
@@ -654,7 +654,7 @@ bool CelestronDewPower::getPortInfo(uint8_t portNumber)
             // RESP: <0 type><1 enabled><2 isShorted><3:4 power(mW)><5:6 VoltageLevel (mV)>
             // Only present in full when the port is actively drawing
             // current; an idle port replies with just the 1-byte type.
-            AUXBuffer data = response.getDataBuffer();
+            const AUXBuffer &data = response.getDataBuffer();
             if (data.size() >= 7)
             {
                 // Update PI::PowerChannelsSP, PI::PowerChannelCurrentNP, OverCurrentLP
@@ -684,7 +684,7 @@ bool CelestronDewPower::getDewHeaterPortInfo(uint8_t portNumber)
         if (response.command() == PORTCTRL_GET_DH_PORT_INFO)
         {
             // RESP: <0 type><nmode (-1 == short detected, 0 == manual, 1 == auto_above_dp, 2 == auto_above_ambient)><2 power level><3:4 power(mW)><5 aggression level (C)><6:9 heaterTemp (if present)>
-            AUXBuffer data = response.getDataBuffer();
+            const AUXBuffer &data = response.getDataBuffer();
             if (data.size() >= 6) // Minimum size without heaterTemp
             {
                 // Update PI::DewChannelsSP, PI::DewChannelDutyCycleNP, PI::DewChannelCurrentNP, PI::AutoDewSP
