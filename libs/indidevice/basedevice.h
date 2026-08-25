@@ -194,6 +194,12 @@ class BaseDevice
         /** @return True if the device exists */
         bool isValid() const;
 
+        /** @return True if both handles refer to the same underlying device instance.
+         *  Two devices can share the same name across a disconnect/reconnect (e.g. a
+         *  driver restart replaces the device with a fresh instance under the same
+         *  name), so name equality alone does not imply identity. */
+        bool isSameDevice(const BaseDevice &other) const;
+
         /** @return True if the device is connected (CONNECT=ON), False otherwise */
         bool isConnected() const;
 
