@@ -1040,7 +1040,11 @@
         </device>
         <device label="NexDome Beaver" manufacturer="Lunatico">
             <driver name="NexDome Beaver">indi_nexdome_beaver</driver>
-            <version>1.0</version>
+            <version>1.1</version>
+        </device>
+        <device label="Caterpillar Dome" manufacturer="Lunatico">
+            <driver name="NexDome Beaver">indi_nexdome_beaver</driver>
+            <version>1.1</version>
         </device>
         <device label="Hakos Roll Off Roof" manufacturer="Hakos Astrofarm">
             <driver name="Hakos Roll Off Roof">indi_hakos_roof</driver>
