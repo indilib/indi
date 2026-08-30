@@ -1192,5 +1192,9 @@
             <driver name="SVBONY SV241 Pro">indi_svbony_powerbox</driver>
             <version>1.2</version>
         </device>
+        <device label="Gemini Power Box Hub Advanced v3" manufacturer="Gemini">
+            <driver name="Gemini Power Box Hub Advanced v3">indi_gemini_pbh</driver>
+            <version>0.9.0</version>
+        </device>
     </devGroup>
 </driversList>
