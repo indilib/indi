@@ -71,7 +71,7 @@ class AlpacaCCD : public INDI::CCD
 
         virtual bool StartExposure(float duration) override;
         virtual bool AbortExposure() override;
-        virtual int SetTemperature(double temperature) override;
+        virtual int SetTemperature(double temperature, bool enableCooler = false) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
         virtual bool SetCaptureFormat(uint8_t index) override;
