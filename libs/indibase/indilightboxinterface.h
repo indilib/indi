@@ -26,6 +26,8 @@
 #include "indipropertytext.h"
 
 #include <stdint.h>
+#include <string>
+#include <vector>
 
 /**
  * \class LightBoxInterface
@@ -106,6 +108,23 @@ class LightBoxInterface
              * @return True if successful, false otherwise.
              */
         virtual bool EnableLightBox(bool enable);
+
+        /**
+             * @brief FilterNamesUpdated Called whenever the list of known filter names changes (i.e. the
+             * filter wheel being snooped reports a new/changed FILTER_NAME list). Default implementation
+             * does nothing. Child classes can override this to maintain their own per-filter properties
+             * (e.g. a per-filter brightness mode) in sync with the filters known to FilterIntensityNP.
+             * @param filterNames Names of the filters, in slot order.
+             */
+        virtual void FilterNamesUpdated(const std::vector<std::string> &filterNames);
+
+        /**
+             * @brief FilterSlotChanged Called whenever the snooped filter wheel reports a new active filter
+             * slot. Default implementation does nothing. Child classes can override this to react to the
+             * filter change (e.g. apply a per-filter brightness mode preset).
+             * @param index Zero-based index of the newly active filter slot.
+             */
+        virtual void FilterSlotChanged(int index);
 
         // Turn on/off light
         INDI::PropertySwitch LightSP {2};
