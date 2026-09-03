@@ -5,17 +5,33 @@ distcc host over SSH.
 
 This wraps two things people otherwise get wrong by hand:
 
-  1. DISTCC_HOSTS must be set to "@<host>/<slots>" (the leading "@" means
+  1. DISTCC_HOSTS must be set to "@<host>/<N>" (the leading "@" means
      "dispatch via ssh"). Omitting the "@" silently falls back to a plain
      TCP connection to distccd on port 3632, which usually isn't listening.
   2. The parallelism distcc actually achieves is capped by whatever -j value
      you pass to ninja/make -- distcc itself does not create parallelism, it
      only lets each already-parallel job land on a different machine. Ninja's
-     default -j is derived from the *local* CPU count (local-cores + 2), so
-     running `ninja` with no -j on a 4-core laptop offloading to a 16+ core
-     remote box still only ever has ~6 compiles in flight -- the remote
-     machine's extra cores just sit idle. This script fixes that by sizing
-     -j from the remote host's actual `nproc`, not the local one.
+     default -j is derived from the *local* CPU count, so running `ninja`
+     with no -j on a 4-core laptop offloading to a 16+ core remote box still
+     only ever has ~6 compiles in flight -- the remote machine's extra cores
+     just sit idle. This script fixes that by sizing -j from --remote-jobs.
+
+This script never compiles locally -- everything lands on the remote host
+(DISTCC_HOSTS has no "localhost" entry). That means --remote-jobs is the
+only thing that determines how many compiles run at once, and -j is always
+set to match it, so the remote host's slots are always kept full.
+
+But "never compiles locally" doesn't mean "no local CPU use": this is
+classic (non-pump) distcc, so every job still runs its preprocessing step
+on THIS machine before the preprocessed source is shipped off (distcc
+doesn't ship raw source unless you set up pump mode separately). With
+--remote-jobs sized off a big remote box, that's easily dozens of
+preprocessing invocations wanting to run at once here. --local-jobs is the
+cap on that: it confines the whole build (ninja, ccache, distcc, the
+preprocessing, ssh -- every process the build spawns) to that many cores
+via `taskset -c 0-N`, independent of --remote-jobs/-j. Default: half of
+this machine's own `nproc`, since this script is usually run on a machine
+you still want to use for other things.
 
 Assumes distcc (and, for the ssh-pump mode used here, an sshd + distccd
 reachable via `ssh <host> distccd --inetd`) is already installed on both the
@@ -29,20 +45,21 @@ below) has nothing to hook into unless the build was configured with
 -DCCACHE_SUPPORT=ON, e.g.:
     cmake -B build -DCCACHE_SUPPORT=ON ...
 If your existing build/ has CCACHE_SUPPORT=OFF, re-run cmake once with that
-flag (no need to wipe the build dir) before using this script.
+flag (no need to wipe the build dir) before using this script -- this script
+checks for that and warns you, but can't fix it for you.
 
 Usage:
     scripts/distcc_build.py --host workshop
     scripts/distcc_build.py --host 192.168.1.50 --build-dir ../build indi_celestron_dewpower
-    scripts/distcc_build.py --host workshop --jobs 24 --slots 20 --dry-run
+    scripts/distcc_build.py --host workshop --local-jobs 2 --remote-jobs 20 --dry-run
 
 Cross-architecture (e.g. building on an aarch64 Pi, offloading to a faster x86_64 box):
     this script needs no changes for that -- distcc dispatches by whatever compiler NAME
     the local build invokes, so as long as the remote answers to that same name with a
-    real cross-compiler, this works unmodified. --jobs should then be sized from the
-    LOCAL machine's core count, not --slots/the remote's -- CMake codegen steps and the
-    final link are always local regardless of distcc, and oversubscribing a weak local
-    machine during those is the main way this goes wrong.
+    real cross-compiler, this works unmodified. Size --local-jobs generously in that
+    setup -- it caps the SAME cores that run CMake's codegen steps and the final link,
+    which are always local regardless of distcc, so setting it too low starves those
+    steps on a weak local machine.
 """
 import argparse
 import os
@@ -65,19 +82,16 @@ def parse_args():
                    help="Remote hostname or IP with distcc/sshd already running.")
     p.add_argument("--build-dir", "-C", type=Path, default=DEFAULT_BUILD_DIR,
                    help=f"Build directory containing build.ninja or Makefile (default: {DEFAULT_BUILD_DIR}).")
-    p.add_argument("--slots", type=int, default=None,
-                   help="Max concurrent distcc jobs on the remote host (DISTCC_HOSTS '@host/N'). "
-                        "Default: the remote host's own `nproc`.")
-    p.add_argument("--jobs", "-j", type=int, default=None,
-                   help="Parallelism passed to ninja/make -j. Default: --slots plus --local-jobs -- "
-                        "this is the number that actually controls how many compiles run at once; "
-                        "distcc only decides *where* each one runs. If this is left at just --slots "
-                        "while --local-jobs is also set, the local slots never get used: ninja only "
-                        "ever launches enough jobs to fill the remote pool.")
-    p.add_argument("--local-jobs", type=int, default=0,
-                   help="Also allow this many jobs to compile on the local machine concurrently "
-                        "with the remote ones (adds a bare 'localhost/N' entry to DISTCC_HOSTS). "
-                        "Default 0: fully offload, no local compiles.")
+    p.add_argument("--remote-jobs", type=int, default=None,
+                   help="Max concurrent jobs compiling on the remote host (DISTCC_HOSTS '@host/N'); "
+                        "this is also used as ninja/make's -j, since this script never compiles "
+                        "locally. Default: the remote host's own `nproc` -- use everything it has.")
+    p.add_argument("--local-jobs", type=int, default=None,
+                   help="Cap on how many cores THIS machine may use for anything the build needs "
+                        "locally -- preprocessing (every job preprocesses here even though it "
+                        "compiles remotely, see module docstring), ccache, ninja bookkeeping, ssh. "
+                        "Enforced via `taskset -c 0-N`, independent of --remote-jobs/-j. Default: "
+                        "half of this machine's own `nproc`.")
     p.add_argument("--ssh-user", default=None,
                    help="SSH user for the remote host, if not the same as the local user "
                         "(passed as '@user@host/slots' in DISTCC_HOSTS).")
@@ -180,30 +194,42 @@ def main():
 
     check_ccache_support(args.build_dir)
 
-    slots = args.slots
-    if slots is None:
+    remote_jobs = args.remote_jobs
+    if remote_jobs is None:
         if args.skip_preflight:
-            sys.exit("[distcc_build] ERROR: --slots is required when --skip-preflight is set "
-                     "(otherwise there's no way to size it without asking the remote host).")
+            sys.exit("[distcc_build] ERROR: --remote-jobs is required when --skip-preflight is "
+                     "set (otherwise there's no way to size it without asking the remote host).")
         n = remote_nproc(args)
         if n is None:
             sys.exit(f"[distcc_build] ERROR: could not determine {args.host}'s core count. "
-                     f"Pass --slots explicitly to skip this check.")
-        slots = n
-        print(f"[distcc_build] {args.host} reports {slots} cores -- using that as the distcc slot count.")
+                     f"Pass --remote-jobs explicitly to skip this check.")
+        remote_jobs = n
+        print(f"[distcc_build] {args.host} reports {remote_jobs} cores -- using all of them "
+              f"(--remote-jobs).")
 
-    jobs = args.jobs if args.jobs is not None else slots + args.local_jobs
+    local_jobs = args.local_jobs
+    if local_jobs is None:
+        local_nproc = os.cpu_count() or 2
+        local_jobs = max(1, local_nproc // 2)
+        print(f"[distcc_build] Capping local CPU use to {local_jobs} core(s) -- half of this "
+              f"machine's {local_nproc} (--local-jobs to override).")
+    if local_jobs < 1:
+        sys.exit("[distcc_build] ERROR: --local-jobs must be >= 1.")
+    if not shutil.which("taskset"):
+        sys.exit("[distcc_build] ERROR: --local-jobs requires `taskset` (util-linux) on PATH.")
+
+    jobs = remote_jobs
 
     if not args.skip_preflight:
         preflight(args)
 
-    host_spec = f"{ssh_target(args)}/{slots}"
-    distcc_hosts = f"@{host_spec}"
-    if args.local_jobs > 0:
-        distcc_hosts = f"localhost/{args.local_jobs} {distcc_hosts}"
+    distcc_hosts = f"@{ssh_target(args)}/{remote_jobs}"
 
     build_tool = detect_build_tool(args.build_dir)
-    cmd = [build_tool, f"-j{jobs}"] + args.targets
+    cpu_range = f"0-{local_jobs - 1}"
+    cmd = ["taskset", "-c", cpu_range, build_tool, f"-j{jobs}"] + args.targets
+    print(f"[distcc_build] Confining the whole build to {local_jobs} local core(s) "
+          f"(taskset -c {cpu_range}).")
 
     env = os.environ.copy()
     env["DISTCC_HOSTS"] = distcc_hosts
