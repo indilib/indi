@@ -109,5 +109,3 @@ jobs:
             --base master --head "${fork_owner}:indiserver-${RELEASE_TAG}" \
             --title "indiserver ${RELEASE_TAG#v} (new formula)" \
             --body "Adds the standalone INDI server formula for ${RELEASE_TAG}.
-
-AI-assisted contribution: OpenAI Codex (GPT-5) assisted with preparing this formula and release automation. The submitter is responsible for reviewing this change and responding to maintainer feedback."
