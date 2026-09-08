@@ -1,0 +1,113 @@
+name: Homebrew
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    paths:
+      - .github/workflows/homebrew.yml
+      - Formula/indiserver.rb
+      - scripts/update-homebrew-formula.sh
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: INDI release tag to publish, for example v2.2.4.2
+        required: true
+        type: string
+      core_fork:
+        description: Optional owner/homebrew-core fork override
+        required: false
+        type: string
+      submit_core_pr:
+        description: Open or update a Homebrew Core PR after validation
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}
+
+    steps:
+      - name: Check out INDI sources
+        uses: actions/checkout@v4
+
+      - name: Update formula for release
+        if: github.event_name != 'pull_request'
+        run: scripts/update-homebrew-formula.sh "$RELEASE_TAG"
+
+      - name: Validate formula with Homebrew
+        run: |
+          brew install --build-from-source ./Formula/indiserver.rb
+          brew test indiserver
+          brew audit --new --strict --online Formula/indiserver.rb
+          brew style Formula/indiserver.rb
+
+  submit-core-pr:
+    needs: validate
+    if: >-
+      (github.event_name == 'release' && vars.HOMEBREW_CORE_FORK != '') ||
+      (github.event_name == 'workflow_dispatch' && inputs.submit_core_pr)
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}
+      HOMEBREW_CORE_FORK: ${{ inputs.core_fork || vars.HOMEBREW_CORE_FORK }}
+      HOMEBREW_CORE_TOKEN: ${{ secrets.HOMEBREW_CORE_TOKEN }}
+
+    steps:
+      - name: Check out INDI sources
+        uses: actions/checkout@v4
+
+      - name: Validate publishing configuration
+        run: |
+          test -n "$RELEASE_TAG"
+          test -n "$HOMEBREW_CORE_FORK"
+          test -n "$HOMEBREW_CORE_TOKEN"
+
+      - name: Check out Homebrew Core fork
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HOMEBREW_CORE_FORK }}
+          token: ${{ env.HOMEBREW_CORE_TOKEN }}
+          path: homebrew-core
+
+      - name: Prepare formula branch
+        run: |
+          git -C homebrew-core checkout -B "indiserver-${RELEASE_TAG}"
+          mkdir -p homebrew-core/Formula/i
+          cp Formula/indiserver.rb homebrew-core/Formula/i/indiserver.rb
+          scripts/update-homebrew-formula.sh "$RELEASE_TAG" homebrew-core/Formula/i/indiserver.rb
+
+      - name: Push branch and open or update Core pull request
+        working-directory: homebrew-core
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_CORE_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/indiserver.rb
+          if git diff --cached --quiet; then
+            echo "Formula already matches ${RELEASE_TAG}; nothing to submit."
+            exit 0
+          fi
+          git commit -m "indiserver ${RELEASE_TAG}"
+          git push --force-with-lease origin "indiserver-${RELEASE_TAG}"
+          fork_owner="${HOMEBREW_CORE_FORK%%/*}"
+          pr_url="$(gh pr list --repo Homebrew/homebrew-core \
+            --head "${fork_owner}:indiserver-${RELEASE_TAG}" --state open \
+            --json url --jq '.[0].url')"
+          if [[ -n "$pr_url" ]]; then
+            echo "Updated $pr_url"
+            exit 0
+          fi
+          gh pr create --repo Homebrew/homebrew-core \
+            --base master --head "${fork_owner}:indiserver-${RELEASE_TAG}" \
+            --title "indiserver ${RELEASE_TAG#v} (new formula)" \
+            --body "Adds the standalone INDI server formula for ${RELEASE_TAG}.
+
+AI-assisted contribution: OpenAI Codex (GPT-5) assisted with preparing this formula and release automation. The submitter is responsible for reviewing this change and responding to maintainer feedback."
