@@ -433,7 +433,9 @@ bool CCDSim::StartExposure(float duration)
             LOGF_DEBUG("Using cached planet render (%.1f minutes since last render)", elapsedMinutes);
         }
     }
-    else if (PrimaryCCD.getFrameType() == INDI::CCDChip::LIGHT_FRAME && DirectorySP[INDI_ENABLED].getState() == ISS_ON)
+    // When the directory is enabled, load every frame type (LIGHT, DARK, BIAS, FLAT)
+    // from the watched folder instead of generating a synthetic frame.
+    else if (DirectorySP[INDI_ENABLED].getState() == ISS_ON)
     {
         if (loadNextImage() == false)
             return false;
