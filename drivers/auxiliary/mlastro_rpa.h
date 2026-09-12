@@ -56,6 +56,12 @@
  * Capabilities:
  *   PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION |
  *   PAC_CAN_HOME  | PAC_HAS_BACKLASH | PAC_CAN_SYNC
+ *
+ * Client-side correction shaping (Correction tab), mirroring MLAstro's N.I.N.A.
+ * plugin: the requested AZ/ALT correction delivered through PAC_MANUAL_ADJUSTMENT
+ * is scaled by a user-adjustable percentage (default 100%), and optionally the
+ * altitude axis applies 100% of the error plus a configured overshoot past the
+ * target so the platform always settles from the same direction.
  */
 class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
 {
@@ -83,6 +89,13 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         IPState MoveAZ(double degrees) override;
         IPState MoveALT(double degrees) override;
         IPState MoveBoth(double azDegrees, double altDegrees) override;
+
+        /// Scale a requested azimuth step by the configured correction percentage.
+        double applyCorrectionAZ(double azDegrees) const;
+        /// Scale a requested altitude step by the correction percentage, or apply
+        /// the full error plus the configured overshoot when the driver-side
+        /// correction overshoot is active for the move direction.
+        double applyCorrectionALT(double altDegrees) const;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// PACInterface – abort, speed and reverse
@@ -192,6 +205,27 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         /// Altitude overshoot amount in degrees (OvD/OvM/OvS)
         INDI::PropertyNumber AltOvershootAmountNP {1};
 
+        // ── Correction tab ────────────────────────────────────────────────
+        // Driver-side (client) correction shaping, mirroring MLAstro's N.I.N.A.
+        // implementation: the requested AZ/ALT correction is scaled by a safety
+        // factor, and optionally the altitude axis applies 100% of the error and
+        // then travels an overshoot distance past the target so it always settles
+        // from the same direction.
+
+        /// Safety factor applied to every requested AZ/ALT correction (%).
+        INDI::PropertyNumber CorrectionPercentNP {1};
+
+        /// Master enable for the driver-side correction overshoot routine.
+        INDI::PropertySwitch CorrectionOvershootSP {2};
+        enum { CORR_OVERSHOOT_ENABLED, CORR_OVERSHOOT_DISABLED };
+
+        /// Per-direction overshoot enable (up / down moves).
+        INDI::PropertySwitch CorrectionOvershootDirSP {2};
+        enum { CORR_OVERSHOOT_UP, CORR_OVERSHOOT_DOWN };
+
+        /// Distance travelled past the target when overshooting (arcmin).
+        INDI::PropertyNumber CorrectionOvershootAmountNP {1};
+
         // ── Motor Config tab ──────────────────────────────────────────────
         /// Azimuth motor configuration (9 parameters)
         INDI::PropertyNumber AzMotorNP {9};
@@ -262,6 +296,9 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         bool m_IsHoming        {false};   ///< True while returning to home.
         bool m_IsHomed         {false};   ///< True when a home position is set.
 
+        /// Guards the one-time informational log of the device's backlash state.
+        bool m_BacklashLogged  {false};
+
         /// Latest OvD/OvM/OvS telemetry pieces, combined into AltOvershootAmountNP.
         double m_OvshD {0}, m_OvshM {0}, m_OvshS {0};
 
@@ -277,4 +314,5 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         static constexpr const char *MOTOR_CONFIG_TAB {"Motor Config"};
         static constexpr const char *NETWORK_TAB      {"Network"};
         static constexpr const char *INFO_TAB         {"Info"};
+        static constexpr const char *CORRECTION_TAB   {"Correction"};
 };

@@ -39,7 +39,7 @@ static std::unique_ptr<MLAstroRPA> rpa(new MLAstroRPA());
 MLAstroRPA::MLAstroRPA()
     : PACInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 3);
     SetCapability(PAC_HAS_SPEED    |
                   PAC_CAN_REVERSE  |
                   PAC_HAS_POSITION |
@@ -116,6 +116,32 @@ bool MLAstroRPA::initProperties()
     AltOvershootAmountNP[0].fill("AMOUNT", "Amount (deg)", "%.4f", 0, 10.9997, 0.1, 2.0);
     AltOvershootAmountNP.fill(getDeviceName(), "ALT_OVERSHOOT_AMOUNT", "Overshoot Amount",
                               OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // ── Correction tab ────────────────────────────────────────────────────
+    // Driver-side correction shaping (mirrors the MLAstro N.I.N.A. plugin):
+    //   * "Correction %" scales every requested AZ/ALT correction so the loop
+    //     applies slightly less than the measured error and converges without
+    //     overshooting to the other side.
+    //   * When the correction overshoot is enabled for a direction, the ALT axis
+    //     instead applies 100% of the error plus the configured overshoot past
+    //     the target, so the platform always settles from the same side.
+    CorrectionPercentNP[0].fill("CORRECTION_PERCENT", "Correction (%)", "%.0f", 1, 100, 1, 100);
+    CorrectionPercentNP.fill(getDeviceName(), "RPA_CORRECTION_PERCENT", "Correction %",
+                             CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    CorrectionOvershootSP[CORR_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    CorrectionOvershootSP[CORR_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    CorrectionOvershootSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT", "Correction Overshoot",
+                               CORRECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    CorrectionOvershootDirSP[CORR_OVERSHOOT_UP].fill("OVERSHOOT_UP", "On Move Up", ISS_OFF);
+    CorrectionOvershootDirSP[CORR_OVERSHOOT_DOWN].fill("OVERSHOOT_DOWN", "On Move Down", ISS_ON);
+    CorrectionOvershootDirSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_DIR", "Overshoot Direction",
+                                  CORRECTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    CorrectionOvershootAmountNP[0].fill("AMOUNT", "Amount (arcmin)", "%.1f", 0, 240, 1, 30);
+    CorrectionOvershootAmountNP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_AMOUNT",
+                                     "Overshoot Amount", CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // ── Motor Config tab ──────────────────────────────────────────────────
 
@@ -215,6 +241,10 @@ bool MLAstroRPA::updateProperties()
         defineProperty(AltOvershootSP);
         defineProperty(AltOvershootDirSP);
         defineProperty(AltOvershootAmountNP);
+        defineProperty(CorrectionPercentNP);
+        defineProperty(CorrectionOvershootSP);
+        defineProperty(CorrectionOvershootDirSP);
+        defineProperty(CorrectionOvershootAmountNP);
         defineProperty(AzMotorNP);
         defineProperty(AltMotorNP);
         defineProperty(SaveRebootSP);
@@ -235,6 +265,10 @@ bool MLAstroRPA::updateProperties()
         deleteProperty(AltOvershootSP);
         deleteProperty(AltOvershootDirSP);
         deleteProperty(AltOvershootAmountNP);
+        deleteProperty(CorrectionPercentNP);
+        deleteProperty(CorrectionOvershootSP);
+        deleteProperty(CorrectionOvershootDirSP);
+        deleteProperty(CorrectionOvershootAmountNP);
         deleteProperty(AzMotorNP);
         deleteProperty(AltMotorNP);
         deleteProperty(SaveRebootSP);
@@ -257,6 +291,22 @@ bool MLAstroRPA::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     PACI::saveConfigItems(fp);
+
+    // Device-specific settings. Saving these here makes them persist on the very
+    // first save as well (saveConfig(property) alone only records into an already
+    // existing config file). Password / SSID text properties are intentionally
+    // excluded: the passwords are write-only and the firmware re-reports the rest.
+    AzSoftLimitsNP.save(fp);
+    AltSoftLimitsNP.save(fp);
+    AltOvershootSP.save(fp);
+    AltOvershootDirSP.save(fp);
+    AltOvershootAmountNP.save(fp);
+    AzMotorNP.save(fp);
+    AltMotorNP.save(fp);
+    CorrectionPercentNP.save(fp);
+    CorrectionOvershootSP.save(fp);
+    CorrectionOvershootDirSP.save(fp);
+    CorrectionOvershootAmountNP.save(fp);
     return true;
 }
 
@@ -266,6 +316,7 @@ bool MLAstroRPA::saveConfigItems(FILE *fp)
 bool MLAstroRPA::Handshake()
 {
     PortFD = serialConnection->getPortFD();
+    m_BacklashLogged = false;
 
     // Flush any stale data
     tcflush(PortFD, TCIOFLUSH);
@@ -396,6 +447,7 @@ bool MLAstroRPA::parseTelemetry(const char *response)
     char data[DRIVER_LEN] = {0};
     strncpy(data, dataStart, DRIVER_LEN - 1);
 
+    bool sawBacklash = false;
     char *token = strtok(data, ",");
     while (token)
     {
@@ -429,6 +481,7 @@ bool MLAstroRPA::parseTelemetry(const char *response)
             }
             else if (strcmp(key, "Back") == 0)
             {
+                sawBacklash = true;
                 int idx = (v != 0.0) ? DefaultDevice::INDI_ENABLED : DefaultDevice::INDI_DISABLED;
                 BacklashSP.reset();
                 BacklashSP[idx].setState(ISS_ON);
@@ -437,12 +490,14 @@ bool MLAstroRPA::parseTelemetry(const char *response)
             }
             else if (strcmp(key, "AzBl") == 0)
             {
+                sawBacklash = true;
                 BacklashNP[BACKLASH_AZ].setValue(v);
                 BacklashNP.setState(IPS_OK);
                 BacklashNP.apply();
             }
             else if (strcmp(key, "AlBl") == 0)
             {
+                sawBacklash = true;
                 BacklashNP[BACKLASH_ALT].setValue(v);
                 BacklashNP.setState(IPS_OK);
                 BacklashNP.apply();
@@ -669,6 +724,19 @@ bool MLAstroRPA::parseTelemetry(const char *response)
         token = strtok(nullptr, ",");
     }
 
+    // The firmware reports its backlash state on every poll but the driver used to
+    // parse it silently, so a client log could never show whether it was enabled.
+    // Log it once per connection to make that diagnosable.
+    if (sawBacklash && !m_BacklashLogged)
+    {
+        m_BacklashLogged = true;
+        const bool enabled = BacklashSP[DefaultDevice::INDI_ENABLED].getState() == ISS_ON;
+        LOGF_INFO("Backlash compensation %s (AZ %d, ALT %d steps).",
+                  enabled ? "enabled" : "disabled",
+                  static_cast<int>(BacklashNP[BACKLASH_AZ].getValue()),
+                  static_cast<int>(BacklashNP[BACKLASH_ALT].getValue()));
+    }
+
     return true;
 }
 
@@ -765,10 +833,49 @@ IPState MLAstroRPA::sendRelativeMove(double degrees, const char *cmdPos, const c
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// applyCorrectionAZ – scale a requested step by the correction percentage
+/////////////////////////////////////////////////////////////////////////////
+double MLAstroRPA::applyCorrectionAZ(double azDegrees) const
+{
+    return azDegrees * CorrectionPercentNP[0].getValue() / 100.0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// applyCorrectionALT – correction percentage, or full error + overshoot
+/////////////////////////////////////////////////////////////////////////////
+double MLAstroRPA::applyCorrectionALT(double altDegrees) const
+{
+    // A zero request is never turned into an overshoot move.
+    if (altDegrees == 0.0)
+        return 0.0;
+
+    const bool master = CorrectionOvershootSP[CORR_OVERSHOOT_ENABLED].getState() == ISS_ON;
+    const bool dirEnabled = (altDegrees > 0.0)
+                            ? CorrectionOvershootDirSP[CORR_OVERSHOOT_UP].getState()   == ISS_ON
+                            : CorrectionOvershootDirSP[CORR_OVERSHOOT_DOWN].getState() == ISS_ON;
+
+    if (master && dirEnabled)
+    {
+        // Full correction plus the configured overshoot past the target.
+        const double overshoot = CorrectionOvershootAmountNP[0].getValue() / 60.0; // arcmin → deg
+        return altDegrees + (altDegrees > 0.0 ? overshoot : -overshoot);
+    }
+
+    return altDegrees * CorrectionPercentNP[0].getValue() / 100.0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// MoveAZ
 /////////////////////////////////////////////////////////////////////////////
 IPState MLAstroRPA::MoveAZ(double degrees)
 {
+    const double requested = degrees;
+    degrees = applyCorrectionAZ(degrees);
+
+    if (degrees != requested)
+        LOGF_INFO("MoveAZ: correction applied — requested %.4f° → %.4f° (%.0f%%).",
+                  requested, degrees, CorrectionPercentNP[0].getValue());
+
     // positive = East → MAzR, negative = West → MAzL
     return sendRelativeMove(degrees, "MAzR:1", "MAzL:1");
 }
@@ -778,6 +885,13 @@ IPState MLAstroRPA::MoveAZ(double degrees)
 /////////////////////////////////////////////////////////////////////////////
 IPState MLAstroRPA::MoveALT(double degrees)
 {
+    const double requested = degrees;
+    degrees = applyCorrectionALT(degrees);
+
+    if (degrees != requested)
+        LOGF_INFO("MoveALT: correction applied — requested %.4f° → %.4f°.",
+                  requested, degrees);
+
     // positive = Up → MAlU, negative = Down → MAlD
     return sendRelativeMove(degrees, "MAlU:1", "MAlD:1");
 }
@@ -791,6 +905,25 @@ IPState MLAstroRPA::MoveALT(double degrees)
 /////////////////////////////////////////////////////////////////////////////
 IPState MLAstroRPA::MoveBoth(double azDegrees, double altDegrees)
 {
+    const double requestedAz  = azDegrees;
+    const double requestedAlt = altDegrees;
+
+    azDegrees  = applyCorrectionAZ(azDegrees);
+    altDegrees = applyCorrectionALT(altDegrees);
+
+    // If the correction percentage scaled both axes down to nothing there is no
+    // move to issue – report success so the client keeps iterating.
+    if (azDegrees == 0.0 && altDegrees == 0.0)
+    {
+        LOGF_INFO("MoveBoth: requested AZ %.4f° / ALT %.4f° scaled to zero — no move.",
+                  requestedAz, requestedAlt);
+        return IPS_OK;
+    }
+
+    if (azDegrees != requestedAz || altDegrees != requestedAlt)
+        LOGF_INFO("MoveBoth: correction applied — requested AZ %.4f° / ALT %.4f° → AZ %.4f° / ALT %.4f°.",
+                  requestedAz, requestedAlt, azDegrees, altDegrees);
+
     int azD, azM, azS;
     bool azPos;
     degreesToDMS(azDegrees, azD, azM, azS, azPos);
@@ -1208,6 +1341,26 @@ bool MLAstroRPA::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
+        // ── Driver-side correction percentage (local setting, no serial command)
+        if (CorrectionPercentNP.isNameMatch(name))
+        {
+            CorrectionPercentNP.update(values, names, n);
+            CorrectionPercentNP.setState(IPS_OK);
+            CorrectionPercentNP.apply();
+            saveConfig(CorrectionPercentNP);
+            return true;
+        }
+
+        // ── Driver-side correction overshoot amount (local setting, no serial command)
+        if (CorrectionOvershootAmountNP.isNameMatch(name))
+        {
+            CorrectionOvershootAmountNP.update(values, names, n);
+            CorrectionOvershootAmountNP.setState(IPS_OK);
+            CorrectionOvershootAmountNP.apply();
+            saveConfig(CorrectionOvershootAmountNP);
+            return true;
+        }
+
         // Delegate to PACInterface for its number properties
         if (PACI::processNumber(dev, name, values, names, n))
             return true;
@@ -1259,6 +1412,26 @@ bool MLAstroRPA::ISNewSwitch(const char *dev, const char *name, ISState *states,
             else
                 AltOvershootDirSP.setState(IPS_ALERT);
             AltOvershootDirSP.apply();
+            return true;
+        }
+
+        // ── Driver-side correction overshoot master enable (local setting)
+        if (CorrectionOvershootSP.isNameMatch(name))
+        {
+            CorrectionOvershootSP.update(states, names, n);
+            CorrectionOvershootSP.setState(IPS_OK);
+            CorrectionOvershootSP.apply();
+            saveConfig(CorrectionOvershootSP);
+            return true;
+        }
+
+        // ── Driver-side correction overshoot per-direction enable (local setting)
+        if (CorrectionOvershootDirSP.isNameMatch(name))
+        {
+            CorrectionOvershootDirSP.update(states, names, n);
+            CorrectionOvershootDirSP.setState(IPS_OK);
+            CorrectionOvershootDirSP.apply();
+            saveConfig(CorrectionOvershootDirSP);
             return true;
         }
 
