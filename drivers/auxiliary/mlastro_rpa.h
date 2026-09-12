@@ -58,10 +58,14 @@
  *   PAC_CAN_HOME  | PAC_HAS_BACKLASH | PAC_CAN_SYNC
  *
  * Client-side correction shaping (Correction tab), mirroring MLAstro's N.I.N.A.
- * plugin: the requested AZ/ALT correction delivered through PAC_MANUAL_ADJUSTMENT
- * is scaled by a user-adjustable percentage (default 100%), and optionally the
- * altitude axis applies 100% of the error plus a configured overshoot past the
- * target so the platform always settles from the same direction.
+ * plugin:
+ *   - Correction Percentage (default 75%, 1-100%) is applied to Azimuth on every
+ *     automated correction and to Altitude when the software overshoot is not
+ *     active for the current correction direction.
+ *   - Software Overshoot (ALT): when enabled for the current direction, the Alt
+ *     axis corrects 100% of the error and then travels the configured overshoot
+ *     (0-240 arcmin) past the target so the platform always settles from the
+ *     same direction.
  */
 class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
 {
@@ -212,18 +216,19 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         // then travels an overshoot distance past the target so it always settles
         // from the same direction.
 
-        /// Safety factor applied to every requested AZ/ALT correction (%).
+        /// Correction percentage applied to every requested AZ/ALT correction (%).
+        /// Default 75, range 1-100.
         INDI::PropertyNumber CorrectionPercentNP {1};
 
-        /// Master enable for the driver-side correction overshoot routine.
+        /// Master "Enable overshoot" for the Alt software-overshoot routine.
         INDI::PropertySwitch CorrectionOvershootSP {2};
         enum { CORR_OVERSHOOT_ENABLED, CORR_OVERSHOOT_DISABLED };
 
-        /// Per-direction overshoot enable (up / down moves).
+        /// Per-direction overshoot enable ("Run overshoot for moving Up / Down").
         INDI::PropertySwitch CorrectionOvershootDirSP {2};
         enum { CORR_OVERSHOOT_UP, CORR_OVERSHOOT_DOWN };
 
-        /// Distance travelled past the target when overshooting (arcmin).
+        /// Distance travelled past the target when overshooting (arcmin, 0-240).
         INDI::PropertyNumber CorrectionOvershootAmountNP {1};
 
         // ── Motor Config tab ──────────────────────────────────────────────

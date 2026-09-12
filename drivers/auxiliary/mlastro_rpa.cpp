@@ -119,29 +119,33 @@ bool MLAstroRPA::initProperties()
 
     // ── Correction tab ────────────────────────────────────────────────────
     // Driver-side correction shaping (mirrors the MLAstro N.I.N.A. plugin):
-    //   * "Correction %" scales every requested AZ/ALT correction so the loop
-    //     applies slightly less than the measured error and converges without
-    //     overshooting to the other side.
-    //   * When the correction overshoot is enabled for a direction, the ALT axis
-    //     instead applies 100% of the error plus the configured overshoot past
-    //     the target, so the platform always settles from the same side.
-    CorrectionPercentNP[0].fill("CORRECTION_PERCENT", "Correction (%)", "%.0f", 1, 100, 1, 100);
-    CorrectionPercentNP.fill(getDeviceName(), "RPA_CORRECTION_PERCENT", "Correction %",
+    //   * "Correction Percentage" (default 75%, 1-100%) is applied to Azimuth on
+    //     every automated correction, and to Altitude when the software overshoot
+    //     is not active for the current correction direction. Applying slightly
+    //     less than the full error prevents overcorrection; the client simply
+    //     repeats the run until the error converges.
+    //   * "Software Overshoot (ALT)": when enabled for the current correction
+    //     direction, the Alt axis corrects 100% of the error and then travels the
+    //     configured overshoot (0-240 arcmin) past the target, so the platform
+    //     always settles from the same direction.
+    CorrectionPercentNP[0].fill("CORRECTION_PERCENT", "Correction (%)", "%.0f", 1, 100, 1, 75);
+    CorrectionPercentNP.fill(getDeviceName(), "RPA_CORRECTION_PERCENT", "Correction Percentage",
                              CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
 
-    CorrectionOvershootSP[CORR_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
-    CorrectionOvershootSP[CORR_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
-    CorrectionOvershootSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT", "Correction Overshoot",
+    CorrectionOvershootSP[CORR_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enable overshoot", ISS_OFF);
+    CorrectionOvershootSP[CORR_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disable", ISS_ON);
+    CorrectionOvershootSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT", "Software Overshoot (ALT)",
                                CORRECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    CorrectionOvershootDirSP[CORR_OVERSHOOT_UP].fill("OVERSHOOT_UP", "On Move Up", ISS_OFF);
-    CorrectionOvershootDirSP[CORR_OVERSHOOT_DOWN].fill("OVERSHOOT_DOWN", "On Move Down", ISS_ON);
-    CorrectionOvershootDirSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_DIR", "Overshoot Direction",
+    CorrectionOvershootDirSP[CORR_OVERSHOOT_UP].fill("OVERSHOOT_UP", "Run overshoot for moving Up", ISS_OFF);
+    CorrectionOvershootDirSP[CORR_OVERSHOOT_DOWN].fill("OVERSHOOT_DOWN", "Run overshoot for moving Down",
+            ISS_ON);
+    CorrectionOvershootDirSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_DIR", "Run Overshoot Direction",
                                   CORRECTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     CorrectionOvershootAmountNP[0].fill("AMOUNT", "Amount (arcmin)", "%.1f", 0, 240, 1, 30);
     CorrectionOvershootAmountNP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_AMOUNT",
-                                     "Overshoot Amount", CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
+                                     "Overshoot Amount (arcmin)", CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // ── Motor Config tab ──────────────────────────────────────────────────
 
