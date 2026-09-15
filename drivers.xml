@@ -908,6 +908,10 @@
             <driver name="Avalon UPAS">indi_avalon_upas</driver>
             <version>1.0</version>
         </device>
+        <device label="OAPA" manufacturer="MBAstro">
+            <driver name="OAPA">indi_oapa</driver>
+            <version>3.0</version>
+        </device>
         <device label="MLAstro RPA" manufacturer="MLAstro">
             <driver name="MLAstro RPA">indi_mlastro_rpa</driver>
             <version>1.3</version>
