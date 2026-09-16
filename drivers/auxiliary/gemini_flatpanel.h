@@ -42,6 +42,8 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         // From LightBoxInterface
         bool SetLightBoxBrightness(uint16_t value) override;
         bool EnableLightBox(bool enable) override;
+        void FilterNamesUpdated(const std::vector<std::string> &filterNames) override;
+        void FilterSlotChanged(int index) override;
 
         // From DustCapInterface
         virtual IPState ParkCap() override;
@@ -53,11 +55,12 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         void endConfiguration();
         bool validateOperation();
         bool validateCalibrationOperation(int direction);
-        void onMove(int direction);
+        void onMove(INDI::PropertySwitch &positionSwitch, int direction);
         void onSetPosition(int direction);
         void cleanupSwitch(INDI::PropertySwitch &currentSwitch, int switchIndex);
         void onBeepChange();
         void onBrightnessModeChange();
+        void applyFilterBrightnessMode(int index);
 
     private:
         // Serial connection
@@ -82,12 +85,19 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         int prevBrightness{-1};
         int configStatus{GEMINI_CONFIG_NOTREADY};
 
+        // Index of the currently active filter slot (per FilterSlotChanged()), used to
+        // apply a per-filter brightness mode preset immediately when it is toggled
+        // while that filter is already selected. -1 while unknown.
+        int currentFilterIndex{-1};
+
         // State update methods
         bool updateCoverStatus(char coverStatus);
         bool updateLightStatus(char lightStatus);
         bool updateMotorStatus(char motorStatus);
         bool updateBrightness(int brightness);
         void updateConfigStatus();
+        void refreshStatus();
+        void markMoving();
 
         // Commands
         bool sendCommand(const char *command, char *response, int timeout = SERIAL_TIMEOUT_SEC);
@@ -125,17 +135,33 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         INDI::PropertySwitch BeepSP{2};
         INDI::PropertySwitch BrightnessModeSP{2};
 
+        // Per-filter brightness mode presets (Low/High), one independent switch per filter name
+        INDI::PropertySwitch FilterBrightnessModeSP{0};
+
         // Limit properties
+        // Split into "coarse" (270/180/90) and "fine" (45/10/1) groups because
+        // KStars' generic INDI panel renders any switch property with more than 4
+        // elements as a dropdown instead of buttons -- keeping each group small
+        // keeps them clickable buttons.
         enum
         {
-            MOVEMENT_LIMITS_45,
-            MOVEMENT_LIMITS_10,
-            MOVEMENT_LIMITS_01,
-            MOVEMENT_LIMITS_N
+            MOVEMENT_COARSE_270,
+            MOVEMENT_COARSE_180,
+            MOVEMENT_COARSE_90,
+            MOVEMENT_COARSE_N
         };
-        INDI::PropertySwitch ClosedPositionSP{MOVEMENT_LIMITS_N};
+        enum
+        {
+            MOVEMENT_FINE_45,
+            MOVEMENT_FINE_10,
+            MOVEMENT_FINE_01,
+            MOVEMENT_FINE_N
+        };
+        INDI::PropertySwitch ClosedPositionCoarseSP{MOVEMENT_COARSE_N};
+        INDI::PropertySwitch ClosedPositionSP{MOVEMENT_FINE_N};
         INDI::PropertySwitch SetClosedSP{1};
-        INDI::PropertySwitch OpenPositionSP{MOVEMENT_LIMITS_N};
+        INDI::PropertySwitch OpenPositionCoarseSP{MOVEMENT_COARSE_N};
+        INDI::PropertySwitch OpenPositionSP{MOVEMENT_FINE_N};
         INDI::PropertySwitch SetOpenSP{1};
         INDI::PropertySwitch ConfigureSP{1};
 
