@@ -579,30 +579,33 @@ void CCDSim::TimerHit()
     // Simulate realistic TEC cooler with ambient temperature of 25°C.
     // Minimum achievable temperature: 40°C below ambient (-15°C).
     // Warming up beyond ambient is not possible (TEC cannot heat).
-    if (TemperatureNP.getState() == IPS_BUSY)
+    constexpr double AMBIENT_TEMPERATURE = 25.0;
+    constexpr double MIN_TEC_TEMPERATURE = -15.0; // 40°C below ambient
+
+    const double currentTemp = TemperatureNP[0].getValue();
+    // Clamp target to achievable range
+    const double targetTemp = std::clamp(TemperatureRequest, MIN_TEC_TEMPERATURE, AMBIENT_TEMPERATURE);
+
+    // The base class declares the target as reached (IPS_OK) as soon as the temperature is within
+    // RAMP_THRESHOLD of the requested target. That is adequate for real hardware which keeps
+    // settling onto its setpoint, so keep simulating while the sensor has not settled onto the
+    // requested setpoint yet, even if the state is no longer BUSY. Otherwise the reported
+    // temperature would freeze at the threshold boundary (e.g. stop at -2.5°C for a -2°C request
+    // with a 0.5°C threshold) and never reach the actual setpoint.
+    if (TemperatureNP.getState() == IPS_BUSY || std::abs(targetTemp - currentTemp) > 0.01)
     {
-        constexpr double AMBIENT_TEMPERATURE = 25.0;
-        constexpr double MIN_TEC_TEMPERATURE = -15.0; // 40°C below ambient
+        double newTemp = currentTemp;
 
-        double currentTemp = TemperatureNP[0].getValue();
-        double targetTemp = TemperatureRequest;
-
-        // Clamp target to achievable range
-        if (targetTemp > AMBIENT_TEMPERATURE)
-            targetTemp = AMBIENT_TEMPERATURE;
-        if (targetTemp < MIN_TEC_TEMPERATURE)
-            targetTemp = MIN_TEC_TEMPERATURE;
-
-        if (targetTemp < currentTemp)
+        if (targetTemp < newTemp)
         {
             // Cooling: approach target at -0.5°C per TimerHit cycle
-            currentTemp = std::max(targetTemp, currentTemp - 0.5);
+            newTemp = std::max(targetTemp, newTemp - 0.5);
         }
-        else if (targetTemp > currentTemp)
+        else if (targetTemp > newTemp)
         {
             // Warming: approach target naturally (ambient), slowing as we get closer
             // Simulate exponential decay toward ambient
-            double deltaT = AMBIENT_TEMPERATURE - currentTemp;
+            double deltaT = AMBIENT_TEMPERATURE - newTemp;
             // When below ambient, warm up by ~20% of remaining gap per cycle
             // (roughly 0.4°C at 10°C delta, slowing to ~0.02°C near ambient)
             double warmingStep = deltaT * 0.2;
@@ -610,19 +613,19 @@ void CCDSim::TimerHit()
                 warmingStep = 0.02;
             if (warmingStep > 0.5)
                 warmingStep = 0.5;
-            currentTemp = std::min(targetTemp, currentTemp + warmingStep);
+            newTemp = std::min(targetTemp, newTemp + warmingStep);
         }
 
-        TemperatureNP[0].setValue(currentTemp);
+        TemperatureNP[0].setValue(newTemp);
 
-        if (std::abs(currentTemp - m_LastTemperature) > 0.1)
+        if (std::abs(newTemp - m_LastTemperature) > 0.1)
         {
-            m_LastTemperature = currentTemp;
+            m_LastTemperature = newTemp;
             TemperatureNP.apply();
         }
 
         // Cooler is effectively off when at or near ambient
-        if (currentTemp >= AMBIENT_TEMPERATURE - 0.1)
+        if (newTemp >= AMBIENT_TEMPERATURE - 0.1 && CoolerSP.getState() != IPS_IDLE)
         {
             CoolerSP[INDI_ENABLED].setState(ISS_OFF);
             CoolerSP[INDI_DISABLED].setState(ISS_ON);
