@@ -112,8 +112,8 @@ bool PegasusFocusCube3::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    TemperatureNP[0].fill("TEMP", "Level", "%.0f", -40, 40, 1, 0);
-    TemperatureNP.fill(getDeviceName(), "TEMP", "Temperature", FOCUS_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    TemperatureNP[0].fill("TEMPERATURE", "Level", "%.0f", -40, 40, 1, 0);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", FOCUS_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     FirmwareVersionTP[0].fill("Version", "Version", "");
     FirmwareVersionTP.fill(getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
