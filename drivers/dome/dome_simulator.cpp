@@ -159,25 +159,32 @@ void DomeSim::TimerHit()
 
     if (DomeAbsPosNP.getState() == IPS_BUSY)
     {
-        // Find shortest distance given target degree
-        double a = targetAz;
         double b = DomeAbsPosNP[0].getValue();
-        int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
-        double diff = domeSpeed * sign;
-        b += diff;
-        DomeAbsPosNP[0].setValue(range360(b));
 
-        if (std::abs(targetAz - DomeAbsPosNP[0].getValue()) <= domeSpeed)
+        if (m_MoveDirection != 0)
         {
-            DomeAbsPosNP[0].setValue(targetAz);
-            LOG_INFO("Dome reached requested azimuth angle.");
+            // Continuous jog: DOME_CW increases azimuth, DOME_CCW decreases it.
+            DomeAbsPosNP[0].setValue(range360(b + domeSpeed * m_MoveDirection));
+        }
+        else
+        {
+            // Find shortest distance given target degree
+            double a = targetAz;
+            int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
+            DomeAbsPosNP[0].setValue(range360(b + domeSpeed * sign));
 
-            if (getDomeState() == DOME_PARKING)
-                SetParked(true);
-            else if (getDomeState() == DOME_UNPARKING)
-                SetParked(false);
-            else
-                setDomeState(DOME_SYNCED);
+            if (std::abs(targetAz - DomeAbsPosNP[0].getValue()) <= domeSpeed)
+            {
+                DomeAbsPosNP[0].setValue(targetAz);
+                LOG_INFO("Dome reached requested azimuth angle.");
+
+                if (getDomeState() == DOME_PARKING)
+                    SetParked(true);
+                else if (getDomeState() == DOME_UNPARKING)
+                    SetParked(false);
+                else
+                    setDomeState(DOME_SYNCED);
+            }
         }
 
         DomeAbsPosNP.apply();
@@ -210,12 +217,14 @@ IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
     {
-        targetAz = (dir == DOME_CW) ? 1e6 : -1e6;
+        // DOME_CW increases the azimuth, DOME_CCW decreases it (see INDI::Dome convention).
+        m_MoveDirection = (dir == DOME_CW) ? 1 : -1;
         DomeAbsPosNP.setState(IPS_BUSY);
     }
     else
     {
-        targetAz = 0;
+        m_MoveDirection = 0;
+        targetAz        = DomeAbsPosNP[0].getValue();
         DomeAbsPosNP.setState(IPS_IDLE);
     }
 
@@ -228,6 +237,7 @@ IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::MoveAbs(double az)
 {
+    m_MoveDirection = 0;
     targetAz = az;
 
     // Requested position is within one cycle, let's declare it done
@@ -243,6 +253,7 @@ IPState DomeSim::MoveAbs(double az)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::MoveRel(double azDiff)
 {
+    m_MoveDirection = 0;
     targetAz = range360(DomeAbsPosNP[0].getValue() + azDiff);
 
     // Requested position is within one cycle, let's declare it done

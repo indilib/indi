@@ -63,6 +63,8 @@ protected:
 
 private:
     double targetAz;
+    // 0 = positional move (MoveAbs/MoveRel), +1 = CW jog, -1 = CCW jog
+    int m_MoveDirection {0};
     double m_ShutterDistance {0};
     INDI::PropertyNumber SpeedNP {2};
     enum
