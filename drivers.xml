@@ -670,7 +670,7 @@
         </device>
         <device label="ActiveFocuser" manufacturer="Optique Unterlinden">
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Alluna TCS2" manufacturer="Alluna Optics">
             <driver name="Alluna TCS2">indi_alluna_tcs2</driver>
