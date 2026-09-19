@@ -1,7 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2025,2026 Jérémie Klein, Philippe Bazart. All rights reserved.
-    With partial reuse of code by Jasem Mutlaq,
-    originally written for the Alpaca CCD INDI driver.
+  Copyright(c) 2026 Philippe Bazart, Jérémie Klein. All rights reserved.
+    With partial reuse of code by Jasem Mutlaq, originally written for the
+    Alpaca CCD INDI driver.
 
   ASCOM Alpaca Dome INDI Driver
 
@@ -203,7 +203,7 @@ bool AlpacaDome::initProperties()
     InfoTP[INFO_DRIVER_INFO].fill("INFO_DRIVER_INFO", "Driver", "");
     InfoTP[INFO_DRIVER_VERSION].fill("INFO_DRIVER_VERSION", "Driver Version", "");
     InfoTP[INFO_INTERFACE_VERSION].fill("INFO_INTERFACE_VERSION", "ASCOM Dome Interface Version", "");
-    InfoTP.fill(getDeviceName(), "DEVICE_INFO", "Device Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    InfoTP.fill(getDeviceName(), "DEVICE_INFO", "Alpaca Device Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     // Configuring operations about positionning and home definition
     OperationSP[OPERATION_FIND_HOME].fill("OPERATION_FIND_HOME", "Find Home", ISS_OFF);
@@ -623,7 +623,7 @@ IPState AlpacaDome::FindHome()
 
 IPState AlpacaDome::Calibrate()
 {
-    LOG_ERROR( "Calibration is not supported in standard basic Alpaca dome.");
+    LOG_ERROR( "Calibration is not supported by standard basic Alpaca dome.");
     return IPS_ALERT;
 }
 
@@ -709,7 +709,7 @@ void AlpacaDome::updateStatus()
     }
 
     // Request dome current state.
-    AlapacaDeviceState value;
+    AlapacaDomeState value;
     if (alpacaGetDeviceState(value))
     {
         // Shutter state update
@@ -723,7 +723,7 @@ void AlpacaDome::updateStatus()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void AlpacaDome::updateDomeStatus(AlapacaDeviceState &state)
+void AlpacaDome::updateDomeStatus(AlapacaDomeState &state)
 {
     if (getDomeState() == DOME_MOVING && !state.slewing)
     {
@@ -770,7 +770,7 @@ void AlpacaDome::updateDomeStatus(AlapacaDeviceState &state)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void AlpacaDome::updateShutterStatus(AlapacaDeviceState &state)
+void AlpacaDome::updateShutterStatus(AlapacaDomeState &state)
 {
     // Alpaca shutter states
     // 0 = Open
@@ -1065,7 +1065,7 @@ bool AlpacaDome::alpacaGetString(const std::string &endpoint, std::string &value
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool AlpacaDome::alpacaGetDeviceState(AlapacaDeviceState &value, double defaultAz, double defaultAlt)
+bool AlpacaDome::alpacaGetDeviceState(AlapacaDomeState &value, double defaultAz, double defaultAlt)
 {
     value.atPark = value.atHome = value.slewing = false;
     value.azimuth = defaultAz;
@@ -1076,33 +1076,33 @@ bool AlpacaDome::alpacaGetDeviceState(AlapacaDeviceState &value, double defaultA
     if (m_InterfaceVersion >= 3)
     {
         nlohmann::json response;
-        std::vector<std::any> result;
-
+ 
         if (!sendAlpacaGET("/devicestate", response))
             return false;
 
-        if (response.contains("Value") && response["Value"].is_array())
-            result = response["Value"].get<std::vector<std::any>>();
+        if (!response.contains("Value") || !response["Value"].is_array())
+        {
+            LOG_ERROR("Error: an array of objects is expected in Value attribute of response");
+            return false;
+        }
 
-        for (auto i : result)
+        for (auto &item : response["Value"])
         {
             try
             {
-                std::map<std::string, std::any> item = std::any_cast<std::map<std::string, std::any>>(i);
-                std::string key = std::any_cast<std::string>(item.at("Name"));
-                std::any v = item.at("Value");
+                const std::string &key = item["Name"].get<std::string>();
                 if (key == "Altitude")
-                    value.altitude = std::any_cast<double>(v);
+                    value.altitude = item["Value"].get<double>();
                 else if (key == "AtHome")
-                    value.atHome = std::any_cast<bool>(v);
+                    value.atHome = item["Value"].get<bool>();
                 else if (key == "AtPark")
-                    value.atPark = std::any_cast<bool>(v);
+                    value.atPark = item["Value"].get<bool>();
                 else if (key == "Azimuth")
-                    value.azimuth = std::any_cast<double>(v);
+                    value.azimuth = item["Value"].get<double>();
                 else if (key == "ShutterStatus")
-                    value.shutterStatus = std::any_cast<int>(v);
+                    value.shutterStatus = item["Value"].get<int>();
                 else if (key == "Slewing")
-                    value.slewing = std::any_cast<bool>(v);
+                    value.slewing = item["Value"].get<bool>();
             }
             catch (const std::bad_any_cast& e)
             {
