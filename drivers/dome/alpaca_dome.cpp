@@ -1088,30 +1088,30 @@ bool AlpacaDome::alpacaGetDeviceState(AlapacaDomeState &value, double defaultAz,
 
         for (auto &item : response["Value"])
         {
-            try
+            if (!item.contains("Name") || !item["Name"].is_string())
             {
-                const std::string &key = item["Name"].get<std::string>();
-                if (key == "Altitude")
-                    value.altitude = item["Value"].get<double>();
-                else if (key == "AtHome")
-                    value.atHome = item["Value"].get<bool>();
-                else if (key == "AtPark")
-                    value.atPark = item["Value"].get<bool>();
-                else if (key == "Azimuth")
-                    value.azimuth = item["Value"].get<double>();
-                else if (key == "ShutterStatus")
-                    value.shutterStatus = item["Value"].get<int>();
-                else if (key == "Slewing")
-                    value.slewing = item["Value"].get<bool>();
+                LOG_ERROR("Error: missing string element Name in Value array item, as returned by /devicestate API method");
+                continue;
             }
-            catch (const std::bad_any_cast& e)
+            if (!item.contains("Value"))
             {
-                LOGF_ERROR("Error: unexpected data type in Value array returned by devicestate API operation (%s)", e.what());
+                LOG_ERROR("Error: missing element Value in Value array item, as returned by /devicestate API method");
+                continue;
             }
-            catch (const std::out_of_range& e)
-            {
-                LOGF_ERROR("Error: missing element in Value array returned by devicestate API operation (%s)", e.what());
-            }
+
+            const std::string &key = item["Name"].get<std::string>();
+            if (key == "Altitude")
+                value.altitude = item["Value"].get<double>();
+            else if (key == "AtHome")
+                value.atHome = item["Value"].get<bool>();
+            else if (key == "AtPark")
+                value.atPark = item["Value"].get<bool>();
+            else if (key == "Azimuth")
+                value.azimuth = item["Value"].get<double>();
+            else if (key == "ShutterStatus")
+                value.shutterStatus = item["Value"].get<int>();
+            else if (key == "Slewing")
+                value.slewing = item["Value"].get<bool>();
         }
     }
     else

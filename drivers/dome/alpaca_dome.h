@@ -255,11 +255,41 @@ class AlpacaDome : public INDI::Dome
          */
         virtual IPState UnPark() override;
 
+        /**
+         * @brief Open or Close the shutter.
+         * @param operation Either open or close the shutter.
+         * @return IPS_OK if shutter operation is complete, IPS_BUSY if shutter operation is in progress, IPS_ALERT if there is an error.
+         */
         virtual IPState ControlShutter(ShutterOperation operation) override;
+
+        /**
+         * @brief Set parking position of the dome with the current position.
+         * @return True if setting park position is successful, false otherwise.
+         */
         virtual bool SetCurrentPark() override;
+
+        /**
+         * @brief Set parking position of the dome with the current position.
+         * @note This function performs exactly the same action as SetCurrentPark() does.
+         * @return True if setting park position is successful, false otherwise.
+         */
         virtual bool SetDefaultPark() override;
 
+        /**
+         * @brief Request the dome for moving and finding its Home position.
+         * The method is asynchronous and the dome should stop automatically
+         * as soon as it hits the Home reference point. Then, its current
+         * internal index (the origin for steps counter) is reset to zero.
+         * @return IPS_OK if Dome has found or is already at Home position, IPS_BUSY if Dome homing is in progress, IPS_ALERT if there is an error.
+         */
         virtual IPState FindHome();
+
+        /**
+         * @brief Request the dome for moving in order to calibrate itself.
+         * The calibration is an asynchronous process and the method returns
+         * immediatly. The dome needs to be stopped using the Abort method.
+         * @return IPS_BUSY if Dome Calibration is running, IPS_ALERT if there is an error.
+         */
         virtual IPState Calibrate();
 
         // Alpaca customization hooks for derived drivers.
