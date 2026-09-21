@@ -2194,7 +2194,7 @@ bool set_pmc8_radec(int fd, double ra, double dec)
 
 bool get_pmc8_coords(int fd, double &ra, double &dec, INDI::Telescope::TelescopePierSide &sop)
 {
-    int racounts, deccounts;
+    int racounts, deccounts = 0;
     bool rc;
 
     if (pmc8_simulation)
