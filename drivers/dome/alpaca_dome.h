@@ -68,7 +68,7 @@ class AlpacaDome : public INDI::Dome
          * @note This function is called by the INDI framework, do not call it directly.
          * @returns True if any property was successfully processed, false otherwise.
          */
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         /**
          * @brief Process the client newNumber command.
@@ -203,7 +203,7 @@ class AlpacaDome : public INDI::Dome
          * @param rpm Dome speed (RPM)
          * @return True if successful, false otherwise.
          */
-        virtual bool SetSpeed(double rpm);
+        virtual bool SetSpeed(double rpm) override;
 
         /**
          * @brief Move the Dome to an relative position.
