@@ -22,6 +22,7 @@
 #include "indilogger.h"
 
 #include <dirent.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstring>
 #include <algorithm>
@@ -103,15 +104,18 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             PortTP.s = IPS_OK;
             IDSetText(&PortTP, nullptr);
 
-            auto pos = std::find_if(m_SystemPorts.begin(), m_SystemPorts.end(), [&](const std::string onePort)
+            auto pos = std::find_if(m_SystemPorts.begin(), m_SystemPorts.end(), [&](const std::string & onePort)
             {
                 return !strcmp(PortT[0].text, onePort.c_str());
             });
-            if (pos != m_SystemPorts.end())
+            // Auto search only makes sense when the user is not using a custom (non-system) port.
+            // Only act (and report it) when auto search is currently enabled, so that no redundant
+            // message is sent and no property update is pushed when it is already disabled.
+            if (pos == m_SystemPorts.end() && AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
             {
                 LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
-                AutoSearchS[0].s = ISS_OFF;
-                AutoSearchS[1].s = ISS_ON;
+                AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
+                AutoSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
                 IDSetSwitch(&AutoSearchSP, nullptr);
             }
         }
@@ -193,8 +197,19 @@ bool Serial::Connect()
     // to release the lock, otherwise another driver will find it busy.
     tty_disconnect(PortFD);
 
+    // Collect the alternative system ports to try, excluding the port we just attempted.
+    std::vector<std::string> systemPorts;
+    for (const auto &onePort : m_SystemPorts)
+    {
+        // Only try the same port last again.
+        if (onePort == std::string(PortT[0].text))
+            continue;
+
+        systemPorts.push_back(onePort);
+    }
+
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
+    if (AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && !systemPorts.empty())
     {
         LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
                   baud);
@@ -203,16 +218,6 @@ bool Serial::Connect()
 
         // Try to connect "randomly" so that competing devices don't all try to connect to the same
         // ports at the same time.
-        std::vector<std::string> systemPorts;
-        for (int i = 0; i < SystemPortSP.nsp; i++)
-        {
-            // Only try the same port last again.
-            if (!strcmp(m_SystemPorts[i].c_str(), PortT[0].text))
-                continue;
-
-            systemPorts.push_back(m_SystemPorts[i].c_str());
-        }
-
         std::random_device rd;
         std::minstd_rand g(rd());
         std::shuffle(systemPorts.begin(), systemPorts.end(), g);
@@ -569,10 +574,25 @@ bool Serial::Refresh(bool silent)
 
     m_Device->defineProperty(&SystemPortSP);
 
+    // Check whether the saved config port is still usable: it is either among the detected system
+    // ports, or it still exists on disk (e.g. a custom or mapped port like /dev/mount).
+    const bool configPortAvailable =
+        !m_ConfigPort.empty() &&
+        (std::find(m_SystemPorts.begin(), m_SystemPorts.end(), m_ConfigPort) != m_SystemPorts.end() ||
+         access(m_ConfigPort.c_str(), F_OK) == 0);
+
     // If we have one physical port, set the current device port to this physical port
-    // in case the default config port does not exist.
-    if (pCount == 1 && m_ConfigPort.empty())
+    // in case the config port is either not defined or no longer available.
+    if (pCount == 1 && !configPortAvailable)
+    {
+        if (!m_ConfigPort.empty())
+            LOGF_INFO("Saved port %s is no longer available. Using the only detected port %s instead.",
+                      m_ConfigPort.c_str(), m_Ports[0].c_str());
+
         IUSaveText(&PortT[0], m_Ports[0].c_str());
+        if (m_Device->isInitializationComplete())
+            IDSetText(&PortTP, nullptr);
+    }
 
     // If a port match pattern is registered, try to auto-select the best matching port.
     // This is only done when no previously-saved config port is present among the discovered
@@ -581,10 +601,6 @@ bool Serial::Refresh(bool silent)
     // which makes it possible to pick the right port without blind handshake attempts.
     if (!m_PortMatchPattern.empty())
     {
-        // Check whether the saved config port is still available in the system port list.
-        const bool configPortAvailable = !m_ConfigPort.empty() &&
-                                         std::find(m_SystemPorts.begin(), m_SystemPorts.end(), m_ConfigPort) != m_SystemPorts.end();
-
         if (!configPortAvailable)
         {
             try

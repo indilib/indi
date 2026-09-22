@@ -97,8 +97,9 @@ class Serial : public Interface
         /**
          * @brief setPortMatchPattern Set a regex pattern used to automatically select a serial port
          * from the discovered system ports. When the system ports are scanned, if any port path
-         * matches this pattern AND no previously-saved config port is available, the first matching
-         * port is automatically selected as the active port.
+         * matches this pattern AND the previously-saved config port is no longer available (neither
+         * detected among the system ports nor still present on disk), the first matching port is
+         * automatically selected as the active port.
          *
          * This is particularly useful for devices whose USB serial paths embed the device name
          * (e.g. Pegasus Astro devices under /dev/serial/by-id/), allowing the correct port to be
