@@ -134,6 +134,31 @@ cmake --build build
 sudo cmake --install build
 ```
 
+### macOS: Homebrew formula
+
+The server-only [Homebrew formula](Formula/indiserver.rb) installs the command
+into Homebrew's normal `bin` directory and lets Homebrew manage its runtime
+dependencies:
+
+```bash
+brew install --build-from-source ./Formula/indiserver.rb
+indiserver -h
+```
+
+The release workflow validates the formula and submits it to Homebrew Core. Once
+Homebrew maintainers merge that pull request, users can install it with:
+
+```bash
+brew install indiserver
+```
+
+Until then, use the local formula command above. When updating the formula, use
+a new INDI release tag and replace both `url` and `sha256` with the matching
+source archive checksum.
+
+For the complete map of macOS build, test, packaging, and Homebrew release
+scripts, see [scripts/README.md](scripts/README.md).
+
 ## Build indi-core (script)
 
 **Alternatively**, you can use the `developer-build.bash` script for faster build and less stress on your SSD or HDD.
