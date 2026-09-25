@@ -110,10 +110,11 @@ bool SeestarCCD::updateProperties()
 ////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////
-int SeestarCCD::SetTemperature(double temperature)
+int SeestarCCD::SetTemperature(double temperature, bool enableCooler)
 {
     // Seestar doesn't have active cooling, so we don't allow temperature setting
     INDI_UNUSED(temperature);
+    INDI_UNUSED(enableCooler);
     return -1;
 }
 

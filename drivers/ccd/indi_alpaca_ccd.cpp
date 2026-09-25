@@ -968,7 +968,7 @@ bool AlpacaCCD::AbortExposure()
     return true;
 }
 
-int AlpacaCCD::SetTemperature(double temperature)
+int AlpacaCCD::SetTemperature(double temperature, bool enableCooler)
 {
     if (!isConnected())
     {
@@ -980,8 +980,8 @@ int AlpacaCCD::SetTemperature(double temperature)
     if (std::abs(temperature - m_CurrentTemperature) < TEMP_THRESHOLD)
         return 1;
 
-    // Activate cooler if not already on
-    if (CoolerSP[INDI_ENABLED].getState() != ISS_ON)
+    // Activate cooler if explicitly requested and not already on
+    if (enableCooler && CoolerSP[INDI_ENABLED].getState() != ISS_ON)
     {
         nlohmann::json response;
         nlohmann::json body = {{"CoolerOn", true}};
