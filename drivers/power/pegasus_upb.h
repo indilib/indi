@@ -164,13 +164,13 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
-        // Power Statistics
-        INDI::PropertyNumber PowerStatisticsNP {3};
+        // Power Consumption
+        INDI::PropertyNumber PowerConsumptionNP {3};
         enum
         {
-            STATS_AVG_AMPS,
-            STATS_AMP_HOURS,
-            STATS_WATT_HOURS,
+            CONSUMPTION_AVG_AMPS,
+            CONSUMPTION_AMP_HOURS,
+            CONSUMPTION_WATT_HOURS,
         };
 
         // Select which power is ON on bootup
@@ -199,9 +199,9 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         // Auto Dew v2 Aggressiveness
         enum
         {
-            AUTO_DEW_AGG,
+            AUTO_DEW_AGGRESSION,
         };
-        INDI::PropertyNumber AutoDewAggNP {1};
+        INDI::PropertyNumber AutoDewSettingsNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser
