@@ -409,11 +409,11 @@ bool PegasusUPB3::getPowerData()
         if (result == lastPowerData)
             return true;
 
-        PowerConsumptionNP[CONSUMPTION_AVG_AMPS].setValue(std::stod(result[1]));
-        PowerConsumptionNP[CONSUMPTION_AMP_HOURS].setValue(std::stod(result[2]));
-        PowerConsumptionNP[CONSUMPTION_WATT_HOURS].setValue(std::stod(result[3]));
-        PowerConsumptionNP.setState(IPS_OK);
-        PowerConsumptionNP.apply();
+        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[1]));
+        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[2]));
+        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[3]));
+        PowerStatisticsNP.setState(IPS_OK);
+        PowerStatisticsNP.apply();
 
         if (result.size() >= 5)
         {
@@ -1133,11 +1133,11 @@ bool PegasusUPB3::initProperties()
     RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    // Power Consumption
-    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    // Power Statistics
+    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Power on Boot
     PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", "Power Port 1", ISS_ON);
@@ -1206,7 +1206,7 @@ bool PegasusUPB3::updateProperties()
         setupParams();
 
         // Main Control
-        defineProperty(PowerConsumptionNP);
+        defineProperty(PowerStatisticsNP);
         defineProperty(RebootSP);
 
         // Power
@@ -1238,7 +1238,7 @@ bool PegasusUPB3::updateProperties()
     else
     {
         // Main Control
-        deleteProperty(PowerConsumptionNP);
+        deleteProperty(PowerStatisticsNP);
         deleteProperty(RebootSP);
 
         // Power

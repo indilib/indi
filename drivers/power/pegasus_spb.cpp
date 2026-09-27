@@ -67,8 +67,8 @@ bool PegasusSPB::initProperties()
     PowerDewSwitchBSP.fill(getDeviceName(), "DEW_POWER_SWITCH_B", "Port B Mode", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     //DewAggress
-    DewAggressNP[0].fill("DEW_AGGRESS", "Agg Level", "%.2f", 0, 100, 1, 0);
-    DewAggressNP.fill(getDeviceName(), "DEW-AGGESS", "Auto Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    AutoDewAggNP[0].fill("AUTO_DEW_AGG_VALUE", "Agg Level", "%.2f", 0, 100, 1, 0);
+    AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // overwrite labels to device labelling defaults
     DewChannelsSP.setLabel("Dew Heater");
@@ -132,10 +132,10 @@ bool PegasusSPB::initProperties()
 
     // Sensor Offset
     HumidityOffsetNP[0].fill("HUM_OFFSET", "Level", "%.0f", -50, 50, 1, 0);
-    HumidityOffsetNP.fill(getDeviceName(), "HUM-OFFSET", "Humidity Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
+    HumidityOffsetNP.fill(getDeviceName(), "HUM_OFFSET", "Humidity Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     TemperatureOffsetNP[0].fill("TEMP_OFFSET", "Level", "%.0f", -40, 40, 1, 0);
-    TemperatureOffsetNP.fill(getDeviceName(), "TEMP-OFFSET", "Temperature Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
+    TemperatureOffsetNP.fill(getDeviceName(), "TEMP_OFFSET", "Temperature Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 
@@ -147,11 +147,11 @@ bool PegasusSPB::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(DewAggressNP);
+        defineProperty(AutoDewAggNP);
         int aggressiveness = getDewAggressiveness();
-        DewAggressNP[0].setValue(static_cast<double>(aggressiveness));
-        DewAggressNP.setState(IPS_OK);
-        DewAggressNP.apply();
+        AutoDewAggNP[0].setValue(static_cast<double>(aggressiveness));
+        AutoDewAggNP.setState(IPS_OK);
+        AutoDewAggNP.apply();
 
         defineProperty(PowerDewSwitchASP);
         int portNumber = 1;
@@ -195,7 +195,7 @@ bool PegasusSPB::updateProperties()
     }
     else
     {
-        deleteProperty(DewAggressNP);
+        deleteProperty(AutoDewAggNP);
         deleteProperty(PowerDewSwitchASP);
         deleteProperty(PowerDewSwitchBSP);
         deleteProperty(HumidityOffsetNP);
@@ -325,9 +325,9 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
             return true;
 
         // DewAggress (custom property)
-        if(DewAggressNP.isNameMatch(name))
+        if(AutoDewAggNP.isNameMatch(name))
         {
-            DewAggressNP.update(values, names, n);
+            AutoDewAggNP.update(values, names, n);
             IPState result = IPS_OK;
             if (isConnected())
             {
@@ -336,8 +336,8 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
                     result = IPS_ALERT;
                 }
             }
-            DewAggressNP.setState(result);
-            DewAggressNP.apply();
+            AutoDewAggNP.setState(result);
+            AutoDewAggNP.apply();
             return true;
         }
         // HumidityOffset (custom property)
@@ -891,7 +891,7 @@ bool PegasusSPB::saveConfigItems(FILE *fp)
     PI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
 
-    DewAggressNP.save(fp);
+    AutoDewAggNP.save(fp);
     HumidityOffsetNP.save(fp);
     TemperatureOffsetNP.save(fp);
     PowerDewSwitchASP.save(fp);

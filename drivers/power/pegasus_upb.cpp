@@ -73,11 +73,11 @@ bool PegasusUPB::initProperties()
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
                   60, IPS_IDLE);
 
-    // Overall Power Consumption (remains as is, not part of INDI::Power)
-    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption",
+    // Overall Power Statistics (remains as is, not part of INDI::Power)
+    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics",
                             MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -146,7 +146,7 @@ bool PegasusUPB::updateProperties()
         setupParams();
 
         // Main Control
-        defineProperty(PowerConsumptionNP);
+        defineProperty(PowerStatisticsNP);
         defineProperty(RebootSP);
 
         // Power
@@ -175,7 +175,7 @@ bool PegasusUPB::updateProperties()
     else
     {
         // Main Control
-        deleteProperty(PowerConsumptionNP);
+        deleteProperty(PowerStatisticsNP);
         deleteProperty(RebootSP);
 
         // Power
@@ -1160,11 +1160,11 @@ bool PegasusUPB::getPowerData()
         if (result == lastPowerData)
             return true;
 
-        PowerConsumptionNP[CONSUMPTION_AVG_AMPS].setValue(std::stod(result[0]));
-        PowerConsumptionNP[CONSUMPTION_AMP_HOURS].setValue(std::stod(result[1]));
-        PowerConsumptionNP[CONSUMPTION_WATT_HOURS].setValue(std::stod(result[2]));
-        PowerConsumptionNP.setState(IPS_OK);
-        PowerConsumptionNP.apply();
+        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[0]));
+        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[1]));
+        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[2]));
+        PowerStatisticsNP.setState(IPS_OK);
+        PowerStatisticsNP.apply();
 
         if (result.size() == 4)
         {

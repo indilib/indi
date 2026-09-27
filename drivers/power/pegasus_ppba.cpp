@@ -138,9 +138,9 @@ bool PegasusPPBA::initProperties()
     PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
                        IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
-    // Automatic Dew Settings
-    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AGGRESSION", "Aggresiveness (%)", "%.2f", 0, 100, 10, 0);
-    AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    // Automatic Dew Aggressiveness
+    AutoDewAggNP[AUTO_DEW_AGG_VALUE].fill("AUTO_DEW_AGG_VALUE", "Aggresiveness (%)", "%.2f", 0, 100, 10, 0);
+    AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Firmware Group
@@ -208,7 +208,7 @@ bool PegasusPPBA::updateProperties()
         defineProperty(PowerWarnLP); // This is a custom property, not part of INDI::PowerInterface
         defineProperty(PowerOnBootSP); // Re-add PowerOnBootSP
 
-        defineProperty(AutoDewSettingsNP);
+        defineProperty(AutoDewAggNP);
         getAutoDewAggression();
 
         // Power Interface properties
@@ -239,7 +239,7 @@ bool PegasusPPBA::updateProperties()
         deleteProperty(PowerWarnLP);
         deleteProperty(PowerOnBootSP);
 
-        deleteProperty(AutoDewSettingsNP);
+        deleteProperty(AutoDewAggNP);
 
         // Power Interface properties
         PI::updateProperties();
@@ -456,20 +456,20 @@ bool PegasusPPBA::ISNewNumber(const char * dev, const char * name, double values
             return true;
 
         // Auto Dew Aggressiveness
-        if (AutoDewSettingsNP.isNameMatch(name))
+        if (AutoDewAggNP.isNameMatch(name))
         {
             // Convert percentage (0-100) to device range (0-255)
             uint8_t aggression = static_cast<uint8_t>(values[0] / 100.0 * 255.0);
             if (setAutoDewAggression(aggression))
             {
-                AutoDewSettingsNP.update(values, names, n);
-                AutoDewSettingsNP.setState(IPS_OK);
+                AutoDewAggNP.update(values, names, n);
+                AutoDewAggNP.setState(IPS_OK);
             }
             else
             {
-                AutoDewSettingsNP.setState(IPS_ALERT);
+                AutoDewAggNP.setState(IPS_ALERT);
             }
-            AutoDewSettingsNP.apply();
+            AutoDewAggNP.apply();
             return true;
         }
 
@@ -642,7 +642,7 @@ bool PegasusPPBA::saveConfigItems(FILE * fp)
 
     AdjOutVoltSP.save(fp);
     PowerOnBootSP.save(fp);
-    AutoDewSettingsNP.save(fp);
+    AutoDewAggNP.save(fp);
 
     if (m_HasExternalMotor)
     {
@@ -849,13 +849,13 @@ bool PegasusPPBA::getAutoDewAggression()
 
         uint32_t value = 0;
         sscanf(res, "%*[^:]:%d", &value);
-        AutoDewSettingsNP[AUTO_DEW_AGGRESSION].setValue(100 * value / 255);
+        AutoDewAggNP[AUTO_DEW_AGG_VALUE].setValue(100 * value / 255);
     }
     else
-        AutoDewSettingsNP.setState(IPS_ALERT);
+        AutoDewAggNP.setState(IPS_ALERT);
 
-    AutoDewSettingsNP.apply();
-    return AutoDewSettingsNP.getState() != IPS_ALERT;
+    AutoDewAggNP.apply();
+    return AutoDewAggNP.getState() != IPS_ALERT;
 }
 
 bool PegasusPPBA::getMetricsData()

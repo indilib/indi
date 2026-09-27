@@ -206,10 +206,10 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         /// Dew Group (Custom properties not part of INDI::PowerInterface)
         ////////////////////////////////////////////////////////////////////////////////////
 
-        INDI::PropertyNumber AutoDewSettingsNP {1};
+        INDI::PropertyNumber AutoDewAggNP {1};
         enum
         {
-            AUTO_DEW_AGGRESSION
+            AUTO_DEW_AGG_VALUE
         };
 
         ////////////////////////////////////////////////////////////////////////////////////

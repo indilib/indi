@@ -170,7 +170,7 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
         INDI::PropertySwitch PowerDewSwitchASP {2};
         INDI::PropertySwitch PowerDewSwitchBSP {2};
-        INDI::PropertyNumber DewAggressNP {1};
+        INDI::PropertyNumber AutoDewAggNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Sensor Offset

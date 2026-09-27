@@ -164,13 +164,13 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         /// Reboot Device
         INDI::PropertySwitch RebootSP {1};
 
-        // Power Consumption
-        INDI::PropertyNumber PowerConsumptionNP {3};
+        // Power Statistics
+        INDI::PropertyNumber PowerStatisticsNP {3};
         enum
         {
-            CONSUMPTION_AVG_AMPS,
-            CONSUMPTION_AMP_HOURS,
-            CONSUMPTION_WATT_HOURS,
+            STATS_AVG_AMPS,
+            STATS_AMP_HOURS,
+            STATS_WATT_HOURS,
         };
 
         // Select which power is ON on bootup
