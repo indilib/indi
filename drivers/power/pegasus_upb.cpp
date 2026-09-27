@@ -74,9 +74,9 @@ bool PegasusUPB::initProperties()
                   60, IPS_IDLE);
 
     // Overall Power Consumption (remains as is, not part of INDI::Power)
-    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption",
                             MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -85,7 +85,7 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Automatic Dew Aggressiveness v2
-    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
+    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (50-250)", "%.2f", 50, 250, 20, 0);
     AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60,
                       IPS_IDLE);
 

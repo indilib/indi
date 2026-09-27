@@ -1134,9 +1134,9 @@ bool PegasusUPB3::initProperties()
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Power Consumption
-    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Power on Boot
@@ -1161,7 +1161,7 @@ bool PegasusUPB3::initProperties()
     OverCurrentLP.fill(getDeviceName(), "OVER_CURRENT", "Overcurrent", POWER_TAB, IPS_IDLE);
 
     // Auto Dew Aggressiveness (Global)
-    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Global (0-10)", "%.f", 0, 10, 1, 5);
+    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (0-10)", "%.f", 0, 10, 1, 5);
     AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Auto Dew Aggressiveness per Port

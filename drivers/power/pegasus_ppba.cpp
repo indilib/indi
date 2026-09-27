@@ -115,9 +115,9 @@ bool PegasusPPBA::initProperties()
 
     // Power Sensors
     PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_TOTAL_CURRENT].fill("CONSUMPTION_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_TOTAL_CURRENT].fill("CONSUMPTION_TOTAL_CURRENT", "Total Current (A)", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption", POWER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Adjustable Voltage
@@ -139,7 +139,7 @@ bool PegasusPPBA::initProperties()
                        IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     // Automatic Dew Aggressiveness
-    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggresiveness (%)", "%.2f", 0, 100, 10, 0);
+    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (%)", "%.2f", 0, 100, 10, 0);
     AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
