@@ -239,6 +239,7 @@ bool GeminiFlatpanel::ISNewText(const char *dev, const char *name, char *texts[]
 
 bool GeminiFlatpanel::ISSnoopDevice(XMLEle *root)
 {
+    snoopFilterBrightnessMode(root);
     LI::snoop(root);
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -361,48 +362,93 @@ void GeminiFlatpanel::onBrightnessModeChange()
     BrightnessModeSP.apply();
 }
 
-void GeminiFlatpanel::FilterNamesUpdated(const std::vector<std::string> &filterNames)
+// Mirrors LightBoxInterface's own FILTER_NAME/FILTER_SLOT snoop parsing, but stays
+// entirely local to this driver so the per-filter brightness mode preset does not
+// require any change to the shared INDI::LightBoxInterface base class used by every
+// other light box driver.
+void GeminiFlatpanel::snoopFilterBrightnessMode(XMLEle *root)
 {
-    // The filter list is being rebuilt, so any previously tracked active index no
-    // longer necessarily points at the same filter -- it will be restored by the
-    // next FilterSlotChanged() call.
-    currentFilterIndex = -1;
-
-    // Build the list unconditionally, even before the device is connected: a snoop
-    // update can arrive as soon as the driver starts (IDSnoopDevice is registered in
-    // initProperties()), well before adapter exists. If we bailed out here, the
-    // property would stay permanently empty since the same snoop value is only
-    // delivered once, and updateProperties() would never have anything to define
-    // once the user actually connects.
-    bool wasDefined = adapter && adapter->supportsBrightnessMode() && !FilterBrightnessModeSP.isEmpty();
-
-    if (!FilterBrightnessModeSP.isEmpty())
-    {
-        if (wasDefined)
-            deleteProperty(FilterBrightnessModeSP);
-        FilterBrightnessModeSP.resize(0);
-    }
-
-    for (const auto &filterName : filterNames)
-    {
-        INDI::WidgetSwitch node;
-        node.fill(filterName.c_str(), filterName.c_str(), ISS_OFF);
-        FilterBrightnessModeSP.push(std::move(node));
-    }
-
-    if (FilterBrightnessModeSP.isEmpty())
+    auto deviceName = findXMLAttValu(root, "device");
+    if (strcmp(ActiveDeviceTP[0].getText(), deviceName))
         return;
 
-    FilterBrightnessModeSP.load();
+    auto propTag  = tagXMLEle(root);
+    auto propName = findXMLAttValu(root, "name");
 
-    if (adapter && adapter->supportsBrightnessMode())
-        defineProperty(FilterBrightnessModeSP);
-}
+    if (!strcmp(propTag, "delProperty"))
+        return;
 
-void GeminiFlatpanel::FilterSlotChanged(int index)
-{
-    currentFilterIndex = index;
-    applyFilterBrightnessMode(index);
+    if (!strcmp(propName, "FILTER_NAME"))
+    {
+        std::vector<std::string> filterNames;
+        for (XMLEle *ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            filterNames.push_back(pcdataXMLEle(ep));
+
+        // Skip rebuilding if the filter list is unchanged.
+        bool isDifferent = filterNames.size() != FilterBrightnessModeSP.count();
+        for (size_t i = 0; !isDifferent && i < filterNames.size(); i++)
+            isDifferent = !FilterBrightnessModeSP[i].isNameMatch(filterNames[i].c_str());
+
+        if (!isDifferent)
+            return;
+
+        // The filter list is being rebuilt, so any previously tracked active index no
+        // longer necessarily points at the same filter -- it will be restored by the
+        // next FILTER_SLOT snoop.
+        currentFilterIndex = -1;
+
+        // Build the list unconditionally, even before the device is connected: a snoop
+        // update can arrive as soon as the driver starts (IDSnoopDevice is registered in
+        // initProperties()), well before adapter exists. If we bailed out here, the
+        // property would stay permanently empty since the same snoop value is only
+        // delivered once, and updateProperties() would never have anything to define
+        // once the user actually connects.
+        bool wasDefined = adapter && adapter->supportsBrightnessMode() && !FilterBrightnessModeSP.isEmpty();
+
+        if (!FilterBrightnessModeSP.isEmpty())
+        {
+            if (wasDefined)
+                deleteProperty(FilterBrightnessModeSP);
+            FilterBrightnessModeSP.resize(0);
+        }
+
+        for (const auto &filterName : filterNames)
+        {
+            INDI::WidgetSwitch node;
+            node.fill(filterName.c_str(), filterName.c_str(), ISS_OFF);
+            FilterBrightnessModeSP.push(std::move(node));
+        }
+
+        if (FilterBrightnessModeSP.isEmpty())
+            return;
+
+        FilterBrightnessModeSP.load();
+
+        if (adapter && adapter->supportsBrightnessMode())
+            defineProperty(FilterBrightnessModeSP);
+    }
+    else if (!strcmp(propName, "FILTER_SLOT"))
+    {
+        // Only accept IPS_OK/IPS_IDLE state, mirroring LightBoxInterface::snoop().
+        if (strcmp(findXMLAttValu(root, "state"), "Ok") && strcmp(findXMLAttValu(root, "state"), "Idle"))
+            return;
+
+        int index = -1;
+        for (XMLEle *ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp(findXMLAttValu(ep, "name"), "FILTER_SLOT_VALUE"))
+            {
+                index = atoi(pcdataXMLEle(ep)) - 1;
+                break;
+            }
+        }
+
+        if (index < 0)
+            return;
+
+        currentFilterIndex = index;
+        applyFilterBrightnessMode(index);
+    }
 }
 
 // Applies the per-filter brightness mode preset at the given index to the device,

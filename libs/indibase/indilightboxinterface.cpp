@@ -244,24 +244,6 @@ bool LightBoxInterface::SetLightBoxBrightness(uint16_t value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-void LightBoxInterface::FilterNamesUpdated(const std::vector<std::string> &filterNames)
-{
-    INDI_UNUSED(filterNames);
-    // Default no-op, child classes may override.
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-void LightBoxInterface::FilterSlotChanged(int index)
-{
-    INDI_UNUSED(index);
-    // Default no-op, child classes may override.
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool LightBoxInterface::snoop(XMLEle *root)
 {
     auto deviceName = findXMLAttValu(root, "device");
@@ -315,11 +297,6 @@ bool LightBoxInterface::snoop(XMLEle *root)
         FilterIntensityNP.load();
         m_DefaultDevice->defineProperty(FilterIntensityNP);
 
-        std::vector<std::string> filterNames;
-        for (const auto &oneFilter : FilterIntensityNP)
-            filterNames.push_back(oneFilter.getName());
-        FilterNamesUpdated(filterNames);
-
         if (m_DefaultDevice->isConnected())
         {
             if (currentFilterSlot < FilterIntensityNP.count())
@@ -363,8 +340,6 @@ bool LightBoxInterface::snoop(XMLEle *root)
                 }
             }
         }
-
-        FilterSlotChanged(currentFilterSlot);
     }
 
     return false;

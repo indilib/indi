@@ -42,8 +42,6 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         // From LightBoxInterface
         bool SetLightBoxBrightness(uint16_t value) override;
         bool EnableLightBox(bool enable) override;
-        void FilterNamesUpdated(const std::vector<std::string> &filterNames) override;
-        void FilterSlotChanged(int index) override;
 
         // From DustCapInterface
         virtual IPState ParkCap() override;
@@ -60,6 +58,12 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         void cleanupSwitch(INDI::PropertySwitch &currentSwitch, int switchIndex);
         void onBeepChange();
         void onBrightnessModeChange();
+
+        // Per-filter brightness mode bookkeeping. Kept entirely inside this driver
+        // (rather than as hooks on the shared INDI::LightBoxInterface) since it mirrors
+        // LightBoxInterface's own FILTER_NAME/FILTER_SLOT snoop handling only for the
+        // Gemini-specific FilterBrightnessModeSP property.
+        void snoopFilterBrightnessMode(XMLEle *root);
         void applyFilterBrightnessMode(int index);
 
     private:
@@ -85,9 +89,9 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         int prevBrightness{-1};
         int configStatus{GEMINI_CONFIG_NOTREADY};
 
-        // Index of the currently active filter slot (per FilterSlotChanged()), used to
-        // apply a per-filter brightness mode preset immediately when it is toggled
-        // while that filter is already selected. -1 while unknown.
+        // Index of the currently active filter slot (per snoopFilterBrightnessMode()),
+        // used to apply a per-filter brightness mode preset immediately when it is
+        // toggled while that filter is already selected. -1 while unknown.
         int currentFilterIndex{-1};
 
         // State update methods
