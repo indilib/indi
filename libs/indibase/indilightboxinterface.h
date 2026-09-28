@@ -61,8 +61,16 @@ class LightBoxInterface
 
         enum
         {
-            CAN_DIM = 1 << 0,   /** Does it support dimming? */
+            CAN_DIM = 1 << 0,             /** Does it support dimming? */
+            CAN_BRIGHTNESS_MODE = 1 << 1, /** Does it support a device-side Low/High brightness mode? */
         } LightBoxCapability;
+
+        // Brightness mode presets used by BrightnessModeSP/FilterBrightnessModeSP
+        enum
+        {
+            BRIGHTNESS_MODE_LOW,
+            BRIGHTNESS_MODE_HIGH
+        };
 
     protected:
         LightBoxInterface(DefaultDevice *device);
@@ -94,6 +102,25 @@ class LightBoxInterface
         bool snoop(XMLEle *root);
 
         /**
+             * @brief GetCapability returns the light box capabilities, see LightBoxCapability.
+             */
+        uint32_t GetCapability() const
+        {
+            return m_Capabilities;
+        }
+
+        /**
+             * @brief SetCapability updates the light box capabilities. Useful when a capability (e.g.
+             * CAN_BRIGHTNESS_MODE) is only known once the device has been connected to, i.e. after the
+             * initial initProperties() call.
+             * @param cap capability bitmask, see LightBoxCapability.
+             */
+        void SetCapability(uint32_t cap)
+        {
+            m_Capabilities = cap;
+        }
+
+        /**
              * @brief setBrightness Set light level. Must be implemented in the child class, if supported.
              * @param value level of light box
              * @return True if successful, false otherwise.
@@ -107,6 +134,14 @@ class LightBoxInterface
              */
         virtual bool EnableLightBox(bool enable);
 
+        /**
+             * @brief SetLightBoxBrightnessMode Set the device-side Low/High brightness mode. Must be
+             * implemented in the child class if CAN_BRIGHTNESS_MODE is supported.
+             * @param mode BRIGHTNESS_MODE_LOW or BRIGHTNESS_MODE_HIGH
+             * @return True if successful, false otherwise.
+             */
+        virtual bool SetLightBoxBrightnessMode(int mode);
+
         // Turn on/off light
         INDI::PropertySwitch LightSP {2};
 
@@ -118,11 +153,20 @@ class LightBoxInterface
 
         INDI::PropertyNumber FilterIntensityNP {0};
 
+        // Device-side Low/High brightness mode, and one independent per-filter preset
+        // switch (On = High, Off = Low), populated dynamically alongside FilterIntensityNP
+        // once filter names are known. Only used when CAN_BRIGHTNESS_MODE is set.
+        INDI::PropertySwitch BrightnessModeSP {2};
+        INDI::PropertySwitch FilterBrightnessModeSP {0};
+
     private:
         void addFilterDuration(const char *filterName, uint16_t filterDuration);
 
         DefaultDevice *m_DefaultDevice {nullptr};
         uint8_t currentFilterSlot {0};
+        // Set once a real FILTER_SLOT snoop has been received, so a FilterBrightnessModeSP
+        // toggle isn't mistaken as applying to filter slot 0 before the active slot is known.
+        bool m_FilterSlotKnown {false};
         uint32_t m_Capabilities {0};
 };
 }

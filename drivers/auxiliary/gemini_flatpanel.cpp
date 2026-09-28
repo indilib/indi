@@ -26,22 +26,10 @@ bool GeminiFlatpanel::initProperties()
     initStatusProperties();
     initLimitsProperties();
 
+    // CAN_BRIGHTNESS_MODE is added dynamically in Handshake() once the connected
+    // adapter's supportsBrightnessMode() is known.
     LI::initProperties(MAIN_CONTROL_TAB, LI::CAN_DIM);
     DI::initProperties(MAIN_CONTROL_TAB);
-
-    // Per-filter brightness mode presets (Low/High). Populated dynamically once filter
-    // names are known, mirroring LightBoxInterface's FilterIntensityNP.
-    FilterBrightnessModeSP.fill(
-        getDeviceName(),
-        "FILTER_BRIGHTNESS_MODE",
-        "Filter Brightness Mode",
-        "Preset",
-        IP_RW,
-        ISR_NOFMANY,
-        60,
-        IPS_IDLE
-    );
-
 
     // Driver interface will be set dynamically in Handshake() based on device capabilities
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
@@ -94,12 +82,6 @@ bool GeminiFlatpanel::updateProperties()
         {
             defineProperty(BeepSP);
         }
-        if (adapter && adapter->supportsBrightnessMode())
-        {
-            defineProperty(BrightnessModeSP);
-            if (!FilterBrightnessModeSP.isEmpty())
-                defineProperty(FilterBrightnessModeSP);
-        }
 
         // Only register dust cap movement controls if supported
         if (adapter && adapter->supportsDustCap())
@@ -125,12 +107,6 @@ bool GeminiFlatpanel::updateProperties()
         if (adapter && adapter->supportsBeep())
         {
             deleteProperty(BeepSP);
-        }
-        if (adapter && adapter->supportsBrightnessMode())
-        {
-            deleteProperty(BrightnessModeSP);
-            if (!FilterBrightnessModeSP.isEmpty())
-                deleteProperty(FilterBrightnessModeSP);
         }
 
         // Only delete dust cap properties that were defined
@@ -176,31 +152,6 @@ bool GeminiFlatpanel::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
-        if (FilterBrightnessModeSP.isNameMatch(name))
-        {
-            FilterBrightnessModeSP.update(states, names, n);
-            FilterBrightnessModeSP.setState(IPS_OK);
-            FilterBrightnessModeSP.apply();
-            saveConfig(FilterBrightnessModeSP);
-
-            // If the toggled preset belongs to the filter that is currently active,
-            // apply it to the device right away -- otherwise the change silently only
-            // takes effect the next time the filter wheel switches away and back.
-            if (currentFilterIndex >= 0 && static_cast<uint32_t>(currentFilterIndex) < FilterBrightnessModeSP.count())
-            {
-                for (int i = 0; i < n; i++)
-                {
-                    if (FilterBrightnessModeSP[currentFilterIndex].isNameMatch(names[i]))
-                    {
-                        applyFilterBrightnessMode(currentFilterIndex);
-                        break;
-                    }
-                }
-            }
-
-            return true;
-        }
-
         if (LI::processSwitch(dev, name, states, names, n))
         {
             return true;
@@ -239,7 +190,6 @@ bool GeminiFlatpanel::ISNewText(const char *dev, const char *name, char *texts[]
 
 bool GeminiFlatpanel::ISSnoopDevice(XMLEle *root)
 {
-    snoopFilterBrightnessMode(root);
     LI::snoop(root);
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -250,9 +200,6 @@ bool GeminiFlatpanel::saveConfigItems(FILE *fp)
 
     // Save device type selection
     DeviceTypeSP.save(fp);
-
-    if (!FilterBrightnessModeSP.isEmpty())
-        FilterBrightnessModeSP.save(fp);
 
     return LI::saveConfigItems(fp);
 }
@@ -297,23 +244,6 @@ void GeminiFlatpanel::initStatusProperties()
     {
         onBeepChange();
     });
-
-    // Add brightness mode control
-    BrightnessModeSP.fill(
-        getDeviceName(),
-        "BRIGHTNESS_MODE",
-        "Brightness Mode",
-        MAIN_CONTROL_TAB,
-        IP_RW,
-        ISR_ATMOST1,
-        0,
-        IPS_IDLE);
-    BrightnessModeSP[0].fill("MODE_LOW", "Low", ISS_ON);
-    BrightnessModeSP[1].fill("MODE_HIGH", "High", ISS_OFF);
-    BrightnessModeSP.onUpdate([this]()
-    {
-        onBrightnessModeChange();
-    });
 }
 
 void GeminiFlatpanel::onBeepChange()
@@ -337,145 +267,6 @@ void GeminiFlatpanel::onBeepChange()
         BeepSP.setState(IPS_ALERT);
     }
     BeepSP.apply();
-}
-
-void GeminiFlatpanel::onBrightnessModeChange()
-{
-    int mode = BrightnessModeSP[1].getState() == ISS_ON ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
-
-    if (!adapter || !adapter->supportsBrightnessMode())
-    {
-        LOG_WARN("Brightness mode selection not supported by this device.");
-        BrightnessModeSP.setState(IPS_ALERT);
-        BrightnessModeSP.apply();
-        return;
-    }
-
-    if (setBrightnessMode(mode))
-    {
-        BrightnessModeSP.setState(IPS_OK);
-    }
-    else
-    {
-        BrightnessModeSP.setState(IPS_ALERT);
-    }
-    BrightnessModeSP.apply();
-}
-
-// Mirrors LightBoxInterface's own FILTER_NAME/FILTER_SLOT snoop parsing, but stays
-// entirely local to this driver so the per-filter brightness mode preset does not
-// require any change to the shared INDI::LightBoxInterface base class used by every
-// other light box driver.
-void GeminiFlatpanel::snoopFilterBrightnessMode(XMLEle *root)
-{
-    auto deviceName = findXMLAttValu(root, "device");
-    if (strcmp(ActiveDeviceTP[0].getText(), deviceName))
-        return;
-
-    auto propTag  = tagXMLEle(root);
-    auto propName = findXMLAttValu(root, "name");
-
-    if (!strcmp(propTag, "delProperty"))
-        return;
-
-    if (!strcmp(propName, "FILTER_NAME"))
-    {
-        std::vector<std::string> filterNames;
-        for (XMLEle *ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            filterNames.push_back(pcdataXMLEle(ep));
-
-        // Skip rebuilding if the filter list is unchanged.
-        bool isDifferent = filterNames.size() != FilterBrightnessModeSP.count();
-        for (size_t i = 0; !isDifferent && i < filterNames.size(); i++)
-            isDifferent = !FilterBrightnessModeSP[i].isNameMatch(filterNames[i].c_str());
-
-        if (!isDifferent)
-            return;
-
-        // The filter list is being rebuilt, so any previously tracked active index no
-        // longer necessarily points at the same filter -- it will be restored by the
-        // next FILTER_SLOT snoop.
-        currentFilterIndex = -1;
-
-        // Build the list unconditionally, even before the device is connected: a snoop
-        // update can arrive as soon as the driver starts (IDSnoopDevice is registered in
-        // initProperties()), well before adapter exists. If we bailed out here, the
-        // property would stay permanently empty since the same snoop value is only
-        // delivered once, and updateProperties() would never have anything to define
-        // once the user actually connects.
-        bool wasDefined = adapter && adapter->supportsBrightnessMode() && !FilterBrightnessModeSP.isEmpty();
-
-        if (!FilterBrightnessModeSP.isEmpty())
-        {
-            if (wasDefined)
-                deleteProperty(FilterBrightnessModeSP);
-            FilterBrightnessModeSP.resize(0);
-        }
-
-        for (const auto &filterName : filterNames)
-        {
-            INDI::WidgetSwitch node;
-            node.fill(filterName.c_str(), filterName.c_str(), ISS_OFF);
-            FilterBrightnessModeSP.push(std::move(node));
-        }
-
-        if (FilterBrightnessModeSP.isEmpty())
-            return;
-
-        FilterBrightnessModeSP.load();
-
-        if (adapter && adapter->supportsBrightnessMode())
-            defineProperty(FilterBrightnessModeSP);
-    }
-    else if (!strcmp(propName, "FILTER_SLOT"))
-    {
-        // Only accept IPS_OK/IPS_IDLE state, mirroring LightBoxInterface::snoop().
-        if (strcmp(findXMLAttValu(root, "state"), "Ok") && strcmp(findXMLAttValu(root, "state"), "Idle"))
-            return;
-
-        int index = -1;
-        for (XMLEle *ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            if (!strcmp(findXMLAttValu(ep, "name"), "FILTER_SLOT_VALUE"))
-            {
-                index = atoi(pcdataXMLEle(ep)) - 1;
-                break;
-            }
-        }
-
-        if (index < 0)
-            return;
-
-        currentFilterIndex = index;
-        applyFilterBrightnessMode(index);
-    }
-}
-
-// Applies the per-filter brightness mode preset at the given index to the device,
-// and reflects the result in the global BrightnessModeSP. Called both when the
-// active filter changes and when a preset for the currently active filter is
-// toggled directly, so the toggle takes effect immediately instead of only on the
-// next filter change.
-void GeminiFlatpanel::applyFilterBrightnessMode(int index)
-{
-    if (!adapter || !adapter->supportsBrightnessMode())
-        return;
-
-    if (FilterBrightnessModeSP.isEmpty() || index < 0 || static_cast<uint32_t>(index) >= FilterBrightnessModeSP.count())
-        return;
-
-    if (!isConnected())
-        return;
-
-    int mode = FilterBrightnessModeSP[index].getState() == ISS_ON ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
-
-    if (setBrightnessMode(mode))
-    {
-        BrightnessModeSP.reset();
-        BrightnessModeSP[mode == GEMINI_BRIGHTNESS_MODE_HIGH ? 1 : 0].setState(ISS_ON);
-        BrightnessModeSP.setState(IPS_OK);
-        BrightnessModeSP.apply();
-    }
 }
 
 void GeminiFlatpanel::initLimitsProperties()
@@ -668,6 +459,17 @@ bool GeminiFlatpanel::EnableLightBox(bool enable)
     return enable ? lightOn() : lightOff();
 }
 
+bool GeminiFlatpanel::SetLightBoxBrightnessMode(int mode)
+{
+    if (!adapter || !adapter->supportsBrightnessMode())
+    {
+        LOG_WARN("Brightness mode selection not supported by this device.");
+        return false;
+    }
+
+    return setBrightnessMode(mode);
+}
+
 // DustCapInterface methods
 IPState GeminiFlatpanel::ParkCap()
 {
@@ -724,6 +526,9 @@ bool GeminiFlatpanel::Handshake()
         adapter = std::make_unique<GeminiFlatpanelSimulationAdapter>(true); // true = Rev2 features
         deviceRevision = adapter->getRevision();
         commandTerminator = adapter->getCommandTerminator();
+
+        // Set light box capabilities based on device capabilities
+        LI::SetCapability(LI::CAN_DIM | (adapter->supportsBrightnessMode() ? LI::CAN_BRIGHTNESS_MODE : 0));
 
         // Set driver interface based on device capabilities
         if (adapter && adapter->supportsDustCap())
@@ -826,6 +631,9 @@ bool GeminiFlatpanel::Handshake()
         LOG_ERROR("Handshake failed. Unable to communicate with the device.");
         return false;
     }
+
+    // Set light box capabilities based on device capabilities
+    LI::SetCapability(LI::CAN_DIM | (adapter->supportsBrightnessMode() ? LI::CAN_BRIGHTNESS_MODE : 0));
 
     // Set driver interface based on device capabilities
     if (adapter && adapter->supportsDustCap())

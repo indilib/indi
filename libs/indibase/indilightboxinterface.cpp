@@ -58,6 +58,12 @@ void LightBoxInterface::initProperties(const char *group, uint32_t capabilities)
     LightIntensityNP[0].fill("FLAT_LIGHT_INTENSITY_VALUE", "Value", "%.f", 0, 255, 10, 0);
     LightIntensityNP.fill(m_DefaultDevice->getDeviceName(), "FLAT_LIGHT_INTENSITY", "Brightness", group, IP_RW, 0, IPS_IDLE);
 
+    // Brightness Mode (Low/High), right next to Brightness so both sit in the same group.
+    BrightnessModeSP[BRIGHTNESS_MODE_LOW].fill("MODE_LOW", "Low", ISS_ON);
+    BrightnessModeSP[BRIGHTNESS_MODE_HIGH].fill("MODE_HIGH", "High", ISS_OFF);
+    BrightnessModeSP.fill(m_DefaultDevice->getDeviceName(), "BRIGHTNESS_MODE", "Brightness Mode", group, IP_RW,
+                          ISR_1OFMANY, 0, IPS_IDLE);
+
     // Active Devices
     ActiveDeviceTP[0].fill("ACTIVE_FILTER", "Filter", "Filter Simulator");
     ActiveDeviceTP.fill(m_DefaultDevice->getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
@@ -67,6 +73,11 @@ void LightBoxInterface::initProperties(const char *group, uint32_t capabilities)
     // @INDI_STANDARD_PROPERTY@
     FilterIntensityNP.fill(m_DefaultDevice->getDeviceName(), "FLAT_LIGHT_FILTER_INTENSITY", "Filter Intensity", "Preset", IP_RW,
                            60, IPS_IDLE);
+
+    // Per-filter brightness mode presets (Low/High), one independent switch per filter
+    // name. Populated dynamically alongside FilterIntensityNP once filter names are known.
+    FilterBrightnessModeSP.fill(m_DefaultDevice->getDeviceName(), "FILTER_BRIGHTNESS_MODE", "Filter Brightness Mode",
+                                "Preset", IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_NAME");
@@ -91,6 +102,12 @@ bool LightBoxInterface::updateProperties()
         m_DefaultDevice->defineProperty(LightSP);
         if (m_Capabilities & CAN_DIM)
             m_DefaultDevice->defineProperty(LightIntensityNP);
+        if (m_Capabilities & CAN_BRIGHTNESS_MODE)
+        {
+            m_DefaultDevice->defineProperty(BrightnessModeSP);
+            if (!FilterBrightnessModeSP.isEmpty())
+                m_DefaultDevice->defineProperty(FilterBrightnessModeSP);
+        }
         if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->defineProperty(FilterIntensityNP);
     }
@@ -99,6 +116,12 @@ bool LightBoxInterface::updateProperties()
         m_DefaultDevice->deleteProperty(LightSP);
         if (m_Capabilities & CAN_DIM)
             m_DefaultDevice->deleteProperty(LightIntensityNP);
+        if (m_Capabilities & CAN_BRIGHTNESS_MODE)
+        {
+            m_DefaultDevice->deleteProperty(BrightnessModeSP);
+            if (!FilterBrightnessModeSP.isEmpty())
+                m_DefaultDevice->deleteProperty(FilterBrightnessModeSP);
+        }
 
         if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->deleteProperty(FilterIntensityNP);
@@ -130,6 +153,52 @@ bool LightBoxInterface::processSwitch(const char *dev, const char *name, ISState
         }
 
         LightSP.apply();
+        return true;
+    }
+
+    // Brightness Mode
+    if (BrightnessModeSP.isNameMatch(name))
+    {
+        BrightnessModeSP.update(states, names, n);
+        int mode = BrightnessModeSP[BRIGHTNESS_MODE_HIGH].getState() == ISS_ON ? BRIGHTNESS_MODE_HIGH : BRIGHTNESS_MODE_LOW;
+        bool rc = SetLightBoxBrightnessMode(mode);
+        BrightnessModeSP.setState(rc ? IPS_OK : IPS_ALERT);
+        BrightnessModeSP.apply();
+        if (rc)
+            m_DefaultDevice->saveConfig(BrightnessModeSP);
+        return true;
+    }
+
+    // Per-filter Brightness Mode presets
+    if (FilterBrightnessModeSP.isNameMatch(name))
+    {
+        FilterBrightnessModeSP.update(states, names, n);
+        FilterBrightnessModeSP.setState(IPS_OK);
+        FilterBrightnessModeSP.apply();
+        m_DefaultDevice->saveConfig(FilterBrightnessModeSP);
+
+        // If the toggled preset belongs to the currently active filter, apply it to the
+        // device right away -- otherwise it would silently only take effect the next
+        // time the filter wheel switches away and back.
+        if (m_FilterSlotKnown && currentFilterSlot < FilterBrightnessModeSP.count())
+        {
+            for (int i = 0; i < n; i++)
+            {
+                if (FilterBrightnessModeSP[currentFilterSlot].isNameMatch(names[i]))
+                {
+                    int mode = FilterBrightnessModeSP[currentFilterSlot].getState() == ISS_ON ? BRIGHTNESS_MODE_HIGH :
+                               BRIGHTNESS_MODE_LOW;
+                    if (SetLightBoxBrightnessMode(mode))
+                    {
+                        BrightnessModeSP.reset();
+                        BrightnessModeSP[mode].setState(ISS_ON);
+                        BrightnessModeSP.setState(IPS_OK);
+                        BrightnessModeSP.apply();
+                    }
+                    break;
+                }
+            }
+        }
         return true;
     }
 
@@ -213,6 +282,8 @@ bool LightBoxInterface::processText(const char *dev, const char *name, char *tex
         else
         {
             m_DefaultDevice->deleteProperty(FilterIntensityNP);
+            if ((m_Capabilities & CAN_BRIGHTNESS_MODE) && !FilterBrightnessModeSP.isEmpty())
+                m_DefaultDevice->deleteProperty(FilterBrightnessModeSP);
         }
         return true;
     }
@@ -244,12 +315,22 @@ bool LightBoxInterface::SetLightBoxBrightness(uint16_t value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool LightBoxInterface::SetLightBoxBrightnessMode(int mode)
+{
+    INDI_UNUSED(mode);
+    // Must be implemented by child class, if CAN_BRIGHTNESS_MODE is supported.
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool LightBoxInterface::snoop(XMLEle *root)
 {
     auto deviceName = findXMLAttValu(root, "device");
 
-    // If dimming not supported or not our device, we return
-    if (!(m_Capabilities & CAN_DIM) || strcmp(ActiveDeviceTP[0].getText(), deviceName))
+    // If neither dimming nor brightness mode is supported, or not our device, we return
+    if (!(m_Capabilities & (CAN_DIM | CAN_BRIGHTNESS_MODE)) || strcmp(ActiveDeviceTP[0].getText(), deviceName))
         return false;
 
     XMLEle *ep = nullptr;
@@ -286,6 +367,11 @@ bool LightBoxInterface::snoop(XMLEle *root)
             {
                 m_DefaultDevice->deleteProperty(FilterIntensityNP);
                 FilterIntensityNP.resize(0);
+
+                bool filterBrightnessModeWasDefined = (m_Capabilities & CAN_BRIGHTNESS_MODE) && !FilterBrightnessModeSP.isEmpty();
+                if (filterBrightnessModeWasDefined)
+                    m_DefaultDevice->deleteProperty(FilterBrightnessModeSP);
+                FilterBrightnessModeSP.resize(0);
             }
             else
                 return false;
@@ -296,6 +382,24 @@ bool LightBoxInterface::snoop(XMLEle *root)
 
         FilterIntensityNP.load();
         m_DefaultDevice->defineProperty(FilterIntensityNP);
+
+        // Build the per-filter brightness mode preset list unconditionally, even if
+        // CAN_BRIGHTNESS_MODE isn't set yet: some drivers only learn whether the connected
+        // device supports it after connecting, well after this snoop can arrive, and
+        // indiserver only delivers a given FILTER_NAME value once. Only the defineProperty()
+        // call below is gated on the capability.
+        for (const auto &oneFilter : FilterIntensityNP)
+        {
+            INDI::WidgetSwitch node;
+            node.fill(oneFilter.getName(), oneFilter.getLabel(), ISS_OFF);
+            FilterBrightnessModeSP.push(std::move(node));
+        }
+        if (!FilterBrightnessModeSP.isEmpty())
+        {
+            FilterBrightnessModeSP.load();
+            if (m_Capabilities & CAN_BRIGHTNESS_MODE)
+                m_DefaultDevice->defineProperty(FilterBrightnessModeSP);
+        }
 
         if (m_DefaultDevice->isConnected())
         {
@@ -320,6 +424,7 @@ bool LightBoxInterface::snoop(XMLEle *root)
             if (!strcmp(elemName, "FILTER_SLOT_VALUE"))
             {
                 currentFilterSlot = atoi(pcdataXMLEle(ep)) - 1;
+                m_FilterSlotKnown = true;
                 break;
             }
         }
@@ -337,6 +442,22 @@ bool LightBoxInterface::snoop(XMLEle *root)
                         LightIntensityNP.setState(IPS_OK);
                         LightIntensityNP.apply();
                     }
+                }
+            }
+        }
+
+        if ((m_Capabilities & CAN_BRIGHTNESS_MODE) && !FilterBrightnessModeSP.isEmpty() && m_DefaultDevice->isConnected())
+        {
+            if (currentFilterSlot < FilterBrightnessModeSP.count())
+            {
+                int mode = FilterBrightnessModeSP[currentFilterSlot].getState() == ISS_ON ? BRIGHTNESS_MODE_HIGH :
+                           BRIGHTNESS_MODE_LOW;
+                if (SetLightBoxBrightnessMode(mode))
+                {
+                    BrightnessModeSP.reset();
+                    BrightnessModeSP[mode].setState(ISS_ON);
+                    BrightnessModeSP.setState(IPS_OK);
+                    BrightnessModeSP.apply();
                 }
             }
         }
@@ -375,6 +496,13 @@ bool LightBoxInterface::saveConfigItems(FILE *fp)
         LightIntensityNP.save(fp);
     else
         FilterIntensityNP.save(fp);
+
+    if (m_Capabilities & CAN_BRIGHTNESS_MODE)
+    {
+        BrightnessModeSP.save(fp);
+        if (!FilterBrightnessModeSP.isEmpty())
+            FilterBrightnessModeSP.save(fp);
+    }
 
     return true;
 }
