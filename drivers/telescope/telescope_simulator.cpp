@@ -601,11 +601,19 @@ bool ScopeSim::Sync(double ra, double dec)
     // stored offset sky_RA − encoder_RA remains constant across iterations, so successive
     // sync+goto cycles converge rather than diverging.
 
-    if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
+    AlignmentDatabaseEntry entry;
+    entry.ObservationJulianDate = ln_get_julian_from_sys();
+    entry.RightAscension        = ra;
+    entry.Declination           = dec;
+    entry.PrivateDataSize       = 0;
+
+    const bool altAz    = (m_MountType == Alignment::MOUNT_TYPE::ALTAZ);
+    const double indi_az  = axisPrimary.position.Degrees();
+    const double indi_alt = axisSecondary.position.Degrees();
+    if (altAz)
     {
-        double indi_az  = axisPrimary.position.Degrees();
-        double indi_alt = axisSecondary.position.Degrees();
-        AddAlignmentEntryAltAz(ra, dec, indi_alt, indi_az);  // handles DB + Initialise
+        INDI::IHorizontalCoordinates altAzCoords { indi_az, indi_alt };
+        entry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(altAzCoords);
     }
     else
     {
@@ -620,22 +628,36 @@ bool ScopeSim::Sync(double ra, double dec)
 
         double encoderRA = (alignment.lst() - instHA).Hours();
         INDI::IEquatorialCoordinates raCoords{ encoderRA, instDec.Degrees() };
-        TelescopeDirectionVector tdv =
-            TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
+        entry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
+    }
 
-        AlignmentDatabaseEntry entry;
-        entry.ObservationJulianDate = ln_get_julian_from_sys();
-        entry.RightAscension        = ra;
-        entry.Declination           = dec;
-        entry.TelescopeDirection    = tdv;
-        entry.PrivateDataSize       = 0;
+    // A new sync supersedes older sync points at (nearly) the same place: the latest plate solve is the
+    // better measurement. Previously the new point was silently dropped as a duplicate while this function
+    // still reported success, so re-syncing near an existing point had no effect on the pointing model.
+    // ALTAZ entries need the geographic reference position (see AddAlignmentEntryAltAz); without it
+    // nothing is stored and the existing points are kept.
+    INDI::IGeographicCoordinates referencePosition;
+    if (altAz && !GetDatabaseReferencePosition(referencePosition))
+    {
+        LOG_WARN("Sync not stored in the alignment database: geographic location is not known yet.");
+    }
+    else
+    {
+        const size_t before = GetAlignmentDatabase().size();
+        RemoveSyncPoint(entry);
+        const int replaced = static_cast<int>(before - GetAlignmentDatabase().size());
 
-        if (!CheckForDuplicateSyncPoint(entry))
+        if (altAz)
+            AddAlignmentEntryAltAz(ra, dec, indi_alt, indi_az);  // handles DB + Initialise
+        else
         {
             GetAlignmentDatabase().push_back(entry);
             UpdateSize();
             Initialise(this);
         }
+
+        if (replaced > 0)
+            LOGF_INFO("Sync replaced %d older alignment point(s) at the same position.", replaced);
     }
 
     // Keep the ALTAZ tracking servo on the current instrument position after sync.

@@ -40,6 +40,21 @@ class MockScopeSimDriver : public ScopeSim
             ASSERT_TRUE(ISNewSwitch(getDeviceName(), "TELESCOPE_MOUNT_TYPE", states, names, 3));
         }
 
+        bool syncAt(double ra, double dec)
+        {
+            return Sync(ra, dec);
+        }
+
+        void setLocation(double latitude, double longitude)
+        {
+            updateLocation(latitude, longitude, 200);
+        }
+
+        const AlignmentDatabaseEntry &lastSyncPoint()
+        {
+            return GetAlignmentDatabase().back();
+        }
+
         void addSyncPoint()
         {
             AlignmentDatabaseEntry entry;
@@ -87,6 +102,34 @@ TEST(TelescopeSimulatorTest, switchingBetweenEquatorialTypesKeepsSyncPoints)
     sim.selectMountType("EQ_FORK");
     EXPECT_EQ(sim.syncPoints(), 1u);
 }
+
+// Re-syncing at (practically) the same place must update the pointing model with the new plate-solved
+// position. Previously the new sync point was silently dropped as a duplicate while Sync() still reported
+// success, so the old position stayed in the model.
+static void checkResyncReplacesOlderPoint(const char *mountType)
+{
+    MockScopeSimDriver sim;
+    sim.setLocation(48.2, 16.4);
+    sim.selectMountType(mountType);
+
+    ASSERT_TRUE(sim.syncAt(9.50, 45.00));
+    ASSERT_EQ(sim.syncPoints(), 1u);
+
+    // Same mount position, slightly different solved sky position.
+    ASSERT_TRUE(sim.syncAt(9.51, 45.05));
+    ASSERT_EQ(sim.syncPoints(), 1u);
+    EXPECT_NEAR(sim.lastSyncPoint().RightAscension, 9.51, 1e-9);
+    EXPECT_NEAR(sim.lastSyncPoint().Declination, 45.05, 1e-9);
+}
+
+TEST(TelescopeSimulatorTest, resyncReplacesOlderSyncPointEquatorial)
+{
+    checkResyncReplacesOlderPoint("EQ_GEM");
+}
+
+// No ALTAZ variant here: a freshly constructed simulator points at the zenith, and the math plugin's
+// SanitizePolarEntries() deliberately rewrites sync points above 88 deg altitude, so a zenith sync point
+// cannot be compared directly. The ALTAZ path shares the replacement logic in ScopeSim::Sync().
 
 int main(int argc, char **argv)
 {
