@@ -57,7 +57,6 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         void onSetPosition(int direction);
         void cleanupSwitch(INDI::PropertySwitch &currentSwitch, int switchIndex);
         void onBeepChange();
-        void onBrightnessModeChange();
 
     private:
         // Serial connection
@@ -81,6 +80,14 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         int prevMotorStatus{-1};
         int prevBrightness{-1};
         int configStatus{GEMINI_CONFIG_NOTREADY};
+
+        // Devices that support a Low/High brightness mode (Rev2/Lite) no longer expose a
+        // separate BRIGHTNESS_MODE switch. Instead, LightIntensityNP's range is doubled
+        // (0-255 = Low, 256-511 = High) and SetLightBoxBrightness() decodes which half was
+        // requested -- previewing the single-continuous-range behavior Gemini has said
+        // they plan to move the firmware to (see indilib/indi#2487). Tracked purely
+        // in-memory since the firmware exposes no way to read back the active mode.
+        int brightnessMode{GEMINI_BRIGHTNESS_MODE_LOW};
 
         // State update methods
         bool updateCoverStatus(char coverStatus);
@@ -123,7 +130,6 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         INDI::PropertyText StatusTP{STATUS_N};
         INDI::PropertyText ConfigurationTP{1};
         INDI::PropertySwitch BeepSP{2};
-        INDI::PropertySwitch BrightnessModeSP{2};
 
         // Limit properties
         enum
