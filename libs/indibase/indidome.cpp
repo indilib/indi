@@ -1801,7 +1801,7 @@ const char * Dome::LoadParkXML()
     wordexp_t wexp;
     FILE * fp;
     LilXML * lp;
-    static char errmsg[512];
+    static char errmsg[XML_ERROR_SIZE];
 
     XMLEle * parkxml;
     XMLAtt * ap;

@@ -1,12 +1,16 @@
 CMakeLists.txt.user*
 
+# Python bytecode cache (any directory level)
+__pycache__/
+
 # Projectile tags
 TAGS
 
 # Ignore build directory
 build/
 build-*/
-
+.claude-worktrees/*
+.claude/*
 # Gedit backup files
 *~
 *.orig

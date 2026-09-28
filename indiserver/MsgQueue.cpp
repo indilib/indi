@@ -522,7 +522,7 @@ void MsgQueue::readFromFd()
     }
 
     /* process XML chunk */
-    char err[1024];
+    char err[XML_ERROR_SIZE];
     XMLEle **nodes = parseXMLChunk(lp, buf, nr, err);
     if (!nodes)
     {

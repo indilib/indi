@@ -7,6 +7,7 @@
         Thomas Olson, Copyright (C) 2019
         Karl Rees, Copyright (C) 2019-2023
         Martin Ruiz, Copyright (C) 2023
+        Daniel Karnaukh, Copyright (C) 2026
 
     Based on IEQPro driver.
 
@@ -67,7 +68,7 @@ PMC8::PMC8() : GI(this)
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE |
-                           TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
                            9);
 
     setVersion(PMC8_VERSION_MAJOR, PMC8_VERSION_MINOR);
@@ -619,10 +620,14 @@ bool PMC8::ReadScopeStatus()
             break;
     }
 
-    rc = get_pmc8_coords(PortFD, currentRA, currentDEC);
+    TelescopePierSide sop;
+    rc = get_pmc8_coords(PortFD, currentRA, currentDEC, sop);
 
     if (rc)
+    {
         NewRaDec(currentRA, currentDEC);
+        setPierSide(sop);
+    }
 
     return rc;
 }
@@ -1460,10 +1465,11 @@ void PMC8::mountSim()
             break;
 
         case SCOPE_PARKED:
+            TelescopePierSide unused;
             // setting system status to parked will automatically
             // set the simulated RA/DEC to park position so reread
             set_pmc8_sim_system_status(ST_PARKED);
-            get_pmc8_coords(PortFD, currentRA, currentDEC);
+            get_pmc8_coords(PortFD, currentRA, currentDEC, unused);
 
             break;
 

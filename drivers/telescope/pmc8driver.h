@@ -6,6 +6,7 @@
         Thomas Olson, Copyright (C) 2019
         Karl Rees, Copyright (C) 2019-2023
         Martin Ruiz, Copyright (C) 2023
+        Daniel Karnaukh, Copyright (C) 2026
 
     Based on IEQPro driver.
 
@@ -119,7 +120,7 @@ bool get_pmc8_status(int fd, PMC8Info *info);
 /** Get All firmware information in addition to mount model */
 bool get_pmc8_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
-bool get_pmc8_coords(int fd, double &ra, double &dec);
+bool get_pmc8_coords(int fd, double &ra, double &dec, INDI::Telescope::TelescopePierSide &pierSide);
 bool get_pmc8_move_rate_axis(int fd, PMC8_AXIS axis, double &rate);
 bool get_pmc8_track_rate(int fd, double &rate);
 bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode);
@@ -147,6 +148,7 @@ bool sync_pmc8(int fd, double ra, double dec);
 bool set_pmc8_radec(int fd, double ra, double dec);
 void set_pmc8_goto_resume(bool resume);
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
+INDI::Telescope::TelescopePierSide currentSideOfPier(int decCounts);
 
 
 /**************************************************************************

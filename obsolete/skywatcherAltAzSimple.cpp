@@ -530,7 +530,7 @@ void SkywatcherAltAzSimple::UpdateScopeConfigSwitch()
     XMLEle *CurrentXmlNode = nullptr;
     XMLAtt *Ap             = nullptr;
     bool DeviceFound       = false;
-    char ErrMsg[512];
+    char ErrMsg[XML_ERROR_SIZE];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
     delLilXML(XmlHandle);

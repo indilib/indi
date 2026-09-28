@@ -29,10 +29,6 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define READ_TIMEOUT 1 		// s
-#define CTS_TIMEOUT 100		// ms
-#define RTS_DELAY 50		// ms
-
 #define BUFFER_SIZE 512
 int MAX_CMD_LEN = 32;
 
@@ -231,6 +227,8 @@ const char * AUXCommand::commandName(AUXCommands command) const
             return "PORTCTRL_SET_LED_BRIGHTNESS";
         case PORTCTRL_GET_LED_BRIGHTNESS:
             return "PORTCTRL_GET_LED_BRIGHTNESS";
+        case PORTCTRL_NAK:
+            return "PORTCTRL_NAK";
         default :
             return nullptr;
     }

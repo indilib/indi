@@ -947,7 +947,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 {
                     LOG_DEBUG("No mount is set. Clearing all mount watchers.");
                     RA = Dec = J2000RA = J2000DE = Latitude = Longitude = Airmass = Azimuth = Altitude =
-                                                       std::numeric_limits<double>::quiet_NaN();
+                            std::numeric_limits<double>::quiet_NaN();
                 }
             }
 
@@ -1430,10 +1430,16 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             if (rc == 0)
             {
                 if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+                {
                     m_TemperatureElapsedTimer.start();
+                    m_InitialRampTemperature = TemperatureNP[0].getValue();
+                }
 
                 m_TargetTemperature = values[0];
                 m_TemperatureCheckTimer.start();
+                // Initialize stabilization tracking for warming-up case (can't heat above ambient)
+                m_TemperatureStabilizationValue = TemperatureNP[0].getValue();
+                m_TemperatureStabilizationTimer.start();
                 TemperatureNP.setState(IPS_BUSY);
             }
             else if (rc == 1)
@@ -2641,13 +2647,18 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
         std::string directory = UploadSettingsTP[UPLOAD_DIR].getText();
 
+        // Expand _HOME_ to this machine's home directory. Clients (e.g. Ekos) cannot
+        // know in advance what the home directory of a remote INDI server is, so they
+        // send the _HOME_ token literally and let the driver resolve it locally.
+        if (const char * home = getenv("HOME"))
+            replace_all(directory, "_HOME_", home);
 
         int maxIndex       = getFileIndex(directory, prefix,
                                           targetChip->FitsBP[0].getFormat());
 
         if (maxIndex < 0)
         {
-            LOGF_ERROR("Error iterating directory %s. %s", UploadSettingsTP[UPLOAD_DIR].getText(),
+            LOGF_ERROR("Error iterating directory %s. %s", directory.c_str(),
                        strerror(errno));
             return false;
         }
@@ -2675,7 +2686,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        std::string imageFileName = std::string(UploadSettingsTP[UPLOAD_DIR].getText()) + "/" + prefix + std::string(
+        std::string imageFileName = directory + "/" + prefix + std::string(
                                         targetChip->FitsBP[0].getFormat());
 
         fp = fopen(imageFileName.c_str(), "w");
@@ -3159,7 +3170,52 @@ void CCD::checkTemperatureTarget()
             m_TemperatureCheckTimer.stop();
             TemperatureNP.apply();
         }
-        // If we are beyond a minute, check for next step
+        // When warming up, check if temperature has stabilized at ambient limit
+        // TEC coolers cannot heat above ambient, so if the target is warmer and
+        // the temperature stops changing, we declare it stable.
+        else if (m_TargetTemperature > TemperatureNP[0].getValue())
+        {
+            double rampSlope = TemperatureRampNP[RAMP_SLOPE].getValue();
+            if (rampSlope > 0)
+            {
+                // Calculate minimum expected time to traverse the full temperature range
+                double tempDelta = std::abs(m_TargetTemperature - m_InitialRampTemperature);
+                long minTimeToTarget_ms = static_cast<long>((tempDelta / rampSlope) * 60000);
+                if (m_TemperatureElapsedTimer.elapsed() < minTimeToTarget_ms)
+                {
+                    // Ramp still in progress — advance temperature by one step if >= 60s elapsed
+                    if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+                    {
+                        double nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + rampSlope);
+                        m_TemperatureElapsedTimer.restart();
+                        SetTemperature(nextTemperature);
+                    }
+                    return;
+                }
+            }
+
+            // After expected ramp time has elapsed (or no ramp configured),
+            // check if temperature has stabilized at ambient limit.
+            if (std::abs(TemperatureNP[0].getValue() - m_TemperatureStabilizationValue) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
+            {
+                // If stable for 2+ minutes, declare success (ambient limit reached)
+                if (m_TemperatureStabilizationTimer.elapsed() >= 120000)
+                {
+                    LOGF_INFO("Temperature stabilized at %.2f°C (target %.2f°C not reachable, likely limited by ambient temperature).",
+                              TemperatureNP[0].getValue(), m_TargetTemperature);
+                    TemperatureNP.setState(IPS_OK);
+                    m_TemperatureCheckTimer.stop();
+                    TemperatureNP.apply();
+                }
+            }
+            else
+            {
+                // Temperature still changing — reset stabilization tracking
+                m_TemperatureStabilizationValue = TemperatureNP[0].getValue();
+                m_TemperatureStabilizationTimer.restart();
+            }
+        }
+        // If we are beyond a minute, check for next step (cooling ramp)
         else if (TemperatureRampNP[RAMP_SLOPE].getValue() > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
         {
             double nextTemperature = 0;

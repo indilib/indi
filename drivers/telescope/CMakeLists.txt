@@ -14,7 +14,11 @@ if(NOT WIN32)
     set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT WIN32)
 
+if(CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
+target_compile_definitions(indilx200 PRIVATE HAVE_LIBNOVA)
+else()
 target_compile_definitions(indilx200 PRIVATE _XOPEN_SOURCE=700 HAVE_LIBNOVA)
+endif()
 set_target_properties(indilx200 PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indilx200)
 
 target_link_libraries(indilx200 indidevice $<$<PLATFORM_ID:CYGWIN>:indidriver>)
@@ -44,7 +48,9 @@ add_executable(indi_lx200_TeenAstro
     lx200driver.cpp
     lx200_TeenAstro.cpp)
 
+if(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
 target_compile_definitions(indi_lx200_TeenAstro PRIVATE _XOPEN_SOURCE=700)
+endif()
 target_link_libraries(indi_lx200_TeenAstro indidriver)
 
 install(TARGETS indi_lx200_TeenAstro RUNTIME DESTINATION bin)
@@ -77,13 +83,16 @@ add_executable(indi_lx200generic
     ioptronHC8406.cpp
     eq500x.cpp
     lx200_esp32go.cpp
-    toup_sh20.cpp)
+    toup_sh20.cpp
+    lx200_proxisky.cpp)
 
+if(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
 if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=700)
-ELSE()
+ele()
     target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
-ENDIF()
+endif()
+endif()
 
 target_link_libraries(indi_lx200generic indidriver)
 
@@ -111,6 +120,7 @@ execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_eq500x_telescope)\n
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_esp32go)\n
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_touptek_sh20)\n
+execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_proxisky)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 
@@ -130,7 +140,9 @@ add_executable(indi_rainbow_telescope
     rainbow.cpp
     lx200driver.cpp)
 
+if(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
 target_compile_definitions(indi_rainbow_telescope PRIVATE _XOPEN_SOURCE=700)
+endif()
 
 target_link_libraries(indi_rainbow_telescope indidriver)
 

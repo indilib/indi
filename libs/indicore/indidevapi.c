@@ -772,7 +772,7 @@ int crackDN(XMLEle *root, char **dev, char **name, char msg[])
     ap = findXMLAtt(root, "device");
     if (!ap)
     {
-        sprintf(msg, "%s requires 'device' attribute", tagXMLEle(root));
+        snprintf(msg, MAXRBUF, "%s requires 'device' attribute", tagXMLEle(root));
         return (-1);
     }
     *dev = valuXMLAtt(ap);
@@ -780,7 +780,7 @@ int crackDN(XMLEle *root, char **dev, char **name, char msg[])
     ap = findXMLAtt(root, "name");
     if (!ap)
     {
-        sprintf(msg, "%s requires 'name' attribute", tagXMLEle(root));
+        snprintf(msg, MAXRBUF, "%s requires 'name' attribute", tagXMLEle(root));
         return (-1);
     }
     *name = valuXMLAtt(ap);

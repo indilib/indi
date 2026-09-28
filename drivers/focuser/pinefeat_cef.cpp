@@ -34,7 +34,7 @@ static std::unique_ptr<PinefeatCEF> pinefeatCEF(new PinefeatCEF());
 
 PinefeatCEF::PinefeatCEF()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
 
@@ -84,6 +84,9 @@ bool PinefeatCEF::initProperties()
     FocusDistanceTP[0].fill("FOCUS_DISTANCE", "meter", nullptr);
     FocusDistanceTP.fill(getDeviceName(), "FOCUS_DISTANCE", "Focus Distance", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    FirmwareTP[0].fill("FIRMWARE_VERSION", "Version", "Unknown");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_VERSION", "Firmware", INFO_TAB, IP_RO, 0, IPS_IDLE);
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     setDefaultPollingPeriod(50);
@@ -97,6 +100,7 @@ bool PinefeatCEF::updateProperties()
 
     if (isConnected())
     {
+        defineProperty(FirmwareTP);
         defineProperty(FocusDistanceTP);
         defineProperty(CalibrateSP);
         defineProperty(ApertureRangeTP);
@@ -117,6 +121,7 @@ bool PinefeatCEF::updateProperties()
     }
     else
     {
+        deleteProperty(FirmwareTP);
         deleteProperty(FocusDistanceTP);
         deleteProperty(CalibrateSP);
         deleteProperty(ApertureRangeTP);
@@ -183,8 +188,11 @@ bool PinefeatCEF::readFirmwareVersion()
     int major, minor;
     if (sscanf(res, "%d.%d", &major, &minor) == 2)
     {
-        setVersion(major, minor);
+        firmwareMinor = minor;
     }
+
+    FirmwareTP[0].setText(res);
+    FirmwareTP.setState(IPS_OK);
 
     LOGF_INFO("Detected firmware version %s.", res);
 
@@ -210,7 +218,7 @@ bool PinefeatCEF::readFocusPosition(int32_t &pos)
 
 bool PinefeatCEF::readFocusMaxPosition(int32_t &pos)
 {
-    if (getMinorVersion() < 3)
+    if (firmwareMinor < 3)
     {
         return true;
     }

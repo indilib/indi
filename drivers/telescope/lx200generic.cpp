@@ -33,6 +33,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
 #include "lx200_OpenAstroTech.h"
+#include "lx200_proxisky.h"
 #include "lx200ap_v2.h"
 #include "lx200ap_gtocp2.h"
 #include "lx200classic.h"
@@ -97,6 +98,11 @@ static class Loader
             {
                 IDLog("initializing from LX200 OnStep device...\n");
                 telescope.reset(new LX200_OnStep());
+            }
+            else if (strstr(getProgName(), "indi_lx200_proxisky"))
+            {
+                IDLog("initializing from Proxisky UMi device...\n");
+                telescope.reset(new LX200_Proxisky());
             }
             else if (strstr(getProgName(), "indi_lx200gps"))
             {

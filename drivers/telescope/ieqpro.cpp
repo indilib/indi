@@ -43,7 +43,7 @@ static std::unique_ptr<IEQPro> scope(new IEQPro());
 
 IEQPro::IEQPro(): GI(this)
 {
-    setVersion(1, 9);
+    setVersion(1, 11);
 
     driver.reset(new Base());
 
@@ -73,11 +73,14 @@ bool IEQPro::initProperties()
     INDI::Telescope::initProperties();
 
     /* Firmware */
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
-    IUFillText(&FirmwareT[FW_BOARD], "Board", "", nullptr);
-    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", nullptr);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
+    // Note: the second field of the ':FW1#' reply is the Go2Nova hand controller
+    // firmware, which is distinct from the main board firmware. Element names are
+    // kept for config back-compat; only the display labels are clarified.
+    IUFillText(&FirmwareT[FW_MODEL], "Model", "Model", nullptr);
+    IUFillText(&FirmwareT[FW_BOARD], "Board", "Main Board", nullptr);
+    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "Hand Controller", nullptr);
+    IUFillText(&FirmwareT[FW_RA], "RA", "RA", nullptr);
+    IUFillText(&FirmwareT[FW_DEC], "DEC", "DEC", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
@@ -200,7 +203,12 @@ void IEQPro::getStartupData()
 
     IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
     IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
-    IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
+    // The mount reports "xxxxxx" for the hand controller firmware when no Go2Nova
+    // hand controller is present in the serial path (e.g. connected directly to the
+    // mount's RS-232 port). Show "N/A" instead of the raw placeholder.
+    const bool controllerReported = !firmwareInfo.ControllerFirmware.empty() &&
+                                     firmwareInfo.ControllerFirmware.find_first_not_of('x') != std::string::npos;
+    IUSaveText(&FirmwareT[2], controllerReported ? firmwareInfo.ControllerFirmware.c_str() : "N/A");
     IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
     IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
 
@@ -386,10 +394,28 @@ bool IEQPro::ReadScopeStatus()
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
+                // If a Home operation was in progress, mark it complete.
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                    LOG_INFO("Mount arrived at home position.");
+                }
                 break;
             case ST_HOME:
                 TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
+                // The mount reports ST_HOME once it settles on the home switch.
+                // Clear the Home property only if a Home operation was actually
+                // requested (it is BUSY); the mount also reports ST_HOME at rest.
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                    LOG_INFO("Mount arrived at home position.");
+                }
                 break;
             case ST_SLEWING:
             case ST_MERIDIAN_FLIPPING:

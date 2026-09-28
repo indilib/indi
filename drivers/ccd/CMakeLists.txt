@@ -6,6 +6,15 @@ SET(ccdsimulator_SRC
 add_executable(indi_simulator_ccd ${ccdsimulator_SRC})
 target_compile_definitions(indi_simulator_ccd PRIVATE USE_EQUATORIAL_PE)
 target_link_libraries(indi_simulator_ccd indidriver)
+
+# Directory-mode image loading can also read XISF files when LibXISF is available.
+find_package(LibXISF)
+if(LibXISF_FOUND)
+    target_include_directories(indi_simulator_ccd PRIVATE ${LibXISF_INCLUDE_DIR})
+    target_compile_definitions(indi_simulator_ccd PRIVATE HAVE_XISF)
+    target_link_libraries(indi_simulator_ccd ${LibXISF_LIBRARY})
+endif()
+
 install(TARGETS indi_simulator_ccd RUNTIME DESTINATION bin)
 
 # ########## Guide Simulator ##############

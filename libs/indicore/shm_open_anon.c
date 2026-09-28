@@ -35,45 +35,16 @@
 #define IMPL_SHM_ANON
 #endif
 
-#ifdef __HAIKU__
-#define IMPL_POSIX
-#endif
-
-#ifdef __NetBSD__
-#define IMPL_POSIX
-#endif
-
-#ifdef __APPLE__
-#ifdef __MACH__
-#define IMPL_POSIX
-#endif
-#endif
-
-#ifdef __sun
-#define IMPL_POSIX
-#endif
-
-#ifdef __DragonFly__
-#define IMPL_POSIX
-#endif
-
-#ifdef __GNU__
-#define IMPL_POSIX
-#endif
-
 #ifdef __OpenBSD__
 #define IMPL_SHM_MKSTEMP
 #endif
 
-#ifdef __CYGWIN__
+#if !defined(IMPL_MEMFD) && !defined(IMPL_SHM_ANON) && \
+    !defined(IMPL_SHM_MKSTEMP)
 #define IMPL_POSIX
 #endif
 
-#ifdef IMPL_POSIX
-#define IMPL_UNLINK_OR_CLOSE
-#endif
-
-#ifdef IMPL_SHM_MKSTEMP
+#if defined(IMPL_POSIX) || defined(IMPL_SHM_MKSTEMP)
 #define IMPL_UNLINK_OR_CLOSE
 #endif
 
@@ -112,12 +83,12 @@ shm_open_anon(void)
 		r = (unsigned long)tv.tv_sec + (unsigned long)tv.tv_nsec;
 		for (fill = start; fill < limit; r /= 8)
 			*fill++ = '0' + (r % 8);
-#if defined(_WIN32) || defined(__CYGWIN__)
-		fd = shm_open(
-		  name, O_RDWR | O_CREAT | O_EXCL, 0600);
-#else
+#ifdef O_NOFOLLOW
 		fd = shm_open(
 		  name, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+#else
+		fd = shm_open(
+		  name, O_RDWR | O_CREAT | O_EXCL, 0600);
 #endif
 		if (fd != -1)
 			return shm_unlink_or_close(name, fd);

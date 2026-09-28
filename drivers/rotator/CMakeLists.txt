@@ -130,5 +130,5 @@ SET(planewave_rotator_SRC
     planewave_rotator.cpp)
 
 add_executable(indi_planewave_rotator ${planewave_rotator_SRC})
-target_link_libraries(indi_planewave_rotator indidriver)
+target_link_libraries(indi_planewave_rotator indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_planewave_rotator RUNTIME DESTINATION bin)

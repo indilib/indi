@@ -2067,7 +2067,7 @@ const char *Telescope::LoadParkXML()
     wordexp_t wexp;
     FILE *fp = nullptr;
     LilXML *lp = nullptr;
-    static char errmsg[512];
+    static char errmsg[XML_ERROR_SIZE];
 
     XMLEle *parkxml = nullptr;
     XMLAtt *ap = nullptr;
@@ -2212,7 +2212,7 @@ bool Telescope::PurgeParkData()
     wordexp_t wexp;
     FILE *fp = nullptr;
     LilXML *lp = nullptr;
-    static char errmsg[512];
+    static char errmsg[XML_ERROR_SIZE];
 
     XMLEle *parkxml = nullptr;
     XMLAtt *ap = nullptr;

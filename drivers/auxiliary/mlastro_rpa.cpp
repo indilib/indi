@@ -39,7 +39,7 @@ static std::unique_ptr<MLAstroRPA> rpa(new MLAstroRPA());
 MLAstroRPA::MLAstroRPA()
     : PACInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 3);
     SetCapability(PAC_HAS_SPEED    |
                   PAC_CAN_REVERSE  |
                   PAC_HAS_POSITION |
@@ -100,6 +100,53 @@ bool MLAstroRPA::initProperties()
     AltSoftLimitsNP.fill(getDeviceName(), "ALT_SOFT_LIMITS", "ALT Limits",
                          OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Altitude overshoot routine — the platform settles more stably when it
+    // comes to rest moving upward. When enabled for a direction, the device
+    // overshoots the target on that leg and returns for a final upward approach.
+    AltOvershootSP[ALT_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enable Overshoot on Firmware", ISS_OFF);
+    AltOvershootSP[ALT_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disable", ISS_ON);
+    AltOvershootSP.fill(getDeviceName(), "ALT_OVERSHOOT", "Alt Overshoot",
+                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    AltOvershootDirSP[ALT_OVERSHOOT_UP].fill("OVERSHOOT_UP", "On Move Up", ISS_OFF);
+    AltOvershootDirSP[ALT_OVERSHOOT_DOWN].fill("OVERSHOOT_DOWN", "On Move Down", ISS_ON);
+    AltOvershootDirSP.fill(getDeviceName(), "ALT_OVERSHOOT_DIR", "Overshoot Direction",
+                           OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    AltOvershootAmountNP[0].fill("AMOUNT", "Amount (deg)", "%.4f", 0, 10.9997, 0.1, 2.0);
+    AltOvershootAmountNP.fill(getDeviceName(), "ALT_OVERSHOOT_AMOUNT", "Overshoot Amount",
+                              OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // ── Correction tab ────────────────────────────────────────────────────
+    // Driver-side correction shaping (mirrors the MLAstro N.I.N.A. plugin):
+    //   * "Correction Percentage" (default 75%, 1-100%) is applied to Azimuth on
+    //     every automated correction, and to Altitude when the software overshoot
+    //     is not active for the current correction direction. Applying slightly
+    //     less than the full error prevents overcorrection; the client simply
+    //     repeats the run until the error converges.
+    //   * "Software Overshoot (ALT)": when enabled for the current correction
+    //     direction, the Alt axis corrects 100% of the error and then travels the
+    //     configured overshoot (0-240 arcmin) past the target, so the platform
+    //     always settles from the same direction.
+    CorrectionPercentNP[0].fill("CORRECTION_PERCENT", "Correction (%)", "%.0f", 1, 100, 1, 75);
+    CorrectionPercentNP.fill(getDeviceName(), "RPA_CORRECTION_PERCENT", "Correction Percentage",
+                             CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    CorrectionOvershootSP[CORR_OVERSHOOT_ENABLED].fill("INDI_ENABLED", "Enable overshoot", ISS_OFF);
+    CorrectionOvershootSP[CORR_OVERSHOOT_DISABLED].fill("INDI_DISABLED", "Disable", ISS_ON);
+    CorrectionOvershootSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT", "Software Overshoot (ALT)",
+                               CORRECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    CorrectionOvershootDirSP[CORR_OVERSHOOT_UP].fill("OVERSHOOT_UP", "Run overshoot for moving Up", ISS_OFF);
+    CorrectionOvershootDirSP[CORR_OVERSHOOT_DOWN].fill("OVERSHOOT_DOWN", "Run overshoot for moving Down",
+            ISS_ON);
+    CorrectionOvershootDirSP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_DIR", "Run Overshoot Direction",
+                                  CORRECTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    CorrectionOvershootAmountNP[0].fill("AMOUNT", "Amount (arcmin)", "%.1f", 0, 240, 1, 30);
+    CorrectionOvershootAmountNP.fill(getDeviceName(), "RPA_CORRECTION_OVERSHOOT_AMOUNT",
+                                     "Overshoot Amount (arcmin)", CORRECTION_TAB, IP_RW, 60, IPS_IDLE);
+
     // ── Motor Config tab ──────────────────────────────────────────────────
 
     // Azimuth motor settings
@@ -133,11 +180,37 @@ bool MLAstroRPA::initProperties()
     SaveRebootSP.fill(getDeviceName(), "RPA_SAVE_REBOOT", "Save & Reboot",
                       MOTOR_CONFIG_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // ── Network tab ──────────────────────────────────────────────────────
+    StationSSIDTP[0].fill("STATION_SSID", "Station SSID", "");
+    StationSSIDTP.fill(getDeviceName(), "RPA_STATION_SSID", "Station SSID",
+                       NETWORK_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Write-only: never read back, never saved to the local config file.
+    StationPasswordTP[0].fill("STATION_PASSWORD", "Station Password", "");
+    StationPasswordTP.fill(getDeviceName(), "RPA_STATION_PASSWORD", "Station Password",
+                           NETWORK_TAB, IP_WO, 60, IPS_IDLE);
+
+    APConfigTP[AP_SSID].fill("AP_SSID", "AP SSID", "");
+    APConfigTP[AP_IP].fill("AP_IP", "AP IP Address", "");
+    APConfigTP.fill(getDeviceName(), "RPA_AP_CONFIG", "Access Point",
+                    NETWORK_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Write-only: never read back, never saved to the local config file.
+    APPasswordTP[0].fill("AP_PASSWORD", "AP Password", "");
+    APPasswordTP.fill(getDeviceName(), "RPA_AP_PASSWORD", "AP Password",
+                      NETWORK_TAB, IP_WO, 60, IPS_IDLE);
+
     // ── Info tab ──────────────────────────────────────────────────────────
+    FirmwareInfoTP[FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware", "");
+    FirmwareInfoTP[FIRMWARE_SERIAL].fill("FIRMWARE_SERIAL",   "Serial Number", "");
+    FirmwareInfoTP.fill(getDeviceName(), "RPA_FIRMWARE_INFO", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
+
     WiFiInfoTP[WIFI_INFO_AP_SSID].fill("AP_SSID",  "AP SSID",     "");
     WiFiInfoTP[WIFI_INFO_AP_IP].fill("AP_IP",      "AP IP",       "");
+    WiFiInfoTP[WIFI_INFO_AP_MAC].fill("AP_MAC",    "AP MAC",      "");
     WiFiInfoTP[WIFI_INFO_STA_SSID].fill("STA_SSID", "Station SSID", "");
     WiFiInfoTP[WIFI_INFO_STA_IP].fill("STA_IP",    "Station IP",  "");
+    WiFiInfoTP[WIFI_INFO_STA_MAC].fill("STA_MAC",  "Station MAC", "");
     WiFiInfoTP.fill(getDeviceName(), "RPA_WIFI_INFO", "WiFi Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     setDriverInterface(AUX_INTERFACE | PAC_INTERFACE);
@@ -169,9 +242,21 @@ bool MLAstroRPA::updateProperties()
         defineProperty(HomedLP);
         defineProperty(AzSoftLimitsNP);
         defineProperty(AltSoftLimitsNP);
+        defineProperty(AltOvershootSP);
+        defineProperty(AltOvershootDirSP);
+        defineProperty(AltOvershootAmountNP);
+        defineProperty(CorrectionPercentNP);
+        defineProperty(CorrectionOvershootSP);
+        defineProperty(CorrectionOvershootDirSP);
+        defineProperty(CorrectionOvershootAmountNP);
         defineProperty(AzMotorNP);
         defineProperty(AltMotorNP);
         defineProperty(SaveRebootSP);
+        defineProperty(StationSSIDTP);
+        defineProperty(StationPasswordTP);
+        defineProperty(APConfigTP);
+        defineProperty(APPasswordTP);
+        defineProperty(FirmwareInfoTP);
         defineProperty(WiFiInfoTP);
     }
     else
@@ -181,9 +266,21 @@ bool MLAstroRPA::updateProperties()
         deleteProperty(HomedLP);
         deleteProperty(AzSoftLimitsNP);
         deleteProperty(AltSoftLimitsNP);
+        deleteProperty(AltOvershootSP);
+        deleteProperty(AltOvershootDirSP);
+        deleteProperty(AltOvershootAmountNP);
+        deleteProperty(CorrectionPercentNP);
+        deleteProperty(CorrectionOvershootSP);
+        deleteProperty(CorrectionOvershootDirSP);
+        deleteProperty(CorrectionOvershootAmountNP);
         deleteProperty(AzMotorNP);
         deleteProperty(AltMotorNP);
         deleteProperty(SaveRebootSP);
+        deleteProperty(StationSSIDTP);
+        deleteProperty(StationPasswordTP);
+        deleteProperty(APConfigTP);
+        deleteProperty(APPasswordTP);
+        deleteProperty(FirmwareInfoTP);
         deleteProperty(WiFiInfoTP);
     }
 
@@ -198,6 +295,22 @@ bool MLAstroRPA::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     PACI::saveConfigItems(fp);
+
+    // Device-specific settings. Saving these here makes them persist on the very
+    // first save as well (saveConfig(property) alone only records into an already
+    // existing config file). Password / SSID text properties are intentionally
+    // excluded: the passwords are write-only and the firmware re-reports the rest.
+    AzSoftLimitsNP.save(fp);
+    AltSoftLimitsNP.save(fp);
+    AltOvershootSP.save(fp);
+    AltOvershootDirSP.save(fp);
+    AltOvershootAmountNP.save(fp);
+    AzMotorNP.save(fp);
+    AltMotorNP.save(fp);
+    CorrectionPercentNP.save(fp);
+    CorrectionOvershootSP.save(fp);
+    CorrectionOvershootDirSP.save(fp);
+    CorrectionOvershootAmountNP.save(fp);
     return true;
 }
 
@@ -207,6 +320,7 @@ bool MLAstroRPA::saveConfigItems(FILE *fp)
 bool MLAstroRPA::Handshake()
 {
     PortFD = serialConnection->getPortFD();
+    m_BacklashLogged = false;
 
     // Flush any stale data
     tcflush(PortFD, TCIOFLUSH);
@@ -223,6 +337,30 @@ bool MLAstroRPA::Handshake()
     {
         LOGF_ERROR("Unexpected handshake response: %s", res);
         return false;
+    }
+
+    // Newer firmware replies "ok,firmware X.Y.Z,SN:AA:BB:CC:DD:EE:F0".
+    // Older firmware just replies "ok" with no version/serial info.
+    const char *fwStart = strchr(res, ',');
+    const char *snField = strstr(res, "SN:");
+    if (fwStart && snField && snField > fwStart)
+    {
+        fwStart++;  // skip comma
+        size_t fwLen = static_cast<size_t>(snField - fwStart);
+        while (fwLen > 0 && (fwStart[fwLen - 1] == ',' || fwStart[fwLen - 1] == ' '))
+            fwLen--;
+
+        char fwVersion[64] = {0};
+        if (fwLen >= sizeof(fwVersion))
+            fwLen = sizeof(fwVersion) - 1;
+        strncpy(fwVersion, fwStart, fwLen);
+
+        FirmwareInfoTP[FIRMWARE_VERSION].setText(fwVersion);
+        FirmwareInfoTP[FIRMWARE_SERIAL].setText(snField + 3);
+        FirmwareInfoTP.setState(IPS_OK);
+        FirmwareInfoTP.apply();
+
+        LOGF_INFO("Connected to %s (Serial: %s).", fwVersion, snField + 3);
     }
 
     // Lock the device into relative (angle) mode for all subsequent moves
@@ -313,6 +451,7 @@ bool MLAstroRPA::parseTelemetry(const char *response)
     char data[DRIVER_LEN] = {0};
     strncpy(data, dataStart, DRIVER_LEN - 1);
 
+    bool sawBacklash = false;
     char *token = strtok(data, ",");
     while (token)
     {
@@ -346,6 +485,7 @@ bool MLAstroRPA::parseTelemetry(const char *response)
             }
             else if (strcmp(key, "Back") == 0)
             {
+                sawBacklash = true;
                 int idx = (v != 0.0) ? DefaultDevice::INDI_ENABLED : DefaultDevice::INDI_DISABLED;
                 BacklashSP.reset();
                 BacklashSP[idx].setState(ISS_ON);
@@ -354,12 +494,14 @@ bool MLAstroRPA::parseTelemetry(const char *response)
             }
             else if (strcmp(key, "AzBl") == 0)
             {
+                sawBacklash = true;
                 BacklashNP[BACKLASH_AZ].setValue(v);
                 BacklashNP.setState(IPS_OK);
                 BacklashNP.apply();
             }
             else if (strcmp(key, "AlBl") == 0)
             {
+                sawBacklash = true;
                 BacklashNP[BACKLASH_ALT].setValue(v);
                 BacklashNP.setState(IPS_OK);
                 BacklashNP.apply();
@@ -397,6 +539,46 @@ bool MLAstroRPA::parseTelemetry(const char *response)
                 AltSoftLimitsNP[ALT_LIMIT_MAX].setValue(v);
                 AltSoftLimitsNP.setState(IPS_OK);
                 AltSoftLimitsNP.apply();
+            }
+            // ── Altitude overshoot routine
+            else if (strcmp(key, "Over") == 0)
+            {
+                int idx = (v != 0.0) ? ALT_OVERSHOOT_ENABLED : ALT_OVERSHOOT_DISABLED;
+                AltOvershootSP.reset();
+                AltOvershootSP[idx].setState(ISS_ON);
+                AltOvershootSP.setState(IPS_OK);
+                AltOvershootSP.apply();
+            }
+            else if (strcmp(key, "OvUp") == 0)
+            {
+                AltOvershootDirSP[ALT_OVERSHOOT_UP].setState(v != 0.0 ? ISS_ON : ISS_OFF);
+                AltOvershootDirSP.setState(IPS_OK);
+                AltOvershootDirSP.apply();
+            }
+            else if (strcmp(key, "OvDn") == 0)
+            {
+                AltOvershootDirSP[ALT_OVERSHOOT_DOWN].setState(v != 0.0 ? ISS_ON : ISS_OFF);
+                AltOvershootDirSP.setState(IPS_OK);
+                AltOvershootDirSP.apply();
+            }
+            else if (strcmp(key, "OvD") == 0)
+            {
+                m_OvshD = v;
+                AltOvershootAmountNP[0].setValue(m_OvshD + m_OvshM / 60.0 + m_OvshS / 3600.0);
+                AltOvershootAmountNP.setState(IPS_OK);
+                AltOvershootAmountNP.apply();
+            }
+            else if (strcmp(key, "OvM") == 0)
+            {
+                m_OvshM = v;
+                AltOvershootAmountNP[0].setValue(m_OvshD + m_OvshM / 60.0 + m_OvshS / 3600.0);
+                AltOvershootAmountNP.apply();
+            }
+            else if (strcmp(key, "OvS") == 0)
+            {
+                m_OvshS = v;
+                AltOvershootAmountNP[0].setValue(m_OvshD + m_OvshM / 60.0 + m_OvshS / 3600.0);
+                AltOvershootAmountNP.apply();
             }
             // ── Azimuth motor config
             else if (strcmp(key, "AzIR")  == 0)
@@ -521,6 +703,11 @@ bool MLAstroRPA::parseTelemetry(const char *response)
                 WiFiInfoTP[WIFI_INFO_AP_IP].setText(val);
                 WiFiInfoTP.apply();
             }
+            else if (strcmp(key, "APma") == 0)
+            {
+                WiFiInfoTP[WIFI_INFO_AP_MAC].setText(val);
+                WiFiInfoTP.apply();
+            }
             else if (strcmp(key, "STAs") == 0)
             {
                 WiFiInfoTP[WIFI_INFO_STA_SSID].setText(val);
@@ -532,8 +719,26 @@ bool MLAstroRPA::parseTelemetry(const char *response)
                 WiFiInfoTP.setState(IPS_OK);
                 WiFiInfoTP.apply();
             }
+            else if (strcmp(key, "STAm") == 0)
+            {
+                WiFiInfoTP[WIFI_INFO_STA_MAC].setText(val);
+                WiFiInfoTP.apply();
+            }
         }
         token = strtok(nullptr, ",");
+    }
+
+    // The firmware reports its backlash state on every poll but the driver used to
+    // parse it silently, so a client log could never show whether it was enabled.
+    // Log it once per connection to make that diagnosable.
+    if (sawBacklash && !m_BacklashLogged)
+    {
+        m_BacklashLogged = true;
+        const bool enabled = BacklashSP[DefaultDevice::INDI_ENABLED].getState() == ISS_ON;
+        LOGF_INFO("Backlash compensation %s (AZ %d, ALT %d steps).",
+                  enabled ? "enabled" : "disabled",
+                  static_cast<int>(BacklashNP[BACKLASH_AZ].getValue()),
+                  static_cast<int>(BacklashNP[BACKLASH_ALT].getValue()));
     }
 
     return true;
@@ -632,10 +837,49 @@ IPState MLAstroRPA::sendRelativeMove(double degrees, const char *cmdPos, const c
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// applyCorrectionAZ – scale a requested step by the correction percentage
+/////////////////////////////////////////////////////////////////////////////
+double MLAstroRPA::applyCorrectionAZ(double azDegrees) const
+{
+    return azDegrees * CorrectionPercentNP[0].getValue() / 100.0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// applyCorrectionALT – correction percentage, or full error + overshoot
+/////////////////////////////////////////////////////////////////////////////
+double MLAstroRPA::applyCorrectionALT(double altDegrees) const
+{
+    // A zero request is never turned into an overshoot move.
+    if (altDegrees == 0.0)
+        return 0.0;
+
+    const bool master = CorrectionOvershootSP[CORR_OVERSHOOT_ENABLED].getState() == ISS_ON;
+    const bool dirEnabled = (altDegrees > 0.0)
+                            ? CorrectionOvershootDirSP[CORR_OVERSHOOT_UP].getState()   == ISS_ON
+                            : CorrectionOvershootDirSP[CORR_OVERSHOOT_DOWN].getState() == ISS_ON;
+
+    if (master && dirEnabled)
+    {
+        // Full correction plus the configured overshoot past the target.
+        const double overshoot = CorrectionOvershootAmountNP[0].getValue() / 60.0; // arcmin → deg
+        return altDegrees + (altDegrees > 0.0 ? overshoot : -overshoot);
+    }
+
+    return altDegrees * CorrectionPercentNP[0].getValue() / 100.0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// MoveAZ
 /////////////////////////////////////////////////////////////////////////////
 IPState MLAstroRPA::MoveAZ(double degrees)
 {
+    const double requested = degrees;
+    degrees = applyCorrectionAZ(degrees);
+
+    if (degrees != requested)
+        LOGF_INFO("MoveAZ: correction applied — requested %.4f° → %.4f° (%.0f%%).",
+                  requested, degrees, CorrectionPercentNP[0].getValue());
+
     // positive = East → MAzR, negative = West → MAzL
     return sendRelativeMove(degrees, "MAzR:1", "MAzL:1");
 }
@@ -645,6 +889,13 @@ IPState MLAstroRPA::MoveAZ(double degrees)
 /////////////////////////////////////////////////////////////////////////////
 IPState MLAstroRPA::MoveALT(double degrees)
 {
+    const double requested = degrees;
+    degrees = applyCorrectionALT(degrees);
+
+    if (degrees != requested)
+        LOGF_INFO("MoveALT: correction applied — requested %.4f° → %.4f°.",
+                  requested, degrees);
+
     // positive = Up → MAlU, negative = Down → MAlD
     return sendRelativeMove(degrees, "MAlU:1", "MAlD:1");
 }
@@ -658,6 +909,25 @@ IPState MLAstroRPA::MoveALT(double degrees)
 /////////////////////////////////////////////////////////////////////////////
 IPState MLAstroRPA::MoveBoth(double azDegrees, double altDegrees)
 {
+    const double requestedAz  = azDegrees;
+    const double requestedAlt = altDegrees;
+
+    azDegrees  = applyCorrectionAZ(azDegrees);
+    altDegrees = applyCorrectionALT(altDegrees);
+
+    // If the correction percentage scaled both axes down to nothing there is no
+    // move to issue – report success so the client keeps iterating.
+    if (azDegrees == 0.0 && altDegrees == 0.0)
+    {
+        LOGF_INFO("MoveBoth: requested AZ %.4f° / ALT %.4f° scaled to zero — no move.",
+                  requestedAz, requestedAlt);
+        return IPS_OK;
+    }
+
+    if (azDegrees != requestedAz || altDegrees != requestedAlt)
+        LOGF_INFO("MoveBoth: correction applied — requested AZ %.4f° / ALT %.4f° → AZ %.4f° / ALT %.4f°.",
+                  requestedAz, requestedAlt, azDegrees, altDegrees);
+
     int azD, azM, azS;
     bool azPos;
     degreesToDMS(azDegrees, azD, azM, azS, azPos);
@@ -996,6 +1266,27 @@ bool MLAstroRPA::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
+        // ── Altitude overshoot amount (OvD/OvM/OvS)
+        if (AltOvershootAmountNP.isNameMatch(name))
+        {
+            AltOvershootAmountNP.update(values, names, n);
+            int d, m, s;
+            bool positive;
+            degreesToDMS(AltOvershootAmountNP[0].getValue(), d, m, s, positive);
+            char cmd[64] = {0};
+            snprintf(cmd, sizeof(cmd), "OvD:%d,OvM:%d,OvS:%d", d, m, s);
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                AltOvershootAmountNP.setState(IPS_OK);
+                saveConfig(AltOvershootAmountNP);
+            }
+            else
+                AltOvershootAmountNP.setState(IPS_ALERT);
+            AltOvershootAmountNP.apply();
+            return true;
+        }
+
         // ── Motor config (AZ)
         if (AzMotorNP.isNameMatch(name))
         {
@@ -1054,6 +1345,26 @@ bool MLAstroRPA::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
+        // ── Driver-side correction percentage (local setting, no serial command)
+        if (CorrectionPercentNP.isNameMatch(name))
+        {
+            CorrectionPercentNP.update(values, names, n);
+            CorrectionPercentNP.setState(IPS_OK);
+            CorrectionPercentNP.apply();
+            saveConfig(CorrectionPercentNP);
+            return true;
+        }
+
+        // ── Driver-side correction overshoot amount (local setting, no serial command)
+        if (CorrectionOvershootAmountNP.isNameMatch(name))
+        {
+            CorrectionOvershootAmountNP.update(values, names, n);
+            CorrectionOvershootAmountNP.setState(IPS_OK);
+            CorrectionOvershootAmountNP.apply();
+            saveConfig(CorrectionOvershootAmountNP);
+            return true;
+        }
+
         // Delegate to PACInterface for its number properties
         if (PACI::processNumber(dev, name, values, names, n))
             return true;
@@ -1069,6 +1380,65 @@ bool MLAstroRPA::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // ── Altitude overshoot master enable
+        if (AltOvershootSP.isNameMatch(name))
+        {
+            AltOvershootSP.update(states, names, n);
+            bool enabled = AltOvershootSP[ALT_OVERSHOOT_ENABLED].getState() == ISS_ON;
+            char cmd[64] = {0};
+            snprintf(cmd, sizeof(cmd), "Over:%d", enabled ? 1 : 0);
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                AltOvershootSP.setState(IPS_OK);
+                saveConfig(AltOvershootSP);
+            }
+            else
+                AltOvershootSP.setState(IPS_ALERT);
+            AltOvershootSP.apply();
+            return true;
+        }
+
+        // ── Altitude overshoot per-direction enable
+        if (AltOvershootDirSP.isNameMatch(name))
+        {
+            AltOvershootDirSP.update(states, names, n);
+            bool up   = AltOvershootDirSP[ALT_OVERSHOOT_UP].getState()   == ISS_ON;
+            bool down = AltOvershootDirSP[ALT_OVERSHOOT_DOWN].getState() == ISS_ON;
+            char cmd[64] = {0};
+            snprintf(cmd, sizeof(cmd), "OvUp:%d,OvDn:%d", up ? 1 : 0, down ? 1 : 0);
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                AltOvershootDirSP.setState(IPS_OK);
+                saveConfig(AltOvershootDirSP);
+            }
+            else
+                AltOvershootDirSP.setState(IPS_ALERT);
+            AltOvershootDirSP.apply();
+            return true;
+        }
+
+        // ── Driver-side correction overshoot master enable (local setting)
+        if (CorrectionOvershootSP.isNameMatch(name))
+        {
+            CorrectionOvershootSP.update(states, names, n);
+            CorrectionOvershootSP.setState(IPS_OK);
+            CorrectionOvershootSP.apply();
+            saveConfig(CorrectionOvershootSP);
+            return true;
+        }
+
+        // ── Driver-side correction overshoot per-direction enable (local setting)
+        if (CorrectionOvershootDirSP.isNameMatch(name))
+        {
+            CorrectionOvershootDirSP.update(states, names, n);
+            CorrectionOvershootDirSP.setState(IPS_OK);
+            CorrectionOvershootDirSP.apply();
+            saveConfig(CorrectionOvershootDirSP);
+            return true;
+        }
+
         // ── Save & Reboot
         if (SaveRebootSP.isNameMatch(name))
         {
@@ -1094,6 +1464,91 @@ bool MLAstroRPA::ISNewSwitch(const char *dev, const char *name, ISState *states,
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// ISNewText
+/////////////////////////////////////////////////////////////////////////////
+bool MLAstroRPA::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // ── Station (client) WiFi SSID
+        if (StationSSIDTP.isNameMatch(name))
+        {
+            StationSSIDTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "STAs:%s", StationSSIDTP[0].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                StationSSIDTP.setState(IPS_OK);
+                LOG_INFO("Station SSID updated. Use Save & Reboot to persist.");
+            }
+            else
+                StationSSIDTP.setState(IPS_ALERT);
+            StationSSIDTP.apply();
+            return true;
+        }
+
+        // ── Station (client) WiFi password (write-only, never saved locally)
+        if (StationPasswordTP.isNameMatch(name))
+        {
+            StationPasswordTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "STAp:%s", StationPasswordTP[0].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                StationPasswordTP.setState(IPS_OK);
+                LOG_INFO("Station password updated. Use Save & Reboot to persist.");
+            }
+            else
+                StationPasswordTP.setState(IPS_ALERT);
+            StationPasswordTP.apply();
+            return true;
+        }
+
+        // ── Access Point SSID and IP
+        if (APConfigTP.isNameMatch(name))
+        {
+            APConfigTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "APss:%s,APip:%s",
+                     APConfigTP[AP_SSID].getText(),
+                     APConfigTP[AP_IP].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                APConfigTP.setState(IPS_OK);
+                LOG_INFO("Access Point settings updated. Use Save & Reboot to persist.");
+            }
+            else
+                APConfigTP.setState(IPS_ALERT);
+            APConfigTP.apply();
+            return true;
+        }
+
+        // ── Access Point password (write-only, never saved locally)
+        if (APPasswordTP.isNameMatch(name))
+        {
+            APPasswordTP.update(texts, names, n);
+            char cmd[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "APpa:%s", APPasswordTP[0].getText());
+            char res[DRIVER_LEN] = {0};
+            if (sendCommand(cmd, res) && strncmp(res, "ok", 2) == 0)
+            {
+                APPasswordTP.setState(IPS_OK);
+                LOG_INFO("Access Point password updated. Use Save & Reboot to persist.");
+            }
+            else
+                APPasswordTP.setState(IPS_ALERT);
+            APPasswordTP.apply();
+            return true;
+        }
+    }
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -899,7 +899,10 @@ const std::string &BaseDevice::messageQueue(size_t index) const
 {
     D_PTR(const BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
-    assert(index < d->messageLog.size());
+    // Callers may be notified about a message index that no longer belongs to this
+    // device's log (e.g. the device was torn down and replaced between notification
+    // and delivery). Let at() throw std::out_of_range so callers can handle it instead
+    // of aborting via assert().
     return d->messageLog.at(index);
 }
 
@@ -915,6 +918,11 @@ bool BaseDevice::isValid() const
 {
     D_PTR(const BaseDevice);
     return d->valid;
+}
+
+bool BaseDevice::isSameDevice(const BaseDevice &other) const
+{
+    return d_ptr == other.d_ptr;
 }
 
 void BaseDevice::watchProperty(const char *name, const std::function<void(INDI::Property)> &callback, WATCH watch)

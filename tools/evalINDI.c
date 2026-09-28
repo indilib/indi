@@ -375,7 +375,7 @@ static int setOp(XMLEle *root)
             char *et = tagXMLEle(ep);
             if (!strcmp(et, "defNumber") || !strcmp(et, "oneNumber"))
             {
-                sprintf(prop, "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
+                snprintf(prop, sizeof(prop), "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
                 v = atof(pcdataXMLEle(ep));
                 if (setOperand(prop, v) == 0)
                 {
@@ -394,7 +394,7 @@ static int setOp(XMLEle *root)
 
             if (!strcmp(et, "defSwitch") || !strcmp(et, "oneSwitch"))
             {
-                sprintf(prop, "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
+                snprintf(prop, sizeof(prop), "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
                 v = (double)!strncmp(pcdataXMLEle(ep), "On", 2);
                 if (setOperand(prop, v) == 0)
                 {
@@ -412,7 +412,7 @@ static int setOp(XMLEle *root)
             char *et = tagXMLEle(ep);
             if (!strcmp(et, "defLight") || !strcmp(et, "oneLight"))
             {
-                sprintf(prop, "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
+                snprintf(prop, sizeof(prop), "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
                 v = (double)pstatestr(pcdataXMLEle(ep));
                 if (setOperand(prop, v) == 0)
                 {
@@ -428,7 +428,7 @@ static int setOp(XMLEle *root)
     t = (char *)findXMLAttValu(root, "state");
     if (t[0])
     {
-        sprintf(prop, "%s.%s._STATE", d, n);
+        snprintf(prop, sizeof(prop), "%s.%s._STATE", d, n);
         v = (double)pstatestr(t);
         if (setOperand(prop, v) == 0)
         {
@@ -440,7 +440,7 @@ static int setOp(XMLEle *root)
     t = (char *)findXMLAttValu(root, "timestamp");
     if (t[0])
     {
-        sprintf(prop, "%s.%s._TS", d, n);
+        snprintf(prop, sizeof(prop), "%s.%s._TS", d, n);
         v = (double)timestampINDI(t);
         if (setOperand(prop, v) == 0)
         {

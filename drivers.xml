@@ -43,9 +43,9 @@
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
             <version>1.27</version>
         </device>
-        <device label="UMi" manufacturer="ProxiSky">
-            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.27</version>
+        <device label="UMi" manufacturer="Proxisky">
+            <driver name="Proxisky UMi">indi_lx200_proxisky</driver>
+            <version>1.0</version>
         </device>
         <device label="EM31Pro" manufacturer="Emcan Astro">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
@@ -460,6 +460,10 @@
         </device>
     </devGroup>
     <devGroup group="Focusers">
+        <device label="IKun Focuser" manufacturer="IKun">
+            <driver name="IKun Focuser">indi_ikun_focuser</driver>
+            <version>1.0</version>
+        </device>
         <device label="Alpaca Focuser" manufacturer="Alpaca">
             <driver name="Alpaca Focuser">indi_alpaca_focuser</driver>
             <version>1.0</version>
@@ -494,7 +498,7 @@
         </device>
         <device label="PlaneWave EFA" manufacturer="Planewave Instruments">
             <driver name="PlaneWave EFA">indi_efa_focus</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="Rainbow Astro RSF" manufacturer="Rainbow Astro">
             <driver name="Rainbow Astro RSF">indi_rainbowrsf_focus</driver>
@@ -570,7 +574,7 @@
         </device>
         <device label="Pegasus FocusCube3" manufacturer="Pegasus Astro">
             <driver name="Pegasus FocusCube3">indi_pegasus_focuscube3</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Pegasus ProdigyMF" manufacturer="Pegasus Astro">
             <driver name="Pegasus MMC-7000AH">indi_pegasus_prodigyMF</driver>
@@ -666,7 +670,7 @@
         </device>
         <device label="ActiveFocuser" manufacturer="Optique Unterlinden">
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Alluna TCS2" manufacturer="Alluna Optics">
             <driver name="Alluna TCS2">indi_alluna_tcs2</driver>
@@ -904,9 +908,13 @@
             <driver name="Avalon UPAS">indi_avalon_upas</driver>
             <version>1.0</version>
         </device>
+        <device label="OAPA" manufacturer="MBAstro">
+            <driver name="OAPA">indi_oapa</driver>
+            <version>3.0</version>
+        </device>
         <device label="MLAstro RPA" manufacturer="MLAstro">
             <driver name="MLAstro RPA">indi_mlastro_rpa</driver>
-            <version>1.0</version>
+            <version>1.3</version>
         </device>
         <device label="Arduino ST4" manufacturer="DIY">
             <driver name="Arduino ST4">indi_arduinost4</driver>
@@ -1036,7 +1044,11 @@
         </device>
         <device label="NexDome Beaver" manufacturer="Lunatico">
             <driver name="NexDome Beaver">indi_nexdome_beaver</driver>
-            <version>1.0</version>
+            <version>1.1</version>
+        </device>
+        <device label="Caterpillar Dome" manufacturer="Lunatico">
+            <driver name="NexDome Beaver">indi_nexdome_beaver</driver>
+            <version>1.1</version>
         </device>
         <device label="Hakos Roll Off Roof" manufacturer="Hakos Astrofarm">
             <driver name="Hakos Roll Off Roof">indi_hakos_roof</driver>
@@ -1174,15 +1186,19 @@
         </device>
         <device label="Celestron Smart DewHeater and Power Controller 4X" manufacturer="Celestron">
             <driver name="Celestron Dew Power">indi_celestron_dewpower</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Celestron Smart DewHeater Controller 2X" manufacturer="Celestron">
             <driver name="Celestron Dew Power">indi_celestron_dewpower</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="SVBONY SV241 Pro" manufacturer="SVBONY">
             <driver name="SVBONY SV241 Pro">indi_svbony_powerbox</driver>
             <version>1.2</version>
+        </device>
+        <device label="Gemini Power Box Hub Advanced v3" manufacturer="Gemini">
+            <driver name="Gemini Power Box Hub Advanced v3">indi_gemini_pbh</driver>
+            <version>0.9.0</version>
         </device>
     </devGroup>
 </driversList>

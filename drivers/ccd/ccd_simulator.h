@@ -130,6 +130,10 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         bool watchDirectory();
         bool loadNextImage();
+        bool loadNextFITSImage(const std::string &filename);
+#ifdef HAVE_XISF
+        bool loadNextXISFImage(const std::string &filename);
+#endif
         bool setupParameters();
         bool renderPlanet();
 

@@ -31,7 +31,8 @@
  *        via its ESP32-based serial protocol.
  *
  * Protocol summary:
- *   - Handshake:  [MLAstroRPA-TC]\n  →  ok\n
+ *   - Handshake:  [MLAstroRPA-TC]\n  →  ok\n  (older firmware) or
+ *                                        ok,firmware X.Y.Z,SN:AA:BB:CC:DD:EE:F0\n (newer)
  *   - Telemetry:  ?\n  →  <STATUS|Mpos:X.XXXXX,Y.YYYYY|>DATA_SETTING
  *   - Relative move (AZ): JoRe:1, ReDe:D,ReAM:M,ReAS:S, MAzL:1 or MAzR:1
  *   - Relative move (ALT): JoRe:1, ReDe:D,ReAM:M,ReAS:S, MAlU:1 or MAlD:1
@@ -40,12 +41,31 @@
  *   - Home:   SetH:1\n / RetH:1\n / RstH:1\n
  *   - Sync:   SetH:1\n  (marks current position as 0,0 reference)
  *   - Backlash: Back:X\n, AzBl:X\n, AlBl:X\n
+ *   - Alt overshoot (2-leg P.A routine): Over:X\n, OvUp:X\n, OvDn:X\n,
+ *                                        OvD:X\n, OvM:X\n, OvS:X\n
+ *     When enabled for a given direction, a downward altitude move overshoots
+ *     the target and returns upward for the final approach so the platform
+ *     always comes to rest moving up, which settles more stably than a final
+ *     downward approach.
  *   - Reverse:  AzRD:X\n, AlRD:X\n
  *   - Motor config: chained commands + Save&Reboot:1\n
+ *   - Network:  STAs:X\n, STAp:X\n, APss:X\n, APpa:X\n, APip:X\n (set-only;
+ *               requires Save&Reboot to persist). Password fields are write-only
+ *               in the driver — never read back, never saved to the local config.
  *
  * Capabilities:
  *   PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION |
  *   PAC_CAN_HOME  | PAC_HAS_BACKLASH | PAC_CAN_SYNC
+ *
+ * Client-side correction shaping (Correction tab), mirroring MLAstro's N.I.N.A.
+ * plugin:
+ *   - Correction Percentage (default 75%, 1-100%) is applied to Azimuth on every
+ *     automated correction and to Altitude when the software overshoot is not
+ *     active for the current correction direction.
+ *   - Software Overshoot (ALT): when enabled for the current direction, the Alt
+ *     axis corrects 100% of the error and then travels the configured overshoot
+ *     (0-240 arcmin) past the target so the platform always settles from the
+ *     same direction.
  */
 class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
 {
@@ -57,6 +77,7 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
 
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
         bool initProperties() override;
@@ -72,6 +93,13 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         IPState MoveAZ(double degrees) override;
         IPState MoveALT(double degrees) override;
         IPState MoveBoth(double azDegrees, double altDegrees) override;
+
+        /// Scale a requested azimuth step by the configured correction percentage.
+        double applyCorrectionAZ(double azDegrees) const;
+        /// Scale a requested altitude step by the correction percentage, or apply
+        /// the full error plus the configured overshoot when the driver-side
+        /// correction overshoot is active for the move direction.
+        double applyCorrectionALT(double altDegrees) const;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// PACInterface – abort, speed and reverse
@@ -170,6 +198,39 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         INDI::PropertyNumber AltSoftLimitsNP {2};
         enum { ALT_LIMIT_MIN, ALT_LIMIT_MAX };
 
+        /// Altitude overshoot routine master enable (Over:X)
+        INDI::PropertySwitch AltOvershootSP {2};
+        enum { ALT_OVERSHOOT_ENABLED, ALT_OVERSHOOT_DISABLED };
+
+        /// Altitude overshoot per-direction enable (OvUp:X, OvDn:X)
+        INDI::PropertySwitch AltOvershootDirSP {2};
+        enum { ALT_OVERSHOOT_UP, ALT_OVERSHOOT_DOWN };
+
+        /// Altitude overshoot amount in degrees (OvD/OvM/OvS)
+        INDI::PropertyNumber AltOvershootAmountNP {1};
+
+        // ── Correction tab ────────────────────────────────────────────────
+        // Driver-side (client) correction shaping, mirroring MLAstro's N.I.N.A.
+        // implementation: the requested AZ/ALT correction is scaled by a safety
+        // factor, and optionally the altitude axis applies 100% of the error and
+        // then travels an overshoot distance past the target so it always settles
+        // from the same direction.
+
+        /// Correction percentage applied to every requested AZ/ALT correction (%).
+        /// Default 75, range 1-100.
+        INDI::PropertyNumber CorrectionPercentNP {1};
+
+        /// Master "Enable overshoot" for the Alt software-overshoot routine.
+        INDI::PropertySwitch CorrectionOvershootSP {2};
+        enum { CORR_OVERSHOOT_ENABLED, CORR_OVERSHOOT_DISABLED };
+
+        /// Per-direction overshoot enable ("Run overshoot for moving Up / Down").
+        INDI::PropertySwitch CorrectionOvershootDirSP {2};
+        enum { CORR_OVERSHOOT_UP, CORR_OVERSHOOT_DOWN };
+
+        /// Distance travelled past the target when overshooting (arcmin, 0-240).
+        INDI::PropertyNumber CorrectionOvershootAmountNP {1};
+
         // ── Motor Config tab ──────────────────────────────────────────────
         /// Azimuth motor configuration (9 parameters)
         INDI::PropertyNumber AzMotorNP {9};
@@ -204,10 +265,34 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         /// Save settings to FRAM and reboot the controller
         INDI::PropertySwitch SaveRebootSP {1};
 
+        // ── Network tab ──────────────────────────────────────────────────
+        /// Station (WiFi client) SSID. Written to the controller's memory only;
+        /// requires Save & Reboot to persist across power cycles.
+        INDI::PropertyText StationSSIDTP {1};
+
+        /// Station (WiFi client) password. Write-only: the driver never reads
+        /// it back and never persists it to the local config file.
+        INDI::PropertyText StationPasswordTP {1};
+
+        /// Access Point (hotspot) SSID and IP address.
+        INDI::PropertyText APConfigTP {2};
+        enum { AP_SSID, AP_IP };
+
+        /// Access Point password. Write-only: the driver never reads it back
+        /// and never persists it to the local config file.
+        INDI::PropertyText APPasswordTP {1};
+
         // ── Info tab ──────────────────────────────────────────────────────
+        /// Firmware version and controller serial number, captured from the handshake
+        /// reply (ok,firmware X.Y.Z,SN:AA:BB:CC:DD:EE:F0). Older firmware only replies
+        /// "ok" with no version/serial, in which case this stays empty.
+        INDI::PropertyText FirmwareInfoTP {2};
+        enum { FIRMWARE_VERSION, FIRMWARE_SERIAL };
+
         /// WiFi / network information (read-only)
-        INDI::PropertyText WiFiInfoTP {4};
-        enum { WIFI_INFO_AP_SSID, WIFI_INFO_AP_IP, WIFI_INFO_STA_SSID, WIFI_INFO_STA_IP };
+        INDI::PropertyText WiFiInfoTP {6};
+        enum { WIFI_INFO_AP_SSID, WIFI_INFO_AP_IP, WIFI_INFO_AP_MAC,
+               WIFI_INFO_STA_SSID, WIFI_INFO_STA_IP, WIFI_INFO_STA_MAC };
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Internal state
@@ -215,6 +300,12 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         bool m_IsMoving        {false};   ///< True while an axis is in motion.
         bool m_IsHoming        {false};   ///< True while returning to home.
         bool m_IsHomed         {false};   ///< True when a home position is set.
+
+        /// Guards the one-time informational log of the device's backlash state.
+        bool m_BacklashLogged  {false};
+
+        /// Latest OvD/OvM/OvS telemetry pieces, combined into AltOvershootAmountNP.
+        double m_OvshD {0}, m_OvshM {0}, m_OvshS {0};
 
         int  PortFD            {-1};
         Connection::Serial *serialConnection {nullptr};
@@ -226,5 +317,7 @@ class MLAstroRPA : public INDI::DefaultDevice, public INDI::PACInterface
         static constexpr uint16_t DRIVER_LEN        {2048};  ///< Max response buffer size.
         static constexpr char     DRIVER_STOP_CHAR  {'\n'};  ///< Response terminator.
         static constexpr const char *MOTOR_CONFIG_TAB {"Motor Config"};
+        static constexpr const char *NETWORK_TAB      {"Network"};
         static constexpr const char *INFO_TAB         {"Info"};
+        static constexpr const char *CORRECTION_TAB   {"Correction"};
 };

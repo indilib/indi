@@ -167,6 +167,14 @@ add_executable(indi_avalon_upas ${avalon_upas_SRC})
 target_link_libraries(indi_avalon_upas indidriver)
 install(TARGETS indi_avalon_upas RUNTIME DESTINATION bin)
 
+# ########## OAPA (Open Automatic Polar Alignment) ###############
+SET(oapa_SRC
+    oapa.cpp)
+
+add_executable(indi_oapa ${oapa_SRC})
+target_link_libraries(indi_oapa indidriver)
+install(TARGETS indi_oapa RUNTIME DESTINATION bin)
+
 # ########## MLAstro RPA (Robotic Polar Alignment) ###############
 SET(mlastro_rpa_SRC
     mlastro_rpa.cpp)

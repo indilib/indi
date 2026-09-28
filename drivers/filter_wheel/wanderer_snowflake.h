@@ -39,8 +39,6 @@ class WandererSnowflakeFW : public INDI::FilterWheel
 
         int QueryFilter() override;
         bool SelectFilter(int position) override;
-        bool GetFilterNames() override;
-        bool SetFilterNames() override;
         bool saveConfigItems(FILE *fp) override;
 
     private:
@@ -55,8 +53,6 @@ class WandererSnowflakeFW : public INDI::FilterWheel
         int mDeviceID {0};
         INumber DeviceIDN[1] {};
         INumberVectorProperty DeviceIDNP {};
-
-        char mFilterLetters[8] {};
 
         char mModel[16] {};
         char mFirmware[16] {};

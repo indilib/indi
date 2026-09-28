@@ -183,8 +183,8 @@ void Imager::initiateDownload()
     if (group == 0 || image == 0)
         return;
 
-    sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
-            format);
+    snprintf(name, sizeof(name), IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
+             format);
     file.open(name, std::ios::in | std::ios::binary | std::ios::ate);
     DownloadNP[GROUP].setValue(0);
     DownloadNP[IMAGE].setValue(0);
@@ -535,8 +535,8 @@ void Imager::updateProperty(INDI::Property property)
                 std::ofstream file;
 
                 snprintf(format, sizeof(format), "%s", bp.getFormat());
-                sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
-                        format);
+                snprintf(name, sizeof(name), IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
+                         format);
                 file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
                 file.write(static_cast<char *>(bp.getBlob()), bp.getBlobLen());
                 file.close();
@@ -609,8 +609,8 @@ void Imager::updateProperty(INDI::Property property)
         char name[128] = {0};
 
         snprintf(format, sizeof(format), "%s", strrchr(propertyText[0].getText(), '.'));
-        sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
-                format);
+        snprintf(name, sizeof(name), IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image,
+                 format);
         rename(propertyText[0].getText(), name);
         LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
                    maxImage, name);

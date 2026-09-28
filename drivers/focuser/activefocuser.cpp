@@ -27,7 +27,7 @@ static std::unique_ptr<ActiveFocuser> activeFocuser(new ActiveFocuser());
 
 #define DRIVER_NAME "ActiveFocuser"
 #define DRIVER_VERSION_MAJOR 1
-#define DRIVER_VERSION_MINOR 0
+#define DRIVER_VERSION_MINOR 1
 
 #define VENDOR_ID 0x20E1
 #define PRODUCT_ID 0x0002
@@ -149,36 +149,36 @@ bool ActiveFocuser::initProperties()
 
     HardwareVersionNP[0].fill("Version infos", "", "1.04");
     HardwareVersionNP.fill(getDeviceName(), "HARDWARE_VERSION", "Hardware Version",
-                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                           MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     std::stringstream softwareVersionStream;
     softwareVersionStream << DRIVER_VERSION_MAJOR << "." << DRIVER_VERSION_MINOR;
 
     SoftwareVersionNP[0].fill("Version infos", "", softwareVersionStream.str().c_str());
     SoftwareVersionNP.fill(getDeviceName(), "SOFTWARE_VERSION", "Software Version",
-                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                           MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Adding temperature sensor display
 
     AirTemperatureNP[0].fill("AIR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
     AirTemperatureNP.fill(getDeviceName(), "AIR_TEMPERATURE", "Air Temperature",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                          MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    TubeTemperatureNP[0].fill("TUBE TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    TubeTemperatureNP.fill(getDeviceName(), "TUBE_TEMPERATURE", "Tube Temperature",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    TubeTemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TubeTemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Tube Temperature",
+                           MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     MirrorTemperatureNP[0].fill("MIRROR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
     MirrorTemperatureNP.fill(getDeviceName(), "MIRROR_TEMPERATURE",
-                       "Mirror Temperature",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                             "Mirror Temperature",
+                             MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Adding FAN control button
 
     FanSP[FAN_ON].fill("FAN_ON", "On", ISS_ON);
     FanSP[FAN_OFF].fill("FAN_OFF", "Off", ISS_OFF);
     FanSP.fill(getDeviceName(), "FAN_STATE", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
-                       IPS_IDLE);
+               IPS_IDLE);
 
     // Setting focus max position constant
 

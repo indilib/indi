@@ -50,48 +50,30 @@
 #include <string.h>
 #include <time.h>
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <termios.h>
+#include <sys/param.h>
+#include <sys/ioctl.h>
+#define PARITY_NONE 0
+#define PARITY_EVEN 1
+#define PARITY_ODD  2
+#endif
+
 #if !defined(_WIN32) && !defined(__CYGWIN__)
+#include <sys/socket.h>
 #include <netinet/in.h>
 #endif
 
-
-#if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#include <sys/ioctl.h>
-#endif
-
 #ifdef __APPLE__
-#include <sys/param.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
-#endif
-
-#ifdef __FreeBSD__
-#include <sys/param.h>
-#endif
-
-#if defined(BSD) && !defined(__GNU__)
-#ifdef __APPLE__
 #include <IOKit/serial/ioss.h>
-#endif
-#include <sys/ioctl.h>
-#endif
-
-#ifdef __GNU__
-#include <sys/ioctl.h>
 #endif
 
 #ifdef _WIN32
 #undef CX
 #undef CY
-#endif
-
-#ifndef _WIN32
-#include <unistd.h>
-#include <termios.h>
-#include <sys/param.h>
-#define PARITY_NONE 0
-#define PARITY_EVEN 1
-#define PARITY_ODD  2
 #endif
 
 #include "userio.h"
@@ -396,12 +378,12 @@ int tty_timeout(int fd, int timeout)
 
 int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds)
 {
-    #if defined(_WIN32) || defined(ANDROID)
+#if defined(_WIN32) || defined(ANDROID)
     INDI_UNUSED(fd);
     INDI_UNUSED(timeout_seconds);
     INDI_UNUSED(timeout_microseconds);
     return TTY_ERRNO;
-    #else
+#else
 
     if (fd == -1)
         return TTY_ERRNO;
@@ -430,7 +412,7 @@ int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microsec
     else
         return TTY_TIME_OUT;
 
-    #endif
+#endif
 }
 
 int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
