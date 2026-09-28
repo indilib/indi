@@ -81,10 +81,6 @@ bool GeminiFlatpanel::updateProperties()
         {
             defineProperty(BeepSP);
         }
-        if (adapter && adapter->supportsBrightnessMode())
-        {
-            defineProperty(BrightnessModeSP);
-        }
 
         // Only register dust cap movement controls if supported
         if (adapter && adapter->supportsDustCap())
@@ -108,10 +104,6 @@ bool GeminiFlatpanel::updateProperties()
         if (adapter && adapter->supportsBeep())
         {
             deleteProperty(BeepSP);
-        }
-        if (adapter && adapter->supportsBrightnessMode())
-        {
-            deleteProperty(BrightnessModeSP);
         }
 
         // Only delete dust cap properties that were defined
@@ -247,23 +239,6 @@ void GeminiFlatpanel::initStatusProperties()
     {
         onBeepChange();
     });
-
-    // Add brightness mode control
-    BrightnessModeSP.fill(
-        getDeviceName(),
-        "BRIGHTNESS_MODE",
-        "Brightness Mode",
-        MAIN_CONTROL_TAB,
-        IP_RW,
-        ISR_ATMOST1,
-        0,
-        IPS_IDLE);
-    BrightnessModeSP[0].fill("MODE_LOW", "Low", ISS_ON);
-    BrightnessModeSP[1].fill("MODE_HIGH", "High", ISS_OFF);
-    BrightnessModeSP.onUpdate([this]()
-    {
-        onBrightnessModeChange();
-    });
 }
 
 void GeminiFlatpanel::onBeepChange()
@@ -287,29 +262,6 @@ void GeminiFlatpanel::onBeepChange()
         BeepSP.setState(IPS_ALERT);
     }
     BeepSP.apply();
-}
-
-void GeminiFlatpanel::onBrightnessModeChange()
-{
-    int mode = BrightnessModeSP[1].getState() == ISS_ON ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
-
-    if (!adapter || !adapter->supportsBrightnessMode())
-    {
-        LOG_WARN("Brightness mode selection not supported by this device.");
-        BrightnessModeSP.setState(IPS_ALERT);
-        BrightnessModeSP.apply();
-        return;
-    }
-
-    if (setBrightnessMode(mode))
-    {
-        BrightnessModeSP.setState(IPS_OK);
-    }
-    else
-    {
-        BrightnessModeSP.setState(IPS_ALERT);
-    }
-    BrightnessModeSP.apply();
 }
 
 void GeminiFlatpanel::initLimitsProperties()
@@ -403,6 +355,14 @@ void GeminiFlatpanel::TimerHit()
         return;
     }
 
+    // Reflect the currently applied mode in the unified 0-511 value shown to the user
+    // (see SetLightBoxBrightness() below) -- the device itself only ever reports the
+    // raw 0-255 value for whichever mode is currently active.
+    if (adapter && adapter->supportsBrightnessMode() && brightnessMode == GEMINI_BRIGHTNESS_MODE_HIGH)
+    {
+        brightness += GEMINI_MAX_BRIGHTNESS + 1;
+    }
+
     if (updateBrightness(brightness))
     {
         LightIntensityNP.apply();
@@ -432,6 +392,29 @@ void GeminiFlatpanel::TimerHit()
     }
 }
 
+// Decodes a unified 0-511 value into a mode (Low/High) and a raw 0-255 value, and
+// pushes both to the device. The mode relay is only toggled when it actually differs
+// from what we last commanded, unless forceMode is set. Only called when the adapter
+// supports a brightness mode.
+bool GeminiFlatpanel::applyUnifiedBrightness(int unifiedValue, bool forceMode)
+{
+    int mode = unifiedValue > GEMINI_MAX_BRIGHTNESS ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
+    int rawValue = mode == GEMINI_BRIGHTNESS_MODE_HIGH ? unifiedValue - (GEMINI_MAX_BRIGHTNESS + 1) : unifiedValue;
+
+    if ((forceMode || mode != brightnessMode) && !setBrightnessMode(mode))
+    {
+        return false;
+    }
+
+    if (!setBrightness(rawValue))
+    {
+        return false;
+    }
+
+    brightnessMode = mode;
+    return true;
+}
+
 // LightBoxInterface methods
 bool GeminiFlatpanel::SetLightBoxBrightness(uint16_t value)
 {
@@ -439,7 +422,19 @@ bool GeminiFlatpanel::SetLightBoxBrightness(uint16_t value)
     {
         return false;
     }
-    return setBrightness((int)value);
+
+    // Devices without a brightness mode (Rev1/Pro) keep the plain 0-255 range.
+    if (!adapter || !adapter->supportsBrightnessMode())
+    {
+        return setBrightness((int)value);
+    }
+
+    // Devices with a brightness mode (Rev2/Lite) get a unified 0-511 range instead of a
+    // separate BRIGHTNESS_MODE switch: 0-255 maps to Low, 256-511 to High. This previews
+    // the single-continuous-range behavior Gemini has said they plan to move the
+    // firmware to (indilib/indi#2487) using the mode switch the current firmware already
+    // has, entirely on the driver side.
+    return applyUnifiedBrightness(value, false);
 }
 
 bool GeminiFlatpanel::EnableLightBox(bool enable)
@@ -448,6 +443,18 @@ bool GeminiFlatpanel::EnableLightBox(bool enable)
     {
         return false;
     }
+
+    // The firmware has no command to read back which mode is currently active, so our
+    // in-memory brightnessMode could have drifted from reality (e.g. a power cycle, or
+    // the mode having last been set from outside this driver). Turning the light on is
+    // the point where that would actually become visible, so unconditionally re-assert
+    // both the mode and the matching raw value we believe are active right before doing so.
+    if (enable && adapter && adapter->supportsBrightnessMode()
+            && !applyUnifiedBrightness(static_cast<int>(LightIntensityNP[0].getValue()), true))
+    {
+        return false;
+    }
+
     return enable ? lightOn() : lightOff();
 }
 
@@ -501,6 +508,12 @@ bool GeminiFlatpanel::Handshake()
         adapter = std::make_unique<GeminiFlatpanelSimulationAdapter>(true); // true = Rev2 features
         deviceRevision = adapter->getRevision();
         commandTerminator = adapter->getCommandTerminator();
+
+        // Widen the brightness range to cover both modes -- see SetLightBoxBrightness().
+        if (adapter->supportsBrightnessMode())
+        {
+            LightIntensityNP[0].setMax(2 * GEMINI_MAX_BRIGHTNESS + 1);
+        }
 
         // Set driver interface based on device capabilities
         if (adapter && adapter->supportsDustCap())
@@ -602,6 +615,12 @@ bool GeminiFlatpanel::Handshake()
     {
         LOG_ERROR("Handshake failed. Unable to communicate with the device.");
         return false;
+    }
+
+    // Widen the brightness range to cover both modes -- see SetLightBoxBrightness().
+    if (adapter->supportsBrightnessMode())
+    {
+        LightIntensityNP[0].setMax(2 * GEMINI_MAX_BRIGHTNESS + 1);
     }
 
     // Set driver interface based on device capabilities
