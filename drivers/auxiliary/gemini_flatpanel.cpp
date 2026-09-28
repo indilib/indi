@@ -392,6 +392,29 @@ void GeminiFlatpanel::TimerHit()
     }
 }
 
+// Decodes a unified 0-511 value into a mode (Low/High) and a raw 0-255 value, and
+// pushes both to the device. The mode relay is only toggled when it actually differs
+// from what we last commanded, unless forceMode is set. Only called when the adapter
+// supports a brightness mode.
+bool GeminiFlatpanel::applyUnifiedBrightness(int unifiedValue, bool forceMode)
+{
+    int mode = unifiedValue > GEMINI_MAX_BRIGHTNESS ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
+    int rawValue = mode == GEMINI_BRIGHTNESS_MODE_HIGH ? unifiedValue - (GEMINI_MAX_BRIGHTNESS + 1) : unifiedValue;
+
+    if ((forceMode || mode != brightnessMode) && !setBrightnessMode(mode))
+    {
+        return false;
+    }
+
+    if (!setBrightness(rawValue))
+    {
+        return false;
+    }
+
+    brightnessMode = mode;
+    return true;
+}
+
 // LightBoxInterface methods
 bool GeminiFlatpanel::SetLightBoxBrightness(uint16_t value)
 {
@@ -411,22 +434,7 @@ bool GeminiFlatpanel::SetLightBoxBrightness(uint16_t value)
     // the single-continuous-range behavior Gemini has said they plan to move the
     // firmware to (indilib/indi#2487) using the mode switch the current firmware already
     // has, entirely on the driver side.
-    int mode = value > GEMINI_MAX_BRIGHTNESS ? GEMINI_BRIGHTNESS_MODE_HIGH : GEMINI_BRIGHTNESS_MODE_LOW;
-    int rawValue = mode == GEMINI_BRIGHTNESS_MODE_HIGH ? value - (GEMINI_MAX_BRIGHTNESS + 1) : value;
-
-    // Only toggle the mode relay when it actually changes.
-    if (mode != brightnessMode && !setBrightnessMode(mode))
-    {
-        return false;
-    }
-
-    if (!setBrightness(rawValue))
-    {
-        return false;
-    }
-
-    brightnessMode = mode;
-    return true;
+    return applyUnifiedBrightness(value, false);
 }
 
 bool GeminiFlatpanel::EnableLightBox(bool enable)
@@ -435,6 +443,18 @@ bool GeminiFlatpanel::EnableLightBox(bool enable)
     {
         return false;
     }
+
+    // The firmware has no command to read back which mode is currently active, so our
+    // in-memory brightnessMode could have drifted from reality (e.g. a power cycle, or
+    // the mode having last been set from outside this driver). Turning the light on is
+    // the point where that would actually become visible, so unconditionally re-assert
+    // both the mode and the matching raw value we believe are active right before doing so.
+    if (enable && adapter && adapter->supportsBrightnessMode()
+            && !applyUnifiedBrightness(static_cast<int>(LightIntensityNP[0].getValue()), true))
+    {
+        return false;
+    }
+
     return enable ? lightOn() : lightOff();
 }
 

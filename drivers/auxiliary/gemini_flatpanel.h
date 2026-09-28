@@ -114,6 +114,7 @@ class GeminiFlatpanel : public INDI::DefaultDevice, public INDI::LightBoxInterfa
         bool setOpenPosition();
         bool setBeep(bool enable);
         bool setBrightnessMode(int mode);
+        bool applyUnifiedBrightness(int unifiedValue, bool forceMode);
 
         // Helper functions
         bool extractIntValue(const char *response, int startPos, int *value);
