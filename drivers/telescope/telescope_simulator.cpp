@@ -1212,6 +1212,7 @@ bool ScopeSim::updateMountAndPierSide()
     if (mountType == m_MountType && pierSide == m_PierSide)
         return true;
 
+    const int previousMountType = m_MountType;
     m_MountType = mountType;
     m_PierSide = pierSide;
 
@@ -1234,6 +1235,25 @@ bool ScopeSim::updateMountAndPierSide()
         alignment.mountType == Alignment::MOUNT_TYPE::ALTAZ
         ? INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ
         : INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
+
+#ifdef USE_SIM_TAB
+    // Sync points store the telescope direction in the encoding of the mount geometry that was active
+    // when they were taken: Az/Alt for ALTAZ, encoder RA/Dec for the equatorial types (see Sync()).
+    // After switching between ALTAZ and an equatorial type, those entries are decoded with the wrong
+    // encoding and every GoTo lands at an unrelated sky position. They cannot be re-encoded reliably,
+    // so drop them. EQ_GEM <-> EQ_FORK share the RA/Dec encoding and keep their sync points.
+    // previousMountType is -1 during initial config load, so a restored database is never discarded.
+    const bool wasAltAz = (previousMountType == Alignment::MOUNT_TYPE::ALTAZ);
+    const bool isAltAz  = (mountType == Alignment::MOUNT_TYPE::ALTAZ);
+    if (previousMountType >= 0 && wasAltAz != isAltAz && !GetAlignmentDatabase().empty())
+    {
+        LOGF_WARN("Mount type changed between ALTAZ and equatorial: clearing %d alignment sync point(s) "
+                  "recorded for the previous mount geometry.", static_cast<int>(GetAlignmentDatabase().size()));
+        GetAlignmentDatabase().clear();
+        UpdateSize();
+        Initialise(this);
+    }
+#endif
 
     // Set the park data type appropriate for the mount geometry.
     if (mountType == static_cast<int>(Alignment::MOUNT_TYPE::ALTAZ))
