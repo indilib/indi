@@ -822,6 +822,10 @@
             <driver name="RASA FilterCube Filter Wheel">indi_rasa_filtercube_wheel</driver>
             <version>1.0</version>
         </device>
+        <device label="Wheelly" manufacturer="DIY">
+            <driver name="Wheelly">indi_wheelly</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Auxiliary">
         <device label="Astrometry" manufacturer="Others">

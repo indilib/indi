@@ -109,3 +109,23 @@ SET(rasa_filtercube_SRC
 add_executable(indi_rasa_filtercube_wheel ${rasa_filtercube_SRC})
 target_link_libraries(indi_rasa_filtercube_wheel indidriver)
 install(TARGETS indi_rasa_filtercube_wheel RUNTIME DESTINATION bin)
+
+# ############### Wheelly Filter Wheel ################
+set(WHEELLY_VERSION_MAJOR 0)
+set(WHEELLY_VERSION_MINOR 1)
+set(WHEELLY_DEVICE_NAME "Wheelly")
+set(WHEELLY_ITALIAN OFF)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly_config.h.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/wheelly/wheelly_config.h)
+
+SET(wheelly_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/translations.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/plot.cpp)
+
+add_executable(indi_wheelly ${wheelly_SRC})
+target_include_directories(indi_wheelly PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly
+    ${CMAKE_CURRENT_BINARY_DIR}/wheelly)
+target_link_libraries(indi_wheelly indidriver)
+install(TARGETS indi_wheelly RUNTIME DESTINATION bin)
