@@ -17,10 +17,4 @@
 // TRADEMARK.md in the root).
 #define WHEELLY_DEVICE_NAME "@WHEELLY_DEVICE_NAME@"
 
-// 1 when the Italian catalogue (translations_it.cpp) is compiled in, 0 when
-// the driver is English only - as it is inside INDI's tree, where drivers
-// speak English. With 0 the Language switch is not even shown: a choice with
-// one answer is only clutter in the panel.
-#cmakedefine01 WHEELLY_ITALIAN
-
 #endif  // WHEELLY_CONFIG_H

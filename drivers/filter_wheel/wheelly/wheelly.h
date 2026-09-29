@@ -3,7 +3,7 @@
 
 // Wheelly - INDI driver for the filter wheel.
 //
-// The driver only translates: the decisions - whether the wheel has arrived,
+// The driver only relays: the decisions - whether the wheel has arrived,
 // whether to retry, whether to declare failure - live in the firmware. That
 // way the wheel behaves the same even when driven by hand from a serial
 // monitor, and there are no two copies of the same logic that can diverge.
@@ -274,7 +274,6 @@ class Wheelly : public INDI::FilterWheel
 
         // --- properties: options ------------------------------------------
         INDI::PropertyText FirmwareTP {3};
-        INDI::PropertySwitch LanguageSP {3};
 
         // --- the USB link, lost and found again -----------------------------
         // A wheel unplugged and plugged back left the driver "Connected" on a

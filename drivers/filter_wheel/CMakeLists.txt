@@ -114,13 +114,11 @@ install(TARGETS indi_rasa_filtercube_wheel RUNTIME DESTINATION bin)
 set(WHEELLY_VERSION_MAJOR 0)
 set(WHEELLY_VERSION_MINOR 1)
 set(WHEELLY_DEVICE_NAME "Wheelly")
-set(WHEELLY_ITALIAN OFF)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly_config.h.cmake
                ${CMAKE_CURRENT_BINARY_DIR}/wheelly/wheelly_config.h)
 
 SET(wheelly_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/translations.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/plot.cpp)
 
 add_executable(indi_wheelly ${wheelly_SRC})

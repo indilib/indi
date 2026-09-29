@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "wheelly.h"
-#include "translations.h"
 #include "wheelly_config.h"
 
 #include "connectionplugins/connectionserial.h"
@@ -26,9 +25,9 @@
 
 using namespace wheelly;
 
-// The names of the tabs stay in English: they sit in the same tab bar that
-// INDI creates by itself - Connection, Options - which we cannot translate.
-// Everything inside them is translated. See translations.h.
+// The texts are English, as in every INDI driver, and written where they are
+// used; the tab names match the ones INDI creates by itself (Connection,
+// Options).
 static const char *TAB_MAIN = "Main Control";
 // The name an empty filter-name field becomes, followed by "_<slot>": the
 // reasons are where it is used, in ISNewText.
@@ -41,7 +40,7 @@ static const char *EMPTY_SLOT_NAME = "Empty";
 static const char *TAB_CALIBRATION = "Calibration and Diagnostics";
 
 // The jog rows: the steps, the element names and the
-// translation keys of the labels, in the same order. A step of 0 is the SLOT
+// labels, in the same order. A step of 0 is the SLOT
 // PITCH, 360/slots, signed by its row: its value and its label follow the
 // number of slots (see label_jogs), so the element name says "pitch", not a
 // number. No 0.05 step (rejected): below the AS5600's count (0.088
@@ -50,12 +49,141 @@ static const double JOG_STEPS[] = {0, -10, -1, -0.1, 0.1, 1, 10, 0};
 static const char *JOG_NAMES[] = {"JOG_M_PITCH", "JOG_M10", "JOG_M1", "JOG_M0_1",
                                   "JOG_P0_1", "JOG_P1", "JOG_P10", "JOG_P_PITCH"
                                  };
-static const char *JOG_LABELS[] = {"prop.jog.mpitch", "prop.jog.m10", "prop.jog.m1", "prop.jog.m01",
-                                   "prop.jog.p01", "prop.jog.p1", "prop.jog.p10", "prop.jog.ppitch"
+static const char *JOG_LABELS[] = {"-%1$s°", "-10°", "-1°", "-0.1°",
+                                   "+0.1°", "+1°", "+10°", "+%1$s°"
                                   };
 static const char *TAB_OPTIONS     = "Options";
 
 static const int ANSWER_WAIT_MS = 3000;
+
+// ------------------------------------------------------------------ texts
+
+// A sentence with values in it: %1$s, %2$s ... are replaced by params, in any
+// order and as many times as the sentence needs, and %% is a percent sign.
+// Numbered placeholders and not printf's, because several sentences name the
+// same value twice or in a different order than the call gives them.
+static std::string fill_in(const char *format, const std::vector<std::string> &params)
+{
+    const std::string text = format;
+    std::string out;
+    out.reserve(text.size() + 64);
+    for (size_t i = 0; i < text.size(); i++)
+    {
+        if (text[i] != '%')
+        {
+            out += text[i];
+            continue;
+        }
+        if (i + 1 < text.size() && text[i + 1] == '%')
+        {
+            out += '%';
+            i++;
+            continue;
+        }
+        size_t j = i + 1;
+        size_t number = 0;
+        while (j < text.size() && text[j] >= '0' && text[j] <= '9')
+        {
+            number = number * 10 + (size_t)(text[j] - '0');
+            j++;
+        }
+        if (number >= 1 && j + 1 < text.size() && text[j] == '$' && text[j + 1] == 's')
+        {
+            if (number <= params.size()) out += params[number - 1];
+            i = j + 1;
+        }
+        else
+        {
+            out += text[i];
+        }
+    }
+    return out;
+}
+
+// Why the wheel refused a filter name, from the word the firmware sends with
+// ERR_BAD_FILTER_NAME (reason=, name_check_word in the firmware's dialog.cpp).
+static std::string name_refusal(const std::string &reason)
+{
+    if (reason == "empty") return "the name is empty";
+    if (reason == "too-long") return "too long: at most 32 characters";
+    if (reason == "bad-edge") return "it must start and end with a letter or a digit";
+    if (reason == "bad-char") return "there is a character that cannot be used";
+    if (reason == "reserved")
+        return "this is a reserved device name on Windows, and the filter name is also used as a folder name";
+    return reason;
+}
+
+// The sentence for an "err <code>" answer of the wheel.
+static std::string error_message(int code, const std::string &expected,
+                                 const std::string &got, const std::string &reason)
+{
+    switch (code)
+    {
+        case ERR_UNKNOWN_COMMAND:
+            return "The wheel did not understand the command.";
+        case ERR_BAD_ARGUMENTS:
+            return "Wrong arguments for the command.";
+        case ERR_OUT_OF_RANGE:
+            return fill_in("Value out of range: expected %1$s, got %2$s.", {expected, got});
+        case ERR_SENSOR_SILENT:
+            return "The position sensor is not answering. Check its wiring, and the VDD5V-VDD3V3 jumper on the module.";
+        case ERR_NO_MAGNET:
+            return "The sensor works but does not see the magnet.";
+        case ERR_DRIVER_SILENT:
+            return "The motor driver is not answering: is the 12 V supply connected? The wheel does not move without it.";
+        case ERR_NOT_NOW:
+            return "Not allowed right now: the wheel is busy.";
+        case ERR_NVS_WRITE:
+            return "The wheel could not save to its memory.";
+        case ERR_BAD_FILTER_NAME:
+            return fill_in("Invalid filter name (%1$s).", {name_refusal(reason)});
+        default:
+            return fill_in("The wheel reported error %1$s.", {std::to_string(code)});
+    }
+}
+
+// Why a filter name typed in the panel is refused, checked here before it is
+// sent. The generic reason - "only letters, digits, _ - and ." - forces
+// rereading one's own name character by character to find the crooked one.
+// Here the culprit is named: "there is a space" is understood in an instant.
+//
+// The accented letter has a sentence all of its own because it really cannot
+// be printed: in UTF-8 it is two bytes, and sending back only one of them
+// would not merely give a wrong character. Tried on purpose by removing this
+// line: the unpaired byte is not valid UTF-8, hence not valid XML, and the
+// INDI client dies with "not well-formed (invalid token)" - not on this
+// message, on the whole stream. A name with the wrong character would switch
+// the panel off.
+static std::string filter_name_reason(int outcome, const char *text)
+{
+    if (outcome == NAME_BAD_CHAR && text != nullptr)
+    {
+        for (const unsigned char *p = (const unsigned char *)text; *p != '\0'; p++)
+        {
+            if (name_is_allowed((char) * p)) continue;
+            if (*p == ' ') return "there is a space";
+            if (*p >= 0x80) return "there is an accented or non-English letter";
+            if (*p < 0x20 || *p == 0x7f) return "there is an invisible character in it";
+            const char one[2] = {(char)*p, '\0'};
+            return fill_in("\"%1$s\" cannot be used", {one});
+        }
+    }
+    switch (outcome)
+    {
+        case NAME_EMPTY:
+            return name_refusal("empty");
+        case NAME_TOO_LONG:
+            return name_refusal("too-long");
+        case NAME_BAD_EDGE:
+            return name_refusal("bad-edge");
+        case NAME_BAD_CHAR:
+            return name_refusal("bad-char");
+        case NAME_RESERVED:
+            return name_refusal("reserved");
+        default:
+            return std::string();
+    }
+}
 // The pause between two attempts to find a lost wheel again: from the first,
 // doubling up to the last. A second is about the time a XIAO takes to boot
 // and enumerate; ten keeps a wheel left unplugged from costing anything.
@@ -174,38 +302,6 @@ const char *Wheelly::getDefaultName()
 
 bool Wheelly::initProperties()
 {
-    // The language is chosen BEFORE everything else, because the labels are
-    // composed here and the clients keep them for the whole connection.
-    // Built English only (WHEELLY_ITALIAN off, as inside INDI's tree) there is
-    // nothing to choose, and the switch is neither made nor shown.
-#if WHEELLY_ITALIAN
-    LanguageSP[0].fill("AUTO", "", ISS_ON);
-    LanguageSP[1].fill("EN", "", ISS_OFF);
-    LanguageSP[2].fill("IT", "", ISS_OFF);
-    LanguageSP.fill(getDeviceName(), "WHEELLY_LANGUAGE", "", TAB_OPTIONS,
-                    IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    LanguageSP.load();
-    switch (LanguageSP.findOnSwitchIndex())
-    {
-        case 1:
-            set_language(Language::ENGLISH);
-            break;
-        case 2:
-            set_language(Language::ITALIAN);
-            break;
-        default:
-            set_language(Language::AUTO);
-            break;
-    }
-    // now that the language is there, the labels
-    LanguageSP[0].setLabel(tr("prop.language.auto"));
-    LanguageSP[1].setLabel(tr("prop.language.en"));
-    LanguageSP[2].setLabel(tr("prop.language.it"));
-    LanguageSP.setLabel(tr("prop.language"));
-#else
-    set_language(Language::ENGLISH);
-#endif
-
     INDI::FilterWheel::initProperties();
 
     if (serialConnection != nullptr)
@@ -218,25 +314,24 @@ bool Wheelly::initProperties()
         serialConnection->setPortMatchPattern("303a|espressif|wheelly|usbmodem");
     }
 
-    // The two properties of the base class speak the user's language and
-    // sit in the main panel, together with the rest of the everyday
+    // The two properties of the base class sit in the main panel, together with the rest of the everyday
     // commands.
-    FilterSlotNP.setLabel(tr("prop.slot"));
+    FilterSlotNP.setLabel("Filter slot");
     FilterSlotNP.setGroupName(TAB_MAIN);
 
     // --- main panel: where the wheel is, and how the sensor is doing ------
-    PositionNP[0].fill("ANGLE", tr("prop.position.angle"), "%.2f", 0, 360, 0, 0);
-    PositionNP[1].fill("ERROR", tr("prop.position.err"), "%.2f", -180, 180, 0, 0);
-    PositionNP[2].fill("RETRIES", tr("prop.position.retries"), "%.0f", 0, 99, 0, 0);
-    PositionNP.fill(getDeviceName(), "WHEELLY_POSITION", tr("prop.position"),
+    PositionNP[0].fill("ANGLE", "Angle", "%.2f", 0, 360, 0, 0);
+    PositionNP[1].fill("ERROR", "Residual error", "%.2f", -180, 180, 0, 0);
+    PositionNP[2].fill("RETRIES", "Retries", "%.0f", 0, 99, 0, 0);
+    PositionNP.fill(getDeviceName(), "WHEELLY_POSITION", "Where the wheel is",
                     TAB_MAIN, IP_RO, 60, IPS_IDLE);
 
-    SensorNP[0].fill("AGC", tr("prop.sensor.agc"), "%.0f", 0, 255, 0, 0);
-    SensorNP[1].fill("MAGNITUDE", tr("prop.sensor.mag"), "%.0f", 0, 4095, 0, 0);
-    SensorNP[2].fill("MD", tr("prop.sensor.md"), "%.0f", 0, 1, 0, 0);
-    SensorNP[3].fill("ML", tr("prop.sensor.ml"), "%.0f", 0, 1, 0, 0);
-    SensorNP[4].fill("MH", tr("prop.sensor.mh"), "%.0f", 0, 1, 0, 0);
-    SensorNP.fill(getDeviceName(), "WHEELLY_SENSOR", tr("prop.sensor"),
+    SensorNP[0].fill("AGC", "Gain", "%.0f", 0, 255, 0, 0);
+    SensorNP[1].fill("MAGNITUDE", "Magnitude", "%.0f", 0, 4095, 0, 0);
+    SensorNP[2].fill("MD", "Magnet detected", "%.0f", 0, 1, 0, 0);
+    SensorNP[3].fill("ML", "Field too weak", "%.0f", 0, 1, 0, 0);
+    SensorNP[4].fill("MH", "Field too strong", "%.0f", 0, 1, 0, 0);
+    SensorNP.fill(getDeviceName(), "WHEELLY_SENSOR", "Magnetic sensor",
                   TAB_MAIN, IP_RO, 60, IPS_IDLE);
 
     // --- calibration panel ------------------------------------------------
@@ -253,20 +348,28 @@ bool Wheelly::initProperties()
         char name[32];
         snprintf(name, sizeof(name), "WHEELLY_ANGLE_%d", i + 1);
         AngleNP.emplace_back(1);
-        AngleNP[i][0].fill("ANGLE", tr("prop.angle.value"), "%.2f", 0, ANGLE_MAX_DEG, 0.01, 0);
+        // The calibration angles, one row - one property - per slot, each with
+        // its Set; the row's label is the slot number, "▶ n" on the slot the
+        // wheel stands on. There is no rotation trim under them any more
+        // (firmware.md 2.2, "One number per slot"). The element's label says what the number is.
+        AngleNP[i][0].fill("ANGLE", "Calibration angle (°)", "%.2f", 0, ANGLE_MAX_DEG, 0.01, 0);
         // read-write: KStars shows an edit field and a Set on every row
         AngleNP[i].fill(getDeviceName(), name, std::to_string(i + 1).c_str(),
                         TAB_CALIBRATION, IP_RW, 60, IPS_IDLE);
     }
-    SlotsNP[0].fill("COUNT", tr("prop.slots.count"), "%.0f", wheelly::MIN_SLOTS, wheelly::MAX_SLOTS, 1,
+    SlotsNP[0].fill("COUNT", "Slots", "%.0f", wheelly::MIN_SLOTS, wheelly::MAX_SLOTS, 1,
                     wheelly::FACTORY_SLOTS);
-    SlotsNP.fill(getDeviceName(), "WHEELLY_SLOTS", tr("prop.slots"),
+    SlotsNP.fill(getDeviceName(), "WHEELLY_SLOTS", "Number of slots",
                  TAB_CALIBRATION, IP_RW, 60, IPS_IDLE);
-    ActionsSP[0].fill("SAVE", tr("prop.actions.save"), ISS_OFF);
-    ActionsSP.fill(getDeviceName(), "WHEELLY_SAVE", tr("prop.actions"),
+    ActionsSP[0].fill("SAVE", "Save to the wheel", ISS_OFF);
+    ActionsSP.fill(getDeviceName(), "WHEELLY_SAVE", "Calibration actions",
                    TAB_CALIBRATION, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    WheelConfigSP[0].fill("SAVE", tr("prop.actions.save"), ISS_OFF);
-    WheelConfigSP.fill(getDeviceName(), "WHEELLY_CONFIG", tr("prop.wheelconfig"),
+    WheelConfigSP[0].fill("SAVE", "Save to the wheel", ISS_OFF);
+    // The same "Save to the wheel", in Options right under INDI's
+    // "Configuration": the settings of Options - motor,
+    // holding, direction, LED - are saved from there, without going to the
+    // calibration tab. A property of its own: CONFIG_PROCESS is INDI's.
+    WheelConfigSP.fill(getDeviceName(), "WHEELLY_CONFIG", "Wheel configuration",
                        TAB_OPTIONS, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // The jog buttons: the calibration is done here - jog until the filter
@@ -275,29 +378,33 @@ bool Wheelly::initProperties()
     // Four to a row: KStars turns five or more into a drop-down menu.
     for (int i = 0; i < JOG_PER_ROW; i++)
     {
-        JogDownSP[i].fill(JOG_NAMES[i], tr(JOG_LABELS[i]), ISS_OFF);
-        JogUpSP[i].fill(JOG_NAMES[JOG_PER_ROW + i], tr(JOG_LABELS[JOG_PER_ROW + i]), ISS_OFF);
+        JogDownSP[i].fill(JOG_NAMES[i], JOG_LABELS[i], ISS_OFF);
+        JogUpSP[i].fill(JOG_NAMES[JOG_PER_ROW + i], JOG_LABELS[JOG_PER_ROW + i], ISS_OFF);
     }
     label_jogs();
-    JogDownSP.fill(getDeviceName(), "WHEELLY_JOG_DOWN", tr("prop.jog.down"),
+    // The jog rows.
+    // Two rows, not one: KStars draws more than four exclusive switches as a
+    // drop-down menu. There is no third row ("Save position", rejected): the
+    // Set on the current slot's row does the same.
+    JogDownSP.fill(getDeviceName(), "WHEELLY_JOG_DOWN", "Step back",
                    TAB_CALIBRATION, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    JogUpSP.fill(getDeviceName(), "WHEELLY_JOG_UP", tr("prop.jog.up"),
+    JogUpSP.fill(getDeviceName(), "WHEELLY_JOG_UP", "Step forward",
                  TAB_CALIBRATION, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // limits and factory values from the shared header, the same the wheel
     // uses (factory values there: 0.30 / 0.80)
-    ToleranceNP[0].fill("GOOD", tr("prop.tolerance.good"), "%.2f", 0.01, TOLERANCE_MAX_DEG, 0.01, FACTORY_GOOD_DEG);
-    ToleranceNP[1].fill("WARN", tr("prop.tolerance.warn"), "%.2f", 0.01, TOLERANCE_MAX_DEG, 0.01, FACTORY_WARN_DEG);
-    ToleranceNP[2].fill("RETRIES", tr("prop.tolerance.retries"), "%.0f", 0, RETRIES_MAX, 1, 3);
-    ToleranceNP.fill(getDeviceName(), "WHEELLY_TOLERANCE", tr("prop.tolerance"),
+    ToleranceNP[0].fill("GOOD", "Good (deg)", "%.2f", 0.01, TOLERANCE_MAX_DEG, 0.01, FACTORY_GOOD_DEG);
+    ToleranceNP[1].fill("WARN", "Alert (deg)", "%.2f", 0.01, TOLERANCE_MAX_DEG, 0.01, FACTORY_WARN_DEG);
+    ToleranceNP[2].fill("RETRIES", "Max retries", "%.0f", 0, RETRIES_MAX, 1, 3);
+    ToleranceNP.fill(getDeviceName(), "WHEELLY_TOLERANCE", "Tolerances",
                      TAB_CALIBRATION, IP_RW, 60, IPS_IDLE);
 
     // the limits are the wheel's own, from the shared header: numbers
     // written here would drift from the ones the wheel checks
-    MotorNP[0].fill("RUN_MA", tr("prop.motor.ma"), "%.0f", 1, MOTOR_MA_MAX, 5, FACTORY_RUN_MA);
-    MotorNP[1].fill("SPEED", tr("prop.motor.speed"), "%.0f", 1, MOTOR_SPEED_MAX, 10, FACTORY_SPEED);
-    MotorNP[2].fill("ACCEL", tr("prop.motor.accel"), "%.0f", 1, MOTOR_ACCEL_MAX, 50, FACTORY_ACCEL);
-    MotorNP.fill(getDeviceName(), "WHEELLY_MOTOR", tr("prop.motor"),
+    MotorNP[0].fill("RUN_MA", "Run current (mA)", "%.0f", 1, MOTOR_MA_MAX, 5, FACTORY_RUN_MA);
+    MotorNP[1].fill("SPEED", "Speed", "%.0f", 1, MOTOR_SPEED_MAX, 10, FACTORY_SPEED);
+    MotorNP[2].fill("ACCEL", "Acceleration", "%.0f", 1, MOTOR_ACCEL_MAX, 50, FACTORY_ACCEL);
+    MotorNP.fill(getDeviceName(), "WHEELLY_MOTOR", "Motor",
                  TAB_OPTIONS, IP_RW, 60, IPS_IDLE);
 
     // The field shows the wheel's REAL value, 0 included, read back at
@@ -308,27 +415,30 @@ bool Wheelly::initProperties()
     // is a lie, however good the intention. The recommendation lives where it
     // is needed - in the drift message (msg.drift.suggest), said when the
     // wheel moves on its own at rest - and in the panel guide.
-    HoldNP[0].fill("HOLD_MA", tr("prop.hold.ma"), "%.0f", 0, 800, 5, 0);
+    HoldNP[0].fill("HOLD_MA", "Current (mA, 0 = released)", "%.0f", 0, 800, 5, 0);
     // How long the motor stays energised, at the run current, after every
     // leg - even with the current at rest at 0 - before the wheel reads its
     // verdict and lets go: the stopped motor brakes the disc
     // through the tyre. Starts at the factory value, which is also what a
     // firmware without the setting does; the wheel's own is read at connection.
-    HoldNP[1].fill("SETTLE_MS", tr("prop.hold.settle"), "%.0f", 0, SETTLE_MS_MAX, 50,
+    HoldNP[1].fill("SETTLE_MS", "Hold after arrival (ms)", "%.0f", 0, SETTLE_MS_MAX, 50,
                    FACTORY_SETTLE_MS);
-    HoldNP.fill(getDeviceName(), "WHEELLY_HOLD", tr("prop.hold"),
+    HoldNP.fill(getDeviceName(), "WHEELLY_HOLD", "Holding current at rest",
                 TAB_OPTIONS, IP_RW, 60, IPS_IDLE);
 
     // Starts on the factory direction (FACTORY_DIRECTION in the shared
     // header: the shortest way); Idle until
     // the wheel's own value is read at connection.
-    DirectionSP[0].fill("DIR_SHORTEST", tr("prop.direction.shortest"),
+    DirectionSP[0].fill("DIR_SHORTEST", "Shortest way",
                         strcmp(FACTORY_DIRECTION, ARG_SHORTEST) == 0 ? ISS_ON : ISS_OFF);
-    DirectionSP[1].fill("DIR_UP", tr("prop.direction.up"),
+    DirectionSP[1].fill("DIR_UP", "Increasing angles only",
                         strcmp(FACTORY_DIRECTION, ARG_UP) == 0 ? ISS_ON : ISS_OFF);
-    DirectionSP[2].fill("DIR_DOWN", tr("prop.direction.down"),
+    DirectionSP[2].fill("DIR_DOWN", "Decreasing angles only",
                         strcmp(FACTORY_DIRECTION, ARG_DOWN) == 0 ? ISS_ON : ISS_OFF);
-    DirectionSP.fill(getDeviceName(), "WHEELLY_DIRECTION", tr("prop.direction"),
+    // Which way the wheel may turn. "Angles" and not "clockwise":
+    // which way is clockwise depends on the side the wheel is looked from,
+    // the angle the sensor reads does not.
+    DirectionSP.fill(getDeviceName(), "WHEELLY_DIRECTION", "Direction of travel",
                      TAB_OPTIONS, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Four choices in the property that was already there, not a new one:
@@ -337,24 +447,24 @@ bool Wheelly::initProperties()
     // for good, pulse included, for whoever wants no light near the optics.
     // The element names are identifiers: LED_ON and LED_OFF keep the names
     // they had, so a saved Ekos configuration still means the same thing.
-    LedSP[0].fill("LED_ON", tr("prop.led.on"), ISS_OFF);
-    LedSP[1].fill("LED_PULSE", tr("prop.led.pulse"), ISS_ON);
-    LedSP[2].fill("LED_OFF", tr("prop.led.off"), ISS_OFF);
-    LedSP[3].fill("LED_TEST", tr("prop.led.test"), ISS_OFF);
-    LedSP.fill(getDeviceName(), "WHEELLY_LED", tr("prop.led"),
+    LedSP[0].fill("LED_ON", "Steady on", ISS_OFF);
+    LedSP[1].fill("LED_PULSE", "Pulses while moving", ISS_ON);
+    LedSP[2].fill("LED_OFF", "Off", ISS_OFF);
+    LedSP[3].fill("LED_TEST", "Test (blinks WHEELLY)", ISS_OFF);
+    LedSP.fill(getDeviceName(), "WHEELLY_LED", "LED",
                TAB_OPTIONS, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    DiagSP[0].fill("RUN", tr("prop.diag.run"), ISS_OFF);
-    DiagSP.fill(getDeviceName(), "WHEELLY_DIAG", tr("prop.diag"),
+    DiagSP[0].fill("RUN", "Ask the wheel", ISS_OFF);
+    DiagSP.fill(getDeviceName(), "WHEELLY_DIAG", "Hardware check",
                 TAB_CALIBRATION, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    LogSP[0].fill("LOG_ON", tr("prop.log.on"), ISS_OFF);
-    LogSP[1].fill("LOG_OFF", tr("prop.log.off"), ISS_ON);
-    LogSP.fill(getDeviceName(), "WHEELLY_LOG", tr("prop.log"),
+    LogSP[0].fill("LOG_ON", "On", ISS_OFF);
+    LogSP[1].fill("LOG_OFF", "Off", ISS_ON);
+    LogSP.fill(getDeviceName(), "WHEELLY_LOG", "Movement log",
                TAB_CALIBRATION, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    SweepSP[0].fill("RUN", tr("prop.sweep.run"), ISS_OFF);
-    SweepSP.fill(getDeviceName(), "WHEELLY_SWEEP", tr("prop.sweep"),
+    SweepSP[0].fill("RUN", "Turn all the way round", ISS_OFF);
+    SweepSP.fill(getDeviceName(), "WHEELLY_SWEEP", "Magnet sweep",
                  TAB_CALIBRATION, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     // The format says ".wheelly.png" and not ".png", and the difference is not
     // a whim. KStars, when it receives a BLOB whose extension is an image
@@ -363,25 +473,25 @@ bool Wheelly::initProperties()
     // panel away with it. With an extension Qt does not recognise, KStars only
     // saves the file. The name still ends in .png, so any viewer opens it
     // anyway.
-    SweepBP[0].fill("PLOT", tr("prop.sweep.plot"), ".wheelly.png");
-    SweepBP.fill(getDeviceName(), "WHEELLY_SWEEP_PLOT", tr("prop.sweep.image"),
+    SweepBP[0].fill("PLOT", "Plot", ".wheelly.png");
+    SweepBP.fill(getDeviceName(), "WHEELLY_SWEEP_PLOT", "Last sweep",
                  TAB_CALIBRATION, IP_RO, 60, IPS_IDLE);
 
-    FileTP[FILE_LOG].fill("PATH", tr("prop.files.log"), log_path().c_str());
-    FileTP[FILE_SWEEP].fill("SWEEP", tr("prop.files.sweep"), tr("prop.files.none"));
-    FileTP.fill(getDeviceName(), "WHEELLY_FILES", tr("prop.files"),
+    FileTP[FILE_LOG].fill("PATH", "Movement log", log_path().c_str());
+    FileTP[FILE_SWEEP].fill("SWEEP", "Last sweep", "not written yet");
+    FileTP.fill(getDeviceName(), "WHEELLY_FILES", "Files on disk",
                 TAB_CALIBRATION, IP_RO, 60, IPS_IDLE);
 
-    SweepDirTP[0].fill("DIR", tr("prop.sweepdir.path"), default_folder().c_str());
-    SweepDirTP.fill(getDeviceName(), "WHEELLY_SWEEP_DIR", tr("prop.sweepdir"),
+    SweepDirTP[0].fill("DIR", "Folder", default_folder().c_str());
+    SweepDirTP.fill(getDeviceName(), "WHEELLY_SWEEP_DIR", "Sweeps folder",
                     TAB_CALIBRATION, IP_RW, 60, IPS_IDLE);
     SweepDirTP.load();
 
     // --- options -----------------------------------------------------------
-    FirmwareTP[0].fill("FW", tr("prop.firmware.version"), "");
-    FirmwareTP[1].fill("PROTO", tr("prop.firmware.proto"), "");
-    FirmwareTP[2].fill("SERIAL", tr("prop.firmware.serial"), "");
-    FirmwareTP.fill(getDeviceName(), "WHEELLY_FIRMWARE", tr("prop.firmware"),
+    FirmwareTP[0].fill("FW", "Version", "");
+    FirmwareTP[1].fill("PROTO", "Protocol", "");
+    FirmwareTP[2].fill("SERIAL", "Serial number", "");
+    FirmwareTP.fill(getDeviceName(), "WHEELLY_FIRMWARE", "Firmware",
                     TAB_OPTIONS, IP_RO, 60, IPS_IDLE);
 
     ToleranceNP.load();
@@ -456,7 +566,7 @@ bool Wheelly::updateProperties()
         if (m_serial_to_save)
         {
             m_serial_to_save = false;
-            LOGF_INFO("%s", trf("msg.serial.learned", {m_expected_serial}).c_str());
+            LOGF_INFO("%s", fill_in("From now on this profile looks for the wheel with serial %1$s.", {m_expected_serial}).c_str());
             saveConfig(true, FirmwareTP.getName());
         }
         defineProperty(PositionNP);
@@ -477,9 +587,6 @@ bool Wheelly::updateProperties()
         defineProperty(SweepDirTP);
         defineProperty(LogSP);
         defineProperty(FileTP);
-#if WHEELLY_ITALIAN
-        defineProperty(LanguageSP);
-#endif
 
         read_calibration();
         if (LogSP[0].getState() == ISS_ON) open_log();
@@ -506,9 +613,6 @@ bool Wheelly::updateProperties()
         deleteProperty(SweepDirTP);
         deleteProperty(LogSP);
         deleteProperty(FileTP);
-#if WHEELLY_ITALIAN
-        deleteProperty(LanguageSP);
-#endif
         close_log();
     }
     return true;
@@ -580,14 +684,18 @@ void Wheelly::handle_unsolicited_line(const std::string &line)
     {
         const Fields c = split_fields(line);
         const auto reason = c.find(F_REASON);
-        if (reason != c.end() && reason->second == V_RESET) LOG_WARN(tr("msg.driver.reset"));
-        else LOG_INFO(tr("msg.driver.power"));
+        if (reason != c.end()
+                && reason->second == V_RESET)
+            LOG_WARN("The motor driver had lost its settings - the 12 V dropped and came back - and has been set up again before moving.");
+        // THE MOTOR DRIVER SET UP AGAIN by the firmware (the `! driver` event):
+        // its settings live on the 12 V, not on the USB.
+        else LOG_INFO("The motor driver got its 12 V after the wheel had started, and has been set up now.");
     }
 
     if (name == EV_SENSOR && !m_magnet_lost)
     {
         m_magnet_lost = true;
-        LOG_ERROR(tr("msg.magnet.lost"));
+        LOG_ERROR("The sensor no longer detects the magnet. This is serious: check the sensor wiring before imaging further.");
     }
 
     // The wheel moved on its own, at rest. The firmware says so once per
@@ -611,11 +719,16 @@ void Wheelly::handle_unsolicited_line(const std::string &line)
         {
             char how_much[16];
             snprintf(how_much, sizeof(how_much), "%.0f", HoldNP[0].getValue());
-            LOGF_WARN("%s", trf("msg.drift.holding", {deviation, how_much}).c_str());
+            LOGF_WARN("%s",
+                      fill_in("The wheel moved %1$s degrees on its own while at rest, past the alarm tolerance, and the holding current is already on at %2$s mA. Raising it may help, but look at the mechanics too: a clutch that lets go at rest is a matter of spring preload.", {deviation, how_much}).c_str());
         }
         else
         {
-            LOGF_WARN("%s", trf("msg.drift.suggest",
+            // The single advice about holding: the detent is always
+            // removed, so there is no "if yours has one" left to ask - a wheel that
+            // drifts with the motor released needs the holding current, full stop.
+            LOGF_WARN("%s",
+                      fill_in("The wheel moved %1$s degrees on its own while at rest, past the alarm tolerance, and the motor is released at rest, so nothing holds it: turn on the holding current at rest - %2$s mA is the value this project suggests.",
             {deviation, std::to_string(RECOMMENDED_HOLD_MA)}).c_str());
         }
     }
@@ -634,7 +747,7 @@ bool Wheelly::command(const std::string &text, Fields *fields,
     // command the user gives, never per poll (TimerHit does not poll then).
     if (m_link_lost && !m_reconnecting)
     {
-        LOG_WARN(tr("msg.link.down"));
+        LOG_WARN("The wheel is not reachable right now: waiting for its USB link to come back.");
         return false;
     }
     if (PortFD < 0) return false;
@@ -655,7 +768,7 @@ bool Wheelly::command(const std::string &text, Fields *fields,
         }
         char explanation[MAXRBUF];
         tty_error_msg(result, explanation, MAXRBUF);
-        if (!m_reconnecting) LOGF_ERROR("%s (%s)", tr("msg.no.answer"), explanation);
+        if (!m_reconnecting) LOGF_ERROR("%s (%s)", "The wheel is not answering.", explanation);
         return false;
     }
 
@@ -702,10 +815,10 @@ bool Wheelly::command(const std::string &text, Fields *fields,
     if (m_reader.channel_down() && link_is_gone(m_reader.down_errno()))
     {
         link_lost(m_reader.down_errno() ? strerror(m_reader.down_errno())
-                  : tr("msg.link.hangup"));
+                  : "the port was closed");
         return false;
     }
-    LOG_ERROR(tr("msg.no.answer"));
+    LOG_ERROR("The wheel is not answering.");
     return false;
 }
 
@@ -739,7 +852,8 @@ bool Wheelly::Connect()
     if (!m_only_mine) return false;
 
     m_only_mine = false;
-    LOGF_WARN("%s", trf("msg.serial.notfound", {m_expected_serial}).c_str());
+    LOGF_WARN("%s",
+              fill_in("The wheel of this profile (serial %1$s) is not on any port. Connecting to whichever Wheelly is here instead.", {m_expected_serial}).c_str());
     return INDI::FilterWheel::Connect();
 }
 
@@ -755,18 +869,18 @@ bool Wheelly::Handshake()
     Fields c;
     if (!command(CMD_VERSION, &c))
     {
-        if (!m_reconnecting) LOG_ERROR(tr("msg.wrong.device"));
+        if (!m_reconnecting) LOG_ERROR("The device on this port did not answer as a Wheelly wheel. Check the port.");
         return false;
     }
     if (c[F_NAME] != "wheelly")
     {
-        if (!m_reconnecting) LOG_ERROR(tr("msg.wrong.device"));
+        if (!m_reconnecting) LOG_ERROR("The device on this port did not answer as a Wheelly wheel. Check the port.");
         return false;
     }
     if (c[F_PROTO] != std::to_string(PROTOCOL_VERSION))
     {
         if (!m_reconnecting)
-            LOGF_ERROR("%s", trf("msg.wrong.protocol",
+            LOGF_ERROR("%s", fill_in("This firmware speaks protocol %1$s, this driver speaks %2$s. Update one of the two.",
         {c[F_PROTO], std::to_string(PROTOCOL_VERSION)}).c_str());
         return false;
     }
@@ -778,7 +892,8 @@ bool Wheelly::Handshake()
     if (m_only_mine && serial != m_expected_serial)
     {
         if (!m_reconnecting)
-            LOGF_INFO("%s", trf("msg.serial.other", {serial, m_expected_serial}).c_str());
+            LOGF_INFO("%s",
+                      fill_in("This is a different Wheelly (serial %1$s) from the one this profile uses (%2$s): looking for yours on the other ports.", {serial, m_expected_serial}).c_str());
         return false;
     }
     // The very first connection, or a board replaced and found again in the
@@ -804,9 +919,8 @@ bool Wheelly::Handshake()
         }
         else
         {
-            // through the catalogue like every user-facing text, and with the
-            // whole range: "max 12" alone read wrong for a wheel reporting 1
-            LOGF_WARN("%s", trf("msg.slots.unsupported",
+            // with the whole range: "max 12" alone read wrong for a wheel reporting 1
+            LOGF_WARN("%s", fill_in("The wheel reports %1$s slots, which this driver cannot handle (from %2$s to %3$s).",
             {
                 std::to_string(count), std::to_string(MIN_SLOTS),
                 std::to_string(MAX_SLOTS)
@@ -820,7 +934,7 @@ bool Wheelly::Handshake()
 
     if (!m_reconnecting)
     {
-        LOGF_INFO("%s", trf("msg.connected", {c[F_FW], c[F_PROTO]}).c_str());
+        LOGF_INFO("%s", fill_in("Connected to Wheelly, firmware %1$s, protocol %2$s.", {c[F_FW], c[F_PROTO]}).c_str());
         m_port_in_use = serialConnection != nullptr ? serialConnection->port() : "";
         remember_alias();
     }
@@ -855,7 +969,12 @@ void Wheelly::link_lost(const std::string &why)
 {
     if (m_link_lost) return;
     m_link_lost = true;
-    LOGF_ERROR("%s", trf("msg.link.lost", {why}).c_str());
+    // THE USB LINK. Said once when it goes and once when it comes back:
+    // before, a wheel unplugged left the driver writing to a dead port and
+    // logging the failure at every poll, 25 times in a few seconds.
+    // %1$s is the system's reason, e.g. "Input/output error".
+    LOGF_ERROR("%s",
+               fill_in("The USB link to the wheel was lost (%1$s). The driver stays connected and reconnects by itself as soon as the wheel is back; until then commands cannot reach it.", {why}).c_str());
 
     // The dead descriptor is closed AT ONCE. Kept open, it also keeps the
     // device node busy, and the kernel gives the wheel coming back another
@@ -990,7 +1109,7 @@ bool Wheelly::try_reconnect()
 
 void Wheelly::link_found(const std::string &path)
 {
-    LOGF_INFO("%s", trf("msg.link.back", {path}).c_str());
+    LOGF_INFO("%s", fill_in("The wheel is back on %1$s: reconnected.", {path}).c_str());
     // The XIAO restarted with the USB: what it held only in working memory
     // is gone, so the panel is read again from the wheel.
     forget_unsaved();
@@ -1031,9 +1150,9 @@ void Wheelly::label_slots()
     for (int i = 0; i < m_slots; i++)
     {
         const std::string n = std::to_string(i + 1);
-        const char *key = i + 1 == m_unsaved_slot ? "prop.angles.unsaved"
-                          : i + 1 == m_marked_slot ? "prop.angles.here" : nullptr;
-        AngleNP[i].setLabel((key != nullptr ? trf(key, {n}) : n).c_str());
+        const char *key = i + 1 == m_unsaved_slot ? "▶ %1$s *"
+                          : i + 1 == m_marked_slot ? "▶ %1$s" : nullptr;
+        AngleNP[i].setLabel((key != nullptr ? fill_in(key, {n}) : n).c_str());
     }
 }
 
@@ -1102,8 +1221,8 @@ void Wheelly::redefine_calibration()
     for (INDI::Property *one : tail) defineProperty(*one);
 }
 
-// The pitch buttons: 360/slots, written with the language's decimal mark and
-// without trailing zeros - "72" on five slots, "51,43" in Italian on seven.
+// The pitch buttons: 360/slots, without trailing zeros - "72" on five slots,
+// "51.43" on seven.
 void Wheelly::label_jogs()
 {
     char pitch[16];
@@ -1111,10 +1230,8 @@ void Wheelly::label_jogs()
     std::string text = pitch;
     while (!text.empty() && text.back() == '0') text.pop_back();
     if (!text.empty() && text.back() == '.') text.pop_back();
-    const size_t dot = text.find('.');
-    if (dot != std::string::npos) text.replace(dot, 1, tr("num.decimal"));
-    JogDownSP[0].setLabel(trf(JOG_LABELS[0], {text}).c_str());
-    JogUpSP[JOG_PER_ROW - 1].setLabel(trf(JOG_LABELS[2 * JOG_PER_ROW - 1], {text}).c_str());
+    JogDownSP[0].setLabel(fill_in(JOG_LABELS[0], {text}).c_str());
+    JogUpSP[JOG_PER_ROW - 1].setLabel(fill_in(JOG_LABELS[2 * JOG_PER_ROW - 1], {text}).c_str());
 }
 
 // A new number of slots, from the panel: the wheel is told, then every
@@ -1128,7 +1245,7 @@ bool Wheelly::change_slots(int count)
     std::string error;
     if (!command(std::string(CMD_SLOTS) + " " + std::to_string(count), &c, &error))
     {
-        LOGF_ERROR("%s", trf("msg.slots.refused", {error}).c_str());
+        LOGF_ERROR("%s", fill_in("The wheel refused the new number of slots: %1$s", {error}).c_str());
         return false;
     }
     m_slots = (int)number(c, F_SLOTS, count);
@@ -1141,7 +1258,8 @@ bool Wheelly::change_slots(int count)
     defineProperty(FilterNameTP);
     redefine_calibration();
     read_calibration();
-    LOGF_WARN("%s", trf("msg.slots.changed", {std::to_string(m_slots)}).c_str());
+    LOGF_WARN("%s",
+              fill_in("The wheel now has %1$s slots. Its calibration starts again from evenly spaced angles and generic names: teach each slot (steps, then Set on its row) and name the filters, then press 'Save to the wheel'. Until then nothing is written: switching the wheel off brings back the previous setup.", {std::to_string(m_slots)}).c_str());
     return true;
 }
 
@@ -1206,7 +1324,8 @@ void Wheelly::take_ceiling(const Fields &reply, bool warn)
         char worst[16], ekos[16];
         snprintf(worst, sizeof(worst), "%.0f", std::ceil(ms / 1000.0));
         snprintf(ekos, sizeof(ekos), "%lu", EKOS_FILTER_TIMEOUT_MS / 1000);
-        LOGF_WARN("%s", trf("msg.ceiling.ekos", {worst, ekos}).c_str());
+        LOGF_WARN("%s",
+                  fill_in("With these motor settings the longest filter change can take up to %1$s s, more than the %2$s s after which Ekos gives up on it. Raise the motor speed, shorten the hold after arrival, or choose the shortest way if your wheel allows it.", {worst, ekos}).c_str());
     }
 }
 
@@ -1286,7 +1405,12 @@ bool Wheelly::GetFilterNames()
                  std::to_string(i + 1).c_str(), m_names[i].c_str());
         FilterNameTP.push(std::move(one));
     }
-    FilterNameTP.fill(getDeviceName(), "FILTER_NAME", tr("prop.names"),
+    // The label says the name of the field and nothing more. The naming rule
+    // lives in the refusal MESSAGE, which is the only place in the INDI panel
+    // where a long text really fits: the log box, at the bottom, which wraps
+    // by itself. See firmware.md, section 5.1, for the three routes tried
+    // before and why none of them works.
+    FilterNameTP.fill(getDeviceName(), "FILTER_NAME", "Filter names",
                       TAB_MAIN, IP_RW, 60, IPS_IDLE);
     return true;
 }
@@ -1302,7 +1426,7 @@ bool Wheelly::SetFilterNames()
         if (!command(std::string(CMD_NAME) + " " + std::to_string(i + 1) + " " + fresh,
                      nullptr, &error))
         {
-            LOGF_ERROR("%s", trf("nome.rifiutato", {error}).c_str());
+            LOGF_ERROR("%s", fill_in("Filter name refused: %1$s", {error}).c_str());
             return false;
         }
         m_names[i] = fresh;
@@ -1338,7 +1462,7 @@ bool Wheelly::SelectFilter(int slot)
     FilterSlotNP.apply();
     m_moving = true;
     m_move_start = now_s();
-    LOGF_DEBUG("%s", trf("msg.moving", {std::to_string(slot)}).c_str());
+    LOGF_DEBUG("%s", fill_in("Moving to slot %1$s.", {std::to_string(slot)}).c_str());
     return true;
 }
 
@@ -1449,9 +1573,20 @@ void Wheelly::TimerHit()
             // is left in the log is "timeout" and nobody knows why.
             m_moving = false;
             command(CMD_STOP);
-            LOGF_ERROR("%s", trf("msg.timeout",
+            LOGF_ERROR("%s", fill_in("The wheel did not finish within %1$s seconds. Imaging is stopped.",
             {std::to_string((int)std::ceil(move_ceiling_s()))}).c_str());
-            LOG_WARN(tr("msg.hint.detent"));
+            // THE HINT ON SLIP OR STALL. Said on its own line
+            // right after every "not reached": the slot NOT reached, the time cap,
+            // the failed jog. The first suspect when the motor stalls or the clutch
+            // slips is a detent left in place, because the motor cannot climb out of
+            // its notches - it is removed when the magnet is fitted, and a wheel
+            // assembled from an older guide may still have it. A line of its own and
+            // not appended: an INDI message is cut silently at 255 characters (see
+            // the filter-name refusal below), and the "not reached" line is already long.
+            // The chapter is named by its title too: its number is prose here, not
+            // the guide's {cap_the_wheel_body}, and a chapter inserted before it
+            // would leave the title still right.
+            LOG_WARN("If the motor stalls or the clutch slips, check first that the wheel's detent (its spring click stop) has been removed: the motor cannot climb out of its notches. Assembly guide, chapter 10, The wheel body.");
             FilterSlotNP.setState(IPS_ALERT);
             FilterSlotNP.apply();
             record_move(status, "timeout");
@@ -1469,9 +1604,10 @@ void Wheelly::TimerHit()
                 // Alert on FILTER_SLOT: Ekos stops the sequence at once, and
                 // that is exactly what is wanted - no frame with the wheel out
                 // of place.
-                LOGF_ERROR("%s", trf("msg.failed",
+                LOGF_ERROR("%s",
+                           fill_in("Slot %1$s NOT reached: off by %2$s deg after %3$s retries. Imaging is stopped so that no frame is taken with the wheel out of place.",
                 {which, deviation, std::to_string(retries)}).c_str());
-                LOG_WARN(tr("msg.hint.detent"));
+                LOG_WARN("If the motor stalls or the clutch slips, check first that the wheel's detent (its spring click stop) has been removed: the motor cannot climb out of its notches. Assembly guide, chapter 10, The wheel body.");
                 FilterSlotNP.setState(IPS_ALERT);
                 FilterSlotNP.apply();
             }
@@ -1480,7 +1616,7 @@ void Wheelly::TimerHit()
                 // Outside the good tolerance but inside the warning one: warn
                 // and let it go on. Never Alert here, otherwise a recoverable
                 // warning would stop the night.
-                LOGF_WARN("%s", trf("msg.warning", {which, deviation}).c_str());
+                LOGF_WARN("%s", fill_in("Slot %1$s reached but off by %2$s deg, beyond the good tolerance. Imaging continues.", {which, deviation}).c_str());
                 CurrentFilter = slot > 0 ? slot : TargetFilter;
                 SelectFilterDone(CurrentFilter);
             }
@@ -1496,7 +1632,7 @@ void Wheelly::TimerHit()
                     // still at rest anyway and blocking the night would be worse.
                     LOGF_WARN("Unknown outcome from the wheel: %s", outcome.c_str());
                 }
-                LOGF_INFO("%s", trf("msg.arrived", {which, deviation}).c_str());
+                LOGF_INFO("%s", fill_in("Slot %1$s reached, residual error %2$s deg.", {which, deviation}).c_str());
                 CurrentFilter = slot > 0 ? slot : TargetFilter;
                 SelectFilterDone(CurrentFilter);
             }
@@ -1575,7 +1711,7 @@ bool Wheelly::ISNewText(const char *dev, const char *name, char *texts[],
         ::mkdir(where.c_str(), 0755);
         const bool usable = (::access(where.c_str(), W_OK) == 0);
         if (!usable)
-            LOGF_WARN("%s", trf("msg.sweepdir.bad",
+            LOGF_WARN("%s", fill_in("The folder %1$s cannot be used right now: %2$s. The sweeps will not be saved until it can.",
         {where, std::strerror(errno)}).c_str());
         SweepDirTP.setState(usable ? IPS_OK : IPS_ALERT);
         SweepDirTP.apply();
@@ -1614,9 +1750,16 @@ bool Wheelly::ISNewText(const char *dev, const char *name, char *texts[],
                           const std::string & suggestion)
         {
             const std::string sentence = suggestion.empty()
-                                         ? trf("nome.rifiutato.slot",
+                                         // The refusal ends up in the log, and that is the only place where the
+                                         // explanation fits: so it says everything. The rule (the allowed characters) is
+                                         // joined to it only when the two fit together: an INDI message is a
+                                         // char[MAXINDIMESSAGE] with MAXINDIMESSAGE = 255 (indiapi.h), and whatever
+                                         // is left over is cut SILENTLY - with the rule always appended, the refusal
+                                         // of "-Lum-" reached Ekos truncated at "...una cif". When they do not fit
+                                         // they go on two lines, the refusal LAST (see refuse() in wheelly.cpp).
+                                         ? fill_in("Slot %1$s: \"%2$s\" refused - %3$s.",
             {std::to_string(slot), text, why})
-                : trf("nome.rifiutato.slot.prova",
+                : fill_in("Slot %1$s: \"%2$s\" refused - %3$s. A name that would be accepted here: \"%4$s\".",
             {std::to_string(slot), text, why, suggestion});
 
             // Two signals together, because one alone is not enough: the red
@@ -1639,7 +1782,11 @@ bool Wheelly::ISNewText(const char *dev, const char *name, char *texts[],
             // together, and when they do not (MAXINDIMESSAGE = 255 bytes, the
             // cut is silent - a long name, a long reason and a long suggestion
             // do not fit), the rule first and the refusal after it.
-            const std::string rule = tr("nome.ammessi");
+            // The rule, which ALWAYS goes with the refusal - even when the
+            // reason has nothing to do with the characters: whoever reads the refusal
+            // is the person who at that moment wants to know what they can write.
+            const std::string rule =
+                "Allowed: letters without accents, digits, _ - and . ; 1 to 32 characters; the first and the last must be a letter or a digit.";
             const std::string both = sentence + " " + rule;
             if (both.size() < MAXINDIMESSAGE)
             {
@@ -1662,10 +1809,10 @@ bool Wheelly::ISNewText(const char *dev, const char *name, char *texts[],
         //    which is exactly what the rule exists to prevent;
         //  - it passes the name rule as it is, so the firmware (protocol 2,
         //    unchanged) stores it like any other name;
-        //  - it is NOT translated: it is stored in the wheel and written in
-        //    the FITS FILTER keyword, and a wheel moved to a computer in
-        //    another language must keep the same names - like the factory
-        //    ones, Lum, Red, ...
+        //  - it is the same everywhere: it is stored in the wheel and written
+        //    in the FITS FILTER keyword, and a wheel moved to another
+        //    computer must keep the same names - like the factory ones,
+        //    Lum, Red, ...
         // The field then shows the name given, so what Ekos lists is what the
         // wheel holds, and one log line says it was done - once the whole set
         // is accepted, not before a refusal that would undo it.
@@ -1716,13 +1863,15 @@ bool Wheelly::ISNewText(const char *dev, const char *name, char *texts[],
                 // own, and cleaning it would leave it as it is. A free name is
                 // chosen by whoever knows what the slot is for, not by the driver.
                 refuse(which_slot(names[i]), texts[i],
-                       tr("nome.duplicate"), std::string());
+                       "another slot already has this name, ignoring upper and lower case", std::string());
                 return true;
             }
         }
 
         for (int i : given)
-            LOGF_INFO("%s", trf("nome.vuoto.dato",
+            // A slot left without a name is a slot without a filter: the driver names
+            // it and says so, so that the name appearing in the field is not a mystery.
+            LOGF_INFO("%s", fill_in("Slot %1$s left empty, so it has no filter: it is now called \"%2$s\".",
         {std::to_string(which_slot(names[i])), own[i]}).c_str());
     }
     return INDI::FilterWheel::ISNewText(dev, name, texts, names, n);
@@ -1810,7 +1959,8 @@ bool Wheelly::ISNewNumber(const char *dev, const char *name, double values[],
                 HoldNP[0].setValue(number(c, F_MA, HoldNP[0].getValue()));
                 // Whoever turns holding on must know what they are buying: heat
                 // next to the cooled sensor and a chopper singing during the exposure.
-                if (HoldNP[0].getValue() > 0) LOG_WARN(tr("msg.hold.on"));
+                if (HoldNP[0].getValue() > 0)
+                    LOG_WARN("Holding current is on: the motor stays energised at rest. It warms up next to the sensor and the driver sings during exposures. Leave it off unless the wheel drifts at rest.");
             }
             // The settling hold is sent only when it changed: a firmware
             // without `settle` then keeps working as before when only the
@@ -1880,7 +2030,7 @@ bool Wheelly::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 const std::string read = t != c.end() ? t->second : std::string(argument);
                 DirectionSP.reset();
                 DirectionSP[read == ARG_UP ? 1 : read == ARG_DOWN ? 2 : 0].setState(ISS_ON);
-                LOG_INFO(tr("msg.direction.set"));
+                LOG_INFO("Direction of travel changed. Press \"Save to the wheel\" to keep the choice after power-off.");
                 take_ceiling(c, true);
             }
             DirectionSP.setState(ok ? IPS_OK : IPS_ALERT);
@@ -1899,13 +2049,16 @@ bool Wheelly::ISNewSwitch(const char *dev, const char *name, ISState *states,
             const bool ok = command(std::string(CMD_LED) + " " + argument, &c);
             if (ok && choice == 3)
             {
-                LOGF_INFO("%s", trf("msg.led.test",
+                LOGF_INFO("%s",
+                          fill_in("The LED is blinking WHEELLY in Morse for %1$s seconds. Do this with the cover open or in daylight: it is inside the optical path.",
                 {c.count(F_DURATION) ? c[F_DURATION] : "7"}).c_str());
             }
             else if (ok)
             {
                 // the explanation goes in the log, not in the panel
-                LOG_INFO(tr(choice == 1 ? "msg.led.pulse" : "msg.led.mode"));
+                LOG_INFO(choice == 1
+                         ? "The LED stays off, and breathes gently while the wheel goes to another filter. Press \"Save to the wheel\" to keep the choice after power-off."
+                         : "LED mode changed. Press \"Save to the wheel\" to keep the choice after power-off.");
             }
             // the test ends by itself: the switch goes back to the mode the
             // wheel has, read from it, and so does a refused command
@@ -1929,7 +2082,7 @@ bool Wheelly::ISNewSwitch(const char *dev, const char *name, ISState *states,
             // one looking for the problem in ten wrong places.
             DiagSP.update(states, names, n);
             m_show_comments = true;
-            LOG_INFO(tr("msg.diag"));
+            LOG_INFO("Asking the wheel whether it can really talk to its sensor and its motor driver:");
             const bool ok = command(CMD_DIAG);
             m_show_comments = false;
             DiagSP.reset();
@@ -1944,7 +2097,7 @@ bool Wheelly::ISNewSwitch(const char *dev, const char *name, ISState *states,
             SweepSP.reset();
             if (m_moving || m_sweeping)
             {
-                LOG_ERROR(tr("msg.sweep.notnow"));
+                LOG_ERROR("Cannot sweep while the wheel is moving: wait for it to stop.");
                 SweepSP.setState(IPS_ALERT);
                 SweepSP.apply();
             }
@@ -1962,7 +2115,7 @@ bool Wheelly::ISNewSwitch(const char *dev, const char *name, ISState *states,
             else
             {
                 close_log();
-                LOG_INFO(tr("msg.log.off"));
+                LOG_INFO("Movement log off.");
             }
             LogSP.setState(IPS_OK);
             LogSP.apply();
@@ -1970,17 +2123,6 @@ bool Wheelly::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-#if WHEELLY_ITALIAN
-        if (LanguageSP.isNameMatch(name))
-        {
-            LanguageSP.update(states, names, n);
-            LanguageSP.setState(IPS_OK);
-            LanguageSP.apply();
-            saveConfig(LanguageSP);
-            LOG_INFO(tr("msg.language.later"));
-            return true;
-        }
-#endif
     }
     return INDI::FilterWheel::ISNewSwitch(dev, name, states, names, n);
 }
@@ -1995,9 +2137,6 @@ bool Wheelly::saveConfigItems(FILE *fp)
     ToleranceNP.save(fp);
     SweepDirTP.save(fp);
     LogSP.save(fp);
-#if WHEELLY_ITALIAN
-    LanguageSP.save(fp);
-#endif
     return true;
 }
 
@@ -2013,14 +2152,14 @@ bool Wheelly::saveConfigItems(FILE *fp)
 // ordinary change and the wheel goes. A row whose value did not change sends
 // no `angle` and only takes the wheel to its slot: pressing Set on a row
 // always means "that slot, at that angle". The range is the wheel's own:
-// its refusal, translated, is what the log says, and the row keeps its old
+// its refusal is what the log says, and the row keeps its old
 // value, in Alert.
 void Wheelly::set_angle(int slot, double value)
 {
     INDI::PropertyNumber &row = AngleNP[slot - 1];
     if (m_moving || m_sweeping || m_jogging)
     {
-        LOG_ERROR(tr("msg.angle.notnow"));
+        LOG_ERROR("Cannot change the angles while the wheel is moving: wait for it to stop.");
         row.setState(IPS_ALERT);
         row.apply();
         return;
@@ -2035,7 +2174,7 @@ void Wheelly::set_angle(int slot, double value)
         std::string error;
         if (!command(line, &c, &error))
         {
-            LOGF_ERROR("%s", trf("msg.angle.refused", {std::to_string(slot), error}).c_str());
+            LOGF_ERROR("%s", fill_in("Slot %1$s: the angle was not changed. %2$s", {std::to_string(slot), error}).c_str());
             row[0].setValue(slot == m_unsaved_slot ? m_live_angle : before);
             row.setState(IPS_ALERT);
             row.apply();
@@ -2050,7 +2189,9 @@ void Wheelly::set_angle(int slot, double value)
             m_angles_stale = true;     // the "*" goes: a label, so a definition
         }
         note_angle_change(slot, before, after, confirm ? "angle-taught" : "angle-set");
-        LOGF_INFO("%s", trf(confirm ? "msg.taught" : "msg.angle.volatile",
+        LOGF_INFO("%s", fill_in(confirm ?
+                                "Slot %1$s now means the angle the wheel is at right now. Press 'Save to the wheel' to keep it after the wheel is switched off."
+                                : "The new angles live in the wheel's working memory: press 'Save to the wheel' to keep them after the wheel is switched off.",
         {std::to_string(slot)}).c_str());
     }
     row.setState(IPS_OK);
@@ -2082,7 +2223,10 @@ void Wheelly::note_angle_change(int slot, double before, double after, const cha
     snprintf(was, sizeof(was), "%.2f", before);
     snprintf(is, sizeof(is), "%.2f", after);
     snprintf(delta, sizeof(delta), "%.2f", std::remainder(after - before, 360.0));
-    LOGF_INFO("%s", trf("msg.angle.changed", {std::to_string(slot), was, is}).c_str());
+    // Every change of a calibration angle, from the Set or from 'Save
+    // position': the history the rotation trim was meant to
+    // keep, with its date, in the log and in the movement register.
+    LOGF_INFO("%s", fill_in("Slot %1$s: %2$s° → %3$s°.", {std::to_string(slot), was, is}).c_str());
     if (m_log == nullptr) return;
     char when[32];
     const std::time_t now = std::time(nullptr);
@@ -2095,11 +2239,11 @@ bool Wheelly::save_to_wheel()
 {
     if (!isConnected())
     {
-        LOG_ERROR(tr("msg.notconnected"));
+        LOG_ERROR("Connect the wheel first.");
         return false;
     }
     const bool ok = command(CMD_SAVE);
-    if (ok) LOG_INFO(tr("msg.saved"));
+    if (ok) LOG_INFO("Calibration saved in the wheel.");
     return ok;
 }
 
@@ -2118,7 +2262,7 @@ bool Wheelly::jog_pressed(INDI::PropertySwitch &row, int first,
     }
     if (m_moving || m_sweeping || m_jogging)
     {
-        LOG_ERROR(tr("msg.jog.notnow"));
+        LOG_ERROR("Cannot move the wheel by a step while it is moving: wait for it to stop.");
         row.setState(IPS_ALERT);
         row.apply();
         return true;
@@ -2131,8 +2275,8 @@ bool Wheelly::jog_pressed(INDI::PropertySwitch &row, int first,
     snprintf(line, sizeof(line), "%s %.4f", CMD_JOG, degrees);
     if (!command(line, nullptr, &error))
     {
-        // an old firmware answers "unknown command": said, translated
-        LOGF_ERROR("%s", error.empty() ? tr("msg.no.answer") : error.c_str());
+        // an old firmware answers "unknown command", and the log says so
+        LOGF_ERROR("%s", error.empty() ? "The wheel is not answering." : error.c_str());
         row.setState(IPS_ALERT);
         row.apply();
         return true;
@@ -2159,10 +2303,12 @@ void Wheelly::finish_jog(const Fields &status, const std::string &outcome)
     const bool failed = outcome == EV_FAILED;
     if (failed)
     {
-        LOGF_ERROR("%s", trf("msg.jog.failed", {angle, off}).c_str());
-        LOG_WARN(tr("msg.hint.detent"));
+        LOGF_ERROR("%s",
+                   fill_in("The wheel did not get where the step asked: it is at %1$s°, %2$s° away. Try again, or turn it by hand and write the angle it reaches in its row.", {angle, off}).c_str());
+        LOG_WARN("If the motor stalls or the clutch slips, check first that the wheel's detent (its spring click stop) has been removed: the motor cannot climb out of its notches. Assembly guide, chapter 10, The wheel body.");
     }
-    else        LOGF_INFO("%s", trf("msg.jog.done", {angle, off}).c_str());
+    // the jog: %1$s the angle now, %2$s how far from the target
+    else        LOGF_INFO("%s", fill_in("The wheel is at %1$s°, %2$s° from where the step asked.", {angle, off}).c_str());
     if (m_jog_row != nullptr)
     {
         m_jog_row->setState(failed ? IPS_ALERT : IPS_OK);
@@ -2207,7 +2353,7 @@ void Wheelly::start_sweep()
     m_sweeping = true;
     SweepSP.setState(IPS_BUSY);
     SweepSP.apply();
-    LOG_INFO(tr("msg.sweep.start"));
+    LOG_INFO("Turning all the way round and measuring the magnet at every step. The wheel moves: do this with the cover open, not during a sequence.");
     sweep_step();
 }
 
@@ -2240,7 +2386,7 @@ void Wheelly::finish_sweep(bool succeeded)
     // a measurement.
     if (!succeeded || m_samples.size() < 4)
     {
-        LOG_ERROR(tr("msg.sweep.failed"));
+        LOG_ERROR("The sweep stopped before finishing the turn: the plot would lie about the magnet, so none was made.");
         SweepSP.setState(IPS_ALERT);
         SweepSP.apply();
         return;
@@ -2257,13 +2403,15 @@ void Wheelly::finish_sweep(bool succeeded)
     for (int i = 0; i < m_slots; i++) angles.push_back(m_taught[i]);
 
     PlotLabels labels;
-    labels.title     = tr("graf.titolo");
-    labels.x_axis    = tr("graf.asse.x");
-    labels.y_axis    = tr("graf.asse.y");
-    labels.samples   = tr("graf.campioni");
-    labels.span      = tr("graf.escursione");
-    labels.minimum   = tr("graf.min");
-    labels.maximum   = tr("graf.max");
+    // All capitals and without accents: the hand-drawn font in plot.cpp has
+    // only those, and a letter it does not know becomes a space.
+    labels.title     = "MAGNET SWEEP";
+    labels.x_axis    = "ANGLE (DEG)";
+    labels.y_axis    = "MAGNITUDE";
+    labels.samples   = "SAMPLES";
+    labels.span      = "EXCURSION";
+    labels.minimum   = "MIN";
+    labels.maximum   = "MAX";
     m_png = sweep_png(m_samples, angles, labels);
 
     // The format is not repeated here: fill() declares it, and it is what the
@@ -2306,8 +2454,8 @@ void Wheelly::finish_sweep(bool succeeded)
     }
     else
     {
-        FileTP[FILE_SWEEP].setText(tr("prop.files.none"));
-        LOGF_WARN("%s", trf("msg.sweep.nofile",
+        FileTP[FILE_SWEEP].setText("not written yet");
+        LOGF_WARN("%s", fill_in("Cannot write the plot to %1$s: %2$s",
         {where, std::strerror(why)}).c_str());
     }
     FileTP.setState(written ? IPS_OK : IPS_ALERT);
@@ -2316,13 +2464,14 @@ void Wheelly::finish_sweep(bool succeeded)
     char deviation[16];
     snprintf(deviation, sizeof(deviation), "%.1f",
              maximum > 0 ? (maximum - minimum) / maximum * 100.0 : 0.0);
-    LOGF_INFO("%s", trf("msg.sweep.done",
+    LOGF_INFO("%s",
+              fill_in("Sweep done: %1$s samples, magnitude from %2$s to %3$s, excursion %4$s counts (%5$s%%). The smaller it is, the better the magnet is centred.",
     {
         std::to_string(m_samples.size()),
         std::to_string((long)minimum), std::to_string((long)maximum),
         std::to_string((long)(maximum - minimum)), deviation
     }).c_str());
-    if (written) LOGF_INFO("%s", trf("msg.sweep.file", {where}).c_str());
+    if (written) LOGF_INFO("%s", fill_in("The plot is here: %1$s", {where}).c_str());
     SweepSP.setState(IPS_OK);
     SweepSP.apply();
 }
@@ -2399,7 +2548,7 @@ void Wheelly::open_log()
     m_log = std::fopen(path.c_str(), "a");
     if (m_log == nullptr)
     {
-        LOGF_ERROR("%s", trf("msg.log.failed",
+        LOGF_ERROR("%s", fill_in("Cannot write the log file %1$s: %2$s",
         {path, std::strerror(errno)}).c_str());
         LogSP.reset();
         LogSP[1].setState(ISS_ON);
@@ -2415,7 +2564,7 @@ void Wheelly::open_log()
         std::fprintf(m_log,
                      "timestamp,slot,target,angle,error,retries,outcome,agc,magnitude\n");
     std::fflush(m_log);
-    LOGF_INFO("%s", trf("msg.log.on", {path}).c_str());
+    LOGF_INFO("%s", fill_in("Movement log on: %1$s", {path}).c_str());
 }
 
 void Wheelly::close_log()

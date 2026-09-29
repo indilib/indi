@@ -32,9 +32,8 @@ struct Sample
     double magnitude;    // AS5600 counts
 };
 
-// The labels of the plot, already translated. The drawer does not know the
-// catalogue on purpose - so it stays a pure function, testable on its own -
-// and the font has only unaccented capitals, so the labels must be chosen
+// The labels of the plot, given by the driver: the drawer stays a pure
+// function, testable on its own - and the font has only unaccented capitals, so the labels must be chosen
 // accordingly.
 struct PlotLabels
 {
