@@ -316,7 +316,6 @@ class Wheelly : public INDI::FilterWheel
         // --- internal state -------------------------------------------------
         LineReader m_reader;
         bool m_moving {false};
-        int m_last_outcome_reported {-1};
         double m_move_start {0.0};
         double m_wheel_ceiling_s {0.0};          // 0 = the wheel did not say
         bool m_magnet_lost {false};
