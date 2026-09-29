@@ -823,7 +823,7 @@
             <version>1.0</version>
         </device>
         <device label="Wheelly" manufacturer="DIY">
-            <driver name="Wheelly">indi_wheelly</driver>
+            <driver name="Wheelly">indi_wheelly_wheel</driver>
             <version>0.1</version>
         </device>
     </devGroup>

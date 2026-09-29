@@ -120,9 +120,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly_config.h.cmake
 SET(wheelly_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly.cpp)
 
-add_executable(indi_wheelly ${wheelly_SRC})
-target_include_directories(indi_wheelly PRIVATE
+add_executable(indi_wheelly_wheel ${wheelly_SRC})
+target_include_directories(indi_wheelly_wheel PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/wheelly
     ${CMAKE_CURRENT_BINARY_DIR}/wheelly)
-target_link_libraries(indi_wheelly indidriver)
-install(TARGETS indi_wheelly RUNTIME DESTINATION bin)
+target_link_libraries(indi_wheelly_wheel indidriver)
+install(TARGETS indi_wheelly_wheel RUNTIME DESTINATION bin)
