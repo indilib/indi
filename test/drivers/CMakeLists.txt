@@ -29,3 +29,16 @@ TARGET_LINK_LIBRARIES(test_guide_simulator
 )
 
 ADD_TEST(test_guide_simulator test_guide_simulator)
+
+ADD_EXECUTABLE(test_telescope_simulator
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/telescope_simulator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/scopesim_helper.cpp"
+    test_telescope_simulator.cpp
+)
+TARGET_LINK_LIBRARIES(test_telescope_simulator
+    AlignmentDriver
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_telescope_simulator test_telescope_simulator)
