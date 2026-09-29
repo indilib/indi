@@ -466,16 +466,6 @@ bool Wheelly::initProperties()
     SweepSP[0].fill("RUN", "Turn all the way round", ISS_OFF);
     SweepSP.fill(getDeviceName(), "WHEELLY_SWEEP", "Magnet sweep",
                  TAB_CALIBRATION, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    // The format says ".wheelly.png" and not ".png", and the difference is not
-    // a whim. KStars, when it receives a BLOB whose extension is an image
-    // format Qt can read, OPENS A WINDOW to show it - and that window is a
-    // child of the main one just as the INDI panel is, so closing it takes the
-    // panel away with it. With an extension Qt does not recognise, KStars only
-    // saves the file. The name still ends in .png, so any viewer opens it
-    // anyway.
-    SweepBP[0].fill("PLOT", "Plot", ".wheelly.png");
-    SweepBP.fill(getDeviceName(), "WHEELLY_SWEEP_PLOT", "Last sweep",
-                 TAB_CALIBRATION, IP_RO, 60, IPS_IDLE);
 
     FileTP[FILE_LOG].fill("PATH", "Movement log", log_path().c_str());
     FileTP[FILE_SWEEP].fill("SWEEP", "Last sweep", "not written yet");
@@ -583,7 +573,6 @@ bool Wheelly::updateProperties()
         defineProperty(LedSP);
         defineProperty(DiagSP);
         defineProperty(SweepSP);
-        defineProperty(SweepBP);
         defineProperty(SweepDirTP);
         defineProperty(LogSP);
         defineProperty(FileTP);
@@ -609,7 +598,6 @@ bool Wheelly::updateProperties()
         deleteProperty(LedSP);
         deleteProperty(DiagSP);
         deleteProperty(SweepSP);
-        deleteProperty(SweepBP);
         deleteProperty(SweepDirTP);
         deleteProperty(LogSP);
         deleteProperty(FileTP);
@@ -1212,7 +1200,7 @@ void Wheelly::redefine_calibration()
     {
         std::addressof(JogDownSP), std::addressof(JogUpSP),
         std::addressof(ActionsSP), std::addressof(ToleranceNP),
-        std::addressof(DiagSP), std::addressof(SweepSP), std::addressof(SweepBP),
+        std::addressof(DiagSP), std::addressof(SweepSP),
         std::addressof(SweepDirTP), std::addressof(LogSP), std::addressof(FileTP)
     };
     delete_angles();
@@ -1639,7 +1627,7 @@ void Wheelly::TimerHit()
             record_move(status, outcome.c_str());
 
             // The sweep goes on from here: one hop is over, on to the next.
-            // If the hop failed the turn stops, because a plot with a hole in
+            // If the hop failed the turn stops, because a sweep with a hole in
             // it would say something false about the magnet.
             if (m_sweeping)
             {
@@ -1665,9 +1653,9 @@ void Wheelly::TimerHit()
     // a curve, they draw a constellation. It costs little - a 'status' line is
     // two milliseconds of wire at 115200 - and lasts as long as the turn.
     // the "▶" on the current slot's angle, only when the slot changed. Not
-    // during a sweep: every hop changes slot, and redefining the plot's BLOB
-    // under it loses the plot (found on the bench); the sweep ends on the
-    // slot it started from, so there is nothing to catch up afterwards.
+    // during a sweep: every hop changes slot, and the tab would be redefined
+    // at every hop for nothing - the sweep ends on the slot it started from,
+    // so there is nothing to catch up afterwards.
     if (!m_sweeping) mark_current_slot();
 
     SetTimer(m_sweeping ? SAMPLE_INTERVAL_MS : getCurrentPollingPeriod());
@@ -2345,9 +2333,8 @@ void Wheelly::start_sweep()
     // whoever was capturing does not find a filter different from the one
     // they had.
     m_sweep_remaining = m_slots;
-    // The live row goes back to its taught angle NOW, before the sweep: the
-    // redefinition it needs would wipe the plot if it came during or after
-    // the turn (the previous plot is still gone either way: it is on disk).
+    // The live row goes back to its taught angle NOW, before the sweep: during
+    // the turn the rows are not redefined (see the end of TimerHit).
     forget_unsaved();
     refresh_angles();
     m_sweeping = true;
@@ -2381,12 +2368,11 @@ void Wheelly::finish_sweep(bool succeeded)
 {
     m_sweeping = false;
 
-    // Fewer than four samples is not a plot, it is a pretext: better to say
-    // that it did not work than to draw a straight line and make it look like
-    // a measurement.
+    // Fewer than four samples is not a sweep, it is a pretext: better to say
+    // that it did not work than to leave a file that looks like a measurement.
     if (!succeeded || m_samples.size() < 4)
     {
-        LOG_ERROR("The sweep stopped before finishing the turn: the plot would lie about the magnet, so none was made.");
+        LOG_ERROR("The sweep stopped before finishing the turn: it would lie about the magnet, so nothing was written.");
         SweepSP.setState(IPS_ALERT);
         SweepSP.apply();
         return;
@@ -2399,33 +2385,17 @@ void Wheelly::finish_sweep(bool succeeded)
         maximum = std::max(maximum, c.magnitude);
     }
 
-    std::vector<double> angles;
-    for (int i = 0; i < m_slots; i++) angles.push_back(m_taught[i]);
-
-    PlotLabels labels;
-    // All capitals and without accents: the hand-drawn font in plot.cpp has
-    // only those, and a letter it does not know becomes a space.
-    labels.title     = "MAGNET SWEEP";
-    labels.x_axis    = "ANGLE (DEG)";
-    labels.y_axis    = "MAGNITUDE";
-    labels.samples   = "SAMPLES";
-    labels.span      = "EXCURSION";
-    labels.minimum   = "MIN";
-    labels.maximum   = "MAX";
-    m_png = sweep_png(m_samples, angles, labels);
-
-    // The format is not repeated here: fill() declares it, and it is what the
-    // client reads: a second declaration here would be dead code.
-    SweepBP[0].setBlob(const_cast<char *>(m_png.data()));
-    SweepBP[0].setBlobLen((int)m_png.size());
-    SweepBP[0].setSize((int)m_png.size());
-    SweepBP.setState(IPS_OK);
-    SweepBP.apply();
-
-    // The plot is also written to disk, with a path the driver KNOWS and can
-    // therefore say. The BLOB's one is chosen by the client - in KStars the
-    // FITS folder, with a name full of date and time - and the driver has no
-    // way of knowing it or of writing it anywhere.
+    // The samples go to a CSV file, and the driver draws nothing: an INDI
+    // driver measures and reports, and a picture is the client's business
+    // (INDI's maintainers asked for the drawing code to go). The file is data
+    // any spreadsheet opens, and the project's sweep viewer (sweep.html, a
+    // single page that works offline) draws it as the driver used to: the
+    // magnitude against the angle, with the taught angles marked - which is
+    // why they are written in the header, with the number of slots.
+    // Rejected: sending the file as a BLOB. KStars opens an image BLOB in a
+    // window whose closing also closes the INDI panel, and a CSV BLOB it only
+    // saves, in a folder the driver cannot know: the path in "Files on disk"
+    // is what the user needs.
     const std::string where = sweep_path();
     ensure_folder(where);
     bool written = false;
@@ -2434,9 +2404,14 @@ void Wheelly::finish_sweep(bool succeeded)
     // the mkdir above, and the message said "File exists" to someone who could
     // not write a file.
     int why = 0;
-    if (std::FILE *f = std::fopen(where.c_str(), "wb"))
+    if (std::FILE *f = std::fopen(where.c_str(), "w"))
     {
-        written = std::fwrite(m_png.data(), 1, m_png.size(), f) == m_png.size();
+        bool ok = std::fprintf(f, "# Wheelly magnet sweep\n# slots,%d\n# taught_deg", m_slots) > 0;
+        for (int i = 0; i < m_slots; i++) ok = ok && std::fprintf(f, ",%.2f", m_taught[i]) > 0;
+        ok = ok && std::fprintf(f, "\nangle_deg,magnitude\n") > 0;
+        for (const Sample &c : m_samples)
+            ok = ok && std::fprintf(f, "%.2f,%.0f\n", c.angle, c.magnitude) > 0;
+        written = ok;
         if (!written) why = errno;
         if (std::fclose(f) != 0 && written)
         {
@@ -2455,7 +2430,7 @@ void Wheelly::finish_sweep(bool succeeded)
     else
     {
         FileTP[FILE_SWEEP].setText("not written yet");
-        LOGF_WARN("%s", fill_in("Cannot write the plot to %1$s: %2$s",
+        LOGF_WARN("%s", fill_in("Cannot write the sweep to %1$s: %2$s",
         {where, std::strerror(why)}).c_str());
     }
     FileTP.setState(written ? IPS_OK : IPS_ALERT);
@@ -2471,7 +2446,10 @@ void Wheelly::finish_sweep(bool succeeded)
         std::to_string((long)minimum), std::to_string((long)maximum),
         std::to_string((long)(maximum - minimum)), deviation
     }).c_str());
-    if (written) LOGF_INFO("%s", fill_in("The plot is here: %1$s", {where}).c_str());
+    if (written)
+        LOGF_INFO("%s",
+                  fill_in("The sweep is here: %1$s. To see it as a curve, open it with the sweep viewer: https://teoteo.github.io/Wheelly/tools/sweep.html",
+    {where}).c_str());
     SweepSP.setState(IPS_OK);
     SweepSP.apply();
 }
@@ -2489,7 +2467,7 @@ std::string Wheelly::sweep_path() const
     // one is read by a spreadsheet, this one by whoever remembers touching the
     // wheel "last night around nine".
     //
-    // And in Documents, not in the driver's hidden folder: a plot is something
+    // And in Documents, not in the driver's hidden folder: a sweep is something
     // to look at, and goes where things are looked at.
     char when[32];
     const std::time_t now = std::time(nullptr);
@@ -2500,7 +2478,7 @@ std::string Wheelly::sweep_path() const
     std::string folder = expand_home(SweepDirTP[0].getText());
     while (folder.size() > 1 && folder.back() == '/') folder.pop_back();
     if (folder.empty()) folder = default_folder();
-    return folder + "/" + when + "_wheelly_sweep.png";
+    return folder + "/" + when + "_wheelly_sweep.csv";
 }
 
 std::string Wheelly::default_folder()

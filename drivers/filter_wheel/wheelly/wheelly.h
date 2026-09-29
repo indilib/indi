@@ -14,7 +14,20 @@
 #define WHEELLY_H
 
 #include "wheelly_protocol.h"
-#include "plot.h"
+
+#include <string>
+#include <vector>
+
+namespace wheelly
+{
+// A sample of the sweep: where the wheel stood, and how strongly the sensor
+// saw the magnet at that moment.
+struct Sample
+{
+    double angle;        // degrees, 0..360
+    double magnitude;    // AS5600 counts
+};
+}  // namespace wheelly
 
 // libindi's headers are named the way INDI's own drivers name them - no
 // "libindi/" prefix - because that is the only spelling that resolves both
@@ -22,7 +35,6 @@
 // and inside INDI's source tree, where the headers sit in libs/indibase and
 // there is no libindi/ directory at all.
 #include "indifilterwheel.h"
-#include "indipropertyblob.h"
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
 #include "indipropertytext.h"
@@ -192,7 +204,7 @@ class Wheelly : public INDI::FilterWheel
         void forget_unsaved();               // the live row back to its taught angle
         // Redefines the angles if something is owed, once the wheel is still:
         // during a move it waits, so a change of slot costs one definition
-        // and not two, and during a sweep it never runs (it wipes the plot).
+        // and not two, and during a sweep it never runs (every hop changes slot).
         void refresh_angles();
         void redefine_calibration();         // the rows and all after them in the tab
         void define_angles();                // the first m_slots rows
@@ -256,12 +268,10 @@ class Wheelly : public INDI::FilterWheel
         INDI::PropertySwitch LedSP {4};          // steady, pulse, off, test
         INDI::PropertySwitch DiagSP {1};         // "is it talking to the hardware?"
         INDI::PropertySwitch LogSP {2};          // on, off
-        // The sweep: a full turn measuring the magnet at every step, and the
-        // plot that comes out of it. The plot is a BLOB because it is the only
-        // way INDI has of sending a file; KStars, for a device that is not a
-        // camera, saves it and opens it in its ImageViewer window.
+        // The sweep: a full turn measuring the magnet at every step. The
+        // samples go to a CSV file in the sweeps folder; the driver draws
+        // nothing (see finish_sweep).
         INDI::PropertySwitch SweepSP {1};
-        INDI::PropertyBlob SweepBP {1};
         // The two files the driver leaves on disk: the movement log and the
         // last sweep. Written in the panel, because a path said once in the
         // log is a lost path.
@@ -319,9 +329,6 @@ class Wheelly : public INDI::FilterWheel
         bool m_sweeping {false};
         int m_sweep_remaining {0};
         std::vector<wheelly::Sample> m_samples;
-        // The bytes of the PNG must survive the sending: IDSetBLOB does not
-        // make a copy of them, it sends what it is pointed at.
-        std::string m_png;
         // The serial number of the wheel of WHOEVER USES THIS PROFILE, learned
         // at the first connection and saved in the configuration. Empty until
         // nothing has ever been connected.

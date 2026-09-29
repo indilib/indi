@@ -118,8 +118,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly_config.h.cmake
                ${CMAKE_CURRENT_BINARY_DIR}/wheelly/wheelly_config.h)
 
 SET(wheelly_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/plot.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/wheelly/wheelly.cpp)
 
 add_executable(indi_wheelly ${wheelly_SRC})
 target_include_directories(indi_wheelly PRIVATE
