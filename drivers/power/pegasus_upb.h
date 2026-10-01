@@ -199,9 +199,9 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         // Auto Dew v2 Aggressiveness
         enum
         {
-            AUTO_DEW_AGG,
+            AUTO_DEW_AGGRESSION,
         };
-        INDI::PropertyNumber AutoDewAggNP {1};
+        INDI::PropertyNumber AutoDewSettingsNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser

@@ -164,14 +164,14 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         ////////////////////////////////////////////////////////////////////////////////////
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
-        // Power Statistics
-        INDI::PropertyNumber PowerStatisticsNP {4};
+        // Power Consumption
+        INDI::PropertyNumber PowerConsumptionNP {4};
         enum
         {
-            STATS_AVG_AMPS,
-            STATS_AMP_HOURS,
-            STATS_WATT_HOURS,
-            STATS_TOTAL_CURRENT
+            CONSUMPTION_AVG_AMPS,
+            CONSUMPTION_AMP_HOURS,
+            CONSUMPTION_WATT_HOURS,
+            CONSUMPTION_TOTAL_CURRENT
         };
 
         /// Reboot Device
