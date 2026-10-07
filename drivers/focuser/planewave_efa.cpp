@@ -747,6 +747,9 @@ int EFA::readPacket(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_r
             char errstr[MAXRBUF] = {0};
             tty_error_msg(rc, errstr, MAXRBUF);
             LOGF_DEBUG("Looking for SOM (%02X); found %s", DRIVER_SOM, errstr);
+            // Only keep scanning past non-SOM bytes. A timeout means nothing more is coming,
+            // so waiting out the timeout again would just block the driver for longer.
+            break;
         }
     }
     if (rc != TTY_OK || read_bytes != 1 || buf[0] != DRIVER_SOM)
@@ -842,9 +845,14 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
             usleep(100000);
         }
 
-        if (rc < 0 || (bits & TIOCM_CTS) != 0)
+        if (rc < 0)
         {
-            LOGF_ERROR("CTS timed out: %s", strerror(errno));
+            LOGF_ERROR("Failed to read CTS state: %s", strerror(errno));
+            return false;
+        }
+        else if ((bits & TIOCM_CTS) != 0)
+        {
+            LOG_ERROR("CTS timed out: serial bus is still busy.");
             return false;
         }
 
@@ -856,6 +864,8 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
         {
             LOGF_DEBUG("CMD: %s", hexbuf);
         }
+        // Discard any stale input so a late response to an earlier command is not taken as ours
+        tcflush(PortFD, TCIFLUSH);
         rc = writeBytes(PortFD, cmd, cmd_len, &nbytes_written);
 
         if (rc != TTY_OK)

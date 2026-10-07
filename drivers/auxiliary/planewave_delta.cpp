@@ -143,10 +143,11 @@ bool DeltaT::Handshake()
     if (!sendCommand(cmd, res, 6, 10))
         return false;
 
-    uint16_t bld = res[7] << 8 | res[8];
+    const uint8_t *ures = reinterpret_cast<const uint8_t *>(res);
+    uint16_t bld = ures[7] << 8 | ures[8];
 
-    version = std::to_string(res[5]) + "." +
-              std::to_string(res[6]) +
+    version = std::to_string(ures[5]) + "." +
+              std::to_string(ures[6]) +
               " (" + std::to_string(bld) + ")";
 
     IUSaveText(&InfoT[0], version.c_str());
@@ -397,16 +398,17 @@ bool DeltaT::readReport(uint8_t index)
     if (static_cast<uint8_t>(res[5]) != 0x80)
         return false;
 
+    const uint8_t *ures = reinterpret_cast<const uint8_t *>(res);
     HeaterReport report;
 
-    report.StateUB      = res[6];
-    report.ModeUB       = res[7];
-    report.SetPointUW   = res[9] << 8 | res[8];
-    report.TempHtrIdUB  = res[10];
-    report.TempHtrUW    = res[12] << 8 | res[11];
-    report.TempAmbUW    = res[14] << 8 | res[13];
-    report.PeriodUW     = res[16] << 8 | res[15];
-    report.DutyCycleUB  = res[17];
+    report.StateUB      = ures[6];
+    report.ModeUB       = ures[7];
+    report.SetPointUW   = ures[9] << 8 | ures[8];
+    report.TempHtrIdUB  = ures[10];
+    report.TempHtrUW    = ures[12] << 8 | ures[11];
+    report.TempAmbUW    = ures[14] << 8 | ures[13];
+    report.PeriodUW     = ures[16] << 8 | ures[15];
+    report.DutyCycleUB  = ures[17];
 
     //bool stateChanged = false, paramChanged = false;
 
@@ -707,9 +709,8 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
     hexDump(hex_res, res, res_len);
     LOGF_DEBUG("RES <%s>", hex_res);
 
-    int8_t chk = calculateCheckSum(res, res_len);
-
-    if (res_len > 0 && chk != res[res_len - 1])
+    // Compare as unsigned bytes: plain char is signed on x86 but unsigned on ARM
+    if (res_len > 0 && calculateCheckSum(res, res_len) != static_cast<uint8_t>(res[res_len - 1]))
     {
         LOG_ERROR("Invalid checksum!");
         return false;
