@@ -171,6 +171,8 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         int trackingMode {0};
 
         bool sendTimeOnStartup = true, sendLocationOnStartup = true;
+        // Mount dates earlier than this year are treated as an unset controller clock.
+        static constexpr int MIN_VALID_MOUNT_YEAR {2022};
         uint8_t DBG_SCOPE {0};
 
         double JD {0};

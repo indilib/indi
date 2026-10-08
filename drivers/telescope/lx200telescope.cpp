@@ -1191,7 +1191,8 @@ bool LX200Telescope::getLocalTime(char *timeString)
     {
         double ctime = 0;
         int h, m, s;
-        getLocalTime24(PortFD, &ctime);
+        if (getLocalTime24(PortFD, &ctime) < 0)
+            return false;
         getSexComponents(ctime, &h, &m, &s);
         snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
     }
@@ -1208,7 +1209,8 @@ bool LX200Telescope::getLocalDate(char *dateString)
     }
     else
     {
-        getCalendarDate(PortFD, dateString);
+        if (getCalendarDate(PortFD, dateString) < 0)
+            return false;
     }
 
     return true;
@@ -1223,7 +1225,8 @@ bool LX200Telescope::getUTFOffset(double *offset)
     }
 
     int lx200_utc_offset = 0;
-    getUTCOffset(PortFD, &lx200_utc_offset);
+    if (getUTCOffset(PortFD, &lx200_utc_offset) < 0)
+        return false;
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
     *offset = lx200_utc_offset * -1;
     return true;
@@ -1242,13 +1245,7 @@ bool LX200Telescope::sendScopeTime()
     time_t time_epoch;
 
     double offset = 0;
-    if (getUTFOffset(&offset))
-    {
-        char utcStr[8] = {0};
-        snprintf(utcStr, 8, "%.2f", offset);
-        TimeTP[OFFSET].setText(utcStr);
-    }
-    else
+    if (getUTFOffset(&offset) == false)
     {
         LOG_WARN("Could not obtain UTC offset from mount!");
         return false;
@@ -1286,6 +1283,18 @@ bool LX200Telescope::sendScopeTime()
     //getDaylightSaving(PortFD, &isdst);
 
     ltm.tm_isdst = isdst;
+
+    // A mount without a battery backed clock boots with a placeholder date (e.g. 2000-01-01).
+    // Do not advertise it as valid time, otherwise clients may adopt it. Leave TIME_UTC idle
+    // until a client sets the time.
+    if (ltm.tm_year + 1900 < MIN_VALID_MOUNT_YEAR)
+    {
+        LOGF_WARN("Mount clock is not set (%s local). Waiting for time to be set by the client.", datetime);
+        TimeTP.setState(IPS_IDLE);
+        TimeTP.apply();
+        return false;
+    }
+
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 
@@ -1298,6 +1307,10 @@ bool LX200Telescope::sendScopeTime()
     // Format it into the final UTC ISO 8601
     strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
     TimeTP[UTC].setText(cdate);
+
+    char utcStr[8] = {0};
+    snprintf(utcStr, 8, "%.2f", offset);
+    TimeTP[OFFSET].setText(utcStr);
 
     LOGF_DEBUG("Mount controller UTC Time: %s", TimeTP[UTC].getText());
     LOGF_DEBUG("Mount controller UTC Offset: %s", TimeTP[OFFSET].getText());

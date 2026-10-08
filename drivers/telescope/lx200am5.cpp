@@ -1,7 +1,7 @@
 /*
-    ZWO AM5/AM3 INDI driver
+    ZWO Mount INDI driver
 
-    Copyright (C) 2022-2025 Jasem Mutlaq
+    Copyright (C) 2022-2027 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@
 
 LX200AM5::LX200AM5()
 {
-    setVersion(1, 4);
+    setVersion(1, 6);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -154,6 +154,16 @@ bool LX200AM5::initProperties()
     VariableSlewRateNP[0].fill("RATE", "Rate (x Sidereal)", "%.2f", 0.00, 1440.00, 0.01, 1440.00);
     VariableSlewRateNP.fill(getDeviceName(), "VARIABLE_SLEW_RATE", "Variable Slew Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Firmware
+    FirmwareTP[FIRMWARE_MODEL].fill("MODEL", "Model", "");
+    FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "");
+    FirmwareTP.fill(getDeviceName(), "MOUNT_FIRMWARE", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
+
+    // Custom park position (config only, never defined)
+    CustomParkSP[0].fill("SET", "Set", ISS_OFF);
+    CustomParkSP.fill(getDeviceName(), "CUSTOM_PARK_POSITION", "Custom Park", SITE_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    CustomParkSP.load();
+
     return true;
 }
 
@@ -191,6 +201,8 @@ bool LX200AM5::updateProperties()
 
         // Variable Slew Speed
         defineProperty(VariableSlewRateNP);
+
+        defineProperty(FirmwareTP);
     }
     else
     {
@@ -217,6 +229,8 @@ bool LX200AM5::updateProperties()
 
         // Variable Slew Speed
         deleteProperty(VariableSlewRateNP);
+
+        deleteProperty(FirmwareTP);
     }
 
     return true;
@@ -261,6 +275,7 @@ void LX200AM5::setup()
 
     InitPark();
 
+    getFirmwareInfo();
     getMountType();
     getTrackMode();
     getGuideRate();
@@ -275,6 +290,9 @@ void LX200AM5::setup()
     getAltitudeLimitStatus();
     getAltitudeLimitUpper();
     getAltitudeLimitLower();
+
+    // A park made outside the driver (e.g. by the vendor app) leaves the mount latched in the parked state.
+    checkMountParkState();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -348,6 +366,13 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                                                PostMeridianTrackSP[TRACK].isNameMatch(names[0]),
                                                MeridianLimitNP[0].getValue());
             }, true);
+        }
+
+        // Custom park position, only received when the config is loaded.
+        if (CustomParkSP.isNameMatch(name))
+        {
+            CustomParkSP.update(states, names, n);
+            return true;
         }
 
         // Altitude Limit Enable/Disable
@@ -600,7 +625,9 @@ bool LX200AM5::getHeavyDutyMode()
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::setHeavyDutyMode(bool enable)
 {
-    return sendCommand(enable ? ":SRl720#" : ":SRl1440#");
+    // Reply must be read, otherwise it is left in the input stream for the next command.
+    char response[DRIVER_LEN] = {0};
+    return sendCommand(enable ? ":SRl720#" : ":SRl1440#", response, -1, 1) && response[0] == '1';
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -660,7 +687,9 @@ bool LX200AM5::getMeridianFlipSettings()
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::setAltitudeLimitEnabled(bool enable)
 {
-    return sendCommand(enable ? ":SLE#" : ":SLD#");
+    // Reply must be read, otherwise it is left in the input stream for the next command.
+    char response[DRIVER_LEN] = {0};
+    return sendCommand(enable ? ":SLE#" : ":SLD#", response, -1, 1) && response[0] == '1';
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -877,7 +906,15 @@ bool LX200AM5::updateLocation(double latitude, double longitude, double elevatio
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::Park()
 {
-    bool rc = park();
+    m_ParkStage = ParkStage::None;
+
+    bool rc = false;
+    // Without a custom park position, the mount would go to its factory park position which is horizontal.
+    if (hasCustomParkPosition() && CustomParkSP[0].getState() == ISS_ON)
+        rc = parkToMountPosition();
+    else
+        rc = park();
+
     if (rc)
         TrackState = SCOPE_PARKING;
     return rc;
@@ -888,9 +925,251 @@ bool LX200AM5::Park()
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::UnPark()
 {
+    // :hP# latches the parked state in the mount and only :Spu# releases it.
+    if (hasMountPark())
+    {
+        char response[DRIVER_LEN] = {0};
+        if (!sendStatusCommand(":Spu#", response))
+        {
+            LOG_ERROR("Failed to unpark mount.");
+            return false;
+        }
+
+        if (response[0] != '1')
+        {
+            // A mount that is not latched as parked (e.g. parked by going home) refuses to unpark.
+            char state = 0;
+            if (!getMountParkState(state) || state != '0')
+            {
+                LOGF_ERROR("Mount refused to unpark (%s).", response);
+                return false;
+            }
+        }
+    }
+
     TrackState = SCOPE_IDLE;
     SetParked(false);
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::SetCurrentPark()
+{
+    if (!hasCustomParkPosition())
+    {
+        LOGF_WARN("Setting the park position requires mount firmware 1.3.0 or later (detected %s).",
+                  FirmwareTP[FIRMWARE_VERSION].getText());
+        return false;
+    }
+
+    char response[DRIVER_LEN] = {0};
+    if (!sendStatusCommand(":Sp01#", response))
+    {
+        LOG_ERROR("Failed to set park position.");
+        return false;
+    }
+
+    switch (response[0])
+    {
+        case '1':
+            LOG_INFO("Current position is stored as the mount park position.");
+            break;
+        case '2':
+            LOG_INFO("Current position is already the mount park position.");
+            break;
+        case '3':
+            LOG_ERROR("Mount refused the park position: only one park position can be set.");
+            return false;
+        case '4':
+            LOG_ERROR("Mount refused the park position: only available in equatorial mode.");
+            return false;
+        case '5':
+            LOG_ERROR("Mount refused the park position: the mount has to be homed first.");
+            return false;
+        case '9':
+            LOG_ERROR("Mount refused the park position: the mount is moving.");
+            return false;
+        default:
+            LOGF_ERROR("Mount refused the park position (%s).", response);
+            return false;
+    }
+
+    // Park to the stored position from now on.
+    CustomParkSP[0].setState(ISS_ON);
+    saveConfig();
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// There is no command to restore the factory park position, so default
+/// parking goes back to the home position.
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::SetDefaultPark()
+{
+    CustomParkSP[0].setState(ISS_OFF);
+    saveConfig();
+
+    LOG_INFO("Mount parks at the home position.");
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// The park slew starts from home: away from home :hC# goes first and :hP#
+/// follows once the home slew is over (see updateMountPark).
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::parkToMountPosition()
+{
+    char status[DRIVER_LEN] = {0};
+    if (!sendCommand(":GU#", status))
+        return false;
+
+    if (strchr(status, 'Z'))
+    {
+        LOG_ERROR("Parking to the mount park position is only available in equatorial mode.");
+        return false;
+    }
+
+    if (!SetTrackEnabled(false))
+    {
+        LOG_ERROR("Failed to stop tracking before parking.");
+        return false;
+    }
+
+    m_ParkMoved = false;
+    m_ParkDeadline = std::chrono::steady_clock::now() + PARK_START_TIMEOUT;
+
+    if (strchr(status, 'H'))
+    {
+        LOG_INFO("Parking to the mount park position...");
+        m_ParkStage = ParkStage::Parking;
+        if (sendCommand(":hP#"))
+            return true;
+    }
+    else
+    {
+        LOG_INFO("Going home before parking to the mount park position...");
+        m_ParkStage = ParkStage::Homing;
+        if (goHome())
+            return true;
+    }
+
+    m_ParkStage = ParkStage::None;
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// :Gps# 0: not parked, 1: parking, 2: parked, 3: park error
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getMountParkState(char &state)
+{
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":Gps#", response))
+        return false;
+
+    state = response[0];
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void LX200AM5::checkMountParkState()
+{
+    m_ParkStage = ParkStage::None;
+
+    char state = 0;
+    if (!hasMountPark() || !getMountParkState(state))
+        return;
+
+    if (state == '2' && !isParked())
+    {
+        LOG_INFO("Mount reports it is parked.");
+        SetParked(true);
+    }
+    else if (state == '1')
+    {
+        LOG_INFO("Mount is parking...");
+        TrackState = SCOPE_PARKING;
+        m_ParkStage = ParkStage::Parking;
+        m_ParkMoved = true;
+        ParkSP.setState(IPS_BUSY);
+        ParkSP.apply();
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void LX200AM5::updateMountPark(bool slewComplete, bool isHome)
+{
+    const bool slewing = !slewComplete;
+    const bool timedOut = std::chrono::steady_clock::now() > m_ParkDeadline;
+
+    if (m_ParkStage == ParkStage::Homing)
+    {
+        if (slewing)
+            m_ParkMoved = true;
+
+        // Older firmware does not report H at the end of the home slew, so wait for the mount to stop instead.
+        bool homeReached = isHome && (m_FirmwareVersion >= FIRMWARE_HOME_FLAG || slewComplete);
+        if (homeReached || (m_FirmwareVersion < FIRMWARE_HOME_FLAG && m_ParkMoved && slewComplete))
+        {
+            LOG_INFO("Arrived at home. Parking to the mount park position...");
+            m_ParkStage = ParkStage::Parking;
+            m_ParkMoved = false;
+            m_ParkDeadline = std::chrono::steady_clock::now() + PARK_START_TIMEOUT;
+            if (!sendCommand(":hP#"))
+                failMountPark("failed to send park command");
+        }
+        else if (!m_ParkMoved && timedOut)
+            failMountPark("mount did not start moving home");
+
+        return;
+    }
+
+    char state = 0;
+    // Try again on next poll.
+    if (!getMountParkState(state))
+        return;
+
+    switch (state)
+    {
+        case '2':
+            m_ParkStage = ParkStage::None;
+            SetParked(true);
+            break;
+
+        case '1':
+            m_ParkMoved = true;
+            break;
+
+        case '0':
+            if (slewing)
+                m_ParkMoved = true;
+            else if (!m_ParkMoved && timedOut)
+                failMountPark("mount did not start moving to the park position");
+            break;
+
+        default:
+            failMountPark("mount reported a park error");
+            break;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void LX200AM5::failMountPark(const char *reason)
+{
+    LOGF_ERROR("Park failed: %s.", reason);
+    m_ParkStage = ParkStage::None;
+    TrackState = SCOPE_IDLE;
+    ParkSP.reset();
+    ParkSP[isParked() ? PARK : UNPARK].setState(ISS_ON);
+    ParkSP.setState(IPS_ALERT);
+    ParkSP.apply();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -928,10 +1207,10 @@ bool LX200AM5::ReadScopeStatus()
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        if (slewComplete)
-        {
+        if (m_ParkStage != ParkStage::None)
+            updateMountPark(slewComplete, isHome);
+        else if (slewComplete)
             SetParked(true);
-        }
     }
     else
     {
@@ -965,6 +1244,86 @@ bool LX200AM5::ReadScopeStatus()
     }
 
     NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void LX200AM5::getFirmwareInfo()
+{
+    m_FirmwareVersion = 0;
+
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GVP#", response))
+    {
+        char *term = strchr(response, DRIVER_STOP_CHAR);
+        if (term)
+            *term = '\0';
+        FirmwareTP[FIRMWARE_MODEL].setText(response);
+    }
+
+    memset(response, 0, sizeof(response));
+    if (sendCommand(":GV#", response))
+    {
+        char *term = strchr(response, DRIVER_STOP_CHAR);
+        if (term)
+            *term = '\0';
+        FirmwareTP[FIRMWARE_VERSION].setText(response);
+
+        int major = 0, minor = 0, patch = 0;
+        if (sscanf(response, "%d.%d.%d", &major, &minor, &patch) == 3)
+            m_FirmwareVersion = (major << 16) | (minor << 8) | patch;
+        else
+            LOGF_WARN("Unexpected firmware version format: %s", response);
+    }
+
+    FirmwareTP.setState(m_FirmwareVersion > 0 ? IPS_OK : IPS_ALERT);
+
+    LOGF_INFO("Mount %s firmware %s.", FirmwareTP[FIRMWARE_MODEL].getText(), FirmwareTP[FIRMWARE_VERSION].getText());
+    if (!hasCustomParkPosition())
+        LOG_INFO("Mount parks at the home position. Custom park position requires firmware 1.3.0 or later.");
+    else if (CustomParkSP[0].getState() == ISS_ON)
+        LOG_INFO("Mount parks at the custom park position.");
+    else
+        LOG_INFO("Mount parks at the home position. To use a custom park position, slew to it and set it as current park position.");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Status Command
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::sendStatusCommand(const char * cmd, char * res)
+{
+    int nbytes_written = 0, nbytes_read = 0;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+    int rc = tty_write_string(PortFD, cmd, &nbytes_written);
+    if (rc == TTY_OK)
+        rc = tty_read(PortFD, res, 1, DRIVER_TIMEOUT, &nbytes_read);
+    // Errors are reported as e<code>#
+    if (rc == TTY_OK && res[0] == 'e')
+        rc = tty_nread_section(PortFD, res + 1, DRIVER_LEN - 2, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial error: %s.", errstr);
+        return false;
+    }
+
+    char *term = strchr(res, DRIVER_STOP_CHAR);
+    if (term)
+        *term = '\0';
+    else if (res[0] != 'e')
+        res[1] = '\0';
+
+    LOGF_DEBUG("RES <%s>", res);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }
@@ -1107,6 +1466,7 @@ bool LX200AM5::saveConfigItems(FILE *fp)
     AltitudeLimitUpperNP.save(fp);
     AltitudeLimitLowerNP.save(fp);
     VariableSlewRateNP.save(fp);
+    CustomParkSP.save(fp);
 
     return true;
 }

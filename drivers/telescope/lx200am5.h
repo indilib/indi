@@ -1,7 +1,7 @@
 /*
-    ZEQ25 INDI driver
+    ZWO Mount INDI driver
 
-    Copyright (C) 2015 Jasem Mutlaq
+    Copyright (C) 2015-2027 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,9 @@
 #include "lx200generic.h"
 #include "indipropertyswitch.h"
 #include "indipropertynumber.h"
+#include "indipropertytext.h"
+
+#include <chrono>
 
 class LX200AM5 : public LX200Generic
 {
@@ -57,6 +60,8 @@ class LX200AM5 : public LX200Generic
         // Parking
         virtual bool Park() override;
         virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
         // Home
         virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
@@ -81,6 +86,14 @@ class LX200AM5 : public LX200Generic
                  * @return True if successful, false otherwise.
         */
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        /**
+         * @brief sendStatusCommand Send a set command answered with a single status character, or with
+         * 'e' followed by an error code terminated by '#'.
+         * @param cmd Null-terminated command.
+         * @param res Buffer of at least DRIVER_LEN bytes. Receives the status character, or "e<code>" on error.
+         * @return True if a reply was received, false on communication failure.
+         */
+        bool sendStatusCommand(const char * cmd, char * res);
         void hexDump(char * buf, const char * data, int size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
@@ -145,6 +158,18 @@ class LX200AM5 : public LX200Generic
         // Variable Slew Speed
         INDI::PropertyNumber VariableSlewRateNP {1};
 
+        // Mount model and firmware version
+        INDI::PropertyText FirmwareTP {2};
+        enum
+        {
+            FIRMWARE_MODEL,
+            FIRMWARE_VERSION
+        };
+
+        // Whether a custom park position was stored in the mount (:Sp01#). The mount cannot be queried
+        // for it, so it is kept in the config only and never defined. Without one, park goes home.
+        INDI::PropertySwitch CustomParkSP {1};
+
 
         //////////////////////////////////////////////////////////////////////////////////
         /// AM5 Specific
@@ -155,6 +180,24 @@ class LX200AM5 : public LX200Generic
         bool goHome();
         bool park();
         bool setHome();
+
+        // Firmware
+        void getFirmwareInfo();
+        bool hasMountPark() const
+        {
+            return m_FirmwareVersion >= FIRMWARE_MOUNT_PARK;
+        }
+        bool hasCustomParkPosition() const
+        {
+            return m_FirmwareVersion >= FIRMWARE_CUSTOM_PARK_POSITION;
+        }
+
+        // Mount park position (firmware dependent)
+        bool parkToMountPosition();
+        bool getMountParkState(char &state);
+        void checkMountParkState();
+        void updateMountPark(bool slewComplete, bool isHome);
+        void failMountPark(const char *reason);
 
         // Altitude Limits
         bool setAltitudeLimitEnabled(bool enable);
@@ -209,4 +252,27 @@ class LX200AM5 : public LX200Generic
         static constexpr const char * MERIDIAN_FLIP_TAB {"Meridian Flip"};
         static constexpr const char * ALTITUDE_LIMIT_TAB {"Altitude Limits"};
         static constexpr const char * ALIGNMENT_TAB {"Alignment"};
+
+        // Firmware versions encoded as (major << 16) | (minor << 8) | patch
+        // :hP# parks, :Gps# reports the park state and :Spu# unparks.
+        static constexpr uint32_t FIRMWARE_MOUNT_PARK {0x010109};
+        // :Sp01# stores the current position as the park position.
+        static constexpr uint32_t FIRMWARE_CUSTOM_PARK_POSITION {0x010300};
+        // :GU# reports H once a home slew is over.
+        static constexpr uint32_t FIRMWARE_HOME_FLAG {0x010801};
+        // Give up a park stage that does not start moving within this time.
+        static constexpr std::chrono::seconds PARK_START_TIMEOUT {5};
+
+        uint32_t m_FirmwareVersion {0};
+
+        // A park to the mount park position goes home first (:hC#), then parks (:hP#).
+        enum class ParkStage
+        {
+            None,
+            Homing,
+            Parking
+        };
+        ParkStage m_ParkStage {ParkStage::None};
+        bool m_ParkMoved {false};
+        std::chrono::steady_clock::time_point m_ParkDeadline;
 };
