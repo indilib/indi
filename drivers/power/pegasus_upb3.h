@@ -211,9 +211,9 @@ class PegasusUPB3 : public INDI::DefaultDevice,
         // Auto Dew Aggressiveness (Global)
         enum
         {
-            AUTO_DEW_AGG,
+            AUTO_DEW_AGGRESSION,
         };
-        INDI::PropertyNumber AutoDewAggNP {1};
+        INDI::PropertyNumber AutoDewSettingsNP {1};
 
         // Auto Dew Aggressiveness per Port
         INDI::PropertyNumber AutoDewAggPerPortNP {3};

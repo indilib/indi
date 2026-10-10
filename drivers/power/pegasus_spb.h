@@ -155,14 +155,14 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
-        // Power Statistics
-        INDI::PropertyNumber PowerStatisticsNP {4};
+        // Power Consumption
+        INDI::PropertyNumber PowerConsumptionNP {4};
         enum
         {
-            STATS_AVG_AMPS,
-            STATS_AMP_HOURS,
-            STATS_WATT_HOURS,
-            STATS_TOTAL_CURRENT
+            CONSUMPTION_AVG_AMPS,
+            CONSUMPTION_AMP_HOURS,
+            CONSUMPTION_WATT_HOURS,
+            CONSUMPTION_TOTAL_CURRENT
         };
 
         ////////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +170,7 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
         INDI::PropertySwitch PowerDewSwitchASP {2};
         INDI::PropertySwitch PowerDewSwitchBSP {2};
-        INDI::PropertyNumber DewAggressNP {1};
+        INDI::PropertyNumber AutoDewSettingsNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Sensor Offset
