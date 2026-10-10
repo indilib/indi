@@ -584,6 +584,9 @@ class CCD : public DefaultDevice, GuiderInterface
         // Rotator Angle
         double RotatorAngle;
 
+        // Native absolute rotator position
+        double RotatorPosition;
+
         // JJ ed 2019-12-10 current focuser position
         long FocuserPos;
         double FocuserTemp;

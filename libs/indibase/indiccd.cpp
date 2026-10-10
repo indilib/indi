@@ -106,6 +106,7 @@ CCD::CCD() : GI(this)
     J2000Valid      = false;
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
+    RotatorPosition = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
     FocuserPos      = -1;
     FocuserTemp     = std::numeric_limits<double>::quiet_NaN();
@@ -493,6 +494,7 @@ bool CCD::initProperties()
 
     // Snoop Rotator
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_ROTATOR].getText(), "ABS_ROTATOR_ANGLE");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_ROTATOR].getText(), "ABS_ROTATOR_POSITION");
 
     // JJ ed 2019-12-10
     // Snoop Focuser
@@ -838,6 +840,20 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     }
 
     // JJ ed 2019-12-10
+    else if (!strcmp(propName, "ABS_ROTATOR_POSITION") && deviceName == ActiveDeviceTP[ACTIVE_ROTATOR].getText())
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "ROTATOR_ABSOLUTE_POSITION"))
+            {
+                RotatorPosition = atof(pcdataXMLEle(ep));
+                break;
+            }
+        }
+    }
+
     else if (!strcmp(propName, "ABS_FOCUS_POSITION") && deviceName == ActiveDeviceTP[ACTIVE_FOCUSER].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
@@ -959,6 +975,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 {
                     LOGF_DEBUG("Snopping on Rotator %s", newRotator);
                     IDSnoopDevice(newRotator, "ABS_ROTATOR_ANGLE");
+                    IDSnoopDevice(newRotator, "ABS_ROTATOR_POSITION");
                 }
                 else if (!std::isnan(MPSAS))
                 {
@@ -2149,6 +2166,11 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
     if (!std::isnan(RotatorAngle))
     {
         fitsKeywords.push_back({"ROTATANG", RotatorAngle, 3, "Rotator angle in degrees"});
+    }
+
+    if (!std::isnan(RotatorPosition))
+    {
+        fitsKeywords.push_back({"ROTSTEPS", RotatorPosition, 0, "Rotator absolute position in steps"});
     }
 
     // JJ ed 2020-03-28
