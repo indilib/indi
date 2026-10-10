@@ -28,6 +28,8 @@ std::unique_ptr<UniversalROR> ror(new UniversalROR());
 UniversalROR::UniversalROR()
 {
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
+    setDomeConnection(CONNECTION_NONE);
+    setVersion(0, 2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

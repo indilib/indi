@@ -1068,7 +1068,7 @@
         </device>
         <device label="Universal ROR" manufacturer="Others">
             <driver name="Universal ROR">indi_universalror_dome</driver>
-            <version>0.1</version>
+            <version>0.2</version>
         </device>
         <device label="Alpaca Dome" manufacturer="Alpaca">
             <driver name="Alpaca Dome">indi_alpaca_dome</driver>
