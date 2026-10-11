@@ -50,7 +50,8 @@ class PowerInterface
             POWER_HAS_AUTO_DEW                  = 1 << 7,  /*!< Has automatic dew control */
             POWER_HAS_POWER_CYCLE               = 1 << 8,  /*!< Can cycle power to all ports */
             POWER_HAS_USB_TOGGLE                = 1 << 9,  /*!< Can toggle power to specific USB ports */
-            POWER_HAS_OVER_VOTALGE_PROTECTION   = 1 << 10, /*!< Do not toggle output DC ports if voltage exceeds a threshold */
+            POWER_HAS_OVER_VOLTAGE_PROTECTION   = 1 << 10, /*!< Do not toggle output DC ports if voltage exceeds a threshold */
+            POWER_HAS_OVER_VOTALGE_PROTECTION   = POWER_HAS_OVER_VOLTAGE_PROTECTION, /*!< Deprecated misspelling, use POWER_HAS_OVER_VOLTAGE_PROTECTION */
             POWER_OFF_ON_DISCONNECT             = 1 << 11, /*!< Power off all DC, Dew, and Variable ports when driver is disconnected*/
         } PowerCapability;
 
@@ -149,7 +150,7 @@ class PowerInterface
          */
         bool HasOverVoltageProtection()
         {
-            return powerCapability & POWER_HAS_OVER_VOTALGE_PROTECTION;
+            return powerCapability & POWER_HAS_OVER_VOLTAGE_PROTECTION;
         }
 
         /**

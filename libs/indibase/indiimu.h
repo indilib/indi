@@ -105,7 +105,6 @@ class IMU : public DefaultDevice, public IMUInterface
 
     protected:
         // Virtual functions from IMUInterface to be implemented by concrete drivers
-        virtual bool SetCalibrationStatus(int sys, int gyro, int accel, int mag) override;
         virtual bool StartCalibration() override;
         virtual bool SaveCalibrationData() override;
         virtual bool LoadCalibrationData() override;
@@ -115,10 +114,6 @@ class IMU : public DefaultDevice, public IMUInterface
         virtual bool SetDistanceUnits(bool metric) override;
         virtual bool SetAngularUnits(bool degrees) override;
         virtual bool SetUpdateRate(double rate) override;
-        virtual bool SetDeviceInfo(const std::string &chipID, const std::string &firmwareVersion,
-                                   const std::string &sensorStatus) override;
-        virtual bool SetTemperature(double temperature) override;
-        virtual bool SetStabilityMonitoring(double vibrationLevel, double stabilityThreshold) override;
 
         // Additional properties for astronomical coordinates and mount alignment at the driver level
         enum

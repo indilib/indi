@@ -1325,14 +1325,6 @@ void IMU::recreateFusionFilter()
            FusionTypeSP[FUSION_MADGWICK].getState() == ISS_ON ? "Madgwick" : "Mahony",
            p1, p2);
 }
-bool IMU::SetCalibrationStatus(int sys, int gyro, int accel, int mag)
-{
-    INDI_UNUSED(sys);
-    INDI_UNUSED(gyro);
-    INDI_UNUSED(accel);
-    INDI_UNUSED(mag);
-    return false;
-}
 bool IMU::StartCalibration()
 {
     return false;
@@ -1372,24 +1364,6 @@ bool IMU::SetAngularUnits(bool degrees)
 bool IMU::SetUpdateRate(double rate)
 {
     INDI_UNUSED(rate);
-    return false;
-}
-bool IMU::SetDeviceInfo(const std::string &chipID, const std::string &firmwareVersion, const std::string &sensorStatus)
-{
-    INDI_UNUSED(chipID);
-    INDI_UNUSED(firmwareVersion);
-    INDI_UNUSED(sensorStatus);
-    return false;
-}
-bool IMU::SetTemperature(double temperature)
-{
-    INDI_UNUSED(temperature);
-    return false;
-}
-bool IMU::SetStabilityMonitoring(double vibrationLevel, double stabilityThreshold)
-{
-    INDI_UNUSED(vibrationLevel);
-    INDI_UNUSED(stabilityThreshold);
     return false;
 }
 
