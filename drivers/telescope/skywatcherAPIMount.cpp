@@ -676,7 +676,7 @@ double SkywatcherAPIMount::GetSlewRate()
 bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     double speed =
-        (dir == DIRECTION_NORTH) ? GetSlewRate() * LOW_SPEED_MARGIN / 2 : -GetSlewRate() * LOW_SPEED_MARGIN / 2;
+        (dir == DIRECTION_NORTH) ? GetSlewRate() * SIDEREALRATE : -GetSlewRate() * SIDEREALRATE;
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
 
     switch (command)
@@ -703,7 +703,7 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     double speed =
-        (dir == DIRECTION_WEST) ? -GetSlewRate() * LOW_SPEED_MARGIN / 2 : GetSlewRate() * LOW_SPEED_MARGIN / 2;
+        (dir == DIRECTION_WEST) ? -GetSlewRate() * SIDEREALRATE : GetSlewRate() * SIDEREALRATE;
     const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
 
     switch (command)
