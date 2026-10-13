@@ -67,8 +67,8 @@ bool PegasusSPB::initProperties()
     PowerDewSwitchBSP.fill(getDeviceName(), "DEW_POWER_SWITCH_B", "Port B Mode", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     //DewAggress
-    DewAggressNP[0].fill("DEW_AGGRESS", "Agg Level", "%.2f", 0, 100, 1, 0);
-    DewAggressNP.fill(getDeviceName(), "DEW-AGGESS", "Auto Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    AutoDewSettingsNP[0].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (%)", "%.2f", 0, 100, 1, 0);
+    AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // overwrite labels to device labelling defaults
     DewChannelsSP.setLabel("Dew Heater");
@@ -112,11 +112,11 @@ bool PegasusSPB::initProperties()
     PowerChannelsSP.setLabel("Quad Output");
 
     // Power Sensors
-    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO, 60, IPS_IDLE);
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_TOTAL_CURRENT].fill("CONSUMPTION_TOTAL_CURRENT", "Total Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption", POWER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware Group
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
@@ -132,10 +132,10 @@ bool PegasusSPB::initProperties()
 
     // Sensor Offset
     HumidityOffsetNP[0].fill("HUM_OFFSET", "Level", "%.0f", -50, 50, 1, 0);
-    HumidityOffsetNP.fill(getDeviceName(), "HUM-OFFSET", "Humidity Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
+    HumidityOffsetNP.fill(getDeviceName(), "HUM_OFFSET", "Humidity Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     TemperatureOffsetNP[0].fill("TEMP_OFFSET", "Level", "%.0f", -40, 40, 1, 0);
-    TemperatureOffsetNP.fill(getDeviceName(), "TEMP-OFFSET", "Temperature Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
+    TemperatureOffsetNP.fill(getDeviceName(), "TEMP_OFFSET", "Temperature Offset", ENVIRONMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 
@@ -147,11 +147,11 @@ bool PegasusSPB::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(DewAggressNP);
+        defineProperty(AutoDewSettingsNP);
         int aggressiveness = getDewAggressiveness();
-        DewAggressNP[0].setValue(static_cast<double>(aggressiveness));
-        DewAggressNP.setState(IPS_OK);
-        DewAggressNP.apply();
+        AutoDewSettingsNP[0].setValue(static_cast<double>(aggressiveness));
+        AutoDewSettingsNP.setState(IPS_OK);
+        AutoDewSettingsNP.apply();
 
         defineProperty(PowerDewSwitchASP);
         int portNumber = 1;
@@ -185,7 +185,7 @@ bool PegasusSPB::updateProperties()
 
         WI::updateProperties();
         PI::updateProperties();
-        defineProperty(PowerStatisticsNP);
+        defineProperty(PowerConsumptionNP);
 
         // Firmware
         defineProperty(FirmwareTP);
@@ -195,7 +195,7 @@ bool PegasusSPB::updateProperties()
     }
     else
     {
-        deleteProperty(DewAggressNP);
+        deleteProperty(AutoDewSettingsNP);
         deleteProperty(PowerDewSwitchASP);
         deleteProperty(PowerDewSwitchBSP);
         deleteProperty(HumidityOffsetNP);
@@ -203,7 +203,7 @@ bool PegasusSPB::updateProperties()
         WI::updateProperties();
         PI::updateProperties();
         deleteProperty(FirmwareTP);
-        deleteProperty(PowerStatisticsNP);
+        deleteProperty(PowerConsumptionNP);
         setupComplete = false;
     }
 
@@ -325,9 +325,9 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
             return true;
 
         // DewAggress (custom property)
-        if(DewAggressNP.isNameMatch(name))
+        if(AutoDewSettingsNP.isNameMatch(name))
         {
-            DewAggressNP.update(values, names, n);
+            AutoDewSettingsNP.update(values, names, n);
             IPState result = IPS_OK;
             if (isConnected())
             {
@@ -336,8 +336,8 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
                     result = IPS_ALERT;
                 }
             }
-            DewAggressNP.setState(result);
-            DewAggressNP.apply();
+            AutoDewSettingsNP.setState(result);
+            AutoDewSettingsNP.apply();
             return true;
         }
         // HumidityOffset (custom property)
@@ -758,16 +758,16 @@ bool PegasusSPB::getConsumptionData()
         if (result == lastConsumptionData)
             return true;
 
-        // Power Statistics
-        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
-        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
-        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
-        PowerStatisticsNP.setState(IPS_OK);
+        // Power Consumption
+        PowerConsumptionNP[CONSUMPTION_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
+        PowerConsumptionNP[CONSUMPTION_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
+        PowerConsumptionNP[CONSUMPTION_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
+        PowerConsumptionNP.setState(IPS_OK);
         if (lastConsumptionData.size() < PS_N ||
                 lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] ||
                 lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] ||
                 lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
-            PowerStatisticsNP.apply();
+            PowerConsumptionNP.apply();
 
         lastConsumptionData = result;
 
@@ -793,9 +793,9 @@ bool PegasusSPB::getMetricsData()
             return true;
 
         // Power Sensors
-        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
+        PowerConsumptionNP[CONSUMPTION_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
         if (lastMetricsData.size() < PC_N || lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
-            PowerStatisticsNP.apply();
+            PowerConsumptionNP.apply();
 
         // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
@@ -891,7 +891,7 @@ bool PegasusSPB::saveConfigItems(FILE *fp)
     PI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
 
-    DewAggressNP.save(fp);
+    AutoDewSettingsNP.save(fp);
     HumidityOffsetNP.save(fp);
     TemperatureOffsetNP.save(fp);
     PowerDewSwitchASP.save(fp);

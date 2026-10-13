@@ -74,9 +74,9 @@ bool PegasusUPB::initProperties()
                   60, IPS_IDLE);
 
     // Overall Power Consumption (remains as is, not part of INDI::Power)
-    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption",
                             MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -85,8 +85,8 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Automatic Dew Aggressiveness v2
-    AutoDewAggNP[AUTO_DEW_AGG].fill("AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
-    AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
+    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (50-250)", "%.2f", 50, 250, 20, 0);
+    AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60,
                       IPS_IDLE);
 
     // Populate PI::USBPortLabelsTP with custom labels
@@ -155,7 +155,7 @@ bool PegasusUPB::updateProperties()
 
         // Dew
         if (version == UPB_V2)
-            defineProperty(AutoDewAggNP);
+            defineProperty(AutoDewSettingsNP);
 
         // Focuser
         FI::updateProperties();
@@ -184,7 +184,7 @@ bool PegasusUPB::updateProperties()
 
         // Dew
         if (version == UPB_V2)
-            deleteProperty(AutoDewAggNP);
+            deleteProperty(AutoDewSettingsNP);
 
         // Focuser
         FI::updateProperties();
@@ -339,19 +339,19 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Auto Dew Aggressiveness (device-specific property, not in INDI::Power)
-        if (AutoDewAggNP.isNameMatch(name))
+        if (AutoDewSettingsNP.isNameMatch(name))
         {
             if (setAutoDewAgg(values[0]))
             {
-                AutoDewAggNP[0].setValue(values[0]);
-                AutoDewAggNP.setState(IPS_OK);
+                AutoDewSettingsNP[0].setValue(values[0]);
+                AutoDewSettingsNP.setState(IPS_OK);
             }
             else
             {
-                AutoDewAggNP.setState(IPS_ALERT);
+                AutoDewSettingsNP.setState(IPS_ALERT);
             }
 
-            AutoDewAggNP.apply();
+            AutoDewSettingsNP.apply();
             return true;
         }
 
@@ -813,7 +813,7 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
 
     if (version == UPB_V2)
     {
-        AutoDewAggNP.save(fp);
+        AutoDewSettingsNP.save(fp);
     }
     FocuserSettingsNP.save(fp);
     PowerOnBootSP.save(fp);
@@ -1275,9 +1275,9 @@ bool PegasusUPB::getDewAggData()
         if (result == lastDewAggData)
             return true;
 
-        AutoDewAggNP[0].setValue(std::stod(result[1]));
-        AutoDewAggNP.setState(IPS_OK);
-        AutoDewAggNP.apply();
+        AutoDewSettingsNP[0].setValue(std::stod(result[1]));
+        AutoDewSettingsNP.setState(IPS_OK);
+        AutoDewSettingsNP.apply();
 
         lastDewAggData = result;
         return true;
