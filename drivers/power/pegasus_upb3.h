@@ -99,6 +99,7 @@ class PegasusUPB3 : public INDI::DefaultDevice,
         bool getAutoDewData();
         bool getUSBStatus();
         bool getInputVoltageCurrentData();
+        bool getPortCurrentData();
         bool getEnvironmentalData();
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
@@ -120,6 +121,7 @@ class PegasusUPB3 : public INDI::DefaultDevice,
         // Dew
         bool setAutoDewEnabled(uint8_t port, bool enabled);
         bool setAutoDewAgg(uint8_t value);
+        bool setAutoDewAggPerPort(uint8_t port, uint8_t value);
         bool setDewPWM(uint8_t id, uint8_t value);
 
         // USB
@@ -247,7 +249,8 @@ class PegasusUPB3 : public INDI::DefaultDevice,
             FIRMWARE_UPTIME
         };
 
-        std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastAutoDewData, lastVRData, lastESData;
+        std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastAutoDewData, lastVRData, lastESData,
+            lastISData;
         bool focusMotorRunning { false };
         bool m_RelayState { false };
         char stopChar { 0xD };
