@@ -684,7 +684,7 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS2, speed, true);
-            m_ManualMotionActive = true;
+            m_ManualMotionActive[AXIS2] = true;
             break;
 
         case MOTION_STOP:
@@ -711,7 +711,7 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS1, speed, true);
-            m_ManualMotionActive = true;
+            m_ManualMotionActive[AXIS1] = true;
             break;
 
         case MOTION_STOP:
@@ -777,6 +777,7 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
         SlowStop(AXIS1);
         SlowStop(AXIS2);
         TrackState = SCOPE_IDLE;
+        m_ManualMotionActive[AXIS1] = m_ManualMotionActive[AXIS2] = false;
 
         if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
         {
@@ -1051,6 +1052,7 @@ bool SkywatcherAPIMount::Abort()
     SlowStop(AXIS1);
     SlowStop(AXIS2);
     TrackState = SCOPE_IDLE;
+    m_ManualMotionActive[AXIS1] = m_ManualMotionActive[AXIS2] = false;
 
     if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
@@ -1091,15 +1093,27 @@ void SkywatcherAPIMount::TimerHit()
         case SCOPE_TRACKING:
         {
             // Check if manual motion in progress but we stopped
-            if (m_ManualMotionActive && !IsInMotion(AXIS1) && !IsInMotion(AXIS2))
+            bool manualMotionStopped = false;
+            // Check each axis individually - the other may still be driven (tracking) and never stop on its own.
+            for (AXISID axis : { AXIS1, AXIS2 })
             {
-                m_ManualMotionActive = false;
+                auto &movementSP = (axis == AXIS1) ? MovementWESP : MovementNSSP;
+                // check that for this axis the motor is not in motion and the user isn't feeding input (movement switch prop)
+                if (m_ManualMotionActive[axis] && !IsInMotion(axis) && movementSP.getState() != IPS_BUSY)
+                {
+                    m_ManualMotionActive[axis] = false;
+                    manualMotionStopped = true;
+                }
+            }
+            // if either axis was being moved manually but has now stopped, reset tracking.
+            if (manualMotionStopped)
+            {
                 resetTracking();
                 m_SkyTrackingTarget.rightascension = EqNP[AXIS_RA].getValue();
                 m_SkyTrackingTarget.declination = EqNP[AXIS_DE].getValue();
             }
             // If we're manually moving by WESN controls, update the tracking coordinates.
-            if (m_ManualMotionActive)
+            if (m_ManualMotionActive[AXIS1] || m_ManualMotionActive[AXIS2])
             {
                 break;
             }
