@@ -41,7 +41,7 @@ using namespace INDI::AlignmentSubsystem;
 static std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherAPIMount());
 
 /* Preset Slew Speeds */
-#define SLEWMODES 9
+#define SLEWMODES 10
 static double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0, 800.0 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
