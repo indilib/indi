@@ -27,6 +27,8 @@
 #include "inditimer.h"
 
 #include <stdint.h>
+#include <string>
+#include <vector>
 
 // Alias
 using GPSI = INDI::GPSInterface;
@@ -94,16 +96,31 @@ class GPSInterface
         bool setSystemTime(time_t &raw_time);
 
 #ifdef __linux__
-        /** \brief Run a command via fork+execvp, no shell. Returns true if exit code is 0. */
-        bool runCommand(const char *args[]);
+        /**
+         * \brief Run a command via fork+execvp, no shell. Returns true if exit code is 0.
+         * \param output If not null, the command's stdout is captured into it.
+         */
+        bool runCommand(const std::vector<std::string> &args, std::string *output = nullptr);
 
-        /** \brief Check if systemd-timesyncd NTP is active via timedatectl show. */
+        /**
+         * \brief Call org.freedesktop.timedate1 on the system bus.
+         * Natively this runs busctl. Inside Flatpak it first tries gdbus directly on the system bus
+         * (requires --system-talk-name=org.freedesktop.timedate1), then falls back to busctl on the
+         * host via flatpak-spawn (requires --socket=session-bus or --talk-name=org.freedesktop.Flatpak).
+         * \param busctlArgs Arguments passed to busctl.
+         * \param gdbusArgs Arguments passed to gdbus call after the destination and object path.
+         * \param output If not null, the command's stdout is captured into it.
+         */
+        bool timedateCall(const std::vector<std::string> &busctlArgs, const std::vector<std::string> &gdbusArgs,
+                          std::string *output = nullptr);
+
+        /** \brief Check if NTP synchronization is active via the timedate1 NTP property. */
         bool isNTPActive();
 
-        /** \brief Enable or disable NTP via timedatectl set-ntp. */
+        /** \brief Enable or disable NTP via timedate1 SetNTP. */
         bool setNTPEnabled(bool enabled);
 
-        /** \brief Disable NTP on connect (idempotent). Sets m_NTPDisabledByGPS if NTP was active. */
+        /** \brief Disable NTP before setting system time. Sets m_NTPDisabledByGPS if NTP was active. */
         void disableNTPForGPSTime();
 
         /** \brief Re-enable NTP on disconnect, only if we were the ones who disabled it. */

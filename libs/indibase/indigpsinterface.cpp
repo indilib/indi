@@ -28,6 +28,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <ctime>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -164,11 +165,6 @@ bool GPSInterface::updateProperties()
         m_DefaultDevice->defineProperty(PeriodNP);
         m_DefaultDevice->defineProperty(SystemTimeUpdateSP);
 
-#ifdef __linux__
-        // Disable NTP once on connect so GPS can set authoritative system time
-        disableNTPForGPSTime();
-#endif
-
         if (state != IPS_OK)
         {
             if (state == IPS_BUSY)
@@ -179,7 +175,7 @@ bool GPSInterface::updateProperties()
         }
         else if (PeriodNP[0].getValue() > 0)
         {
-            m_UpdateTimer.setInterval(PeriodNP[0].getValue());
+            m_UpdateTimer.setInterval(PeriodNP[0].getValue() * 1000);
             m_UpdateTimer.start();
         }
     }
@@ -285,72 +281,18 @@ bool GPSInterface::processSwitch(const char * dev, const char * name, ISState * 
 bool GPSInterface::setSystemTime(time_t &raw_time)
 {
 #ifdef __linux__
-    // Detect if running inside a Flatpak sandbox using the canonical env variable
-    if (getenv("FLATPAK_ID") != nullptr)
+    // timedate1 SetTime refuses to change the clock while NTP synchronization is active.
+    disableNTPForGPSTime();
+
+    // SetTime takes microseconds since the epoch (UTC), so the host timezone does not matter.
+    const std::string usec = std::to_string(static_cast<int64_t>(raw_time) * 1000000LL);
+    if (!timedateCall({"call", "org.freedesktop.timedate1", "/org/freedesktop/timedate1", "org.freedesktop.timedate1", "SetTime", "xbb", usec, "false", "false"},
+                      {"--method", "org.freedesktop.timedate1.SetTime", usec, "false", "false"}))
     {
-        // Format time as ISO 8601 for timedatectl
-        struct tm *tm_info = gmtime(&raw_time);
-        char timeStr[32];
-        strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", tm_info);
-
-        // Use flatpak-spawn to delegate to timedatectl on the host system.
-        // timedatectl handles polkit authentication itself; pkexec is not needed.
-        // We use fork()+execvp() instead of system() to avoid shell injection risks.
-        pid_t pid = fork();
-        if (pid == 0)
-        {
-            // Child process: exec flatpak-spawn directly (no shell involved)
-            const char *args[] = { "flatpak-spawn", "--host", "timedatectl", "set-time", timeStr, nullptr };
-            execvp("flatpak-spawn", const_cast<char * const *>(args));
-            // If execvp returns, it failed
-            _exit(EXIT_FAILURE);
-        }
-        else if (pid > 0)
-        {
-            int status = 0;
-            waitpid(pid, &status, 0);
-            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            {
-                DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
-                             "Failed to update system time via timedatectl (exit code: %d)",
-                             WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-                return false;
-            }
-        }
-        else
-        {
-            DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
-                         "Failed to fork process for timedatectl: %s", strerror(errno));
-            return false;
-        }
-        return true;
-    }
-
-    // Native (non-Flatpak) path: use D-Bus via busctl to call systemd-timedated
-    // This avoids the EPERM issue with clock_settime() even when CAP_SYS_TIME is set.
-    else
-    {
-        int64_t usec = static_cast<int64_t>(raw_time) * 1000000LL;
-        char usecStr[32];
-        snprintf(usecStr, sizeof(usecStr), "%lld", static_cast<long long>(usec));
-
-        const char *args[] =
-        {
-            "busctl", "call",
-            "org.freedesktop.timedate1",
-            "/org/freedesktop/timedate1",
-            "org.freedesktop.timedate1",
-            "SetTime", "xbb",
-            usecStr, "false", "false",
-            nullptr
-        };
-
-        if (!runCommand(args))
-        {
-            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
-                        "Failed to update system time via busctl timedate1 SetTime");
-            return false;
-        }
+        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                    "Failed to update system time via org.freedesktop.timedate1 SetTime. "
+                    "Ensure polkit allows org.freedesktop.timedate1.set-time for this user.");
+        return false;
     }
 #else
     INDI_UNUSED(raw_time);
@@ -363,27 +305,101 @@ bool GPSInterface::setSystemTime(time_t &raw_time)
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool GPSInterface::runCommand(const char *args[])
+bool GPSInterface::runCommand(const std::vector<std::string> &args, std::string *output)
 {
+    // Build argv before fork, the child may only make async-signal-safe calls.
+    std::vector<char *> argv;
+    for (const auto &arg : args)
+        argv.push_back(const_cast<char *>(arg.c_str()));
+    argv.push_back(nullptr);
+
+    int pipefd[2] = {-1, -1};
+    if (output != nullptr && pipe(pipefd) != 0)
+        return false;
+
     pid_t pid = fork();
     if (pid == 0)
     {
-        // Child process
-        execvp(args[0], const_cast<char * const *>(args));
+        // Child process: the driver's stdin/stdout are the INDI protocol channel, so they must not be inherited.
+        int devnull = open("/dev/null", O_RDWR);
+        if (devnull >= 0)
+            dup2(devnull, STDIN_FILENO);
+        if (output != nullptr)
+        {
+            close(pipefd[0]);
+            dup2(pipefd[1], STDOUT_FILENO);
+            close(pipefd[1]);
+        }
+        else if (devnull >= 0)
+            dup2(devnull, STDOUT_FILENO);
+        if (devnull > STDERR_FILENO)
+            close(devnull);
+
+        execvp(argv[0], argv.data());
         _exit(EXIT_FAILURE);
     }
-    else if (pid > 0)
-    {
-        int status = 0;
-        waitpid(pid, &status, 0);
-        return WIFEXITED(status) && WEXITSTATUS(status) == 0;
-    }
-    else
+    else if (pid < 0)
     {
         DEBUGFDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
-                     "Failed to fork for command %s: %s", args[0], strerror(errno));
+                     "Failed to fork for command %s: %s", argv[0], strerror(errno));
+        if (output != nullptr)
+        {
+            close(pipefd[0]);
+            close(pipefd[1]);
+        }
         return false;
     }
+
+    if (output != nullptr)
+    {
+        close(pipefd[1]);
+        output->clear();
+        char buffer[256];
+        ssize_t n;
+        while ((n = read(pipefd[0], buffer, sizeof(buffer))) != 0)
+        {
+            if (n > 0)
+                output->append(buffer, n);
+            else if (errno != EINTR)
+                break;
+        }
+        close(pipefd[0]);
+    }
+
+    int status = 0;
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR);
+    return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPSInterface::timedateCall(const std::vector<std::string> &busctlArgs, const std::vector<std::string> &gdbusArgs,
+                                std::string *output)
+{
+    std::vector<std::string> args;
+
+    if (getenv("FLATPAK_ID") == nullptr)
+    {
+        args = {"busctl"};
+        args.insert(args.end(), busctlArgs.begin(), busctlArgs.end());
+        return runCommand(args, output);
+    }
+
+    // Inside Flatpak, the system bus socket only exists if a --system-talk-name permission was granted.
+    // busctl is not part of the runtime, but gdbus is.
+    if (access("/run/dbus/system_bus_socket", F_OK) == 0)
+    {
+        args = {"gdbus", "call", "--system", "--dest", "org.freedesktop.timedate1", "--object-path", "/org/freedesktop/timedate1"};
+        args.insert(args.end(), gdbusArgs.begin(), gdbusArgs.end());
+        if (runCommand(args, output))
+            return true;
+    }
+
+    // Fall back to running busctl on the host.
+    args = {"flatpak-spawn", "--host", "busctl"};
+    args.insert(args.end(), busctlArgs.begin(), busctlArgs.end());
+    return runCommand(args, output);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -391,52 +407,14 @@ bool GPSInterface::runCommand(const char *args[])
 //////////////////////////////////////////////////////////////////////
 bool GPSInterface::isNTPActive()
 {
-    int pipefd[2];
-    if (pipe(pipefd) != 0)
+    std::string output;
+    if (!timedateCall({"get-property", "org.freedesktop.timedate1", "/org/freedesktop/timedate1", "org.freedesktop.timedate1", "NTP"},
+                      {"--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.timedate1", "NTP"},
+                      &output))
         return false;
 
-    pid_t pid = fork();
-    if (pid == 0)
-    {
-        // Child: redirect stdout to pipe
-        close(pipefd[0]);
-        dup2(pipefd[1], STDOUT_FILENO);
-        close(pipefd[1]);
-
-        const char *args[] =
-        {
-            "timedatectl", "show", "-p", "NTP", "--value", nullptr
-        };
-        execvp("timedatectl", const_cast<char * const *>(args));
-        _exit(EXIT_FAILURE);
-    }
-    else if (pid > 0)
-    {
-        // Parent: read output from pipe
-        close(pipefd[1]);
-
-        char buffer[32] = {};
-        ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-        close(pipefd[0]);
-
-        int status = 0;
-        waitpid(pid, &status, 0);
-
-        if (n <= 0)
-            return false;
-
-        // Strip trailing newline
-        if (n > 0 && buffer[n - 1] == '\n')
-            buffer[n - 1] = '\0';
-
-        return strcmp(buffer, "yes") == 0;
-    }
-    else
-    {
-        close(pipefd[0]);
-        close(pipefd[1]);
-        return false;
-    }
+    // busctl prints "b true", gdbus prints "(<true>,)"
+    return output.find("true") != std::string::npos;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -444,11 +422,9 @@ bool GPSInterface::isNTPActive()
 //////////////////////////////////////////////////////////////////////
 bool GPSInterface::setNTPEnabled(bool enabled)
 {
-    const char *args[] =
-    {
-        "timedatectl", "set-ntp", enabled ? "true" : "false", nullptr
-    };
-    return runCommand(args);
+    const std::string value = enabled ? "true" : "false";
+    return timedateCall({"call", "org.freedesktop.timedate1", "/org/freedesktop/timedate1", "org.freedesktop.timedate1", "SetNTP", "bb", value, "false"},
+                        {"--method", "org.freedesktop.timedate1.SetNTP", value, "false"});
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -456,28 +432,24 @@ bool GPSInterface::setNTPEnabled(bool enabled)
 //////////////////////////////////////////////////////////////////////
 void GPSInterface::disableNTPForGPSTime()
 {
-    if (isNTPActive())
+    if (!isNTPActive())
+        return;
+
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
+                "NTP is active; disabling for GPS time authority...");
+    if (!setNTPEnabled(false))
     {
-        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
-                    "NTP is active; disabling for GPS time authority...");
-        if (setNTPEnabled(false))
-        {
-            m_NTPDisabledByGPS = true;
-            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
-                        "NTP disabled by GPS interface.");
-        }
-        else
-        {
-            DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING,
-                        "Failed to disable NTP.");
-        }
+        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_WARNING, "Failed to disable NTP.");
+        return;
     }
-    else
-    {
-        DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION,
-                    "NTP already inactive; GPS will not re-enable it on disconnect.");
-        m_NTPDisabledByGPS = false;
-    }
+
+    m_NTPDisabledByGPS = true;
+
+    // SetNTP returns once the stop job is queued, and SetTime is rejected until timedated reports NTP inactive.
+    for (int i = 0; i < 10 && isNTPActive(); i++)
+        usleep(200000);
+
+    DEBUGDEVICE(m_DefaultDevice->getDeviceName(), Logger::DBG_SESSION, "NTP disabled by GPS interface.");
 }
 
 //////////////////////////////////////////////////////////////////////
