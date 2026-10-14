@@ -42,7 +42,7 @@ static std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherA
 
 /* Preset Slew Speeds */
 #define SLEWMODES 9
-static double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0 };
+static double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0, 800.0 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -102,8 +102,7 @@ bool SkywatcherAPIMount::initProperties()
 
     for (size_t i = 0; i < SlewRateSP.count(); ++i)
     {
-        // sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP[i].setLabel(std::to_string(SlewSpeeds[i]) + "x");
+        SlewRateSP[i].setLabel(std::to_string(static_cast<int>(SlewSpeeds[i])) + "x");
         SlewRateSP[i].setAux(&SlewSpeeds[i]);
     }
     SlewRateSP[SlewRateSP.count() - 1].setName("SLEW_MAX");
