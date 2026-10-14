@@ -41,8 +41,8 @@ using namespace INDI::AlignmentSubsystem;
 static std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherAPIMount());
 
 /* Preset Slew Speeds */
-#define SLEWMODES 9
-static double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0 };
+#define SLEWMODES 10
+static double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0, 800.0 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -102,8 +102,7 @@ bool SkywatcherAPIMount::initProperties()
 
     for (size_t i = 0; i < SlewRateSP.count(); ++i)
     {
-        // sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP[i].setLabel(std::to_string(SlewSpeeds[i]) + "x");
+        SlewRateSP[i].setLabel(std::to_string(static_cast<int>(SlewSpeeds[i])) + "x");
         SlewRateSP[i].setAux(&SlewSpeeds[i]);
     }
     SlewRateSP[SlewRateSP.count() - 1].setName("SLEW_MAX");
@@ -676,7 +675,7 @@ double SkywatcherAPIMount::GetSlewRate()
 bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     double speed =
-        (dir == DIRECTION_NORTH) ? GetSlewRate() * LOW_SPEED_MARGIN / 2 : -GetSlewRate() * LOW_SPEED_MARGIN / 2;
+        (dir == DIRECTION_NORTH) ? GetSlewRate() * SIDEREALRATE : -GetSlewRate() * SIDEREALRATE;
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
 
     switch (command)
@@ -703,7 +702,7 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     double speed =
-        (dir == DIRECTION_WEST) ? -GetSlewRate() * LOW_SPEED_MARGIN / 2 : GetSlewRate() * LOW_SPEED_MARGIN / 2;
+        (dir == DIRECTION_WEST) ? -GetSlewRate() * SIDEREALRATE : GetSlewRate() * SIDEREALRATE;
     const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
 
     switch (command)
