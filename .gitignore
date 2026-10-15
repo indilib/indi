@@ -44,3 +44,5 @@ make_*symlink.cmake
 /config*.h
 /*.pc
 /indiversion.h
+
+dist/

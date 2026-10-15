@@ -20,9 +20,9 @@ case "$OS" in
         then
             BREW="/opt/homebrew/bin/brew"
         fi
-        brew update
-        brew install \
+        "$BREW" install \
             git \
+            cmake \
             cfitsio libnova libusb curl \
             gsl erfa jpeg fftw librtlsdr libev \
             qt@5

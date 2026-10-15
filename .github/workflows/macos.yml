@@ -10,12 +10,12 @@ on:
       - 'master'
 
 jobs:
-  build:
+  core:
     runs-on: macos-latest
 
     steps:
       - name: Get INDI Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: 'indi'
 
@@ -38,3 +38,21 @@ jobs:
         with:
           name: indi-core-package-macos
           path: packages/indi-core-package.tar
+
+  homebrew:
+    name: Homebrew formula
+    runs-on: macos-latest
+
+    steps:
+      - name: Get INDI sources
+        uses: actions/checkout@v4
+
+      - name: Build and test formula
+        run: |
+          brew install --build-from-source ./Formula/indiserver.rb
+          brew test indiserver
+
+      - name: Audit formula
+        run: |
+          brew audit --new --strict --online Formula/indiserver.rb
+          brew style Formula/indiserver.rb
