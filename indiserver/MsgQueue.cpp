@@ -436,7 +436,7 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
     if (!useSharedBuffer)
     {
         /* read client - works for all kinds of fds incl pipe*/
-        return read(rFd, buf, sizeof(buf));
+        return read(rFd, buf, nr);
     }
     else
     {
