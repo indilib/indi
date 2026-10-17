@@ -30,6 +30,7 @@
 namespace Connection
 {
 class Serial;
+class TCP;
 }
 
 /**
@@ -45,6 +46,9 @@ class Serial;
  *   - Stop:         !\n  ->  ok\n  (both axes decelerate, positions stay true)
  *   - Driver:       C{X|Y}{mA}\n run current, H{X|Y}{percent}\n hold current  ->  ok\n
  *                   (type letter first; any other shape is acknowledged and ignored)
+ *
+ * The same lines travel over USB serial (115200 8N1) or, with firmware >= 1.3.0,
+ * over TCP on port 2323, one client at a time. Both connections are offered.
  *
  * The firmware never announces that a move has finished: the driver polls the
  * status frame and completes the move when the platform is Idle at the target.
@@ -98,6 +102,9 @@ class OAPA : public INDI::DefaultDevice, public INDI::PACInterface
 
         /** @brief Send one command line and read its single reply line into res. */
         bool sendCommand(const char *cmd, char *res);
+
+        /** @brief Discard anything already waiting on the link before a command. */
+        void drainInput();
 
         /** @brief Send ? and parse the status frame, consuming the trailing ok. */
         bool queryStatus(Status &status);
@@ -159,6 +166,7 @@ class OAPA : public INDI::DefaultDevice, public INDI::PACInterface
 
         int PortFD {-1};
         Connection::Serial *serialConnection {nullptr};
+        Connection::TCP *tcpConnection {nullptr};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Constants
@@ -167,6 +175,7 @@ class OAPA : public INDI::DefaultDevice, public INDI::PACInterface
         static constexpr int    DRIVER_LEN           {128};    ///< Max line length.
         static constexpr char   DRIVER_STOP_CHAR     {'\n'};
         static constexpr int    HANDSHAKE_ATTEMPTS   {6};      ///< Probes while the board boots.
+        static constexpr int    DEFAULT_TCP_PORT     {2323};   ///< Firmware TCP port since 1.3.0.
         static constexpr int    MIN_SPEED            {50};     ///< Firmware jog speed floor, steps/s.
         static constexpr int    MAX_SPEED            {3000};   ///< Firmware jog speed ceiling, steps/s.
         static constexpr int    DEFAULT_SPEED        {1000};   ///< Steps/s, as the N.I.N.A. plugin.

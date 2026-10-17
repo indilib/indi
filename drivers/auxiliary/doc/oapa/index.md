@@ -23,13 +23,14 @@ Ekos Polar Alignment Assistant can drive corrections automatically.
   them at power-off)
 - Per-axis direction reverse
 - Position readout in degrees
+- USB serial or, with firmware 1.3.0 or newer, TCP on port 2323 for a board on WiFi
 - Safety: moves are refused until calibrated; a move that stalls, times out or stops
   short of its target is stopped and reported as an error
 
 ## Installation
 
 The driver is part of INDI core and needs no extra dependencies. The controller must
-run OAPA firmware **1.2.1 or newer** (1.2.2 recommended). Older firmware connects, but
+run OAPA firmware **1.2.1 or newer** (current release 1.3.5). Older firmware connects, but
 speed and Abort are ignored and the driver logs a warning.
 
 ## Configuration
@@ -38,6 +39,10 @@ speed and Abort are ignored and the driver logs a warning.
 2. In the Ekos profile, select **OAPA** under Auxiliary.
 3. In the INDI Control Panel, set the port on the **Connection** tab and click
    **Connect**. The board resets when the port opens; the driver waits for it.
+   A board on WiFi is reached instead with connection mode **TCP**, its address and
+   port 2323; the firmware serves one client at a time. The address is shown on the
+   board's own page: from firmware 1.3.6 each board has its own name, such as
+   `oapa-a1b2c3.local`.
 4. Set **Calibration** (steps/arcmin) for both axes. Without it, every correction is
    refused. See *Calibration* below.
 
