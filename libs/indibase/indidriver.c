@@ -1042,9 +1042,9 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
         }
     }
 
-    stat(configFileName, &st);
-    /* If file is owned by root and current user is NOT root then abort */
-    if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
+    /* If file is owned by root and current user is NOT root then abort. Only the owner matters: on macOS,
+     * new files take the group of their directory, so files in e.g. /tmp belong to group wheel (0). */
+    if (stat(configFileName, &st) == 0 && st.st_uid == 0 && getuid() != 0)
     {
         strncpy(errmsg,
                 "Config file is owned by root! This will lead to serious errors. To fix this, run: sudo chown -R $USER:$USER ~/.indi",

@@ -86,9 +86,10 @@ XMLEle *configRootFP(const char *device)
             return NULL;
     }
 
-    stat(configFileName, &st);
-    
+    int statResult = stat(configFileName, &st);
+
 #ifdef _WIN32
+    (void)statResult;
     BOOL isAdmin = FALSE;
     SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
     PSID AdministratorsGroup;
@@ -101,8 +102,9 @@ XMLEle *configRootFP(const char *device)
     if ((st.st_uid == 0 && st.st_mode & S_IFDIR) || (st.st_gid == 0 && isAdmin == TRUE))
         return NULL;
 #else
-    /* If file is owned by root and current user is NOT root then abort */
-    if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
+    /* If file is owned by root and current user is NOT root then abort. Only the owner matters: on macOS,
+     * new files take the group of their directory, so files in e.g. /tmp belong to group wheel (0). */
+    if (statResult == 0 && st.st_uid == 0 && getuid() != 0)
         return NULL;
 #endif
 
