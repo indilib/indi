@@ -381,18 +381,29 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
         # ##################################################################################################
         # ########################################  Tests  #################################################
         # ##################################################################################################
-        if(DEFINED GTEST_ROOT)
-            message(STATUS "Using GTEST from ${GTEST_ROOT}")
-            add_subdirectory(${GTEST_ROOT}
-                "${CMAKE_CURRENT_BINARY_DIR}/googletest" EXCLUDE_FROM_ALL)
-            set(GTEST_FOUND true)
-        else(DEFINED GTEST_ROOT)
-            find_package(GTest)
-        endif()
+        # GoogleTest is built together with the tests so they never pick up a mismatched system
+        # installation. Set GTEST_ROOT to build from a local googletest source tree instead of
+        # downloading the pinned release.
+        if(BUILD_TESTING AND (INDI_BUILD_UNITTESTS OR INDI_BUILD_INTEGTESTS))
+            set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
-        find_package(GMock)
+            if(DEFINED GTEST_ROOT)
+                message(STATUS "Using GTEST from ${GTEST_ROOT}")
+                add_subdirectory(${GTEST_ROOT}
+                    "${CMAKE_CURRENT_BINARY_DIR}/googletest" EXCLUDE_FROM_ALL)
+            else(DEFINED GTEST_ROOT)
+                include(FetchContent)
+                FetchContent_Declare(googletest
+                    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+                    URL_HASH SHA256=65fab701d9829d38cb77c14acdc431d2108bfdbf8979e40eb8ae567edf10b27c
+                    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+                FetchContent_MakeAvailable(googletest)
+            endif()
 
-        if(GTEST_FOUND AND BUILD_TESTING)
+            set(GTEST_BOTH_LIBRARIES GTest::gtest GTest::gtest_main)
+            set(GTEST_LIBRARIES GTest::gtest)
+            set(GMOCK_LIBRARIES GTest::gmock)
+
             if(INDI_BUILD_UNITTESTS)
                 message(STATUS "Building unit tests")
                 add_subdirectory(test)
@@ -406,12 +417,9 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
             else(INDI_BUILD_INTEGTESTS)
                 message(STATUS "Not building integration tests")
             endif(INDI_BUILD_INTEGTESTS)
-
-        elseif(NOT BUILD_TESTING)
-            message(STATUS "GTEST found, but tests disabled")
         else()
-            message(STATUS "GTEST not found, not building tests")
-        endif(GTEST_FOUND AND BUILD_TESTING)
+            message(STATUS "Not building tests (enable with -DINDI_BUILD_UNITTESTS=ON or -DINDI_BUILD_INTEGTESTS=ON)")
+        endif()
     endif(WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
 
