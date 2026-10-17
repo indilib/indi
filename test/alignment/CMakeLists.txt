@@ -13,6 +13,12 @@ TARGET_LINK_LIBRARIES(test_alignment
 
 ADD_TEST(test-alignment test_alignment)
 
+# Load the math plugins from this build tree and not from an installed (possibly different) INDI version,
+# and do not read the configuration of the user running the tests.
+add_dependencies(test_alignment ${INDI_MATH_PLUGIN_TARGETS})
+set_tests_properties(test-alignment PROPERTIES ENVIRONMENT
+    "INDI_MATH_PLUGINS_DIRECTORY=${INDI_MATH_PLUGINS_BUILD_DIRECTORY};INDICONFIG=${CMAKE_CURRENT_BINARY_DIR}/test_alignment_config.xml")
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ERFA IMPORTED_TARGET erfa)
 

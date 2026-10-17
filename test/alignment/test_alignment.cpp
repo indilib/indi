@@ -145,7 +145,7 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsAltAz)
     ASSERT_DOUBLE_EQ(round(testPointAz, 1), round(altAz.azimuth, 1));
 
     double roundTripAlt, roundTripAz;
-    s.SkyToTelescopeAltAz(skyRA, skyDec, roundTripAlt, roundTripAz);
+    ASSERT_TRUE(s.SkyToTelescopeAltAz(skyRA, skyDec, roundTripAlt, roundTripAz));
 
     ASSERT_DOUBLE_EQ(round(testPointAlt, 1), round(roundTripAlt, 1));
     ASSERT_DOUBLE_EQ(round(testPointAz, 1), round(roundTripAz, 1));

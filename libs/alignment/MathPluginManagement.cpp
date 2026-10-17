@@ -434,15 +434,23 @@ void MathPluginManagement::EnumeratePlugins()
 
     errno = 0;
     char MATH_PLUGINS_DIRECTORY[2048];
-#if defined(__APPLE__)
-    const char *indiprefix = getenv("INDIPREFIX");
-    if (indiprefix)
-        snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s/Contents/Resources/MathPlugins", indiprefix);
+    // Allow overriding the plugins directory at runtime, e.g. to load the plugins from a build tree
+    // instead of a possibly different installed version.
+    const char *pluginsDirectory = getenv("INDI_MATH_PLUGINS_DIRECTORY");
+    if (pluginsDirectory && pluginsDirectory[0] != '\0')
+        snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s", pluginsDirectory);
     else
-        snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
+    {
+#if defined(__APPLE__)
+        const char *indiprefix = getenv("INDIPREFIX");
+        if (indiprefix)
+            snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s/Contents/Resources/MathPlugins", indiprefix);
+        else
+            snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
 #else
-    snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
+        snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
 #endif
+    }
 
     dp    = opendir(MATH_PLUGINS_DIRECTORY);
     strncat(MATH_PLUGINS_DIRECTORY, "/", 2);
