@@ -200,17 +200,27 @@ void DeviceManager::updateDeviceProperty(INDI::Property property)
         // Check if we already have a bridge for this device
         if (m_DeviceNumberMap.find(deviceName) == m_DeviceNumberMap.end())
         {
-            // Get the device
-            auto deviceIt = m_Devices.find(deviceName);
-            if (deviceIt != m_Devices.end())
+            // Get the fresh device from the property's BaseDevice (has all current properties)
+            INDI::BaseDevice device = property.getBaseDevice();
+            if (!device.isValid())
             {
-                // Check if device is ready (has non-zero interface)
-                uint32_t interface = deviceIt->second.getDriverInterface();
+                // Fallback to stored device
+                auto deviceIt = m_Devices.find(deviceName);
+                if (deviceIt != m_Devices.end())
+                    device = deviceIt->second;
+            }
+
+            if (device.isValid())
+            {
+                // Update stored device with fresh copy
+                m_Devices[deviceName] = device;
+
+                uint32_t interface = device.getDriverInterface();
                 if (interface > 0)
                 {
                     // Create bridge for device
                     int deviceNumber = m_NextDeviceNumber++;
-                    auto bridge = createBridge(deviceIt->second, deviceNumber);
+                    auto bridge = createBridge(device, deviceNumber);
                     if (bridge)
                     {
                         m_Bridges[deviceNumber] = std::move(bridge);
@@ -248,6 +258,81 @@ void DeviceManager::updateDeviceProperty(INDI::Property property)
     if (bridgeIt != m_Bridges.end())
     {
         bridgeIt->second->updateProperty(property);
+    }
+}
+
+void DeviceManager::retryBridgeCreation()
+{
+    std::lock_guard<std::mutex> lock(m_Mutex);
+
+    DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Retrying bridge creation for all pending devices");
+
+    for (auto &kv : m_Devices)
+    {
+        const std::string &name = kv.first;
+        INDI::BaseDevice &device = kv.second;
+        if (m_DeviceNumberMap.find(name) != m_DeviceNumberMap.end())
+            continue; // Already has a bridge
+
+        uint32_t interface = device.getDriverInterface();
+        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION,
+                     "Retry: device %s, interface = %u", name.c_str(), interface);
+
+        if (interface > 0)
+        {
+            int deviceNumber = m_NextDeviceNumber++;
+            auto bridge = createBridge(device, deviceNumber);
+            if (bridge)
+            {
+                m_Bridges[deviceNumber] = std::move(bridge);
+                m_DeviceNumberMap[name] = deviceNumber;
+                DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION,
+                             "Created bridge for device %s with number %d (retry)", name.c_str(), deviceNumber);
+            }
+            else
+            {
+                DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR,
+                             "Failed to create bridge for device %s (retry)", name.c_str());
+            }
+        }
+    }
+}
+
+void DeviceManager::forceBridgeCreation(const std::string &deviceName, uint16_t interface)
+{
+    std::lock_guard<std::mutex> lock(m_Mutex);
+
+    // Check if already has a bridge
+    if (m_DeviceNumberMap.find(deviceName) != m_DeviceNumberMap.end())
+        return;
+
+    // Find the device
+    auto deviceIt = m_Devices.find(deviceName);
+    if (deviceIt == m_Devices.end())
+        return;
+
+    INDI::BaseDevice device = deviceIt->second;
+
+    // Create bridge based on the provided interface
+    std::unique_ptr<IDeviceBridge> bridge;
+    int deviceNumber = m_NextDeviceNumber++;
+
+    if (interface & INDI::BaseDevice::TELESCOPE_INTERFACE)
+    {
+        bridge = std::make_unique<TelescopeBridge>(device, deviceNumber);
+    }
+    else if (interface & INDI::BaseDevice::CCD_INTERFACE)
+    {
+        bridge = std::make_unique<CameraBridge>(device, deviceNumber);
+    }
+
+    if (bridge)
+    {
+        m_Bridges[deviceNumber] = std::move(bridge);
+        m_DeviceNumberMap[deviceName] = deviceNumber;
+        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION,
+                     "Force created bridge for device %s with number %d (interface=%u)", deviceName.c_str(), deviceNumber,
+                     interface);
     }
 }
 

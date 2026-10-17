@@ -28,6 +28,7 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <cstdlib>
 #include <sys/socket.h>
 #include <signal.h>
 #include <system_error>

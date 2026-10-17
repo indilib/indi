@@ -22,6 +22,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include <pthread.h>
 
 /***************************** USB Focus V3 Commands **************************/
 

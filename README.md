@@ -102,6 +102,19 @@ sudo pacman -S --needed \
   erfa
 ```
 
+On macOS (Apple Silicon or Intel):
+
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install cmake llvm libnova cfitsio libusb libev fftw gsl zlib curl wget ninja swig erfa hidapi
+```
+
 ## Create Project Directory
 
 ```bash
@@ -133,6 +146,120 @@ cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 sudo cmake --install build
 ```
+
+## Build indi-core on macOS
+
+On macOS (Apple Silicon `arm64` or Intel `x86_64`), the existing build scripts automatically detect the architecture and configure the build accordingly.
+
+```bash
+cd ~/Projects/indi
+
+# Step 1: Build INDI Core (outputs to build/indi-core)
+./scripts/indi-core-build.sh Release
+
+# Step 2: Install INDI Core (requires sudo)
+sudo ./scripts/indi-core-install.sh
+
+# Step 3: Run tests (optional)
+./scripts/indi-core-test.sh
+```
+
+**Available scripts:**
+
+| Script | Description | Sudo |
+|--------|-------------|------|
+| `scripts/indi-core-build.sh` | Build INDI Core | No |
+| `scripts/indi-core-install.sh` | Install INDI Core | Yes |
+| `scripts/indi-core-test.sh` | Run tests | No |
+| `scripts/indi-core-package-build.sh` | Create package | No |
+
+The build script automatically:
+
+- Detects architecture (`arm64` on Apple Silicon, `x86_64` on Intel)
+- Uses Homebrew LLVM clang (`/opt/homebrew/opt/llvm/bin/clang++` on arm64)
+- Sets `CMAKE_OSX_ARCHITECTURES` to the correct value
+- Sets `CMAKE_OSX_DEPLOYMENT_TARGET=14.0`
+- Disables udev rules installation
+- Uses Ninja generator if available (faster builds)
+
+### Build INDI Core + 3rd Party Drivers on macOS
+
+The workflow is **per-repository**: build/install INDI Core first, then build/install 3rd party drivers.
+
+```bash
+# Clone both repositories side by side
+cd ~/Projects
+git clone https://github.com/indilib/indi.git
+git clone https://github.com/indilib/indi-3rdparty.git
+
+# ============================================
+# Step 1: Build and install INDI Core
+# ============================================
+cd indi
+./scripts/indi-core-build.sh Release
+sudo ./scripts/indi-core-install.sh
+
+# ============================================
+# Step 2: Build and install 3rd Party Libraries
+# ============================================
+cd ../indi-3rdparty
+./scripts/indi-3rdparty-libs-build.sh Release
+sudo ./scripts/indi-3rdparty-libs-install.sh
+
+# ============================================
+# Step 3: Build and install 3rd Party Drivers
+# ============================================
+./scripts/indi-3rdparty-build.sh Release
+sudo ./scripts/indi-3rdparty-install.sh
+```
+
+**INDI Core scripts** (`indi/scripts/`):
+
+| Script | Description | Sudo |
+|--------|-------------|------|
+| `indi-core-build.sh` | Build INDI Core | No |
+| `indi-core-install.sh` | Install INDI Core | Yes |
+| `indi-core-test.sh` | Run tests | No |
+
+**3rd Party scripts** (`indi-3rdparty/scripts/`):
+
+| Script | Description | Sudo |
+|--------|-------------|------|
+| `indi-3rdparty-libs-build.sh` | Build 3rd party libraries | No |
+| `indi-3rdparty-libs-install.sh` | Install 3rd party libraries | Yes |
+| `indi-3rdparty-build.sh` | Build 3rd party drivers | No |
+| `indi-3rdparty-install.sh` | Install 3rd party drivers | Yes |
+
+The 3rd party install script also fixes macOS library paths (rpath, `install_name_tool` for libusb).
+
+### Run INDI Server on macOS
+
+After building, test with simulators (no hardware needed):
+
+```bash
+# From the build directory (in-tree execution)
+cd ~/Projects/indi/build/indi-macos
+./indiserver/indiserver -v \
+  drivers/telescope/indi_simulator_telescope \
+  drivers/ccd/indi_simulator_ccd
+
+# Or from the install prefix
+/usr/local/bin/indiserver -v \
+  /usr/local/bin/indi_simulator_telescope \
+  /usr/local/bin/indi_simulator_ccd
+```
+
+Test with a ZWO ASI camera:
+
+```bash
+# From the install prefix
+/usr/local/bin/indiserver -v /usr/local/bin/indi_asi_ccd
+
+# Or test the camera directly (no INDI server needed)
+/usr/local/bin/asi_camera_test
+```
+
+Connect with CCDCiel, KStars/Ekos, or any INDI client to `localhost:7624`.
 
 ## Build indi-core (script)
 

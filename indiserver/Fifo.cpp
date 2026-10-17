@@ -26,6 +26,8 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <cerrno>
+#include <cstring>
 
 using namespace indiserver::constants;
 

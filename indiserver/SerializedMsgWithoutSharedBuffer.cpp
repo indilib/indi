@@ -23,6 +23,8 @@
 #include "base64.h"
 
 #include <unordered_map>
+#include <cstdlib>
+#include <cstring>
 
 SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent)
 {

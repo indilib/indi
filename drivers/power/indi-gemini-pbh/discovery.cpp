@@ -34,6 +34,7 @@
 #include <thread>
 #include <utility>
 #include <unistd.h>
+#include <cstdlib>
 #include <vector>
 
 namespace geminipbh

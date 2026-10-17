@@ -3,5 +3,9 @@
 set -e
 
 pushd build/indi-core
-$(command -v sudo) make install
+if [[ -f build.ninja ]]; then
+    $(command -v sudo) cmake --install .
+else
+    $(command -v sudo) make install
+fi
 popd

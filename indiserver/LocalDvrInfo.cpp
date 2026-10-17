@@ -22,6 +22,9 @@
 #include "Msg.hpp"
 #include "Constants.hpp"
 #include "CommandLineArgs.hpp"
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 
 #include "Fifo.hpp"
 #include <sys/socket.h>
