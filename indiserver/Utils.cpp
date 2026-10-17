@@ -25,6 +25,8 @@
 #include <csignal>
 #include <cstdarg>
 #include <ctime>
+#include <cstdlib>
+#include <cerrno>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>

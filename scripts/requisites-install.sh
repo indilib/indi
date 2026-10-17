@@ -23,6 +23,9 @@ case "$OS" in
         brew update
         brew install \
             git \
+            cmake \
+            llvm \
+            ninja \
             cfitsio libnova libusb curl \
             gsl erfa jpeg fftw librtlsdr libev \
             qt@5

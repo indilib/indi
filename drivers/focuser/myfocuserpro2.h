@@ -25,11 +25,10 @@
 #pragma once
 
 #include "indifocuser.h"
-
 #include <time.h>           // for nsleep() R Brown June 2021
 #include <errno.h>          // for nsleep() R Brown June 2021
-
 #include <chrono>
+#include <pthread.h>
 
 #define STEPMODE_FULL                   1
 #define STEPMODE_HALF                   2

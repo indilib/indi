@@ -23,6 +23,7 @@
 #include "MsgQueue.hpp"
 
 #include <thread>
+#include <cstdlib>
 
 SerializedMsg::SerializedMsg(Msg * parent) : asyncProgress(), owner(parent), awaiters(), chuncks(), ownBuffers()
 {

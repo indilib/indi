@@ -102,6 +102,19 @@ sudo pacman -S --needed \
   erfa
 ```
 
+On macOS (Apple Silicon or Intel):
+
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install cmake llvm libnova cfitsio libusb libev fftw gsl zlib curl wget ninja swig erfa hidapi
+```
+
 ## Create Project Directory
 
 ```bash
@@ -133,6 +146,174 @@ cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 sudo cmake --install build
 ```
+
+## Build indi-core on macOS
+
+On macOS (Apple Silicon `arm64` or Intel `x86_64`), the existing build scripts automatically detect the architecture and configure the build accordingly.
+
+```bash
+cd ~/Projects/indi
+
+# Step 1: Build INDI Core (outputs to build/indi-core)
+./scripts/indi-core-build.sh Release
+
+# Step 2: Install INDI Core (requires sudo)
+sudo ./scripts/indi-core-install.sh
+
+# Step 3: Run tests (optional)
+./scripts/indi-core-test.sh
+```
+
+**Available scripts:**
+
+| Script | Description | Sudo |
+|--------|-------------|------|
+| `scripts/indi-core-build.sh` | Build INDI Core | No |
+| `scripts/indi-core-install.sh` | Install INDI Core | Yes |
+| `scripts/indi-core-test.sh` | Run tests | No |
+| `scripts/indi-core-package-build.sh` | Create package | No |
+
+The build script automatically:
+
+- Detects architecture (`arm64` on Apple Silicon, `x86_64` on Intel)
+- Uses Homebrew LLVM clang (`/opt/homebrew/opt/llvm/bin/clang++` on arm64)
+- Sets `CMAKE_OSX_ARCHITECTURES` to the correct value
+- Sets `CMAKE_OSX_DEPLOYMENT_TARGET=14.0`
+- Disables udev rules installation
+- Uses Ninja generator if available (faster builds)
+
+### Build INDI Core + 3rd Party Drivers on macOS
+
+The workflow is **per-repository**: build/install INDI Core first, then build/install 3rd party drivers.
+
+```bash
+# Clone both repositories side by side
+cd ~/Projects
+git clone https://github.com/indilib/indi.git
+git clone https://github.com/indilib/indi-3rdparty.git
+
+# ============================================
+# Step 1: Build and install INDI Core
+# ============================================
+cd indi
+./scripts/indi-core-build.sh Release
+sudo ./scripts/indi-core-install.sh
+
+# ============================================
+# Step 2: Build and install 3rd Party Libraries
+# ============================================
+cd ../indi-3rdparty
+./scripts/indi-3rdparty-libs-build.sh Release
+sudo ./scripts/indi-3rdparty-libs-install.sh
+
+# ============================================
+# Step 3: Build and install 3rd Party Drivers
+# ============================================
+./scripts/indi-3rdparty-build.sh Release
+sudo ./scripts/indi-3rdparty-install.sh
+```
+
+**INDI Core scripts** (`indi/scripts/`):
+
+| Script | Description | Sudo |
+|--------|-------------|------|
+| `indi-core-build.sh` | Build INDI Core | No |
+| `indi-core-install.sh` | Install INDI Core | Yes |
+| `indi-core-test.sh` | Run tests | No |
+
+**3rd Party scripts** (`indi-3rdparty/scripts/`):
+
+| Script | Description | Sudo |
+|--------|-------------|------|
+| `indi-3rdparty-libs-build.sh` | Build 3rd party libraries | No |
+| `indi-3rdparty-libs-install.sh` | Install 3rd party libraries | Yes |
+| `indi-3rdparty-build.sh` | Build 3rd party drivers | No |
+| `indi-3rdparty-install.sh` | Install 3rd party drivers | Yes |
+
+The 3rd party install script also fixes macOS library paths (rpath, `install_name_tool` for libusb).
+
+### Run INDI Server on macOS
+
+After building, test with simulators (no hardware needed):
+
+```bash
+# From the build directory (in-tree execution)
+cd ~/Projects/indi/build/indi-macos
+./indiserver/indiserver -v \
+  drivers/telescope/indi_simulator_telescope \
+  drivers/ccd/indi_simulator_ccd
+
+# Or from the install prefix
+/usr/local/bin/indiserver -v \
+  /usr/local/bin/indi_simulator_telescope \
+  /usr/local/bin/indi_simulator_ccd
+```
+
+Test with a ZWO ASI camera:
+
+```bash
+# From the install prefix
+/usr/local/bin/indiserver -v /usr/local/bin/indi_asi_ccd
+
+# Or test the camera directly (no INDI server needed)
+/usr/local/bin/asi_camera_test
+```
+
+Connect with CCDCiel, KStars/Ekos, or any INDI client to `localhost:7624`.
+
+### Run the server with a ZWO ASI camera + Alpaca bridge (full example)
+
+The ASCOM Alpaca Server is a driver: it only starts its HTTP API (port 11111) once the
+device is **connected via INDI**. Full sequence:
+
+```bash
+# Terminal 1: start the server with the ASI driver and the Alpaca bridge
+/usr/local/bin/indiserver -v indi_asi_ccd indi_alpaca_server
+```
+
+The ASI camera is discovered automatically via hot-plug:
+
+```
+Driver indi_asi_ccd: Discovered ASI camera with CameraID: 0
+Driver indi_asi_ccd: Created new ASICCD device: ZWO CCD ASI174MM Mini (CameraID: 0)
+```
+
+```bash
+# Terminal 2: connect the Alpaca Server driver via INDI, then the camera
+/usr/local/bin/indi_setprop -p 7624 "INDI Alpaca Server.CONNECTION.CONNECT=On"
+sleep 2
+/usr/local/bin/indi_setprop -p 7624 "ZWO CCD ASI174MM Mini.CONNECTION.CONNECT=On"
+
+# Check the devices (camera and bridge)
+/usr/local/bin/indi_getprop -p 7624
+```
+
+Then the Alpaca HTTP API is live on port 11111:
+
+```bash
+# Alpaca API version
+curl http://localhost:11111/management/apiversions
+# → {"Value":[1],...}
+
+# Camera exposed through the bridge
+curl "http://localhost:11111/api/v1/camera/0/name?ClientID=1&ClientTransactionID=1"
+# → {"Value":"ZWO CCD ASI174MM Mini",...}
+
+curl "http://localhost:11111/api/v1/camera/0/description?ClientID=1&ClientTransactionID=1"
+# → {"Value":"INDI Camera Bridge for ZWO CCD ASI174MM Mini",...}
+```
+
+Alpaca clients (e.g. ASCOM-compatible apps) can now discover the server on
+`localhost:11111` (UDP discovery on port 32227 is also supported). Take an exposure:
+
+```bash
+curl -X PUT "http://localhost:11111/api/v1/camera/0/exposure?ClientID=1&ClientTransactionID=1" -d "Duration=1.0"
+```
+
+> **Notes:**
+> - Device name: `indi_alpaca_server` is the *exec*; the INDI device is `INDI Alpaca Server` (spaces in specs).
+> - Allow a few seconds after connecting the camera for the bridge to be created (automatic retry).
+> - Discovery endpoint is `/management/v1/description` (not `v2`).
 
 ## Build indi-core (script)
 
