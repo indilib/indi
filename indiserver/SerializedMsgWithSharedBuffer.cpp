@@ -25,6 +25,7 @@
 #include "base64.h"
 
 #include <unistd.h>
+#include <cstdlib>
 
 bool SerializedMsgWithSharedBuffer::detectInlineBlobs()
 {

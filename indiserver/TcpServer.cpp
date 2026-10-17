@@ -26,6 +26,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <cerrno>
+#include <cstring>
 
 TcpServer::TcpServer(int port): port(port)
 {

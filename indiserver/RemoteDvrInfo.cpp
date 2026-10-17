@@ -23,6 +23,8 @@
 #include "CommandLineArgs.hpp"
 
 #include <cstdio>
+#include <cerrno>
+#include <cstring>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>

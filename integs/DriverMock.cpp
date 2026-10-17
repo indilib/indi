@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include <system_error>
+#include <cstdlib>
 
 #include "DriverMock.h"
 #include "utils.h"

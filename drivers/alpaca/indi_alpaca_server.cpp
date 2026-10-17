@@ -224,6 +224,15 @@ bool INDIAlpacaServer::ISNewSwitch(const char *dev, const char *name, ISState *s
                             ServerControlSP[1].setState(ISS_OFF);
                             ServerControlSP.setState(IPS_OK);
                             LOG_INFO("Alpaca server started");
+
+                            // Retry bridge creation after server starts
+                            if (m_DeviceManager)
+                            {
+                                INDI::Timer::singleShot(2000, [this]()
+                                {
+                                    m_DeviceManager->retryBridgeCreation();
+                                });
+                            }
                         }
                         else
                         {
@@ -239,6 +248,12 @@ bool INDIAlpacaServer::ISNewSwitch(const char *dev, const char *name, ISState *s
                         ServerControlSP[0].setState(ISS_ON);
                         ServerControlSP[1].setState(ISS_OFF);
                         ServerControlSP.setState(IPS_OK);
+
+                        // Retry bridge creation when server is already running
+                        if (m_DeviceManager)
+                        {
+                            m_DeviceManager->retryBridgeCreation();
+                        }
                     }
                     break;
 
@@ -324,6 +339,17 @@ bool INDIAlpacaServer::Connect()
                 }
             }
 
+            // Wait for devices to be discovered, then retry bridge creation
+            // The BaseClient may receive devices before their DRIVER_INFO is available
+            INDI::Timer::singleShot(3000, [this]()
+            {
+                if (m_DeviceManager)
+                {
+                    LOG_INFO("Triggering delayed bridge creation retry");
+                    m_DeviceManager->retryBridgeCreation();
+                }
+            });
+
             SetTimer(getCurrentPollingPeriod());
             setConnected(true);
             updateProperties();
@@ -360,7 +386,11 @@ bool INDIAlpacaServer::Disconnect()
 
 void INDIAlpacaServer::TimerHit()
 {
-    // Nothing to do here for now
+    // Retry bridge creation for any devices that were added before their DRIVER_INFO was available
+    if (m_ServerRunning && m_DeviceManager)
+    {
+        m_DeviceManager->retryBridgeCreation();
+    }
     SetTimer(getCurrentPollingPeriod());
 }
 

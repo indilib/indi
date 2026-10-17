@@ -77,6 +77,12 @@ class DeviceManager
         // Get device information
         std::vector<AlpacaDeviceInfo> getDeviceList();
 
+        // Retry bridge creation for all devices that don't have bridges yet
+        void retryBridgeCreation();
+
+        // Force bridge creation for a specific device with a known interface
+        void forceBridgeCreation(const std::string &deviceName, uint16_t interface);
+
         // Send commands to INDI server
         void sendNewNumber(const INDI::PropertyNumber &numberProperty);
         void sendNewSwitch(const INDI::PropertySwitch &switchProperty);

@@ -25,6 +25,11 @@
 #include "alpaca_client.h"
 #include "device_manager.h"
 #include "indilogger.h"
+#include "indiapi.h"
+
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 
 AlpacaClient::AlpacaClient(DeviceManager* deviceManager)
     : m_DeviceManager(deviceManager)
@@ -72,6 +77,44 @@ void AlpacaClient::newProperty(INDI::Property property)
 {
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "New property: %s.%s", property.getDeviceName(),
                  property.getName());
+
+    // When DRIVER_INFO arrives, extract the interface and force bridge creation.
+    // The C++ PropertyText widgets may be empty at this point, so we access the
+    // raw ITextVectorProperty C struct which contains the actual values.
+    if (strcmp(property.getName(), "DRIVER_INFO") == 0 && property.getType() == INDI_TEXT)
+    {
+        uint16_t iface = 0;
+
+        // First try the C++ API
+        INDI::PropertyText textProp = property;
+        auto ifaceWidget = textProp.findWidgetByName("DRIVER_INTERFACE");
+        if (ifaceWidget)
+        {
+            iface = (uint16_t)atoi(ifaceWidget->getText());
+        }
+        else
+        {
+            // Fallback: access the raw C struct
+            ITextVectorProperty *tvp = static_cast<ITextVectorProperty *>(property.getProperty());
+            if (tvp)
+            {
+                for (int i = 0; i < tvp->ntp; i++)
+                {
+                    if (strcmp(tvp->tp[i].name, "DRIVER_INTERFACE") == 0)
+                    {
+                        iface = (uint16_t)atoi(tvp->tp[i].text);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (iface > 0)
+        {
+            m_DeviceManager->forceBridgeCreation(property.getDeviceName(), iface);
+        }
+    }
+
     m_DeviceManager->updateDeviceProperty(property);
 }
 
@@ -85,6 +128,41 @@ void AlpacaClient::updateProperty(INDI::Property property)
 {
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Update property: %s.%s", property.getDeviceName(),
                  property.getName());
+
+    // When DRIVER_INFO is updated, extract interface and force bridge creation
+    if (strcmp(property.getName(), "DRIVER_INFO") == 0 && property.getType() == INDI_TEXT)
+    {
+        uint16_t iface = 0;
+
+        INDI::PropertyText textProp = property;
+        auto ifaceWidget = textProp.findWidgetByName("DRIVER_INTERFACE");
+        if (ifaceWidget)
+        {
+            iface = (uint16_t)atoi(ifaceWidget->getText());
+        }
+        else
+        {
+            // Fallback: access the raw C struct
+            ITextVectorProperty *tvp = static_cast<ITextVectorProperty *>(property.getProperty());
+            if (tvp)
+            {
+                for (int i = 0; i < tvp->ntp; i++)
+                {
+                    if (strcmp(tvp->tp[i].name, "DRIVER_INTERFACE") == 0)
+                    {
+                        iface = (uint16_t)atoi(tvp->tp[i].text);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (iface > 0)
+        {
+            m_DeviceManager->forceBridgeCreation(property.getDeviceName(), iface);
+        }
+    }
+
     m_DeviceManager->updateDeviceProperty(property);
 }
 

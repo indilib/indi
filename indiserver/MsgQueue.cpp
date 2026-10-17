@@ -26,6 +26,8 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstdlib>
+#include <cstring>
 
 using namespace indiserver::constants;
 

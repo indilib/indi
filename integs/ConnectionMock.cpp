@@ -22,8 +22,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <cstdlib>
 #include <vector>
 
 #include "ConnectionMock.h"

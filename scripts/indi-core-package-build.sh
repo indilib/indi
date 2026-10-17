@@ -4,7 +4,11 @@ set -e
 
 mkdir -p packages/indi-core-package
 pushd build/indi-core
-make DESTDIR=../../packages/indi-core-package install
+if [[ -f build.ninja ]]; then
+    DESTDIR=../../packages/indi-core-package cmake --install .
+else
+    make DESTDIR=../../packages/indi-core-package install
+fi
 popd
 
 pushd packages
