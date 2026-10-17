@@ -918,7 +918,7 @@
         </device>
         <device label="OAPA" manufacturer="MBAstro">
             <driver name="OAPA">indi_oapa</driver>
-            <version>3.0</version>
+            <version>3.1</version>
         </device>
         <device label="MLAstro RPA" manufacturer="MLAstro">
             <driver name="MLAstro RPA">indi_mlastro_rpa</driver>
