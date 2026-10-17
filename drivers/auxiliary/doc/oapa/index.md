@@ -40,7 +40,9 @@ speed and Abort are ignored and the driver logs a warning.
 3. In the INDI Control Panel, set the port on the **Connection** tab and click
    **Connect**. The board resets when the port opens; the driver waits for it.
    A board on WiFi is reached instead with connection mode **TCP**, its address and
-   port 2323; the firmware serves one client at a time.
+   port 2323; the firmware serves one client at a time. The address is shown on the
+   board's own page: from firmware 1.3.6 each board has its own name, such as
+   `oapa-a1b2c3.local`.
 4. Set **Calibration** (steps/arcmin) for both axes. Without it, every correction is
    refused. See *Calibration* below.
 

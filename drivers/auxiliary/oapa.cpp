@@ -105,7 +105,9 @@ bool OAPA::initProperties()
     {
         return Handshake();
     });
-    tcpConnection->setDefaultHost("oapa.local");
+    // No default address: from firmware 1.3.6 each board answers to a name of its
+    // own, oapa-<mac>.local, so a fixed default would point at the wrong board or
+    // at nothing. The port is the same for every board.
     tcpConnection->setDefaultPort(DEFAULT_TCP_PORT);
     registerConnection(tcpConnection);
 
