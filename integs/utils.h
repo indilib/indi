@@ -30,4 +30,10 @@ int tcpSocketConnect(const std::string &unixAddr, int port, bool failAllowed = f
 
 int socketAccept(int fd);
 
-std::string getTestExePath(const std::string &basename);
+// Return the TCP port a socket is bound to
+int tcpSocketPort(int fd);
+// Return a TCP port that is currently free on this host
+int findFreeTcpPort();
+
+// Return a name unique to this test process, so that tests can run in parallel
+std::string uniqueTestName(const std::string &prefix);

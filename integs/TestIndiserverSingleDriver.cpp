@@ -41,7 +41,7 @@ TEST(IndiserverSingleDriver, MissingDriver)
 
     setupSigPipe();
 
-    std::string fakeDriverPath = getTestExePath("fakedriver-not-existing");
+    std::string fakeDriverPath = std::string(FAKEDRIVER_PATH) + "-not-existing";
 
     // Start indiserver with one instance, repeat 0
     indiServer.startDriver(fakeDriverPath);
@@ -60,7 +60,7 @@ TEST(IndiserverSingleDriver, ReplyToPing)
 
     fakeDriver.setup();
 
-    std::string fakeDriverPath = getTestExePath("fakedriver");
+    std::string fakeDriverPath = FAKEDRIVER_PATH;
 
     // Start indiserver with one instance, repeat 0
     indiServer.startDriver(fakeDriverPath);
@@ -100,7 +100,7 @@ static void startFakeDev(IndiServerController &indiServer)
 {
     setupSigPipe();
 
-    std::string fakeDriverPath = getTestExePath("fakedriver");
+    std::string fakeDriverPath = FAKEDRIVER_PATH;
 
     // Start indiserver with one instance, repeat 0
     indiServer.startDriver(fakeDriverPath);
@@ -133,7 +133,7 @@ static void addDriver(IndiServerController &indiServer, DriverMock &fakeDriver, 
 {
     fakeDriver.setup();
 
-    std::string fakeDriverPath = getTestExePath("fakedriver");
+    std::string fakeDriverPath = FAKEDRIVER_PATH;
 
     indiServer.addDriver(fakeDriverPath);
 

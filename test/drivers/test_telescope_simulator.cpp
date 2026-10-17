@@ -7,7 +7,10 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <unistd.h>
 
 #include "indilogger.h"
 #include "drivers/telescope/telescope_simulator.h"
@@ -134,9 +137,14 @@ TEST(TelescopeSimulatorTest, resyncReplacesOlderSyncPointEquatorial)
 int main(int argc, char **argv)
 {
     // Never read or write the user's real ~/.indi driver configuration.
-    setenv("INDICONFIG", "/tmp/test_telescope_simulator_config.xml", 1);
+    // Use a file private to this process so that test runs can happen in parallel.
+    const std::string configFile = "/tmp/test_telescope_simulator_" + std::to_string(getpid()) + "_config.xml";
+    setenv("INDICONFIG", configFile.c_str(), 1);
     INDI::Logger::getInstance().configure("", INDI::Logger::file_off,
                                           INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int rc = RUN_ALL_TESTS();
+    std::remove(configFile.c_str());
+    std::remove((configFile + ".default").c_str());
+    return rc;
 }

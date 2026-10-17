@@ -32,6 +32,9 @@
 class IndiServerController : public ProcessController
 {
         bool fifo;
+        std::string unixSocketPath;
+        std::string fifoPath;
+        int tcpPort;
     public:
         IndiServerController();
         ~IndiServerController();

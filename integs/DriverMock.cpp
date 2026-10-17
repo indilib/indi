@@ -31,7 +31,7 @@ public:
         if (ready) return;
         ready = true;
         // Create a socket that will not have the clo on exec flag ?
-        abstractPath = "/tmp/fakedriver-test";
+        abstractPath = uniqueTestName("/tmp/fakedriver-test");
         setenv("FAKEDRIVER_ADDRESS", abstractPath.c_str(), 1);
 
         serverConnection = unixSocketListen(abstractPath);

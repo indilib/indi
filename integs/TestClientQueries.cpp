@@ -66,7 +66,7 @@ static void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriv
 
     fakeDriver.setup();
 
-    std::string fakeDriverPath = getTestExePath("fakedriver");
+    std::string fakeDriverPath = FAKEDRIVER_PATH;
 
     // Start indiserver with one instance, repeat 0
     indiServer.startDriver(fakeDriverPath);

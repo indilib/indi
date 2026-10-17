@@ -41,6 +41,9 @@ class ServerMock
 
         void accept(IndiClientMock &into);
 
+        // TCP port of the listening socket (useful when listening on port 0)
+        int tcpPort() const;
+
         void close();
 };
 

@@ -10,6 +10,13 @@ STRING(REPLACE "-pie" "" CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
 
 add_executable(fakedriver fakedriver.cpp utils.cpp)
 
+# Locate the programs under test by their absolute build paths, so tests can run from any directory
+add_compile_definitions(
+    INDISERVER_PATH="$<TARGET_FILE:indiserver>"
+    INDI_SETPROP_PATH="$<TARGET_FILE:indi_setprop>"
+    FAKEDRIVER_PATH="$<TARGET_FILE:fakedriver>"
+)
+
 add_executable(XmlAwaiterTest XmlAwaiterTest.cpp XmlAwaiter.cpp)
 target_link_libraries(XmlAwaiterTest ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 gtest_discover_tests(XmlAwaiterTest PROPERTIES TIMEOUT 5)
@@ -31,6 +38,10 @@ gtest_discover_tests(TestIndiSetProp PROPERTIES TIMEOUT 10)
 add_executable(TestIndiClient TestIndiClient.cpp ${TestCommonSources})
 target_link_libraries(TestIndiClient indiclient ${GTEST_BOTH_LIBRARIES} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 gtest_discover_tests(TestIndiClient PROPERTIES TIMEOUT 5)
+
+foreach(test_target TestIndiserverSingleDriver TestClientQueries TestIndiSetProp TestIndiClient)
+    add_dependencies(${test_target} indiserver indi_setprop fakedriver)
+endforeach()
 
 # Inject properties for discovered tests
 set_property(DIRECTORY APPEND PROPERTY

@@ -34,11 +34,6 @@
 #include "ServerMock.h"
 #include "IndiClientMock.h"
 
-#define TEST_TCP_PORT 17624
-#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
-#define STRINGIFY_TOK(x) #x
-#define TO_STRING(x) STRINGIFY_TOK(x)
-
 class MyClient : public INDI::BaseClient
 {
         std::string dev, prop;
@@ -78,10 +73,11 @@ TEST(IndiclientTcpConnect, ClientConnect)
 
     setupSigPipe();
 
-    fakeServer.listen(TEST_TCP_PORT);
+    // Listen on any free port so that tests can run in parallel
+    fakeServer.listen(0);
 
     MyClient * client = new MyClient("machin", "truc");
-    client->setServer("127.0.0.1", TEST_TCP_PORT);
+    client->setServer("127.0.0.1", fakeServer.tcpPort());
 
     // FIXME : async
     // auto wait = runAsync([&fakeServer]=>{

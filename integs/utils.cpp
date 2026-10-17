@@ -337,32 +337,27 @@ int tcpSocketConnect(const std::string &host, int port, bool failAllowed)
 }
 
 
-std::string getTestExePath(const std::string &str)
+int tcpSocketPort(int fd)
 {
-    size_t size = 256;
-    char * buffer;
-
-    buffer = (char*)malloc(size);
-
-    while(true)
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    if (getsockname(fd, (struct sockaddr *)&addr, &len) < 0)
     {
-        if (getcwd(buffer, size) != nullptr)
-        {
-            break;
-        }
-        if ((errno == ERANGE) && (size < 0x100000))
-        {
-            size *= 2;
-            buffer = (char*)realloc(buffer, size);
-        }
-        else
-        {
-            perror("getcwd");
-            exit(255);
-        }
+        throw std::system_error(errno, std::generic_category(), "getsockname");
     }
-    std::string ret = std::string(buffer) + "/" + str;
-    fprintf(stderr, "starting : %s\n", ret.c_str());
-    free(buffer);
-    return ret;
+    return ntohs(addr.sin_port);
+}
+
+int findFreeTcpPort()
+{
+    // Let the kernel pick a free port, then release it for the process under test
+    int fd = tcpSocketListen(0);
+    int port = tcpSocketPort(fd);
+    close(fd);
+    return port;
+}
+
+std::string uniqueTestName(const std::string &prefix)
+{
+    return prefix + "-" + std::to_string(getpid());
 }

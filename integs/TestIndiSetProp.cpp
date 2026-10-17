@@ -37,7 +37,7 @@
 
 static void startIndiSetProp(ProcessController & indiSetProp, const std::vector<std::string>& args) {
     setupSigPipe();
-    std::string indiSetPropPath = getTestExePath("../tools/indi_setprop");
+    std::string indiSetPropPath = INDI_SETPROP_PATH;
 
     indiSetProp.start(indiSetPropPath, args);
 }
@@ -58,7 +58,7 @@ static void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDr
 
     fakeDriver.setup();
 
-    std::string fakeDriverPath = getTestExePath("fakedriver");
+    std::string fakeDriverPath = FAKEDRIVER_PATH;
 
     // Start indiserver with one instance, repeat 0
     indiServer.startDriver(fakeDriverPath);

@@ -57,6 +57,11 @@ void ServerMock::listen(const std::string &unixPath)
     fd = unixSocketListen(unixPath);
 }
 
+int ServerMock::tcpPort() const
+{
+    return tcpSocketPort(fd);
+}
+
 void ServerMock::accept(IndiClientMock &into)
 {
     if (fd == -1)
