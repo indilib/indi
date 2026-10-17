@@ -588,6 +588,20 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         XMLEle *ep         = nullptr;
         bool propertySaved = false;
 
+        // Check that the saved members match the current property members. If members were added or
+        // removed since the configuration was written (e.g. new baud rates), editing the saved members
+        // in place would drop the new ones, so the whole configuration must be saved instead.
+        auto savedLayoutMatches = [&ep](const auto &oneProperty)
+        {
+            size_t savedCount = 0;
+            for (XMLEle *oneElement = nextXMLEle(ep, 1); oneElement != nullptr; oneElement = nextXMLEle(ep, 0), savedCount++)
+            {
+                if (oneProperty.findWidgetByName(findXMLAttValu(oneElement, "name")) == nullptr)
+                    return false;
+            }
+            return savedCount == oneProperty.count();
+        };
+
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             const char *elemName = findXMLAttValu(ep, "name");
@@ -603,6 +617,12 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
                 {
                     delXMLEle(root);
                     return false;
+                }
+
+                if (!savedLayoutMatches(svp))
+                {
+                    delXMLEle(root);
+                    return saveConfig(silent);
                 }
 
                 XMLEle *sw = nullptr;
@@ -631,6 +651,12 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
                     return false;
                 }
 
+                if (!savedLayoutMatches(nvp))
+                {
+                    delXMLEle(root);
+                    return saveConfig(silent);
+                }
+
                 XMLEle *np = nullptr;
                 for (np = nextXMLEle(ep, 1); np != nullptr; np = nextXMLEle(ep, 0))
                 {
@@ -653,6 +679,12 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
                 {
                     delXMLEle(root);
                     return false;
+                }
+
+                if (!savedLayoutMatches(tvp))
+                {
+                    delXMLEle(root);
+                    return saveConfig(silent);
                 }
 
                 XMLEle *tp = nullptr;

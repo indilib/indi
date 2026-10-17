@@ -21,6 +21,8 @@
 #pragma once
 
 #include "connectioninterface.h"
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
 
 #include <stdint.h>
 #include <cstdlib>
@@ -66,15 +68,15 @@ class TCP : public Interface
 
         virtual const char *host() const
         {
-            return AddressT[0].text;
+            return AddressTP[0].getText();
         }
         virtual uint32_t port() const
         {
-            return atoi(AddressT[1].text);
+            return atoi(AddressTP[1].getText());
         }
         ConnectionType connectionType() const
         {
-            return static_cast<ConnectionType>(IUFindOnSwitchIndex(&TcpUdpSP));
+            return static_cast<ConnectionType>(TcpUdpSP.findOnSwitchIndex());
         }
 
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
@@ -105,14 +107,11 @@ class TCP : public Interface
         /// Properties
         //////////////////////////////////////////////////////////////////////////////////////////////////
         // IP Address/Port
-        ITextVectorProperty AddressTP;
-        IText AddressT[2] {};
+        INDI::PropertyText AddressTP {2};
         // Connection Type
-        ISwitch TcpUdpS[2];
-        ISwitchVectorProperty TcpUdpSP;
+        INDI::PropertySwitch TcpUdpSP {2};
         // Auto search
-        ISwitch LANSearchS[2];
-        ISwitchVectorProperty LANSearchSP;
+        INDI::PropertySwitch LANSearchSP {2};
 
         // Variables
         IPerm m_Permission = IP_RW;

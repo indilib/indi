@@ -42,81 +42,77 @@ Serial::Serial(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONN
     if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, 256) == 0)
     {
         m_ConfigPort = configPort;
-        IUFillText(&PortT[0], "PORT", "Port", configPort);
+        PortTP[0].fill("PORT", "Port", configPort);
     }
     else
     {
 #ifdef __APPLE__
-        IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
+        PortTP[0].fill("PORT", "Port", "/dev/cu.usbserial");
 #else
-        IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
+        PortTP[0].fill("PORT", "Port", "/dev/ttyUSB0");
 #endif
     }
-    IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, m_Permission, 60,
-                     IPS_IDLE);
+    PortTP.fill(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, m_Permission, 60, IPS_IDLE);
 
     int autoSearchIndex = 0;
     // Try to load the port from the config file. If that fails, use default port.
     IUGetConfigOnSwitchIndex(dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, &autoSearchIndex);
-    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled",
-                 autoSearchIndex == 0 ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled",
-                 autoSearchIndex == 0 ? ISS_OFF : ISS_ON);
-    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search",
-                       CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].fill("INDI_ENABLED", "Enabled", autoSearchIndex == 0 ? ISS_ON : ISS_OFF);
+    AutoSearchSP[INDI::DefaultDevice::INDI_DISABLED].fill("INDI_DISABLED", "Disabled", autoSearchIndex == 0 ? ISS_OFF : ISS_ON);
+    AutoSearchSP.fill(dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search", CONNECTION_TAB, IP_RW, ISR_1OFMANY,
+                      60, IPS_IDLE);
 
-    IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Ports", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, dev->getDeviceName(), "DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    RefreshSP[0].fill("Scan Ports", "Scan Ports", ISS_OFF);
+    RefreshSP.fill(dev->getDeviceName(), "DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
-    IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[2], "38400", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB,
-                       m_Permission, ISR_1OFMANY, 60, IPS_IDLE);
+    BaudRateSP[B_1200].fill("1200", "", ISS_OFF);
+    BaudRateSP[B_2400].fill("2400", "", ISS_OFF);
+    BaudRateSP[B_4800].fill("4800", "", ISS_OFF);
+    BaudRateSP[B_9600].fill("9600", "", ISS_ON);
+    BaudRateSP[B_19200].fill("19200", "", ISS_OFF);
+    BaudRateSP[B_38400].fill("38400", "", ISS_OFF);
+    BaudRateSP[B_57600].fill("57600", "", ISS_OFF);
+    BaudRateSP[B_115200].fill("115200", "", ISS_OFF);
+    BaudRateSP[B_230400].fill("230400", "", ISS_OFF);
+    BaudRateSP.fill(dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB, m_Permission, ISR_1OFMANY,
+                    60, IPS_IDLE);
 
-    // Try to load the port from the config file. If that fails, use default port.
-    IUGetConfigOnSwitchIndex(dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, &m_ConfigBaudRate);
-    // If we have a valid config entry, se it.
+    // Try to load the baud rate from the config file. Look it up by name and not by index since
+    // configuration files written before slower baud rates were added have a different switch order.
+    char configBaudRate[MAXINDINAME] = {0};
+    if (IUGetConfigOnSwitchName(dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, configBaudRate, MAXINDINAME) == 0)
+        m_ConfigBaudRate = BaudRateSP.findWidgetIndexByName(configBaudRate);
+    // If we have a valid config entry, set it.
     if (m_ConfigBaudRate >= 0)
     {
-        IUResetSwitch(&BaudRateSP);
-        BaudRateS[m_ConfigBaudRate].s = ISS_ON;
+        BaudRateSP.reset();
+        BaudRateSP[m_ConfigBaudRate].setState(ISS_ON);
     }
 }
 
-Serial::~Serial()
-{
-    delete[] SystemPortS;
-}
+Serial::~Serial() = default;
 
 bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (!strcmp(dev, m_Device->getDeviceName()))
     {
         // Serial Port
-        if (!strcmp(name, PortTP.name))
+        if (PortTP.isNameMatch(name))
         {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, nullptr);
+            PortTP.update(texts, names, n);
+            PortTP.setState(IPS_OK);
+            PortTP.apply();
 
-            auto pos = std::find_if(m_SystemPorts.begin(), m_SystemPorts.end(), [&](const std::string & onePort)
-            {
-                return !strcmp(PortT[0].text, onePort.c_str());
-            });
+            auto pos = std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText());
             // Auto search only makes sense when the user is not using a custom (non-system) port.
             // Only act (and report it) when auto search is currently enabled, so that no redundant
             // message is sent and no property update is pushed when it is already disabled.
-            if (pos == m_SystemPorts.end() && AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
+            if (pos == m_SystemPorts.end() && AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
             {
-                LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
-                AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
-                AutoSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
-                IDSetSwitch(&AutoSearchSP, nullptr);
+                LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortTP[0].getText());
+                AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].setState(ISS_OFF);
+                AutoSearchSP[INDI::DefaultDevice::INDI_DISABLED].setState(ISS_ON);
+                AutoSearchSP.apply();
             }
         }
         return true;
@@ -130,56 +126,56 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
     if (!strcmp(dev, m_Device->getDeviceName()))
     {
         // Change Baud Rate
-        if (!strcmp(name, BaudRateSP.name))
+        if (BaudRateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&BaudRateSP, states, names, n);
-            BaudRateSP.s = IPS_OK;
-            IDSetSwitch(&BaudRateSP, nullptr);
+            BaudRateSP.update(states, names, n);
+            BaudRateSP.setState(IPS_OK);
+            BaudRateSP.apply();
             return true;
         }
 
         // Auto Search Devices on connection failure
-        if (!strcmp(name, AutoSearchSP.name))
+        if (AutoSearchSP.isNameMatch(name))
         {
-            bool wasEnabled = (AutoSearchS[0].s == ISS_ON);
+            bool wasEnabled = (AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON);
 
-            IUUpdateSwitch(&AutoSearchSP, states, names, n);
-            AutoSearchSP.s = IPS_OK;
+            AutoSearchSP.update(states, names, n);
+            AutoSearchSP.setState(IPS_OK);
 
             // Only display message if there is an actual change
-            if (wasEnabled == false && AutoSearchS[0].s == ISS_ON)
+            if (wasEnabled == false && AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
                 LOG_INFO("Auto search is enabled. When connecting, the driver shall attempt to "
                          "communicate with all available system ports until a connection is "
                          "established.");
-            else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
+            else if (wasEnabled && AutoSearchSP[INDI::DefaultDevice::INDI_DISABLED].getState() == ISS_ON)
                 LOG_INFO("Auto search is disabled.");
-            IDSetSwitch(&AutoSearchSP, nullptr);
+            AutoSearchSP.apply();
 
             return true;
         }
 
         // Refresh Serial Devices
-        if (!strcmp(name, RefreshSP.name))
+        if (RefreshSP.isNameMatch(name))
         {
-            RefreshSP.s = Refresh() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&RefreshSP, nullptr);
+            RefreshSP.setState(Refresh() ? IPS_OK : IPS_ALERT);
+            RefreshSP.apply();
             return true;
         }
 
         // Check if a system port is selected.
-        if (!strcmp(name, SystemPortSP.name))
+        if (SystemPortSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SystemPortSP, states, names, n);
+            SystemPortSP.update(states, names, n);
 
-            int index = IUFindOnSwitchIndex(&SystemPortSP);
+            int index = SystemPortSP.findOnSwitchIndex();
             if (index >= 0)
             {
-                IUSaveText(&PortT[0], m_SystemPorts[index].c_str());
-                IDSetText(&PortTP, nullptr);
+                PortTP[0].setText(m_SystemPorts[index]);
+                PortTP.apply();
             }
 
-            SystemPortSP.s = IPS_OK;
-            IDSetSwitch(&SystemPortSP, nullptr);
+            SystemPortSP.setState(IPS_OK);
+            SystemPortSP.apply();
             return true;
         }
     }
@@ -189,8 +185,8 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 bool Serial::Connect()
 {
-    uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
-    if (Connect(PortT[0].text, baud) && processHandshake())
+    uint32_t baud = this->baud();
+    if (Connect(PortTP[0].getText(), baud) && processHandshake())
         return true;
 
     // Important, disconnect from port immediately
@@ -202,16 +198,16 @@ bool Serial::Connect()
     for (const auto &onePort : m_SystemPorts)
     {
         // Only try the same port last again.
-        if (onePort == std::string(PortT[0].text))
+        if (onePort == PortTP[0].getText())
             continue;
 
         systemPorts.push_back(onePort);
     }
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && !systemPorts.empty())
+    if (AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON && !SystemPortSP.isEmpty() && !systemPorts.empty())
     {
-        LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
+        LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortTP[0].getText(),
                   baud);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(500 + (rand() % 1000)));
@@ -225,7 +221,7 @@ bool Serial::Connect()
         std::vector<std::string> doubleSearch = systemPorts;
 
         // Try the current port as LAST port again
-        systemPorts.push_back(PortT[0].text);
+        systemPorts.push_back(PortTP[0].getText());
 
         // Double search just in case some items were BUSY in the first pass
         systemPorts.insert(systemPorts.end(), doubleSearch.begin(), doubleSearch.end());
@@ -235,33 +231,33 @@ bool Serial::Connect()
             LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
             if (Connect(port.c_str(), baud) && processHandshake())
             {
-                IUSaveText(&PortT[0], port.c_str());
-                IDSetText(&PortTP, nullptr);
+                PortTP[0].setText(port);
+                PortTP.apply();
 
 #ifdef __linux__
                 // Disable auto-search on Linux if not disabled already
-                if (AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
+                if (AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
                 {
-                    AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
-                    AutoSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
-                    IDSetSwitch(&AutoSearchSP, nullptr);
-                    m_Device->saveConfig(true, AutoSearchSP.name);
+                    AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].setState(ISS_OFF);
+                    AutoSearchSP[INDI::DefaultDevice::INDI_DISABLED].setState(ISS_ON);
+                    AutoSearchSP.apply();
+                    m_Device->saveConfig(true, AutoSearchSP.getName());
                 }
 
                 // Save device port if different from configuration value and read-write.
-                if (m_Permission != IP_RO && m_ConfigPort != std::string(PortT[0].text))
+                if (m_Permission != IP_RO && m_ConfigPort != PortTP[0].getText())
                     m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #else
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
-                if (m_Permission != IP_RO && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortT[0].text) != m_SystemPorts.end())
+                if (m_Permission != IP_RO && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText()) != m_SystemPorts.end())
                     m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #endif
 
 
                 // If baud rate is different from config file, save it.
-                if (m_Permission != IP_RO && IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+                if (m_Permission != IP_RO && BaudRateSP.findOnSwitchIndex() != m_ConfigBaudRate)
                     m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
 
                 return true;
@@ -286,10 +282,10 @@ bool Serial::processHandshake()
         LOGF_INFO("%s is online.", getDeviceName());
         // If permission is read-write and either the config port or baud rate are different from
         // configuration values, then save them.
-        if (m_Permission != IP_RO && std::string(PortT[0].text) != m_ConfigPort)
+        if (m_Permission != IP_RO && PortTP[0].getText() != m_ConfigPort)
             m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 
-        if (m_Permission != IP_RO && IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+        if (m_Permission != IP_RO && BaudRateSP.findOnSwitchIndex() != m_ConfigBaudRate)
             m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
     }
     else
@@ -340,26 +336,28 @@ void Serial::Activated()
 {
     if (m_Permission != IP_RO)
         Refresh(true);
-    m_Device->defineProperty(&PortTP);
-    m_Device->defineProperty(&BaudRateSP);
+    m_Device->defineProperty(PortTP);
+    m_Device->defineProperty(BaudRateSP);
     if (m_Permission != IP_RO)
     {
-        m_Device->defineProperty(&AutoSearchSP);
-        m_Device->defineProperty(&RefreshSP);
+        m_Device->defineProperty(AutoSearchSP);
+        m_Device->defineProperty(RefreshSP);
     }
 }
 
 void Serial::Deactivated()
 {
-    m_Device->deleteProperty(SystemPortSP.name);
-    delete[] SystemPortS;
-    SystemPortS = nullptr;
-    m_Device->deleteProperty(PortTP.name);
-    m_Device->deleteProperty(BaudRateSP.name);
+    if (!SystemPortSP.isEmpty())
+    {
+        m_Device->deleteProperty(SystemPortSP);
+        SystemPortSP.resize(0);
+    }
+    m_Device->deleteProperty(PortTP);
+    m_Device->deleteProperty(BaudRateSP);
     if (m_Permission != IP_RO)
     {
-        m_Device->deleteProperty(AutoSearchSP.name);
-        m_Device->deleteProperty(RefreshSP.name);
+        m_Device->deleteProperty(AutoSearchSP);
+        m_Device->deleteProperty(RefreshSP);
     }
 }
 
@@ -367,9 +365,9 @@ bool Serial::saveConfigItems(FILE *fp)
 {
     if (m_Permission != IP_RO)
     {
-        IUSaveConfigText(fp, &PortTP);
-        IUSaveConfigSwitch(fp, &BaudRateSP);
-        IUSaveConfigSwitch(fp, &AutoSearchSP);
+        PortTP.save(fp);
+        BaudRateSP.save(fp);
+        AutoSearchSP.save(fp);
     }
 
     return true;
@@ -379,9 +377,9 @@ void Serial::setDefaultPort(const char *port)
 {
     // JM 2021.09.19: Only set default port if configuration port was not loaded already.
     if (m_ConfigPort.empty())
-        IUSaveText(&PortT[0], port);
+        PortTP[0].setText(port);
     if (m_Device->isInitializationComplete())
-        IDSetText(&PortTP, nullptr);
+        PortTP.apply();
 }
 
 void Serial::setDefaultBaudRate(BaudRate newRate)
@@ -389,12 +387,12 @@ void Serial::setDefaultBaudRate(BaudRate newRate)
     // JM 2021.09.19: Only set default baud rate if configuration baud rate was not loaded already.
     if (m_ConfigBaudRate == -1)
     {
-        IUResetSwitch(&BaudRateSP);
-        BaudRateS[newRate].s = ISS_ON;
+        BaudRateSP.reset();
+        BaudRateSP[newRate].setState(ISS_ON);
     }
 
     if (m_Device->isInitializationComplete())
-        IDSetSwitch(&BaudRateSP, nullptr);
+        BaudRateSP.apply();
 }
 
 void Serial::setPortMatchPattern(const std::string &pattern)
@@ -404,7 +402,8 @@ void Serial::setPortMatchPattern(const std::string &pattern)
 
 uint32_t Serial::baud()
 {
-    return atoi(IUFindOnSwitch(&BaudRateSP)->name);
+    auto onSwitch = BaudRateSP.findOnSwitch();
+    return onSwitch ? atoi(onSwitch->getName()) : 9600;
 }
 
 int serial_dev_file_select(const dirent *entry)
@@ -529,21 +528,18 @@ bool Serial::Refresh(bool silent)
     }
 
     // Check if anything changed and the property is already defined then we return.
-    if (m_Ports == m_SystemPorts && SystemPortS)
+    if (m_Ports == m_SystemPorts && !SystemPortSP.isEmpty())
     {
-        m_Device->defineProperty(&SystemPortSP);
+        m_Device->defineProperty(SystemPortSP);
         return true;
     }
 
     m_SystemPorts = m_Ports;
 
-    if (SystemPortS)
-        m_Device->deleteProperty(SystemPortSP.name);
+    if (!SystemPortSP.isEmpty())
+        m_Device->deleteProperty(SystemPortSP);
 
-    delete[] SystemPortS;
-
-    SystemPortS = new ISwitch[pCount];
-    ISwitch *sp = SystemPortS;
+    SystemPortSP.resize(0);
 
     for (const auto &onePort : m_Ports)
     {
@@ -566,13 +562,15 @@ bool Serial::Refresh(bool silent)
                 label = match.str(1);
         }
 #endif
-        IUFillSwitch(sp++, name.c_str(), label.c_str(), ISS_OFF);
+        INDI::WidgetSwitch node;
+        node.fill(name, label, ISS_OFF);
+        SystemPortSP.push(std::move(node));
     }
 
-    IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
-                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    SystemPortSP.fill(m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60,
+                      IPS_IDLE);
 
-    m_Device->defineProperty(&SystemPortSP);
+    m_Device->defineProperty(SystemPortSP);
 
     // Check whether the saved config port is still usable: it is either among the detected system
     // ports, or it still exists on disk (e.g. a custom or mapped port like /dev/mount).
@@ -589,9 +587,9 @@ bool Serial::Refresh(bool silent)
             LOGF_INFO("Saved port %s is no longer available. Using the only detected port %s instead.",
                       m_ConfigPort.c_str(), m_Ports[0].c_str());
 
-        IUSaveText(&PortT[0], m_Ports[0].c_str());
+        PortTP[0].setText(m_Ports[0]);
         if (m_Device->isInitializationComplete())
-            IDSetText(&PortTP, nullptr);
+            PortTP.apply();
     }
 
     // If a port match pattern is registered, try to auto-select the best matching port.
@@ -612,8 +610,8 @@ bool Serial::Refresh(bool silent)
                     {
                         LOGF_INFO("Auto-selected port %s based on device name pattern \"%s\".",
                                   onePort.c_str(), m_PortMatchPattern.c_str());
-                        IUSaveText(&PortT[0], onePort.c_str());
-                        IDSetText(&PortTP, nullptr);
+                        PortTP[0].setText(onePort);
+                        PortTP.apply();
                         break;
                     }
                 }
