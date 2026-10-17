@@ -40,7 +40,7 @@ TEST(CORE_PROPERTY_CLASS, Test_EmptyProperty)
     INDI::Property p;
 
     ASSERT_EQ(p.getProperty(), nullptr);
-    ASSERT_EQ(p.getBaseDevice(), nullptr);
+    ASSERT_FALSE(p.getBaseDevice().isValid());
     ASSERT_EQ(p.getType(), INDI_UNKNOWN);
     ASSERT_EQ(p.getRegistered(), false);
     ASSERT_EQ(p.isDynamic(), false);
@@ -94,7 +94,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
     // Other fields remain unchanged
     ASSERT_EQ(p.getRegistered(), true);
     ASSERT_EQ(p.isDynamic(), false);
-    ASSERT_EQ(p.getBaseDevice(), nullptr);
+    ASSERT_FALSE(p.getBaseDevice().isValid());
     ASSERT_EQ(p.getState(), IPS_ALERT);
     ASSERT_EQ(p.getPermission(), IP_RO);
 
@@ -121,7 +121,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
     // And previously set fields remain unchanged
     ASSERT_EQ(p.getRegistered(), true);
     ASSERT_EQ(p.isDynamic(), false);
-    ASSERT_EQ(p.getBaseDevice(), nullptr);
+    ASSERT_FALSE(p.getBaseDevice().isValid());
 
     // Other specific conversions still return nothing
     ASSERT_EQ(p.getText(), nullptr);
@@ -144,7 +144,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
 
     // And other fields are reset
     ASSERT_EQ(p.isDynamic(), false);
-    ASSERT_EQ(p.getBaseDevice(), nullptr);
+    ASSERT_FALSE(p.getBaseDevice().isValid());
     ASSERT_EQ(p.getState(), IPS_ALERT);
     ASSERT_EQ(p.getPermission(), IP_RO);
 
@@ -192,7 +192,7 @@ TEST(CORE_PROPERTY_CLASS, DISABLED_Test_Integrity)
 
     // A verification mechanism should protect the property from being associated to an invalid device
     p.setBaseDevice(corrupted_device);
-    EXPECT_EQ(p.getBaseDevice(), nullptr);
+    EXPECT_FALSE(p.getBaseDevice().isValid());
 }
 
 

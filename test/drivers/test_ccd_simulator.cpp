@@ -20,7 +20,7 @@ class MockCCDSimDriver: public CCDSim
         void testProperties()
         {
             auto p = getNumber("SIMULATOR_SETTINGS");
-            ASSERT_NE(p, nullptr);
+            ASSERT_TRUE(p.isValid());
             ASSERT_NE(p.findWidgetByName("SIM_XRES"), nullptr);
             ASSERT_NE(p.findWidgetByName("SIM_YRES"), nullptr);
             ASSERT_NE(p.findWidgetByName("SIM_XSIZE"), nullptr);

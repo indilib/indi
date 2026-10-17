@@ -391,6 +391,7 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
                 message(STATUS "Using GTEST from ${GTEST_ROOT}")
                 add_subdirectory(${GTEST_ROOT}
                     "${CMAKE_CURRENT_BINARY_DIR}/googletest" EXCLUDE_FROM_ALL)
+                set(INDI_GTEST_SOURCE_DIR ${GTEST_ROOT})
             else(DEFINED GTEST_ROOT)
                 include(FetchContent)
                 FetchContent_Declare(googletest
@@ -398,7 +399,23 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_COMMON)
                     URL_HASH SHA256=65fab701d9829d38cb77c14acdc431d2108bfdbf8979e40eb8ae567edf10b27c
                     DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
                 FetchContent_MakeAvailable(googletest)
+                set(INDI_GTEST_SOURCE_DIR ${googletest_SOURCE_DIR})
             endif()
+
+            # The directory-wide include paths above (e.g. CFITSIO/libnova in /usr/local/include) are
+            # searched before a target's own include paths, so a system googletest installed there
+            # would shadow the bundled headers and fail to compile against the bundled sources.
+            # Put the bundled headers first, both for googletest itself and for the test targets.
+            # googletest exports its headers as SYSTEM (-isystem), which compilers only search after
+            # every -I path, so drop that too or /usr/local/include would still win.
+            set(INDI_GTEST_INCLUDE_DIRS
+                ${INDI_GTEST_SOURCE_DIR}/googletest/include
+                ${INDI_GTEST_SOURCE_DIR}/googlemock/include)
+            foreach(gtest_target gtest gtest_main gmock gmock_main)
+                set_property(TARGET ${gtest_target} PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "")
+                target_include_directories(${gtest_target} BEFORE PRIVATE ${INDI_GTEST_INCLUDE_DIRS})
+            endforeach()
+            include_directories(BEFORE ${INDI_GTEST_INCLUDE_DIRS})
 
             set(GTEST_BOTH_LIBRARIES GTest::gtest GTest::gtest_main)
             set(GTEST_LIBRARIES GTest::gtest)
