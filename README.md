@@ -102,6 +102,27 @@ sudo pacman -S --needed \
   erfa
 ```
 
+On macOS, install Xcode or the Command Line Tools (`xcode-select --install`), then the dependencies with [Homebrew](https://brew.sh):
+
+```bash
+brew install \
+  git \
+  cmake \
+  ninja \
+  libnova \
+  cfitsio \
+  libusb \
+  libev \
+  gsl \
+  jpeg \
+  curl \
+  fftw \
+  librtlsdr \
+  erfa
+```
+
+If a build on macOS fails with `'cstddef' file not found`, the Command Line Tools are missing or an existing build directory still points to a macOS SDK removed by a system update: run `xcode-select --install` and delete the build directory before building again.
+
 ## Create Project Directory
 
 ```bash
@@ -133,6 +154,8 @@ cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 sudo cmake --install build
 ```
+
+On macOS, `/usr` is read-only, so install to `/usr/local` instead: `-DCMAKE_INSTALL_PREFIX=/usr/local`.
 
 ## Build indi-core (script)
 
