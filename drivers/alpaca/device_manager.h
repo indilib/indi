@@ -90,6 +90,12 @@ class DeviceManager
         static void parseFormUrlEncodedBody(const std::string &body, std::map<std::string, std::string> &params);
 
     private:
+        // Alpaca device type ("telescope", "camera") for an INDI driver interface, empty if unsupported
+        static std::string getAlpacaDeviceType(uint32_t interface);
+
+        // Create a bridge for the device if it has no bridge yet and its interface is known and supported
+        void createBridgeIfReady(INDI::BaseDevice device);
+
         // Create appropriate bridge for device type
         std::unique_ptr<IDeviceBridge> createBridge(INDI::BaseDevice device, int deviceNumber);
 
@@ -105,13 +111,13 @@ class DeviceManager
                                      httplib::Response &res,
                                      int clientTransactionID, int serverTransactionID);
 
+        // Alpaca devices are addressed by device type and number, numbers start at 0 for each type
+        using BridgeKey = std::pair<std::string, int>;
+
         // Maps to track devices and bridges
         std::map<std::string, INDI::BaseDevice> m_Devices;  // INDI device name -> device
-        std::map<int, std::unique_ptr<IDeviceBridge>> m_Bridges;  // Alpaca device number -> bridge
-        std::map<std::string, int> m_DeviceNumberMap;  // INDI device name -> Alpaca device number
-
-        // Next available device number
-        int m_NextDeviceNumber {0};
+        std::map<BridgeKey, std::unique_ptr<IDeviceBridge>> m_Bridges;  // Alpaca device type and number -> bridge
+        std::map<std::string, BridgeKey> m_DeviceNumberMap;  // INDI device name -> Alpaca device type and number
 
         // AlpacaClient reference
         std::shared_ptr<AlpacaClient> m_Client;

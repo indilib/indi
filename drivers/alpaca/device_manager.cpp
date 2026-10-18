@@ -98,68 +98,54 @@ void DeviceManager::addDevice(INDI::BaseDevice device)
 
     // Check if device already exists
     if (m_Devices.find(deviceName) != m_Devices.end())
-    {
         DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Device %s already exists, updating", deviceName);
-        m_Devices[deviceName] = device;
 
-        // Check if we need to create a bridge for this device
-        if (m_DeviceNumberMap.find(deviceName) == m_DeviceNumberMap.end())
-        {
-            // Check if device is ready (has non-zero interface)
-            uint32_t interface = device.getDriverInterface();
-            if (interface > 0)
-            {
-                // Create bridge for device
-                int deviceNumber = m_NextDeviceNumber++;
-                auto bridge = createBridge(device, deviceNumber);
-                if (bridge)
-                {
-                    m_Bridges[deviceNumber] = std::move(bridge);
-                    m_DeviceNumberMap[deviceName] = deviceNumber;
-                    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Created bridge for device %s with number %d", deviceName,
-                                 deviceNumber);
-                }
-                else
-                {
-                    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR, "Failed to create bridge for device %s", deviceName);
-                }
-            }
-            else
-            {
-                DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
-                             "Device %s not ready yet (interface = 0), waiting for driver info", deviceName);
-            }
-        }
-        return;
-    }
-
-    // Add device to map
     m_Devices[deviceName] = device;
+
+    createBridgeIfReady(device);
+}
+
+void DeviceManager::createBridgeIfReady(INDI::BaseDevice device)
+{
+    const char *deviceName = device.getDeviceName();
+
+    // Check if we already have a bridge for this device
+    if (m_DeviceNumberMap.find(deviceName) != m_DeviceNumberMap.end())
+        return;
 
     // Check if device is ready (has non-zero interface)
     uint32_t interface = device.getDriverInterface();
-    if (interface > 0)
-    {
-        // Create bridge for device
-        int deviceNumber = m_NextDeviceNumber++;
-        auto bridge = createBridge(device, deviceNumber);
-        if (bridge)
-        {
-            m_Bridges[deviceNumber] = std::move(bridge);
-            m_DeviceNumberMap[deviceName] = deviceNumber;
-            DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Created bridge for device %s with number %d", deviceName,
-                         deviceNumber);
-        }
-        else
-        {
-            DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR, "Failed to create bridge for device %s", deviceName);
-        }
-    }
-    else
+    if (interface == 0)
     {
         DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
                      "Device %s not ready yet (interface = 0), waiting for driver info", deviceName);
+        return;
     }
+
+    std::string deviceType = getAlpacaDeviceType(interface);
+    if (deviceType.empty())
+    {
+        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_WARNING, "Unsupported device interface: %u for device %s", interface,
+                     deviceName);
+        return;
+    }
+
+    // Alpaca numbers devices from 0 within each device type, use the lowest free number
+    int deviceNumber = 0;
+    while (m_Bridges.find({deviceType, deviceNumber}) != m_Bridges.end())
+        deviceNumber++;
+
+    auto bridge = createBridge(device, deviceNumber);
+    if (!bridge)
+    {
+        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR, "Failed to create bridge for device %s", deviceName);
+        return;
+    }
+
+    m_Bridges[{deviceType, deviceNumber}] = std::move(bridge);
+    m_DeviceNumberMap[deviceName] = {deviceType, deviceNumber};
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Created %s bridge for device %s with number %d",
+                 deviceType.c_str(), deviceName, deviceNumber);
 }
 
 void DeviceManager::removeDevice(INDI::BaseDevice device)
@@ -178,12 +164,13 @@ void DeviceManager::removeDevice(INDI::BaseDevice device)
     }
 
     // Remove bridge
-    int deviceNumber = it->second;
-    m_Bridges.erase(deviceNumber);
+    BridgeKey key = it->second;
+    m_Bridges.erase(key);
     m_DeviceNumberMap.erase(it);
     m_Devices.erase(deviceName);
 
-    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Removed device %s with number %d", deviceName, deviceNumber);
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Removed %s device %s with number %d", key.first.c_str(),
+                 deviceName, key.second);
 }
 
 void DeviceManager::updateDeviceProperty(INDI::Property property)
@@ -197,44 +184,13 @@ void DeviceManager::updateDeviceProperty(INDI::Property property)
     // Check if this is a DRIVER_INFO property update
     if (strcmp(property.getName(), "DRIVER_INFO") == 0)
     {
-        // Check if we already have a bridge for this device
-        if (m_DeviceNumberMap.find(deviceName) == m_DeviceNumberMap.end())
-        {
-            // Get the device
-            auto deviceIt = m_Devices.find(deviceName);
-            if (deviceIt != m_Devices.end())
-            {
-                // Check if device is ready (has non-zero interface)
-                uint32_t interface = deviceIt->second.getDriverInterface();
-                if (interface > 0)
-                {
-                    // Create bridge for device
-                    int deviceNumber = m_NextDeviceNumber++;
-                    auto bridge = createBridge(deviceIt->second, deviceNumber);
-                    if (bridge)
-                    {
-                        m_Bridges[deviceNumber] = std::move(bridge);
-                        m_DeviceNumberMap[deviceName] = deviceNumber;
-                        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION,
-                                     "Created bridge for device %s with number %d after DRIVER_INFO update", deviceName,
-                                     deviceNumber);
-                    }
-                    else
-                    {
-                        DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR,
-                                     "Failed to create bridge for device %s after DRIVER_INFO update", deviceName);
-                    }
-                }
-                else
-                {
-                    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
-                                 "Device %s still not ready after DRIVER_INFO update (interface = 0)", deviceName);
-                }
-            }
-        }
+        // The driver interface may only be known now
+        auto deviceIt = m_Devices.find(deviceName);
+        if (deviceIt != m_Devices.end())
+            createBridgeIfReady(deviceIt->second);
     }
 
-    // Find device number
+    // Find device bridge
     auto it = m_DeviceNumberMap.find(deviceName);
     if (it == m_DeviceNumberMap.end())
     {
@@ -243,41 +199,51 @@ void DeviceManager::updateDeviceProperty(INDI::Property property)
     }
 
     // Update bridge
-    int deviceNumber = it->second;
-    auto bridgeIt = m_Bridges.find(deviceNumber);
+    auto bridgeIt = m_Bridges.find(it->second);
     if (bridgeIt != m_Bridges.end())
     {
         bridgeIt->second->updateProperty(property);
     }
 }
 
+std::string DeviceManager::getAlpacaDeviceType(uint32_t interface)
+{
+    if (interface & INDI::BaseDevice::TELESCOPE_INTERFACE)
+        return "telescope";
+    if (interface & INDI::BaseDevice::CCD_INTERFACE)
+        return "camera";
+    // Add more device types here as they are implemented
+    // if (interface & INDI::BaseDevice::DOME_INTERFACE)
+    //     return "dome";
+
+    return "";
+}
+
 std::unique_ptr<IDeviceBridge> DeviceManager::createBridge(INDI::BaseDevice device, int deviceNumber)
 {
     // Check device interface to determine type
-    uint32_t interface = device.getDriverInterface();
+    std::string deviceType = getAlpacaDeviceType(device.getDriverInterface());
 
     // Create appropriate bridge based on interface
-    if (interface & INDI::BaseDevice::TELESCOPE_INTERFACE)
+    if (deviceType == "telescope")
     {
         DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Creating telescope bridge for device %s",
                      device.getDeviceName());
         return std::make_unique<TelescopeBridge>(device, deviceNumber);
     }
-    else if (interface & INDI::BaseDevice::CCD_INTERFACE)
+    else if (deviceType == "camera")
     {
         DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Creating camera bridge for device %s",
                      device.getDeviceName());
         return std::make_unique<CameraBridge>(device, deviceNumber);
     }
     // Add more device types here as they are implemented
-    // else if (interface & INDI::BaseDevice::DOME_INTERFACE)
+    // else if (deviceType == "dome")
     // {
     //     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Creating dome bridge for device %s", device.getDeviceName());
     //     return std::make_unique<DomeBridge>(device, deviceNumber);
     // }
 
-    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_WARNING, "Unsupported device interface: %u for device %s", interface,
-                 device.getDeviceName());
     return nullptr;
 }
 
@@ -392,8 +358,8 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
 {
     std::lock_guard<std::mutex> lock(m_Mutex);
 
-    // Find bridge for device number
-    auto it = m_Bridges.find(deviceNumber);
+    // Find bridge for device type and number
+    auto it = m_Bridges.find({deviceType, deviceNumber});
     if (it == m_Bridges.end())
     {
         json response =
@@ -405,21 +371,6 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
         };
         res.set_content(response.dump(), "application/json");
         res.status = 404; // Not Found
-        return;
-    }
-
-    // Check if device type matches
-    if (it->second->getDeviceType() != deviceType)
-    {
-        json response =
-        {
-            {"ClientTransactionID", clientTransactionID},
-            {"ServerTransactionID", serverTransactionID},
-            {"ErrorNumber", 1004},
-            {"ErrorMessage", "Device type mismatch"}
-        };
-        res.set_content(response.dump(), "application/json");
-        res.status = 400; // Bad Request
         return;
     }
 
@@ -659,23 +610,14 @@ void DeviceManager::handleSetupRequest(const httplib::Request &req, httplib::Res
             return;
         }
 
-        // Find bridge for device number
+        // Find bridge for device type and number
         std::lock_guard<std::mutex> lock(m_Mutex);
-        auto it = m_Bridges.find(deviceNumber);
+        auto it = m_Bridges.find({deviceType, deviceNumber});
         if (it == m_Bridges.end())
         {
             res.set_content("<html><body><h1>Device Not Found</h1><p>The requested device was not found</p></body></html>",
                             "text/html");
             res.status = 404; // Not Found
-            return;
-        }
-
-        // Check if device type matches
-        if (it->second->getDeviceType() != deviceType)
-        {
-            res.set_content("<html><body><h1>Device Type Mismatch</h1><p>The requested device type does not match the device</p></body></html>",
-                            "text/html");
-            res.status = 400; // Bad Request
             return;
         }
 
