@@ -26,6 +26,8 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <regex>
 #include <termios.h>
@@ -199,23 +201,12 @@ bool PegasusUPB3::setBoostEnabled(bool enabled)
 
 bool PegasusUPB3::setAutoDewEnabled(uint8_t port, bool enabled)
 {
-    // Per-port autodew: ADW command takes 3 boolean values
+    // Per-port autodew: ADW[1-3]:[0/1]. The combined ADW:x:y:z form is rejected by the firmware (">>>").
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-
-    // Get current states
-    bool dew1 = (PI::AutoDewSP.size() > 0 && PI::AutoDewSP[0].getState() == ISS_ON);
-    bool dew2 = (PI::AutoDewSP.size() > 1 && PI::AutoDewSP[1].getState() == ISS_ON);
-    bool dew3 = (PI::AutoDewSP.size() > 2 && PI::AutoDewSP[2].getState() == ISS_ON);
-
-    // Update the specific port
-    if (port == 1) dew1 = enabled;
-    else if (port == 2) dew2 = enabled;
-    else if (port == 3) dew3 = enabled;
-
-    snprintf(cmd, PEGASUS_LEN, "ADW:%d:%d:%d", dew1 ? 1 : 0, dew2 ? 1 : 0, dew3 ? 1 : 0);
+    snprintf(cmd, PEGASUS_LEN, "ADW%d:%d", port, enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd));
+        return (!strncmp(res, "ADW", 3));
     }
     return false;
 }
@@ -224,6 +215,18 @@ bool PegasusUPB3::setAutoDewAgg(uint8_t value)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "DA:%d", value);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd));
+    }
+    return false;
+}
+
+bool PegasusUPB3::setAutoDewAggPerPort(uint8_t port, uint8_t value)
+{
+    // Per-port aggressiveness DA[1-3]:[1-10], firmware >= 1.4
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "DA%d:%d", port, value);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -473,13 +476,29 @@ bool PegasusUPB3::getAutoDewData()
     if (sendCommand("PD", res))
     {
         std::vector<std::string> result = split(res, ":");
+        // PD response format: PD:<d1><d2><d3>, one char per dew port, 1 = AutoDew enabled
         if (result.size() < 2)
         {
             return true;  // AutoDew data may not always be available
         }
 
-        if (result == lastAutoDewData)
-            return true;
+        // Always compare against the switch states, so a rejected request does not leave them out of sync
+        const std::string &states = result[1];
+        bool changed = false;
+        for (size_t i = 0; i < PI::AutoDewSP.size() && i < states.size(); i++)
+        {
+            auto newState = (states[i] == '1') ? ISS_ON : ISS_OFF;
+            if (PI::AutoDewSP[i].getState() != newState)
+            {
+                PI::AutoDewSP[i].setState(newState);
+                changed = true;
+            }
+        }
+        if (changed)
+        {
+            PI::AutoDewSP.setState(IPS_OK);
+            PI::AutoDewSP.apply();
+        }
 
         lastAutoDewData = result;
         return true;
@@ -553,6 +572,44 @@ bool PegasusUPB3::getInputVoltageCurrentData()
     return false;
 }
 
+bool PegasusUPB3::getPortCurrentData()
+{
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("IS", res))
+    {
+        std::vector<std::string> result = split(res, ":");
+        // Firmware >= 1.4: IS:<I1>:<I2>:<I3>:<I4>:<I5>:<I6>:<flags>, currents in mA
+        // Older firmware:  IS:<flags>
+        // flags: one char per power port, 1 = overcurrent
+        if (result.size() < 2)
+            return true;
+
+        if (result == lastISData)
+            return true;
+
+        if (result.size() >= 8 && PI::PowerChannelCurrentNP.size() >= 6)
+        {
+            for (size_t i = 0; i < 6; i++)
+                PI::PowerChannelCurrentNP[i].setValue(std::stod(result[i + 1]) / 1000.0);
+            PI::PowerChannelCurrentNP.setState(IPS_OK);
+            PI::PowerChannelCurrentNP.apply();
+        }
+
+        const std::string &flags = result.back();
+        if (flags.size() >= 6 && flags.find_first_not_of("01") == std::string::npos)
+        {
+            for (size_t i = 0; i < 6; i++)
+                OverCurrentLP[OC_POWER_1 + i].setState(flags[i] == '1' ? IPS_ALERT : IPS_OK);
+            OverCurrentLP.setState(flags.find('1') != std::string::npos ? IPS_ALERT : IPS_OK);
+            OverCurrentLP.apply();
+        }
+
+        lastISData = result;
+        return true;
+    }
+    return false;
+}
+
 bool PegasusUPB3::getEnvironmentalData()
 {
     char res[PEGASUS_LEN] = {0};
@@ -598,8 +655,8 @@ bool PegasusUPB3::SetPowerPort(size_t port, bool enabled)
 
 bool PegasusUPB3::SetDewPort(size_t port, bool enabled, double dutyCycle)
 {
-    // Dew ports are D1-D3, convert duty cycle (0-100%) to 0-255 PWM
-    auto pwmValue = static_cast<uint8_t>(dutyCycle / 100.0 * 255.0);
+    // Dew ports are D1-D3, UPBv3 expects the duty cycle directly as a 0-100 percentage
+    auto pwmValue = static_cast<uint8_t>(std::lround(std::clamp(dutyCycle, 0.0, 100.0)));
     return setDewPWM(port + 1, enabled ? pwmValue : 0);
 }
 
@@ -843,7 +900,13 @@ bool PegasusUPB3::ISNewNumber(const char * dev, const char * name, double values
         if (AutoDewAggPerPortNP.isNameMatch(name))
         {
             AutoDewAggPerPortNP.update(values, names, n);
-            AutoDewAggPerPortNP.setState(IPS_OK);
+            bool allSuccessful = true;
+            for (size_t i = 0; i < AutoDewAggPerPortNP.size(); i++)
+            {
+                if (!setAutoDewAggPerPort(i + 1, static_cast<uint8_t>(AutoDewAggPerPortNP[i].getValue())))
+                    allSuccessful = false;
+            }
+            AutoDewAggPerPortNP.setState(allSuccessful ? IPS_OK : IPS_ALERT);
             AutoDewAggPerPortNP.apply();
             saveConfig(AutoDewAggPerPortNP);
             return true;
@@ -940,6 +1003,7 @@ void PegasusUPB3::TimerHit()
         getAutoDewData();
         getUSBStatus();
         getInputVoltageCurrentData();
+        getPortCurrentData();
         getEnvironmentalData();
         UpdateDigitalOutputs();
     }
