@@ -25,6 +25,7 @@
 #include "indicom.h"
 #include "indilogger.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <algorithm>
 #include <cmath>
@@ -45,7 +46,7 @@ static constexpr const char *MOTOR_TAB = "Motor";
 OAPA::OAPA()
     : PACInterface(this)
 {
-    setVersion(3, 0);
+    setVersion(3, 1);
     SetCapability(PAC_CAN_REVERSE | PAC_HAS_POSITION);
 }
 
@@ -98,6 +99,18 @@ bool OAPA::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     registerConnection(serialConnection);
 
+    // Firmware >= 1.3.0 also speaks the same protocol over TCP, for boards on WiFi.
+    tcpConnection = new Connection::TCP(this);
+    tcpConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
+    // No default address: from firmware 1.3.6 each board answers to a name of its
+    // own, oapa-<mac>.local, so a fixed default would point at the wrong board or
+    // at nothing. The port is the same for every board.
+    tcpConnection->setDefaultPort(DEFAULT_TCP_PORT);
+    registerConnection(tcpConnection);
+
     addAuxControls();
     return true;
 }
@@ -140,10 +153,10 @@ bool OAPA::saveConfigItems(FILE *fp)
 
 bool OAPA::Handshake()
 {
-    PortFD = serialConnection->getPortFD();
+    PortFD = (getActiveConnection() == tcpConnection) ? tcpConnection->getPortFD() : serialConnection->getPortFD();
 
-    // Opening the port resets most ESP32 boards: the firmware prints a boot banner
-    // and then waits silently. Probe until a status frame answers.
+    // Opening the serial port resets most ESP32 boards: the firmware prints a boot
+    // banner and then waits silently. Probe until a status frame answers.
     Status status;
     bool found = false;
     for (int attempt = 0; attempt < HANDSHAKE_ATTEMPTS && !found; attempt++)
@@ -513,13 +526,30 @@ bool OAPA::sendDriverSetting(char type, int axis, double value)
 ///////////////////////////////////////////////////////////////////////////////
 /// Communication
 ///////////////////////////////////////////////////////////////////////////////
+void OAPA::drainInput()
+{
+    // tcflush only works on a terminal, so a socket is drained by reading what is
+    // already buffered; a zero timeout returns at once when nothing is waiting.
+    if (getActiveConnection() != tcpConnection)
+    {
+        tcflush(PortFD, TCIFLUSH);
+        return;
+    }
+
+    char discard[DRIVER_LEN] = {0};
+    int nbytes_read = 0;
+    while (tty_nread_section(PortFD, discard, DRIVER_LEN, DRIVER_STOP_CHAR, 0, &nbytes_read) == TTY_OK
+            && nbytes_read > 0)
+        ;
+}
+
 bool OAPA::sendCommand(const char *cmd, char *res)
 {
     int nbytes_written = 0, nbytes_read = 0;
 
     // Drop anything unsolicited (boot banner, homing chatter) so the reply we read
     // belongs to this command.
-    tcflush(PortFD, TCIFLUSH);
+    drainInput();
 
     LOGF_DEBUG("CMD <%s>", cmd);
     char formatted[DRIVER_LEN] = {0};
@@ -529,7 +559,7 @@ bool OAPA::sendCommand(const char *cmd, char *res)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
+        LOGF_ERROR("Write error: %s.", errstr);
         return false;
     }
 
@@ -538,7 +568,7 @@ bool OAPA::sendCommand(const char *cmd, char *res)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        LOGF_ERROR("Read error: %s.", errstr);
         return false;
     }
 
