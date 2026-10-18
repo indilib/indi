@@ -26,6 +26,7 @@
 #include <cstring>
 #include <memory>
 #include <algorithm>
+#include <limits>
 #include <regex>
 
 #include <assert.h>
@@ -310,7 +311,27 @@ bool Focuser::isHallSensorDetected(bool &isDetected)
 *******************************************************************************************************/
 bool Focuser::getAbsolutePosition(uint32_t &position)
 {
-    return m_Communication->get(MOT_1, "ABS_POS", position);
+    // ABS_POS_STEP is the documented mechanical position (Protocol v4.0). ABS_POS is undocumented and
+    // appears to be the raw signed stepper driver register, which can go negative. Fall back to it only
+    // for older firmware that does not report ABS_POS_STEP.
+    constexpr int32_t INVALID_POSITION = std::numeric_limits<int32_t>::min();
+    int32_t steps = INVALID_POSITION;
+    if (m_Communication->get(MOT_1, "ABS_POS_STEP", steps) == false || steps == INVALID_POSITION)
+    {
+        steps = INVALID_POSITION;
+        if (m_Communication->get(MOT_1, "ABS_POS", steps) == false || steps == INVALID_POSITION)
+            return false;
+    }
+
+    if (steps < 0)
+    {
+        DEBUGFDEVICE(m_Communication->getDeviceName(), INDI::Logger::DBG_WARNING,
+                     "Ignoring invalid negative focuser position %d.", steps);
+        return false;
+    }
+
+    position = static_cast<uint32_t>(steps);
+    return true;
 }
 
 /******************************************************************************************************
