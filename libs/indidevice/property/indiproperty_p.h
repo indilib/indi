@@ -25,6 +25,8 @@
 #include "basedevice.h"
 #include <memory>
 #include <functional>
+#include <typeinfo>
+#include <cstring>
 
 namespace INDI
 {
@@ -37,6 +39,17 @@ static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> 
         Invalid() : T(16) { this->type = INDI_UNKNOWN; }
     } invalid;
     auto result = std::dynamic_pointer_cast<T>(r);
+
+    // Drivers that are also clients load both libindidriver and libindiclient, and each carries its
+    // own copy of this code and its RTTI. Where type_info is compared by address (e.g. macOS), the
+    // dynamic_cast fails for objects created by the other library, so match the exact type by name.
+    if (result == nullptr && r != nullptr)
+    {
+        const U &object = *r;
+        if (std::strcmp(typeid(object).name(), typeid(T).name()) == 0)
+            result = std::static_pointer_cast<T>(r);
+    }
+
     return result != nullptr ? result : make_shared_weak(&invalid);
 }
 
