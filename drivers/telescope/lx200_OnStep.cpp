@@ -2720,8 +2720,9 @@ bool LX200_OnStep::ReadScopeStatus()
             // ============= Error Code: read with the telescope status above
 
             // Refresh current Slew Rate
+            // OnStepX reports the custom rate of :RA#/:RE# as 10 (':'), which is not one of the slew rates
             int idx = OSStat[strlen(OSStat) - 2] - '0';
-            if (SlewRateSP.findOnSwitchIndex() != idx)
+            if (idx >= 0 && idx < static_cast<int>(SlewRateSP.count()) && SlewRateSP.findOnSwitchIndex() != idx)
             {
                 SlewRateSP.reset();
                 SlewRateSP[idx].setState(ISS_ON);
