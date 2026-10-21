@@ -166,9 +166,17 @@ class LX200AM5 : public LX200Generic
             FIRMWARE_VERSION
         };
 
-        // Whether a custom park position was stored in the mount (:Sp01#). The mount cannot be queried
-        // for it, so it is kept in the config only and never defined. Without one, park goes home.
+        // Whether to park at the custom park position stored in the mount (:Sp01#, or set by other
+        // software). The mount cannot be queried for it, so it is kept in the config. Without it, park goes home.
         INDI::PropertySwitch CustomParkSP {1};
+
+        // Reach the mount park position through home first, or directly
+        INDI::PropertySwitch ParkRouteSP {2};
+        enum
+        {
+            PARK_VIA_HOME,
+            PARK_DIRECT
+        };
 
 
         //////////////////////////////////////////////////////////////////////////////////

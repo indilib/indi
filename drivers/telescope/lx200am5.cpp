@@ -159,10 +159,18 @@ bool LX200AM5::initProperties()
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "");
     FirmwareTP.fill(getDeviceName(), "MOUNT_FIRMWARE", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
-    // Custom park position (config only, never defined)
-    CustomParkSP[0].fill("SET", "Set", ISS_OFF);
+    // Custom park position. Set Current Park turns it on; it can also be turned on directly when the
+    // park position was stored in the mount by other software (e.g. ZWO's app or ASIAIR).
+    CustomParkSP[0].fill("SET", "Use mount park position", ISS_OFF);
     CustomParkSP.fill(getDeviceName(), "CUSTOM_PARK_POSITION", "Custom Park", SITE_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
     CustomParkSP.load();
+
+    // How to reach the mount park position: through home first (default), or directly. Going home first
+    // raises the telescope to the pole, which can hit a low roof (e.g. a roll-off roof observatory).
+    ParkRouteSP[PARK_VIA_HOME].fill("VIA_HOME", "Via home", ISS_ON);
+    ParkRouteSP[PARK_DIRECT].fill("DIRECT", "Directly", ISS_OFF);
+    ParkRouteSP.fill(getDeviceName(), "MOUNT_PARK_ROUTE", "Park Route", SITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    ParkRouteSP.load();
 
     return true;
 }
@@ -203,6 +211,11 @@ bool LX200AM5::updateProperties()
         defineProperty(VariableSlewRateNP);
 
         defineProperty(FirmwareTP);
+        if (hasCustomParkPosition())
+        {
+            defineProperty(CustomParkSP);
+            defineProperty(ParkRouteSP);
+        }
     }
     else
     {
@@ -231,6 +244,8 @@ bool LX200AM5::updateProperties()
         deleteProperty(VariableSlewRateNP);
 
         deleteProperty(FirmwareTP);
+        deleteProperty(CustomParkSP);
+        deleteProperty(ParkRouteSP);
     }
 
     return true;
@@ -368,10 +383,29 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             }, true);
         }
 
-        // Custom park position, only received when the config is loaded.
+        // Custom park position (from the config, or a client)
         if (CustomParkSP.isNameMatch(name))
         {
             CustomParkSP.update(states, names, n);
+            CustomParkSP.setState(IPS_OK);
+            CustomParkSP.apply();
+            if (isConnected())
+            {
+                LOG_INFO(CustomParkSP[0].getState() == ISS_ON ? "Mount parks at the mount park position." :
+                         "Mount parks at the home position.");
+                saveConfig(CustomParkSP);
+            }
+            return true;
+        }
+
+        // Park route
+        if (ParkRouteSP.isNameMatch(name))
+        {
+            ParkRouteSP.update(states, names, n);
+            ParkRouteSP.setState(IPS_OK);
+            ParkRouteSP.apply();
+            if (isConnected())
+                saveConfig(ParkRouteSP);
             return true;
         }
 
@@ -998,6 +1032,8 @@ bool LX200AM5::SetCurrentPark()
 
     // Park to the stored position from now on.
     CustomParkSP[0].setState(ISS_ON);
+    CustomParkSP.setState(IPS_OK);
+    CustomParkSP.apply();
     saveConfig();
     return true;
 }
@@ -1009,6 +1045,8 @@ bool LX200AM5::SetCurrentPark()
 bool LX200AM5::SetDefaultPark()
 {
     CustomParkSP[0].setState(ISS_OFF);
+    CustomParkSP.setState(IPS_OK);
+    CustomParkSP.apply();
     saveConfig();
 
     LOG_INFO("Mount parks at the home position.");
@@ -1016,8 +1054,9 @@ bool LX200AM5::SetDefaultPark()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// The park slew starts from home: away from home :hC# goes first and :hP#
-/// follows once the home slew is over (see updateMountPark).
+/// By default the park slew starts from home: away from home :hC# goes first
+/// and :hP# follows once the home slew is over (see updateMountPark). With the
+/// Directly park route, :hP# is sent from anywhere.
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::parkToMountPosition()
 {
@@ -1040,7 +1079,7 @@ bool LX200AM5::parkToMountPosition()
     m_ParkMoved = false;
     m_ParkDeadline = std::chrono::steady_clock::now() + PARK_START_TIMEOUT;
 
-    if (strchr(status, 'H'))
+    if (strchr(status, 'H') || ParkRouteSP[PARK_DIRECT].getState() == ISS_ON)
     {
         LOG_INFO("Parking to the mount park position...");
         m_ParkStage = ParkStage::Parking;
@@ -1467,6 +1506,7 @@ bool LX200AM5::saveConfigItems(FILE *fp)
     AltitudeLimitLowerNP.save(fp);
     VariableSlewRateNP.save(fp);
     CustomParkSP.save(fp);
+    ParkRouteSP.save(fp);
 
     return true;
 }
