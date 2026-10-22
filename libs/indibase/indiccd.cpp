@@ -2323,16 +2323,11 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
             fitsKeywords.push_back({"CROTA1", rotation, 10, "CROTA1"});
             fitsKeywords.push_back({"CROTA2", rotation, 10, "CROTA2"});
 
-            /*double cd[4];
-            cd[0] = degpix1;
-            cd[1] = 0;
-            cd[2] = 0;
-            cd[3] = degpix2;
-
-            fits_update_key_s(fptr, TDOUBLE, "CD1_1", &cd[0], "CD1_1", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD1_2", &cd[1], "CD1_2", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD2_1", &cd[2], "CD2_1", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD2_2", &cd[3], "CD2_2", &status);*/
+            double rotationRad = rotation / 180.0 * M_PI;
+            fitsKeywords.push_back({"CD1_1", std::cos(rotationRad) * degpix1, 10, "CD1_1"});
+            fitsKeywords.push_back({"CD1_2",-std::sin(rotationRad) * degpix2, 10, "CD1_2"});
+            fitsKeywords.push_back({"CD2_1", std::sin(rotationRad) * degpix1, 10, "CD2_1"});
+            fitsKeywords.push_back({"CD2_2", std::cos(rotationRad) * degpix2, 10, "CD2_2"});
         }
     }
 
@@ -2604,6 +2599,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
                 std::unique_lock<std::mutex> guard(ccdBufferLock);
                 std::memcpy(image.imageData(), targetChip->getFrameBuffer(), image.imageDataSize());
+                image.convertWCSToAstrometricSolution();
                 xisfWriter.writeImage(image);
 
                 LibXISF::ByteArray xisfFile;
