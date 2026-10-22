@@ -255,6 +255,8 @@ bool ScopeSim::updateProperties()
             m_targetDEC  = m_currentDEC;
         }
 
+        // A new connection starts from the system clock until the client sets TIME_UTC
+        alignment.clockOffsetDays = 0;
         sendTimeFromSystem();
 
 #ifdef USE_SIM_TAB
@@ -317,7 +319,7 @@ void ScopeSim::updateCurrentCoordsFromAxes()
             INDI::IEquatorialCoordinates raCoords{ encoderRA, instDec.Degrees() };
             TelescopeDirectionVector tdv =
                 TelescopeDirectionVectorFromEquatorialCoordinates(raCoords);
-            corrected = TransformTelescopeToCelestialJD(tdv, corrRA, corrDec, ln_get_julian_from_sys());
+            corrected = TransformTelescopeToCelestialJD(tdv, corrRA, corrDec, alignment.julianDate());
         }
         if (corrected)
         {
@@ -341,7 +343,7 @@ bool ScopeSim::ReadScopeStatus()
             TrackModeSP.findOnSwitchIndex() != TRACK_CUSTOM)
     {
         double dt      = getCurrentPollingPeriod() / 1000.0;
-        double JDnow   = ln_get_julian_from_sys();
+        double JDnow   = alignment.julianDate();
         double JDoffset = dt / 86400.0;
 
         // RA drift rate relative to sidereal for the selected track mode, in hours/sec.
@@ -571,7 +573,7 @@ bool ScopeSim::Goto(double r, double d)
     if (GetAlignmentDatabase().size() >= 1)
     {
         TelescopeDirectionVector tdv;
-        if (TransformCelestialToTelescopeJD(r, d, ln_get_julian_from_sys(), tdv))
+        if (TransformCelestialToTelescopeJD(r, d, alignment.julianDate(), tdv))
         {
             // The TDV now encodes encoder RA (time-stable), so decode with
             // EquatorialCoordinatesFromTelescopeDirectionVector — no LST conversion needed.
@@ -602,7 +604,7 @@ bool ScopeSim::Sync(double ra, double dec)
     // sync+goto cycles converge rather than diverging.
 
     AlignmentDatabaseEntry entry;
-    entry.ObservationJulianDate = ln_get_julian_from_sys();
+    entry.ObservationJulianDate = alignment.julianDate();
     entry.RightAscension        = ra;
     entry.Declination           = dec;
     entry.PrivateDataSize       = 0;
@@ -1219,6 +1221,17 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
     alignment.longitude = Angle(longitude);
 
     UpdateLocation(latitude, longitude, elevation);
+    return true;
+}
+
+bool ScopeSim::updateTime(ln_date *utc, double utc_offset)
+{
+    INDI_UNUSED(utc_offset);
+
+    // Follow the client's clock: the sky (LST, hour angle, pier side) moves on from the time the client set,
+    // so it agrees with the client instead of the system clock
+    alignment.clockOffsetDays = ln_get_julian_day(utc) - ln_get_julian_from_sys();
+    LOGF_DEBUG("Simulated clock is %.3f s from the system clock", alignment.clockOffsetDays * 86400);
     return true;
 }
 

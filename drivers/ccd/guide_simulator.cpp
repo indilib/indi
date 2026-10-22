@@ -165,6 +165,8 @@ bool GuideSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
+    m_Clock.initProperties(getDeviceName(), SITE_TAB);
+
     CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
     addCaptureFormat(format);
 
@@ -276,6 +278,8 @@ void GuideSim::ISGetProperties(const char * dev)
 bool GuideSim::updateProperties()
 {
     INDI::CCD::updateProperties();
+
+    m_Clock.updateProperties(this, isConnected());
 
     if (isConnected())
     {
@@ -449,7 +453,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             }
 
             INDI::IEquatorialCoordinates epochPos { m_CurrentRA, m_CurrentDEC }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
             m_CurrentRA  = J2000Pos.rightascension;
             m_CurrentDEC = J2000Pos.declination;
             m_CurrentDEC += m_GuideNSOffset;
@@ -492,7 +496,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // King cone-error transform -- see E.S. King (1902AnHar..41..153K)
             // Differential correction to RA and Dec for alt-az polar alignment error.
             double J2decr = m_CurrentDEC * DEGREES_TO_RADIANS;
-            double sid    = get_local_sidereal_time(this->Longitude);
+            double sid    = m_Clock.localSiderealTime(this->Longitude);
             double JnHAr  = get_local_hour_angle(sid, RA) * 15.0 * DEGREES_TO_RADIANS;
 
             double J2_mnt_d_rar  = m_KingGamma * sin(J2decr) * sin(JnHAr - m_KingTheta) / cos(J2decr);
@@ -615,6 +619,14 @@ IPState GuideSim::GuideWest(uint32_t v)
     return IPS_OK;
 }
 
+bool GuideSim::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0 && m_Clock.processText(name, texts, names, n))
+        return true;
+
+    return INDI::CCD::ISNewText(dev, name, texts, names, n);
+}
+
 bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -674,7 +686,7 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             EqPENP.setState(IPS_OK);
 
             INDI::IEquatorialCoordinates epochPos { EqPENP[AXIS_RA].getValue(), EqPENP[AXIS_DE].getValue() }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
             m_CurrentRA  = J2000Pos.rightascension;
             m_CurrentDEC = J2000Pos.declination;
             m_UsePE = true;
@@ -769,7 +781,7 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
         if (rc_ra == 0 && rc_de == 0)
         {
             INDI::IEquatorialCoordinates epochPos { newra, newdec }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
             raPE  = J2000Pos.rightascension;
             decPE = J2000Pos.declination;
 

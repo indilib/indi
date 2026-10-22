@@ -24,6 +24,10 @@
 #include "scopesim_helper.h"
 
 #include "indilogger.h"
+#include "indicom.h"
+
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
 
 char device_str[64] = "Telescope Simulator";
 
@@ -230,9 +234,14 @@ void Axis::update()         // called about once a second to update the position
 
 // Alignment methods
 
+double Alignment::julianDate()
+{
+    return ln_get_julian_from_sys() + clockOffsetDays;
+}
+
 Angle Alignment::lst()
 {
-    return Angle(get_local_sidereal_time(longitude.Degrees360()) * 15.0);
+    return Angle(range24(ln_get_apparent_sidereal_time(julianDate()) + longitude.Degrees360() / 15.0) * 15.0);
 }
 
 void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * apparentHa, Angle* apparentDec)

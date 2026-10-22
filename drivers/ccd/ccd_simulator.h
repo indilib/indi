@@ -25,6 +25,7 @@
 
 #include <indiccd.h>
 #include "sky_renderer.h"
+#include "simulator_clock.h"
 #include "indifilterinterface.h"
 
 /**
@@ -143,6 +144,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float CalcTimeLeft(timeval start, float req);
 
         SkyRenderer m_Renderer;
+
+        // Follows the client's TIME_UTC, so the rendered sky agrees with the telescope simulator's
+        SimulatorClock m_Clock;
 
         // ADU ceiling and magnitude calibration -- updated from INDI properties each frame.
         int   m_MaxVal        {65000};

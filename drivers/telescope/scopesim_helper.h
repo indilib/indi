@@ -516,6 +516,9 @@ class Alignment
         ///
         void apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle *primary, Angle *secondary);
 
+        // days to add to the system clock: follows the client's TIME_UTC, 0 is the system clock
+        double clockOffsetDays = 0;
+        double julianDate();    // returns the Julian date of the simulated clock
         Angle lst();            // returns the current LST as an angle
     private:
 

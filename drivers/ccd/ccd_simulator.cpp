@@ -128,6 +128,8 @@ bool CCDSim::initProperties()
 {
     INDI::CCD::initProperties();
 
+    m_Clock.initProperties(getDeviceName(), SITE_TAB);
+
     // Constrain temperature range to match TEC physics: -15°C to ambient (25°C)
     TemperatureNP[0].setMin(-15);
     TemperatureNP[0].setMax(25);
@@ -337,6 +339,8 @@ void CCDSim::ISGetProperties(const char * dev)
 bool CCDSim::updateProperties()
 {
     INDI::CCD::updateProperties();
+
+    m_Clock.updateProperties(this, isConnected());
 
     if (isConnected())
     {
@@ -704,7 +708,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             }
 
             INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
             currentRA = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
 
@@ -827,6 +831,9 @@ bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char
         if (INDI::FilterInterface::processText(dev, name, texts, names, n))
             return true;
 
+        if (m_Clock.processText(name, texts, names, n))
+            return true;
+
         if (DirectoryTP.isNameMatch(name))
         {
             DirectoryTP.update(texts, names, n);
@@ -905,7 +912,7 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             RA = EqPENP[AXIS_RA].getValue();
             Dec = EqPENP[AXIS_DE].getValue();
 
-            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
             currentRA  = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
             usePE = true;
@@ -1299,7 +1306,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
         if (rc_ra == 0 && rc_de == 0)
         {
             INDI::IEquatorialCoordinates epochPos { newra, newdec }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
             raPE  = J2000Pos.rightascension;
             decPE = J2000Pos.declination;
 

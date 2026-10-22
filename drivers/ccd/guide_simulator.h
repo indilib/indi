@@ -20,6 +20,7 @@
 
 #include <indiccd.h>
 #include "sky_renderer.h"
+#include "simulator_clock.h"
 #include "indipropertyswitch.h"
 #include "fitskeyword.h"
 
@@ -54,6 +55,7 @@ class GuideSim : public INDI::CCD
         void ISGetProperties(const char *dev) override;
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
@@ -99,6 +101,9 @@ class GuideSim : public INDI::CCD
         float CalcTimeLeft(timeval start, float req);
 
         SkyRenderer m_Renderer;
+
+        // Follows the client's TIME_UTC, so the rendered sky agrees with the telescope simulator's
+        SimulatorClock m_Clock;
 
         // ADU ceiling and magnitude calibration -- updated from INDI properties.
         int   m_MaxVal        {65000};
