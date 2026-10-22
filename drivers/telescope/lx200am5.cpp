@@ -906,7 +906,7 @@ bool LX200AM5::updateLocation(double latitude, double longitude, double elevatio
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::Park()
 {
-    m_ParkStage = ParkStage::None;
+    m_MountParking = false;
 
     bool rc = false;
     // Without a custom park position, the mount would go to its factory park position which is horizontal.
@@ -1016,8 +1016,7 @@ bool LX200AM5::SetDefaultPark()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// The park slew starts from home: away from home :hC# goes first and :hP#
-/// follows once the home slew is over (see updateMountPark).
+///
 /////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::parkToMountPosition()
 {
@@ -1040,23 +1039,9 @@ bool LX200AM5::parkToMountPosition()
     m_ParkMoved = false;
     m_ParkDeadline = std::chrono::steady_clock::now() + PARK_START_TIMEOUT;
 
-    if (strchr(status, 'H'))
-    {
-        LOG_INFO("Parking to the mount park position...");
-        m_ParkStage = ParkStage::Parking;
-        if (sendCommand(":hP#"))
-            return true;
-    }
-    else
-    {
-        LOG_INFO("Going home before parking to the mount park position...");
-        m_ParkStage = ParkStage::Homing;
-        if (goHome())
-            return true;
-    }
-
-    m_ParkStage = ParkStage::None;
-    return false;
+    LOG_INFO("Parking to the mount park position...");
+    m_MountParking = sendCommand(":hP#");
+    return m_MountParking;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1077,7 +1062,7 @@ bool LX200AM5::getMountParkState(char &state)
 /////////////////////////////////////////////////////////////////////////////
 void LX200AM5::checkMountParkState()
 {
-    m_ParkStage = ParkStage::None;
+    m_MountParking = false;
 
     char state = 0;
     if (!hasMountPark() || !getMountParkState(state))
@@ -1092,7 +1077,7 @@ void LX200AM5::checkMountParkState()
     {
         LOG_INFO("Mount is parking...");
         TrackState = SCOPE_PARKING;
-        m_ParkStage = ParkStage::Parking;
+        m_MountParking = true;
         m_ParkMoved = true;
         ParkSP.setState(IPS_BUSY);
         ParkSP.apply();
@@ -1102,32 +1087,10 @@ void LX200AM5::checkMountParkState()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void LX200AM5::updateMountPark(bool slewComplete, bool isHome)
+void LX200AM5::updateMountPark(bool slewComplete)
 {
     const bool slewing = !slewComplete;
     const bool timedOut = std::chrono::steady_clock::now() > m_ParkDeadline;
-
-    if (m_ParkStage == ParkStage::Homing)
-    {
-        if (slewing)
-            m_ParkMoved = true;
-
-        // Older firmware does not report H at the end of the home slew, so wait for the mount to stop instead.
-        bool homeReached = isHome && (m_FirmwareVersion >= FIRMWARE_HOME_FLAG || slewComplete);
-        if (homeReached || (m_FirmwareVersion < FIRMWARE_HOME_FLAG && m_ParkMoved && slewComplete))
-        {
-            LOG_INFO("Arrived at home. Parking to the mount park position...");
-            m_ParkStage = ParkStage::Parking;
-            m_ParkMoved = false;
-            m_ParkDeadline = std::chrono::steady_clock::now() + PARK_START_TIMEOUT;
-            if (!sendCommand(":hP#"))
-                failMountPark("failed to send park command");
-        }
-        else if (!m_ParkMoved && timedOut)
-            failMountPark("mount did not start moving home");
-
-        return;
-    }
 
     char state = 0;
     // Try again on next poll.
@@ -1137,7 +1100,7 @@ void LX200AM5::updateMountPark(bool slewComplete, bool isHome)
     switch (state)
     {
         case '2':
-            m_ParkStage = ParkStage::None;
+            m_MountParking = false;
             SetParked(true);
             break;
 
@@ -1164,7 +1127,7 @@ void LX200AM5::updateMountPark(bool slewComplete, bool isHome)
 void LX200AM5::failMountPark(const char *reason)
 {
     LOGF_ERROR("Park failed: %s.", reason);
-    m_ParkStage = ParkStage::None;
+    m_MountParking = false;
     TrackState = SCOPE_IDLE;
     ParkSP.reset();
     ParkSP[isParked() ? PARK : UNPARK].setState(ISS_ON);
@@ -1207,8 +1170,8 @@ bool LX200AM5::ReadScopeStatus()
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        if (m_ParkStage != ParkStage::None)
-            updateMountPark(slewComplete, isHome);
+        if (m_MountParking)
+            updateMountPark(slewComplete);
         else if (slewComplete)
             SetParked(true);
     }
