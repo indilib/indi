@@ -476,14 +476,19 @@ bool PowerInterface::processNumber(const char *dev, const char *name, double val
         // DEW Channel Duty Cycles
         if (DewChannelDutyCycleNP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(DewChannelDutyCycleNP, values, names, n, [this, values]()
+            return m_defaultDevice->updateProperty(DewChannelDutyCycleNP, values, names, n, [this, values, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < DewChannelDutyCycleNP.size(); i++)
+                // Match elements by name: the client may send only some of them.
+                for (int j = 0; j < n; j++)
                 {
+                    const int index = DewChannelDutyCycleNP.findWidgetIndexByName(names[j]);
+                    if (index < 0 || static_cast<size_t>(index) >= DewChannelsSP.size())
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
                     // If We try to update a duty cycle while the channel is OFF, then we save as-is.
                     // Otherwise, we need to set the duty cycle on the device.
-                    if (DewChannelsSP[i].getState() == ISS_ON && !SetDewPort(i, true, values[i]))
+                    if (DewChannelsSP[i].getState() == ISS_ON && !SetDewPort(i, true, values[j]))
                     {
                         allSuccessful = false;
                     }
@@ -495,14 +500,19 @@ bool PowerInterface::processNumber(const char *dev, const char *name, double val
         // Variable Channel Voltage
         if (VariableChannelVoltsNP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(VariableChannelVoltsNP, values, names, n, [this, values]()
+            return m_defaultDevice->updateProperty(VariableChannelVoltsNP, values, names, n, [this, values, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < VariableChannelVoltsNP.size(); i++)
+                // Match elements by name: the client may send only some of them.
+                for (int j = 0; j < n; j++)
                 {
+                    const int index = VariableChannelVoltsNP.findWidgetIndexByName(names[j]);
+                    if (index < 0 || static_cast<size_t>(index) >= VariableChannelsSP.size())
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
                     // If We try to update a voltage while the channel is OFF, then we save as-is.
                     // Otherwise, we need to set the voltage on the device.
-                    if (VariableChannelsSP[i].getState() == ISS_ON && !SetVariablePort(i, true, values[i]))
+                    if (VariableChannelsSP[i].getState() == ISS_ON && !SetVariablePort(i, true, values[j]))
                     {
                         allSuccessful = false;
                     }
@@ -567,15 +577,20 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // Auto Dew Control
         if (HasAutoDew() && AutoDewSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(AutoDewSP, states, names, n, [this, states]()
+            return m_defaultDevice->updateProperty(AutoDewSP, states, names, n, [this, states, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < AutoDewSP.size(); i++)
+                // The client may send only some elements, in any order: match them by name, not position.
+                for (int j = 0; j < n; j++)
                 {
+                    const int index = AutoDewSP.findWidgetIndexByName(names[j]);
+                    if (index < 0)
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
                     // Only change if state is different
-                    if (AutoDewSP[i].getState() != states[i])
+                    if (AutoDewSP[i].getState() != states[j])
                     {
-                        if (!SetAutoDewEnabled(i, states[i] == ISS_ON))
+                        if (!SetAutoDewEnabled(i, states[j] == ISS_ON))
                         {
                             allSuccessful = false;
                         }
@@ -605,15 +620,20 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // Power Channels
         if (PowerChannelsSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(PowerChannelsSP, states, names, n, [this, states]()
+            return m_defaultDevice->updateProperty(PowerChannelsSP, states, names, n, [this, states, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < PowerChannelsSP.size(); i++)
+                // The client may send only some elements, in any order: match them by name, not position.
+                for (int j = 0; j < n; j++)
                 {
+                    const int index = PowerChannelsSP.findWidgetIndexByName(names[j]);
+                    if (index < 0)
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
                     // Only change if state is different
-                    if (PowerChannelsSP[i].getState() != states[i])
+                    if (PowerChannelsSP[i].getState() != states[j])
                     {
-                        if (!SetPowerPort(i, states[i] == ISS_ON))
+                        if (!SetPowerPort(i, states[j] == ISS_ON))
                         {
                             allSuccessful = false;
                         }
@@ -626,15 +646,20 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // DEW Channels
         if (DewChannelsSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(DewChannelsSP, states, names, n, [this, states]()
+            return m_defaultDevice->updateProperty(DewChannelsSP, states, names, n, [this, states, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < DewChannelsSP.size(); i++)
+                // The client may send only some elements, in any order: match them by name, not position.
+                for (int j = 0; j < n; j++)
                 {
+                    const int index = DewChannelsSP.findWidgetIndexByName(names[j]);
+                    if (index < 0)
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
                     // Only change if state is different
-                    if (DewChannelsSP[i].getState() != states[i])
+                    if (DewChannelsSP[i].getState() != states[j])
                     {
-                        if (!SetDewPort(i, states[i] == ISS_ON, DewChannelDutyCycleNP[i].getValue()))
+                        if (!SetDewPort(i, states[j] == ISS_ON, DewChannelDutyCycleNP[i].getValue()))
                         {
                             allSuccessful = false;
                         }
@@ -647,14 +672,19 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // Variable Channels
         if (VariableChannelsSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(VariableChannelsSP, states, names, n, [this, states]()
+            return m_defaultDevice->updateProperty(VariableChannelsSP, states, names, n, [this, states, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < VariableChannelsSP.size(); i++)
+                // The client may send only some elements, in any order: match them by name, not position.
+                for (int j = 0; j < n; j++)
                 {
-                    if (VariableChannelsSP[i].getState() != states[i])
+                    const int index = VariableChannelsSP.findWidgetIndexByName(names[j]);
+                    if (index < 0)
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
+                    if (VariableChannelsSP[i].getState() != states[j])
                     {
-                        if (!SetVariablePort(i, states[i] == ISS_ON, VariableChannelVoltsNP[i].getValue()))
+                        if (!SetVariablePort(i, states[j] == ISS_ON, VariableChannelVoltsNP[i].getValue()))
                         {
                             allSuccessful = false;
                         }
@@ -667,14 +697,19 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // USB Ports
         if (HasUSBPort() && USBPortSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(USBPortSP, states, names, n, [this, states]()
+            return m_defaultDevice->updateProperty(USBPortSP, states, names, n, [this, states, names, n]()
             {
                 bool allSuccessful = true;
-                for (size_t i = 0; i < USBPortSP.size(); i++)
+                // The client may send only some elements, in any order: match them by name, not position.
+                for (int j = 0; j < n; j++)
                 {
-                    if (USBPortSP[i].getState() != states[i])
+                    const int index = USBPortSP.findWidgetIndexByName(names[j]);
+                    if (index < 0)
+                        continue;
+                    const size_t i = static_cast<size_t>(index);
+                    if (USBPortSP[i].getState() != states[j])
                     {
-                        if (!SetUSBPort(i, states[i] == ISS_ON))
+                        if (!SetUSBPort(i, states[j] == ISS_ON))
                         {
                             allSuccessful = false;
                         }
