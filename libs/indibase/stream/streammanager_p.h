@@ -29,6 +29,7 @@
 #include "fpsmeter.h"
 #include "uniquequeue.h"
 #include "gammalut16.h"
+#include "frametracker.h"
 
 #include <atomic>
 #include <string>
@@ -161,6 +162,18 @@ class StreamManagerPrivate
             const FrameInfo &dstFrameInfo
         );
 
+        /**
+         * @brief processTracking Measure the target in a frame and publish the averaged offset.
+         * @param buffer frame as it is recorded (after subframing, before 8-bit downscaling).
+         * @param width width of the frame in pixels.
+         * @param height height of the frame in pixels.
+         * @param originX X of the frame's first pixel in sensor (binned) coordinates.
+         * @param originY Y of the frame's first pixel in sensor (binned) coordinates.
+         */
+        void processTracking(const uint8_t *buffer, size_t width, size_t height, size_t originX, size_t originY);
+
+        void setTracking(bool enable);
+
     public:
         DefaultDevice *currentDevice = nullptr;
 
@@ -219,6 +232,39 @@ class StreamManagerPrivate
         // Full bit depth streaming (skip 8-bit downscale for 16-bit cameras)
         INDI::PropertySwitch FullDepthSP {2};
         enum { FULL_DEPTH_8BIT, FULL_DEPTH_16BIT };
+
+        // Centroid tracking of extended targets (planets, Moon, Sun) in the stream
+        INDI::PropertySwitch TrackingSP {2};
+        enum { TRACKING_ON, TRACKING_OFF };
+
+        // Averaged position of the target and its offset from the lock point, in sensor (binned) pixels.
+        // State: Busy while acquiring a lock, Ok while locked, Alert when the target is lost.
+        INDI::PropertyNumber TrackingOffsetNP {7};
+        enum
+        {
+            TRACKING_CENTROID_X,
+            TRACKING_CENTROID_Y,
+            TRACKING_OFFSET_X,
+            TRACKING_OFFSET_Y,
+            TRACKING_QUALITY,
+            TRACKING_SEQUENCE,
+            TRACKING_TIMESTAMP
+        };
+
+        // Lock point, set from the first valid measurement or by the client
+        INDI::PropertyNumber TrackingLockNP {2};
+        enum { TRACKING_LOCK_X, TRACKING_LOCK_Y };
+
+        INDI::PropertyNumber TrackingSettingsNP {2};
+        enum { TRACKING_AVERAGE, TRACKING_RATE };
+
+        std::atomic<bool> isTracking { false };
+        // Guards frameTracker and the tracking properties, written from both the frame and main threads
+        std::mutex trackingMutex;
+        FrameTracker frameTracker;
+        FPSMeter FPSTracking;
+        uint32_t trackingSequence = 0;
+        bool trackingFormatWarned = false;
 
         std::atomic<bool> isStreaming { false };
         std::atomic<bool> isRecording { false };
