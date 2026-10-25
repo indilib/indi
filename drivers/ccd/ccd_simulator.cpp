@@ -271,7 +271,7 @@ bool CCDSim::initProperties()
     // Planet mode toggle
     PlanetModeSP[PLANET_ENABLED].fill("PLANET_ENABLED", "Enabled", ISS_OFF);
     PlanetModeSP[PLANET_DISABLED].fill("PLANET_DISABLED", "Disabled", ISS_ON);
-    PlanetModeSP.fill(getDeviceName(), "PLANET_MODE", "Planet Mode", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    PlanetModeSP.fill(getDeviceName(), "PLANET_MODE", "Planet Mode", PLANET_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Planet selection
     PlanetSelectSP[PLANET_MERCURY].fill("PLANET_MERCURY", "Mercury", ISS_OFF);
@@ -283,18 +283,30 @@ bool CCDSim::initProperties()
     PlanetSelectSP[PLANET_NEPTUNE].fill("PLANET_NEPTUNE", "Neptune", ISS_OFF);
     PlanetSelectSP[PLANET_MOON].fill("PLANET_MOON", "Moon", ISS_OFF);
     PlanetSelectSP[PLANET_SUN].fill("PLANET_SUN", "Sun", ISS_OFF);
-    PlanetSelectSP.fill(getDeviceName(), "PLANET_SELECT", "Planet", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    PlanetSelectSP.fill(getDeviceName(), "PLANET_SELECT", "Planet", PLANET_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Planet settings: refresh interval (minutes) and size override (arcsec)
     PlanetSettingsNP[PLANET_REFRESH].fill("PLANET_REFRESH", "Refresh (min)", "%4.0f", 1, 1440, 10, 60);
     PlanetSettingsNP[PLANET_SIZE].fill("PLANET_SIZE", "Size (arcsec, 0=auto)", "%4.1f", 0, 3600, 10, 0);
-    PlanetSettingsNP.fill(getDeviceName(), "PLANET_SETTINGS", "Planet Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+    PlanetSettingsNP.fill(getDeviceName(), "PLANET_SETTINGS", "Planet Settings", PLANET_TAB, IP_RW, 60, IPS_IDLE);
     PlanetSettingsNP.load();
+
+    // Planet drift: tracking error (positive RA drift moves the planet east, positive DE drift north),
+    // seeing jitter added to every frame, and transparency to simulate clouds
+    PlanetDriftNP[PLANET_DRIFT_RA].fill("PLANET_DRIFT_RA", "RA Drift (arcsec/min)", "%.1f", -600, 600, 10, 0);
+    PlanetDriftNP[PLANET_DRIFT_DE].fill("PLANET_DRIFT_DE", "DE Drift (arcsec/min)", "%.1f", -600, 600, 10, 0);
+    PlanetDriftNP[PLANET_JITTER].fill("PLANET_JITTER", "Jitter (arcsec RMS)", "%.1f", 0, 60, 0.5, 0);
+    PlanetDriftNP[PLANET_TRANSPARENCY].fill("PLANET_TRANSPARENCY", "Transparency (%)", "%.f", 0, 100, 10, 100);
+    PlanetDriftNP.fill(getDeviceName(), "PLANET_DRIFT", "Planet Drift", PLANET_TAB, IP_RW, 60, IPS_IDLE);
+    PlanetDriftNP.load();
+
+    PlanetRecenterSP[0].fill("PLANET_RECENTER", "Recenter", ISS_OFF);
+    PlanetRecenterSP.fill(getDeviceName(), "PLANET_RECENTER", "Recenter", PLANET_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // xplanet executable and config paths
     PlanetPathsTP[PLANET_XPLANET_PATH].fill("XPLANET_PATH", "xplanet binary", "xplanet");
     PlanetPathsTP[PLANET_XPLANET_CONFIG].fill("XPLANET_CONFIG", "Config file", "/usr/share/xplanet/config/default");
-    PlanetPathsTP.fill(getDeviceName(), "PLANET_PATHS", "xplanet Paths", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+    PlanetPathsTP.fill(getDeviceName(), "PLANET_PATHS", "xplanet Paths", PLANET_TAB, IP_RW, 60, IPS_IDLE);
     PlanetPathsTP.load();
 
     addDebugControl();
@@ -333,6 +345,8 @@ void CCDSim::ISGetProperties(const char * dev)
     defineProperty(PlanetModeSP);
     defineProperty(PlanetSelectSP);
     defineProperty(PlanetSettingsNP);
+    defineProperty(PlanetDriftNP);
+    defineProperty(PlanetRecenterSP);
     defineProperty(PlanetPathsTP);
 }
 
@@ -410,31 +424,26 @@ bool CCDSim::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     gettimeofday(&ExpStart, nullptr);
 
-    // Planet mode: use cached xplanet rendering
+    // Planet mode: draw the cached xplanet sprite at the current planet position
     if (m_PlanetMode && PrimaryCCD.getFrameType() == INDI::CCDChip::LIGHT_FRAME)
     {
-        time_t now;
-        time(&now);
-        double elapsedMinutes = difftime(now, m_LastPlanetRenderTime) / 60.0;
-        if (m_CachedPlanetBuffer.empty() || elapsedMinutes >= m_PlanetRefreshMinutes)
+        // Full resolution 3-channel 16-bit planar RGB (NAXIS=3 already set by SetCaptureFormat)
+        uint32_t rgbBufSize = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3 * 2;
+        if (PrimaryCCD.getFrameBufferSize() != static_cast<int>(rgbBufSize))
+            PrimaryCCD.setFrameBufferSize(rgbBufSize);
+
+        std::lock_guard<std::mutex> lock(m_PlanetMutex);
+        uint16_t *buffer = reinterpret_cast<uint16_t *>(PrimaryCCD.getFrameBuffer());
+        if (renderPlanet())
         {
-            if (renderPlanet() == false)
-            {
-                // Fallback to blank frame on failure
-                memset(PrimaryCCD.getFrameBuffer(), 0, PrimaryCCD.getFrameBufferSize());
-            }
+            double centerX, centerY;
+            planetPosition(centerX, centerY);
+            drawPlanetRGB16(buffer, centerX, centerY);
         }
         else
         {
-            // Ensure buffer is sized correctly (NAXIS=3 already set by SetCaptureFormat)
-            uint32_t rgbBufSize = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3 * 2;
-            if (PrimaryCCD.getFrameBufferSize() != static_cast<int>(rgbBufSize))
-                PrimaryCCD.setFrameBufferSize(rgbBufSize);
-            // Use cached planet buffer
-            size_t copySize = std::min(m_CachedPlanetBuffer.size(),
-                                       static_cast<size_t>(PrimaryCCD.getFrameBufferSize()));
-            memcpy(PrimaryCCD.getFrameBuffer(), m_CachedPlanetBuffer.data(), copySize);
-            LOGF_DEBUG("Using cached planet render (%.1f minutes since last render)", elapsedMinutes);
+            // Fallback to blank frame on failure
+            memset(buffer, 0, PrimaryCCD.getFrameBufferSize());
         }
     }
     // When the directory is enabled, load every frame type (LIGHT, DARK, BIAS, FLAT)
@@ -662,61 +671,11 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     if (ShowStarField)
     {
-        float PEOffset {0};
-
-        if (m_PEPeriod > 0)
-        {
-            time_t now;
-            time(&now);
-            double timesince = difftime(now, RunStart);
-            double PESpot = timesince / m_PEPeriod * 2.0 * 3.14159;
-            PEOffset = m_PEMax * std::sin(PESpot) / 3600.0f;
-        }
-
-        // Camera rotation: manual offset + snooped rotator + pier flip
-        m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
-        double theta = m_RotationOffset;
-        if (!std::isnan(RotatorAngle))
-            theta += RotatorAngle;
-        if (pierSide == 1)
-            theta -= 180;
-        theta = range360(theta);
+        float PEOffset = periodicErrorOffset();
+        double theta = cameraRotation();
         LOGF_DEBUG("Rotator Angle: %f, Camera Rotation: %f", RotatorAngle, theta);
 
-#ifdef USE_EQUATORIAL_PE
-        if (usePE)
-        {
-            currentRA = raPE + guideWEOffset;
-            currentDE = decPE + guideNSOffset;
-        }
-        else
-        {
-            static bool s_warnedNoSnoop = false;
-            if (!s_warnedNoSnoop)
-            {
-                LOG_WARN("EQUATORIAL_PE not yet snooped -- rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
-                s_warnedNoSnoop = true;
-            }
-#endif
-            currentRA  = RA;
-            currentDE = Dec;
-
-            if (std::isnan(currentRA))
-            {
-                currentRA = 0;
-                currentDE = 0;
-            }
-
-            INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
-            currentRA = J2000Pos.rightascension;
-            currentDE = J2000Pos.declination;
-
-            currentDE += guideNSOffset;
-            currentRA += guideWEOffset;
-#ifdef USE_EQUATORIAL_PE
-        }
-#endif
+        updatePointing();
 
         // Field center: RA in degrees (with PE), Dec with OAG offset and polar drift
         double ra_deg     = currentRA * 15.0 + PEOffset;
@@ -774,6 +733,64 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         }
     }
     return 0;
+}
+
+float CCDSim::periodicErrorOffset()
+{
+    if (m_PEPeriod <= 0)
+        return 0;
+
+    time_t now;
+    time(&now);
+    double timesince = difftime(now, RunStart);
+    double PESpot = timesince / m_PEPeriod * 2.0 * 3.14159;
+    return m_PEMax * std::sin(PESpot) / 3600.0f;
+}
+
+double CCDSim::cameraRotation()
+{
+    m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
+    double theta = m_RotationOffset;
+    if (!std::isnan(RotatorAngle))
+        theta += RotatorAngle;
+    if (pierSide == 1)
+        theta -= 180;
+    return range360(theta);
+}
+
+void CCDSim::updatePointing()
+{
+#ifdef USE_EQUATORIAL_PE
+    if (usePE)
+    {
+        currentRA = raPE + guideWEOffset;
+        currentDE = decPE + guideNSOffset;
+        return;
+    }
+
+    static bool s_warnedNoSnoop = false;
+    if (!s_warnedNoSnoop)
+    {
+        LOG_WARN("EQUATORIAL_PE not yet snooped -- rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
+        s_warnedNoSnoop = true;
+    }
+#endif
+    currentRA  = RA;
+    currentDE = Dec;
+
+    if (std::isnan(currentRA))
+    {
+        currentRA = 0;
+        currentDE = 0;
+    }
+
+    INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
+    INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
+    currentRA = J2000Pos.rightascension;
+    currentDE = J2000Pos.declination;
+
+    currentDE += guideNSOffset;
+    currentRA += guideWEOffset;
 }
 
 float CCDSim::CalcTimeLeft(timeval start, float req)
@@ -932,6 +949,14 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             TiltSimulationNP.update(values, names, n);
             TiltSimulationNP.setState(IPS_OK);
             TiltSimulationNP.apply();
+        }
+        else if (PlanetDriftNP.isNameMatch(name))
+        {
+            PlanetDriftNP.update(values, names, n);
+            PlanetDriftNP.setState(IPS_OK);
+            PlanetDriftNP.apply();
+            saveConfig(PlanetDriftNP);
+            return true;
         }
         else if (PlanetSettingsNP.isNameMatch(name))
         {
@@ -1103,6 +1128,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 m_RemainingFiles.clear();
                 // Invalidate cached planet so it re-renders on next exposure
                 m_LastPlanetRenderTime = 0;
+                recenterPlanet();
                 LOGF_INFO("Planet simulation enabled for %s", m_SelectedPlanet.c_str());
             }
             else
@@ -1131,6 +1157,15 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             }
             PlanetModeSP.setState(IPS_OK);
             PlanetModeSP.apply(nullptr);
+            return true;
+        }
+        else if (PlanetRecenterSP.isNameMatch(name))
+        {
+            recenterPlanet();
+            PlanetRecenterSP.reset();
+            PlanetRecenterSP.setState(IPS_OK);
+            PlanetRecenterSP.apply();
+            LOG_INFO("Planet recentered.");
             return true;
         }
         // Planet selection
@@ -1285,6 +1320,15 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
             }
         }
     }
+    // A goto puts the planet back in the frame center once the slew ends
+    if (!strcmp(propName, "EQUATORIAL_EOD_COORD"))
+    {
+        const bool slewing = !strcmp(findXMLAttValu(root, "state"), "Busy");
+        if (m_MountSlewing && !slewing)
+            recenterPlanet();
+        m_MountSlewing = slewing;
+    }
+
     // We try to snoop EQUATORIAL_PE first (true pointing with mount errors injected);
     // if not found we fall through to the regular EQUATORIAL_EOD_COORD snoop below.
 #ifdef USE_EQUATORIAL_PE
@@ -1361,6 +1405,7 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Planet simulation
     PlanetSettingsNP.save(fp);
+    PlanetDriftNP.save(fp);
     PlanetPathsTP.save(fp);
 
     return true;
@@ -1386,13 +1431,14 @@ int CCDSim::QueryFilter()
 
 bool CCDSim::StartStreaming()
 {
-    ExposureRequest = 1.0 / Streamer->getTargetExposure();
+    ExposureRequest = Streamer->getTargetExposure();
 
-    // Planet mode: stream pre-compressed JPEG directly (INDI_JPG format, like gphoto_ccd)
+    // Planet mode: stream raw 8-bit RGB like a planetary camera, so frames can be subframed,
+    // recorded and measured by the stream manager
     if (m_PlanetMode)
     {
-        Streamer->setPixelFormat(INDI_JPG, 8);
-        Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+        Streamer->setPixelFormat(INDI_RGB, 8);
+        Streamer->setSize(PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
     }
     else
     {
@@ -1490,18 +1536,27 @@ void * CCDSim::streamVideo()
         pthread_mutex_unlock(&condMutex);
 
 
-        // Planet mode: stream cached PNG directly (no encoding, like gphoto_ccd JPEG)
+        // Planet mode: draw the planet at its current position into an RGB frame
         if (m_PlanetMode)
         {
-            renderPlanet(); // updates both caches if needed
-            if (!m_CachedStreamBuffer.empty())
             {
-                auto finish = std::chrono::high_resolution_clock::now();
-                std::chrono::duration<double> elapsed = finish - start;
-                if (elapsed.count() < ExposureRequest)
-                    usleep(fabs(ExposureRequest - elapsed.count()) * 1e6);
-                Streamer->newFrame(m_CachedStreamBuffer.data(), m_CachedStreamBuffer.size());
+                std::lock_guard<std::mutex> lock(m_PlanetMutex);
+                m_PlanetStreamFrame.resize(PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 3);
+                if (renderPlanet())
+                {
+                    double centerX, centerY;
+                    planetPosition(centerX, centerY);
+                    drawPlanetRGB8(m_PlanetStreamFrame.data(), centerX, centerY);
+                }
+                else
+                    std::fill(m_PlanetStreamFrame.begin(), m_PlanetStreamFrame.end(), 0);
             }
+
+            auto finish = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = finish - start;
+            if (elapsed.count() < ExposureRequest)
+                usleep(fabs(ExposureRequest - elapsed.count()) * 1e6);
+            Streamer->newFrame(m_PlanetStreamFrame.data(), m_PlanetStreamFrame.size());
         }
         else
         {
@@ -1528,19 +1583,33 @@ void * CCDSim::streamVideo()
 
 bool CCDSim::renderPlanet()
 {
-    // Get current CCD dimensions
-    uint32_t width  = PrimaryCCD.getXRes();
-    uint32_t height = PrimaryCCD.getYRes();
-
     // Compute pixel scale: arcsec per pixel = 206.265 * pixel_size_um / focal_length_mm
     float pixelSizeX = SimulatorSettingsNP[SIM_XSIZE].getValue();
     float pixelSizeY = SimulatorSettingsNP[SIM_YSIZE].getValue();
     float focalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ?
                         ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
-    if (focalLength <= 0)
+    if (!(focalLength > 0))
         focalLength = 1000.0f; // default fallback
     float arcsecPerPixelX = 206.265f * pixelSizeX / focalLength;
     float arcsecPerPixelY = 206.265f * pixelSizeY / focalLength;
+
+    // Re-render when the sprite is stale or its parameters changed. After a failed render, wait for
+    // the next refresh or a settings change instead of spawning xplanet on every frame.
+    time_t now;
+    time(&now);
+    const bool stale = difftime(now, m_LastPlanetRenderTime) / 60.0 >= m_PlanetRefreshMinutes;
+    const bool paramsChanged = m_CachedPlanet != m_SelectedPlanet ||
+                               m_CachedFocalLength != focalLength ||
+                               m_CachedPixelSizeX != pixelSizeX;
+    if (!stale && !paramsChanged)
+        return !m_PlanetSprite.empty();
+
+    m_LastPlanetRenderTime = now;
+    m_CachedPlanet = m_SelectedPlanet;
+    m_CachedFocalLength = focalLength;
+    m_CachedPixelSizeX = pixelSizeX;
+    m_PlanetSprite.clear();
+    m_PlanetSpriteSize = 0;
 
     // Determine planet angular diameter
     float planetDiameterArcsec = 0;
@@ -1575,8 +1644,7 @@ bool CCDSim::renderPlanet()
     float srcPlanetRadius = planetFracOfFrame * renderSize / 2.0f;
     if (srcPlanetRadius < 10.0f) srcPlanetRadius = 10.0f;
 
-    // Build xplanet command. We output PNG — same file used for both FITS rendering
-    // and direct streaming (cached as-is, like gphoto_ccd sends JPEG).
+    // Build xplanet command. We output PNG, then convert it to PPM for parsing.
     std::string searchDir;
     size_t configPos = m_XPlanetConfig.rfind("/config/");
     if (configPos != std::string::npos)
@@ -1618,209 +1686,210 @@ bool CCDSim::renderPlanet()
                  renderSize, renderSize, static_cast<double>(planetRange), pngPath);
     }
 
-    // Ensure buffer is sized for 3-channel 16-bit planar RGB
-    uint32_t rgbBufSize = width * height * 3 * 2;
-    if (PrimaryCCD.getFrameBufferSize() != static_cast<int>(rgbBufSize))
-        PrimaryCCD.setFrameBufferSize(rgbBufSize);
-
-    // Check if cache needs invalidation before spawning any external processes
-    m_LastRenderWasCacheHit = !m_CachedPlanetBuffer.empty();
-    if (m_LastRenderWasCacheHit &&
-            (m_CachedPlanet != m_SelectedPlanet ||
-             m_CachedFocalLength != focalLength ||
-             m_CachedPixelSizeX != pixelSizeX ||
-             m_CachedWidth != width))
+    LOGF_DEBUG("Running: %s", cmd);
+    int ret = system(cmd);
+    if (ret != 0)
     {
-        LOG_DEBUG("Cache params changed, re-rendering");
-        m_CachedPlanetBuffer.clear();
-        m_LastRenderWasCacheHit = false;
+        LOGF_ERROR("xplanet failed with exit code %d. Is xplanet installed?", ret);
+        return false;
     }
 
-    // Only spawn xplanet if cache is empty (fresh render needed)
-    if (m_CachedPlanetBuffer.empty())
+    ret = system("convert /tmp/indi_planet.png /tmp/indi_planet.ppm 2>/dev/null");
+    if (ret != 0)
     {
-        m_LastRenderWasCacheHit = false;
-        LOGF_DEBUG("Running: %s", cmd);
-        int ret = system(cmd);
-        if (ret != 0)
-        {
-            LOGF_ERROR("xplanet failed with exit code %d. Is xplanet installed?", ret);
-            return false;
-        }
+        LOG_ERROR("Failed to convert PNG to PPM. Is ImageMagick installed?");
+        return false;
+    }
 
-        // Generate CCD-resolution JPEG for streaming: resize planet to correct pixel size,
-        // center on black background matching CCD dimensions
-        {
-            char jpgCmd[2048];
-            int planetRenderPixels = static_cast<int>(avgPlanetPixels);
-            if (planetRenderPixels < 1) planetRenderPixels = 1;
-            snprintf(jpgCmd, sizeof(jpgCmd),
-                     "convert %s -resize %dx%d -background black "
-                     "-gravity center -extent %dx%d -quality 90 /tmp/indi_planet.jpg 2>/dev/null",
-                     pngPath, planetRenderPixels, planetRenderPixels,
-                     static_cast<int>(width), static_cast<int>(height));
-            ret = system(jpgCmd);
-            if (ret != 0)
-            {
-                LOG_ERROR("Failed to generate CCD-resolution JPEG. Is ImageMagick installed?");
-                return false;
-            }
-        }
+    // Parse the PPM file
+    FILE *fp = fopen("/tmp/indi_planet.ppm", "rb");
+    if (!fp)
+    {
+        LOG_ERROR("Failed to open /tmp/indi_planet.ppm");
+        return false;
+    }
 
-        // Cache the CCD-resolution JPEG for direct streaming
-        FILE *jpgFile = fopen("/tmp/indi_planet.jpg", "rb");
-        if (jpgFile)
-        {
-            fseek(jpgFile, 0, SEEK_END);
-            long jpgSize = ftell(jpgFile);
-            fseek(jpgFile, 0, SEEK_SET);
-            m_CachedStreamBuffer.resize(jpgSize);
-            size_t bytesRead = fread(m_CachedStreamBuffer.data(), 1, jpgSize, jpgFile);
-            INDI_UNUSED(bytesRead);
-            fclose(jpgFile);
-        }
-
-        ret = system("convert /tmp/indi_planet.png /tmp/indi_planet.ppm 2>/dev/null");
-        if (ret != 0)
-        {
-            LOG_ERROR("Failed to convert PNG to PPM. Is ImageMagick installed?");
-            return false;
-        }
-
-        // Parse the PPM file
-        FILE *fp = fopen("/tmp/indi_planet.ppm", "rb");
-        if (!fp)
-        {
-            LOG_ERROR("Failed to open /tmp/indi_planet.ppm");
-            return false;
-        }
-
-        char magic[3];
-        if (fscanf(fp, "%2s\n", magic) != 1 || strcmp(magic, "P6") != 0)
-        {
-            LOG_ERROR("PPM file is not P6 format (binary RGB)");
-            fclose(fp);
-            return false;
-        }
-
-        int ppmWidth, ppmHeight, maxVal;
-        // Skip comments
-        int c = fgetc(fp);
-        while (c == '#')
-        {
-            while (fgetc(fp) != '\n');
-            c = fgetc(fp);
-        }
-        ungetc(c, fp);
-        if (fscanf(fp, "%d %d\n%d\n", &ppmWidth, &ppmHeight, &maxVal) != 3)
-        {
-            LOG_ERROR("Failed to parse PPM header");
-            fclose(fp);
-            return false;
-        }
-
-        std::vector<uint8_t> rgbData(ppmWidth * ppmHeight * 3);
-        size_t bytesRead = fread(rgbData.data(), 1, rgbData.size(), fp);
+    char magic[3];
+    if (fscanf(fp, "%2s\n", magic) != 1 || strcmp(magic, "P6") != 0)
+    {
+        LOG_ERROR("PPM file is not P6 format (binary RGB)");
         fclose(fp);
-
-        if (bytesRead != rgbData.size())
-        {
-            LOGF_ERROR("PPM read error: expected %zu bytes, got %zu", rgbData.size(), bytesRead);
-            return false;
-        }
-
-        // Allocate cached planet buffer at CCD resolution (16-bit RGB, 3-channel PLANAR layout for FITS)
-        m_CachedPlanetBuffer.resize(rgbBufSize);
-        m_CachedPlanetWidth = width;
-        m_CachedPlanetHeight = height;
-        uint16_t *buffer = reinterpret_cast<uint16_t *>(m_CachedPlanetBuffer.data());
-
-        // Clear to black
-        memset(buffer, 0, rgbBufSize);
-
-        // Plane offsets within buffer (FITS NAXIS=3 planar: R_plane | G_plane | B_plane)
-        size_t planeSize = static_cast<size_t>(width) * static_cast<size_t>(height);
-        uint16_t *rPlane = buffer;
-        uint16_t *gPlane = buffer + planeSize;
-        uint16_t *bPlane = buffer + planeSize * 2;
-
-        // Center the planet in the CCD frame
-        float centerX = width / 2.0f;
-        float centerY = height / 2.0f;
-
-        // Scale factor from xplanet render to planet pixel size
-        float dstPlanetRadius = avgPlanetPixels / 2.0f;
-        if (dstPlanetRadius < 1.0f)
-            dstPlanetRadius = 1.0f;
-        float scale = srcPlanetRadius / dstPlanetRadius;
-
-        // Map each CCD pixel to the source PPM, writing planar 16-bit data.
-        // Use simple linear scaling (8-bit × 256 → 16-bit) so the planet's
-        // 8-bit perceptual brightness maps to the upper 16-bit range, making
-        // auto-stretch work naturally without crushing mid-tones.
-        for (uint32_t y = 0; y < height; y++)
-        {
-            for (uint32_t x = 0; x < width; x++)
-            {
-                float sx = (x - centerX) * scale + ppmWidth / 2.0f;
-                float sy = (y - centerY) * scale + ppmHeight / 2.0f;
-
-                float dx = (sx - ppmWidth / 2.0f);
-                float dy = (sy - ppmHeight / 2.0f);
-                if (sqrtf(dx * dx + dy * dy) > srcPlanetRadius)
-                    continue;
-
-                int ix = static_cast<int>(sx);
-                int iy = static_cast<int>(sy);
-                if (ix < 0 || ix >= ppmWidth || iy < 0 || iy >= ppmHeight)
-                    continue;
-
-                int srcIdx = (iy * ppmWidth + ix) * 3;
-                uint8_t r8 = rgbData[srcIdx];
-                uint8_t g8 = rgbData[srcIdx + 1];
-                uint8_t b8 = rgbData[srcIdx + 2];
-
-                // Linear 8→16-bit scaling: perceptual brightness preserved
-                uint16_t r16 = static_cast<uint16_t>(r8) * 256;
-                uint16_t g16 = static_cast<uint16_t>(g8) * 256;
-                uint16_t b16 = static_cast<uint16_t>(b8) * 256;
-
-                if (r16 > static_cast<uint32_t>(m_MaxVal)) r16 = m_MaxVal;
-                if (g16 > static_cast<uint32_t>(m_MaxVal)) g16 = m_MaxVal;
-                if (b16 > static_cast<uint32_t>(m_MaxVal)) b16 = m_MaxVal;
-
-                size_t px = y * width + x;
-                rPlane[px] = r16;
-                gPlane[px] = g16;
-                bPlane[px] = b16;
-            }
-        }
-
-        // Store FOV params so we can detect changes on cache check
-        m_CachedPlanet = m_SelectedPlanet;
-        m_CachedFocalLength = focalLength;
-        m_CachedPixelSizeX = pixelSizeX;
-        m_CachedWidth = width;
+        return false;
     }
-    else
+
+    int ppmWidth, ppmHeight, maxVal;
+    // Skip comments
+    int c = fgetc(fp);
+    while (c == '#')
     {
-        // Cache hit: PPM already parsed and scaled, just copy to frame buffer
-        // (NAXIS and buffer size already set by SetCaptureFormat when planet mode enabled)
+        while (fgetc(fp) != '\n');
+        c = fgetc(fp);
     }
-
-    // Copy the cached buffer into PrimaryCCD's frame buffer
-    size_t copySize = std::min(m_CachedPlanetBuffer.size(), static_cast<size_t>(rgbBufSize));
-    memcpy(PrimaryCCD.getFrameBuffer(), m_CachedPlanetBuffer.data(), copySize);
-
-    time(&m_LastPlanetRenderTime);
-    // Only log on fresh render, not cache hits
-    if (!m_LastRenderWasCacheHit)
+    ungetc(c, fp);
+    if (fscanf(fp, "%d %d\n%d\n", &ppmWidth, &ppmHeight, &maxVal) != 3)
     {
-        LOGF_INFO("Rendered planet %s: diameter=%.1f arcsec, pixels=%.1f, scale=%.1f arcsec/px",
-                  m_SelectedPlanet.c_str(), planetDiameterArcsec, planetPixelsX, arcsecPerPixelX);
+        LOG_ERROR("Failed to parse PPM header");
+        fclose(fp);
+        return false;
     }
+
+    std::vector<uint8_t> rgbData(ppmWidth * ppmHeight * 3);
+    size_t bytesRead = fread(rgbData.data(), 1, rgbData.size(), fp);
+    fclose(fp);
+
+    if (bytesRead != rgbData.size())
+    {
+        LOGF_ERROR("PPM read error: expected %zu bytes, got %zu", rgbData.size(), bytesRead);
+        return false;
+    }
+
+    // Scale the planet disk to its size on the sensor. Pixels outside the disk stay black.
+    float dstPlanetRadius = avgPlanetPixels / 2.0f;
+    if (dstPlanetRadius < 1.0f)
+        dstPlanetRadius = 1.0f;
+    float scale = srcPlanetRadius / dstPlanetRadius;
+
+    const uint32_t spriteSize = static_cast<uint32_t>(std::ceil(dstPlanetRadius * 2)) + 2;
+    const float spriteCenter = spriteSize / 2.0f;
+    std::vector<uint8_t> sprite(spriteSize * spriteSize * 3, 0);
+
+    for (uint32_t y = 0; y < spriteSize; y++)
+    {
+        for (uint32_t x = 0; x < spriteSize; x++)
+        {
+            float dx = (x - spriteCenter) * scale;
+            float dy = (y - spriteCenter) * scale;
+            if (sqrtf(dx * dx + dy * dy) > srcPlanetRadius)
+                continue;
+
+            int ix = static_cast<int>(dx + ppmWidth / 2.0f);
+            int iy = static_cast<int>(dy + ppmHeight / 2.0f);
+            if (ix < 0 || ix >= ppmWidth || iy < 0 || iy >= ppmHeight)
+                continue;
+
+            memcpy(&sprite[(y * spriteSize + x) * 3], &rgbData[(iy * ppmWidth + ix) * 3], 3);
+        }
+    }
+
+    m_PlanetSprite = std::move(sprite);
+    m_PlanetSpriteSize = spriteSize;
+
+    LOGF_INFO("Rendered planet %s: diameter=%.1f arcsec, pixels=%.1f, scale=%.1f arcsec/px",
+              m_SelectedPlanet.c_str(), planetDiameterArcsec, planetPixelsX, arcsecPerPixelX);
 
     return true;
+}
+
+void CCDSim::recenterPlanet()
+{
+    std::lock_guard<std::mutex> lock(m_PlanetMutex);
+    m_PlanetPositionValid = false;
+}
+
+void CCDSim::planetPosition(double &x, double &y)
+{
+    updatePointing();
+    const double pointingRA = currentRA * 15.0 + periodicErrorOffset();
+    const double pointingDE = currentDE;
+
+    if (!m_PlanetPositionValid)
+    {
+        m_PlanetRA = pointingRA;
+        m_PlanetDE = pointingDE;
+        m_PlanetDriftStart = std::chrono::steady_clock::now();
+        m_PlanetPositionValid = true;
+    }
+
+    // Standard coordinates of the planet relative to the pointing, as in SkyRenderer::renderFrame
+    const double rar   = pointingRA * (M_PI / 180.0);
+    const double decr  = pointingDE * (M_PI / 180.0);
+    const double srar  = m_PlanetRA * (M_PI / 180.0);
+    const double sdecr = m_PlanetDE * (M_PI / 180.0);
+    const double denom = cos(decr) * cos(sdecr) * cos(srar - rar) + sin(decr) * sin(sdecr);
+    double sx = cos(sdecr) * sin(srar - rar) / denom;
+    double sy = (sin(decr) * cos(sdecr) * cos(srar - rar) - cos(decr) * sin(sdecr)) / denom;
+
+    // Tracking drift since the last recenter, plus per-frame seeing jitter (arcsec -> radians)
+    const double minutes = std::chrono::duration<double>(std::chrono::steady_clock::now() - m_PlanetDriftStart).count() / 60.0;
+    const double arcsecToRad = M_PI / (180.0 * 3600.0);
+    sx += PlanetDriftNP[PLANET_DRIFT_RA].getValue() * minutes * arcsecToRad;
+    sy -= PlanetDriftNP[PLANET_DRIFT_DE].getValue() * minutes * arcsecToRad;
+    const double jitter = PlanetDriftNP[PLANET_JITTER].getValue();
+    if (jitter > 0)
+    {
+        std::normal_distribution<double> seeing(0, jitter * arcsecToRad);
+        sx += seeing(m_PlanetRandom);
+        sy += seeing(m_PlanetRandom);
+    }
+
+    // Plate matrix, as in SkyRenderer::renderFrame
+    double focalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
+    if (!(focalLength > 0))
+        focalLength = 1000.0;
+    const double theta = cameraRotation() * (M_PI / 180.0);
+    const double pprx  = focalLength / PrimaryCCD.getPixelSizeX() * 1000.0;
+    const double ppry  = focalLength / PrimaryCCD.getPixelSizeY() * 1000.0;
+    const double pa =  pprx * std::cos(theta);
+    const double pb =  ppry * std::sin(theta);
+    const double pd = -pprx * std::sin(theta);
+    const double pe =  ppry * std::cos(theta);
+
+    x = PrimaryCCD.getXRes() / 2.0 - (pa * sx + pb * sy);
+    y = PrimaryCCD.getYRes() / 2.0 + (pd * sx + pe * sy);
+}
+
+void CCDSim::drawPlanetRGB8(uint8_t *buffer, double centerX, double centerY)
+{
+    const int subX = PrimaryCCD.getSubX(), subY = PrimaryCCD.getSubY();
+    const int subW = PrimaryCCD.getSubW(), subH = PrimaryCCD.getSubH();
+    memset(buffer, 0, static_cast<size_t>(subW) * subH * 3);
+
+    // Sprite origin in subframe pixels
+    const int size = m_PlanetSpriteSize;
+    const int originX = static_cast<int>(std::lround(centerX - size / 2.0)) - subX;
+    const int originY = static_cast<int>(std::lround(centerY - size / 2.0)) - subY;
+    const int x0 = std::max(0, originX), x1 = std::min(subW, originX + size);
+    const int y0 = std::max(0, originY), y1 = std::min(subH, originY + size);
+    const uint32_t transparency = static_cast<uint32_t>(PlanetDriftNP[PLANET_TRANSPARENCY].getValue());
+
+    for (int y = y0; y < y1; y++)
+    {
+        const uint8_t *src = &m_PlanetSprite[((y - originY) * size + (x0 - originX)) * 3];
+        uint8_t *dst = buffer + (static_cast<size_t>(y) * subW + x0) * 3;
+        for (int i = 0; i < (x1 - x0) * 3; i++)
+            dst[i] = src[i] * transparency / 100;
+    }
+}
+
+void CCDSim::drawPlanetRGB16(uint16_t *buffer, double centerX, double centerY)
+{
+    const int subX = PrimaryCCD.getSubX(), subY = PrimaryCCD.getSubY();
+    const int subW = PrimaryCCD.getSubW(), subH = PrimaryCCD.getSubH();
+    const size_t planeSize = static_cast<size_t>(subW) * subH;
+    memset(buffer, 0, planeSize * 3 * sizeof(uint16_t));
+
+    const int size = m_PlanetSpriteSize;
+    const int originX = static_cast<int>(std::lround(centerX - size / 2.0)) - subX;
+    const int originY = static_cast<int>(std::lround(centerY - size / 2.0)) - subY;
+    const int x0 = std::max(0, originX), x1 = std::min(subW, originX + size);
+    const int y0 = std::max(0, originY), y1 = std::min(subH, originY + size);
+    const uint32_t transparency = static_cast<uint32_t>(PlanetDriftNP[PLANET_TRANSPARENCY].getValue());
+
+    // Linear 8->16-bit scaling (x256) keeps the planet's perceptual brightness, so auto-stretch
+    // works naturally without crushing mid-tones. FITS NAXIS=3 is planar: R plane | G plane | B plane.
+    for (int y = y0; y < y1; y++)
+    {
+        for (int x = x0; x < x1; x++)
+        {
+            const uint8_t *src = &m_PlanetSprite[((y - originY) * size + (x - originX)) * 3];
+            const size_t px = static_cast<size_t>(y) * subW + x;
+            for (int c = 0; c < 3; c++)
+            {
+                uint32_t value = src[c] * 256u * transparency / 100;
+                buffer[c * planeSize + px] = static_cast<uint16_t>(std::min<uint32_t>(value, m_MaxVal));
+            }
+        }
+    }
 }
 
 void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeyword)
