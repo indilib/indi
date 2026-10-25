@@ -75,6 +75,17 @@ set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
 if(APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
+
+    # INDI libraries use @rpath install names (e.g. @rpath/libindidriver.2.dylib).
+    # CMake strips the build RPATH on install, leaving installed binaries with no LC_RPATH,
+    # so add the INDI library directory and the directories of linked external libraries.
+    # Respect any value passed on the command line (e.g. by Craft).
+    if(NOT DEFINED CMAKE_INSTALL_RPATH)
+        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif()
+    if(NOT DEFINED CMAKE_INSTALL_RPATH_USE_LINK_PATH)
+        set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
+    endif()
 endif(APPLE)
 
 # #################################  Install Directories  ###########################################
