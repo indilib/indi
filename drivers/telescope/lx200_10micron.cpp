@@ -498,6 +498,30 @@ bool LX200_10MICRON::ReadScopeStatus()
             LOGF_INFO("Gstat initialized at %d", Ginfo.Gstat);
         }
     }
+    // The mount can be unparked by another client, such as MountWizzard4 or the hand pad.
+    // Clear our parked state only when Gstat clearly says the mount is not parked, and leave it
+    // alone for conditions that say nothing about the position (motors too cold, user OK
+    // needed, unknown, error). Done before the switch below, as SetParked(false) also resets TrackState.
+    if (isParked())
+    {
+        switch (Ginfo.Gstat)
+        {
+            case GSTAT_TRACKING:
+            case GSTAT_STOPPED:
+            case GSTAT_PARKING:
+            case GSTAT_UNPARKING:
+            case GSTAT_SLEWING_TO_HOME:
+            case GSTAT_SLEWING_OR_STOPPING:
+            case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
+            case GSTAT_TRACKING_OUTSIDE_LIMITS:
+            case GSTAT_FOLLOWING_SATELLITE:
+                LOGF_INFO("Gstat %d means the mount is no longer parked.", Ginfo.Gstat);
+                SetParked(false);
+                break;
+            default:
+                break;
+        }
+    }
     switch (Ginfo.Gstat)
     {
         case GSTAT_TRACKING:
