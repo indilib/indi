@@ -35,6 +35,8 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <chrono>
+#include <mutex>
 
 static const char * STREAM_TAB = "Streaming";
 
@@ -190,6 +192,33 @@ bool StreamManagerPrivate::initProperties()
     LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS",      "%.0f", 1, 120,     1,  10);
     LimitsNP.fill(getDeviceName(), "LIMITS", "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+    {
+        // Centroid tracking
+        TrackingSP[TRACKING_ON ].fill("TRACKING_ON",  "On",  ISS_OFF);
+        TrackingSP[TRACKING_OFF].fill("TRACKING_OFF", "Off", ISS_ON);
+        TrackingSP.fill(getDeviceName(), "STREAM_TRACKING", "Tracking", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+        TrackingOffsetNP[TRACKING_CENTROID_X].fill("CENTROID_X", "Centroid X (px)", "%.2f", 0, 65535, 0, 0);
+        TrackingOffsetNP[TRACKING_CENTROID_Y].fill("CENTROID_Y", "Centroid Y (px)", "%.2f", 0, 65535, 0, 0);
+        TrackingOffsetNP[TRACKING_OFFSET_X  ].fill("OFFSET_X",   "Offset X (px)",   "%.2f", -65535, 65535, 0, 0);
+        TrackingOffsetNP[TRACKING_OFFSET_Y  ].fill("OFFSET_Y",   "Offset Y (px)",   "%.2f", -65535, 65535, 0, 0);
+        TrackingOffsetNP[TRACKING_QUALITY   ].fill("QUALITY",    "Quality",         "%.2f", 0, 1, 0, 0);
+        TrackingOffsetNP[TRACKING_SEQUENCE  ].fill("SEQUENCE",   "Sequence",        "%.f",  0, 1e12, 0, 0);
+        // Unix time (s) of the first frame averaged into this report
+        TrackingOffsetNP[TRACKING_TIMESTAMP ].fill("TIMESTAMP",  "Timestamp (s)",   "%.3f", 0, 1e12, 0, 0);
+        TrackingOffsetNP.fill(getDeviceName(), "STREAM_TRACKING_OFFSET", "Tracking Offset", STREAM_TAB, IP_RO, 60, IPS_IDLE);
+
+        TrackingLockNP[TRACKING_LOCK_X].fill("LOCK_X", "X (px)", "%.2f", 0, 65535, 0, 0);
+        TrackingLockNP[TRACKING_LOCK_Y].fill("LOCK_Y", "Y (px)", "%.2f", 0, 65535, 0, 0);
+        TrackingLockNP.fill(getDeviceName(), "STREAM_TRACKING_LOCK", "Tracking Lock", STREAM_TAB, IP_RW, 60, IPS_IDLE);
+
+        TrackingSettingsNP[TRACKING_AVERAGE].fill("AVERAGE_TIME", "Average (s)",   "%.1f", 0.1, 60, 0.5, 1);
+        TrackingSettingsNP[TRACKING_RATE   ].fill("MAX_RATE",     "Max Rate (Hz)", "%.f",  1, 120, 1, 10);
+        TrackingSettingsNP.fill(getDeviceName(), "STREAM_TRACKING_SETTINGS", "Tracking Settings", STREAM_TAB, IP_RW, 60,
+                                IPS_IDLE);
+    }
+
     return true;
 }
 
@@ -218,6 +247,13 @@ void StreamManagerPrivate::ISGetProperties(const char *dev)
         currentDevice->defineProperty(EncoderSP);
         currentDevice->defineProperty(RecorderSP);
         currentDevice->defineProperty(LimitsNP);
+        if (currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+        {
+            currentDevice->defineProperty(TrackingSP);
+            currentDevice->defineProperty(TrackingOffsetNP);
+            currentDevice->defineProperty(TrackingLockNP);
+            currentDevice->defineProperty(TrackingSettingsNP);
+        }
     }
 }
 
@@ -253,9 +289,26 @@ bool StreamManagerPrivate::updateProperties()
         currentDevice->defineProperty(EncoderSP);
         currentDevice->defineProperty(RecorderSP);
         currentDevice->defineProperty(LimitsNP);
+        if (currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+        {
+            TrackingSettingsNP.load();
+            FPSTracking.setTimeWindow(1000.0 / TrackingSettingsNP[TRACKING_RATE].getValue());
+            currentDevice->defineProperty(TrackingSP);
+            currentDevice->defineProperty(TrackingOffsetNP);
+            currentDevice->defineProperty(TrackingLockNP);
+            currentDevice->defineProperty(TrackingSettingsNP);
+        }
     }
     else
     {
+        if (currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+        {
+            setTracking(false);
+            currentDevice->deleteProperty(TrackingSP);
+            currentDevice->deleteProperty(TrackingOffsetNP);
+            currentDevice->deleteProperty(TrackingLockNP);
+            currentDevice->deleteProperty(TrackingSettingsNP);
+        }
         currentDevice->deleteProperty(StreamSP.getName());
         currentDevice->deleteProperty(StreamTimeNP.getName());
         if (hasStreamingExposure)
@@ -465,6 +518,7 @@ void StreamManagerPrivate::asyncStreamThread()
         }
 
         // Check if we need to subframe
+        bool isSubframed = false;
         if (
             PixelFormat != INDI_JPG &&
             dstFrameInfo.pixels() != 0 &&
@@ -475,6 +529,16 @@ void StreamManagerPrivate::asyncStreamThread()
             subframe(sourceBuffer->data(), srcFrameInfo, subframeBuffer.data(), dstFrameInfo);
 
             sourceBuffer = &subframeBuffer;
+            isSubframed = true;
+        }
+
+        // Measure on the frame as it is recorded, at full bit depth
+        if (isTracking)
+        {
+            const FrameInfo &frameInfo = isSubframed ? dstFrameInfo : srcFrameInfo;
+            processTracking(sourceBuffer->data(), frameInfo.w, frameInfo.h,
+                            srcFrameInfo.x + (isSubframed ? dstFrameInfo.x : 0),
+                            srcFrameInfo.y + (isSubframed ? dstFrameInfo.y : 0));
         }
 
         // For recording, save immediately.
@@ -926,6 +990,14 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
         return true;
     }
 
+    // Centroid Tracking
+    if (TrackingSP.isNameMatch(name))
+    {
+        TrackingSP.update(states, names, n);
+        setTracking(TrackingSP[TRACKING_ON].getState() == ISS_ON);
+        return true;
+    }
+
     // Full Depth Streaming
     if (FullDepthSP.isNameMatch(name))
     {
@@ -1051,6 +1123,39 @@ bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, doub
         setSize(StreamFrameNP[CCDChip::FRAME_W].getValue(), StreamFrameNP[CCDChip::FRAME_H].getValue());
 
         StreamFrameNP.apply();
+        return true;
+    }
+
+    /* Tracking Lock */
+    if (TrackingLockNP.isNameMatch(name))
+    {
+        std::lock_guard<std::mutex> lock(trackingMutex);
+        if (!isTracking)
+        {
+            LOG_WARN("Turn tracking on before setting the lock point.");
+            TrackingLockNP.setState(IPS_ALERT);
+            TrackingLockNP.apply();
+            return true;
+        }
+
+        TrackingLockNP.update(values, names, n);
+        frameTracker.setLock(TrackingLockNP[TRACKING_LOCK_X].getValue(), TrackingLockNP[TRACKING_LOCK_Y].getValue());
+        TrackingLockNP.setState(IPS_OK);
+        TrackingLockNP.apply();
+        LOGF_INFO("Tracking lock set to (%.1f, %.1f).", TrackingLockNP[TRACKING_LOCK_X].getValue(),
+                  TrackingLockNP[TRACKING_LOCK_Y].getValue());
+        return true;
+    }
+
+    /* Tracking Settings */
+    if (TrackingSettingsNP.isNameMatch(name))
+    {
+        std::lock_guard<std::mutex> lock(trackingMutex);
+        TrackingSettingsNP.update(values, names, n);
+        FPSTracking.setTimeWindow(1000.0 / TrackingSettingsNP[TRACKING_RATE].getValue());
+        FPSTracking.reset();
+        TrackingSettingsNP.setState(IPS_OK);
+        TrackingSettingsNP.apply();
         return true;
     }
 
@@ -1183,7 +1288,121 @@ bool StreamManager::saveConfigItems(FILE * fp)
     d->RecorderSP.save(fp);
     d->LimitsNP.save(fp);
     d->FullDepthSP.save(fp);
+    if (d->currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+        d->TrackingSettingsNP.save(fp);
     return true;
+}
+
+void StreamManagerPrivate::setTracking(bool enable)
+{
+    std::lock_guard<std::mutex> lock(trackingMutex);
+
+    if (enable == isTracking)
+        return;
+
+    TrackingSP.reset();
+    TrackingSP[enable ? TRACKING_ON : TRACKING_OFF].setState(ISS_ON);
+
+    if (enable)
+    {
+        frameTracker.reset();
+        FPSTracking.reset();
+        trackingFormatWarned = false;
+        TrackingSP.setState(IPS_OK);
+        // Busy until the first valid measurement acquires the lock
+        TrackingOffsetNP.setState(IPS_BUSY);
+        TrackingLockNP.setState(IPS_BUSY);
+        LOG_INFO("Tracking enabled. The target position is measured while streaming or recording.");
+    }
+    else
+    {
+        TrackingSP.setState(IPS_IDLE);
+        TrackingOffsetNP.setState(IPS_IDLE);
+        TrackingLockNP.setState(IPS_IDLE);
+        LOG_INFO("Tracking disabled.");
+    }
+
+    isTracking = enable;
+    TrackingSP.apply();
+    TrackingOffsetNP.apply();
+    TrackingLockNP.apply();
+}
+
+void StreamManagerPrivate::processTracking(const uint8_t *buffer, size_t width, size_t height, size_t originX,
+        size_t originY)
+{
+    std::lock_guard<std::mutex> lock(trackingMutex);
+
+    if (!isTracking || FPSTracking.newFrame() == false)
+        return;
+
+    FrameTracker::Image image;
+    image.data = buffer;
+    image.width = width;
+    image.height = height;
+    image.bytesPerComponent = (PixelDepth + 7) / 8;
+    switch (PixelFormat)
+    {
+        case INDI_MONO:
+            break;
+        case INDI_RGB:
+            image.components = 3;
+            break;
+        case INDI_BAYER_GRBG:
+        case INDI_BAYER_GBRG:
+        case INDI_BAYER_RGGB:
+        case INDI_BAYER_BGGR:
+            image.bayer = true;
+            break;
+        default:
+            if (!trackingFormatWarned)
+            {
+                LOG_ERROR("Tracking is not supported for compressed (JPEG) streams.");
+                trackingFormatWarned = true;
+                TrackingOffsetNP.setState(IPS_ALERT);
+                TrackingOffsetNP.apply();
+            }
+            return;
+    }
+
+    FrameTracker::Measurement measurement = FrameTracker::measure(image, frameTracker.lockArea());
+    // Report in sensor coordinates so changing the stream frame does not move the lock point
+    measurement.x += originX;
+    measurement.y += originY;
+
+    const bool hadLock = frameTracker.hasLock();
+    const double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    FrameTracker::Report report;
+    const bool hasReport = frameTracker.addMeasurement(measurement, now, TrackingSettingsNP[TRACKING_AVERAGE].getValue(),
+                           report);
+
+    if (!hadLock && frameTracker.hasLock())
+    {
+        TrackingLockNP[TRACKING_LOCK_X].setValue(frameTracker.lockX());
+        TrackingLockNP[TRACKING_LOCK_Y].setValue(frameTracker.lockY());
+        TrackingLockNP.setState(IPS_OK);
+        TrackingLockNP.apply();
+        LOGF_INFO("Tracking locked at (%.1f, %.1f).", frameTracker.lockX(), frameTracker.lockY());
+    }
+
+    if (!hasReport)
+        return;
+
+    TrackingOffsetNP[TRACKING_SEQUENCE].setValue(++trackingSequence);
+    TrackingOffsetNP[TRACKING_TIMESTAMP].setValue(report.windowStart);
+    TrackingOffsetNP[TRACKING_QUALITY].setValue(report.quality);
+    if (report.valid)
+    {
+        TrackingOffsetNP[TRACKING_CENTROID_X].setValue(report.x);
+        TrackingOffsetNP[TRACKING_CENTROID_Y].setValue(report.y);
+        TrackingOffsetNP[TRACKING_OFFSET_X].setValue(report.offsetX);
+        TrackingOffsetNP[TRACKING_OFFSET_Y].setValue(report.offsetY);
+        TrackingOffsetNP.setState(IPS_OK);
+    }
+    else
+        TrackingOffsetNP.setState(IPS_ALERT);
+    TrackingOffsetNP.apply();
 }
 
 void StreamManagerPrivate::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h) const

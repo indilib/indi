@@ -72,6 +72,7 @@ if(UNIX)
         stream/streammanager.cpp
         stream/fpsmeter.cpp
         stream/gammalut16.cpp
+        stream/frametracker.cpp
         stream/recorder/recorderinterface.cpp
         stream/recorder/recordermanager.cpp
         stream/recorder/serrecorder.cpp
@@ -89,6 +90,7 @@ if(UNIX)
         stream/fpsmeter.h
         stream/uniquequeue.h
         stream/gammalut16.h
+        stream/frametracker.h
         stream/jpegutils.h
         stream/ccvt.h
         stream/ccvt_types.h

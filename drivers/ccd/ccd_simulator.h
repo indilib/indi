@@ -18,7 +18,11 @@
 
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <deque>
+#include <mutex>
+#include <random>
 #include <vector>
 #include <map>
 #include <string>
@@ -136,7 +140,26 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool loadNextXISFImage(const std::string &filename);
 #endif
         bool setupParameters();
+
+        // Updates the planet sprite from xplanet when it is missing, stale, or its parameters changed.
+        // Caller must hold m_PlanetMutex.
         bool renderPlanet();
+        // Planet center in sensor pixels, from the mount pointing, guide pulses, drift and jitter.
+        // Caller must hold m_PlanetMutex.
+        void planetPosition(double &x, double &y);
+        // Draw the planet into the chip subframe: interleaved 8-bit RGB for streaming,
+        // planar 16-bit RGB for FITS captures. Caller must hold m_PlanetMutex.
+        void drawPlanetRGB8(uint8_t *buffer, double centerX, double centerY);
+        void drawPlanetRGB16(uint16_t *buffer, double centerX, double centerY);
+        // Put the planet back in the frame center at the current pointing and restart the drift
+        void recenterPlanet();
+
+        // Updates currentRA/currentDE (J2000) from the snooped mount position and guide pulses
+        void updatePointing();
+        // Periodic error offset in RA (degrees)
+        float periodicErrorOffset();
+        // Camera rotation (degrees): manual offset + snooped rotator + pier flip
+        double cameraRotation();
 
         // Turns on/off Bayer RGB simulation.
         void setBayerEnabled(bool onOff);
@@ -323,6 +346,18 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             PLANET_SIZE
         };
 
+        // Tracking errors and sky conditions applied to the planet position, for testing tracking
+        INDI::PropertyNumber PlanetDriftNP {4};
+        enum
+        {
+            PLANET_DRIFT_RA,
+            PLANET_DRIFT_DE,
+            PLANET_JITTER,
+            PLANET_TRANSPARENCY
+        };
+
+        INDI::PropertySwitch PlanetRecenterSP {1};
+
         // xplanet executable path and config file path
         INDI::PropertyText PlanetPathsTP {2};
         enum
@@ -339,16 +374,26 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float m_PlanetSizeOverride {0.0f};  // 0 = use lookup table
         std::string m_XPlanetBinary {"xplanet"};
         std::string m_XPlanetConfig {"/usr/share/xplanet/config/default"};
-        time_t m_LastPlanetRenderTime {0};
-        bool m_LastRenderWasCacheHit {false};
-        std::vector<uint8_t> m_CachedPlanetBuffer;
-        std::vector<uint8_t> m_CachedStreamBuffer;   // raw xplanet PNG bytes for direct streaming
-        uint32_t m_CachedPlanetWidth {0};
-        uint32_t m_CachedPlanetHeight {0};
+        // Set to 0 to force a fresh xplanet render
+        std::atomic<time_t> m_LastPlanetRenderTime {0};
+        // Guards the sprite and the planet position, used by both the stream thread and exposures
+        std::mutex m_PlanetMutex;
+        // Planet disk scaled to its size on the sensor, interleaved 8-bit RGB, square
+        std::vector<uint8_t> m_PlanetSprite;
+        uint32_t m_PlanetSpriteSize {0};
+        std::vector<uint8_t> m_PlanetStreamFrame;
+        // Sky position (J2000 degrees) the planet sits at, taken from the pointing when recentered
+        bool m_PlanetPositionValid {false};
+        double m_PlanetRA {0};
+        double m_PlanetDE {0};
+        std::chrono::steady_clock::time_point m_PlanetDriftStart;
+        std::mt19937 m_PlanetRandom {std::random_device{}()};
+        // Mount is slewing; the planet is recentered when the slew ends
+        bool m_MountSlewing {false};
         float m_CachedFocalLength {0};
         float m_CachedPixelSizeX {0};
-        uint32_t m_CachedWidth {0};
         std::string m_CachedPlanet;
 
         static const constexpr char* SIMULATOR_TAB = "Simulator Config";
+        static const constexpr char* PLANET_TAB = "Planet";
 };

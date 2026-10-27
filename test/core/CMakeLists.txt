@@ -66,3 +66,17 @@ TARGET_COMPILE_DEFINITIONS(test_libastro PRIVATE
     TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/test/data"
 )
 ADD_TEST(test_libastro test_libastro)
+
+# Built from source: indidriver provides its own main(), which would replace gtest's
+SET (test_frame_tracker_SRCS
+    test_frame_tracker.cpp
+    ${CMAKE_SOURCE_DIR}/libs/indibase/stream/frametracker.cpp
+)
+ADD_EXECUTABLE(test_frame_tracker ${test_frame_tracker_SRCS})
+TARGET_INCLUDE_DIRECTORIES(test_frame_tracker PRIVATE ${CMAKE_SOURCE_DIR}/libs/indibase)
+TARGET_LINK_LIBRARIES(test_frame_tracker
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_frame_tracker test_frame_tracker)
