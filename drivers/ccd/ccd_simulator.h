@@ -156,6 +156,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         // Updates currentRA/currentDE (J2000) from the snooped mount position and guide pulses
         void updatePointing();
+        // Shifts JNow ra (hours) and de (degrees) by the user pointing offset
+        void applyPointingOffset(double &ra, double &de);
         // Periodic error offset in RA (degrees)
         float periodicErrorOffset();
         // Camera rotation (degrees): manual offset + snooped rotator + pier flip
@@ -226,8 +228,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         double currentRA { 0 };
         double currentDE { 0 };
         bool usePE { false };
-        double raPE  { 0 };   // J2000 RA  from snooped EQUATORIAL_PE (hours)
-        double decPE { 0 };   // J2000 Dec from snooped EQUATORIAL_PE (degrees)
+        double raPE  { 0 };   // JNow RA  from snooped EQUATORIAL_PE (hours)
+        double decPE { 0 };   // JNow Dec from snooped EQUATORIAL_PE (degrees)
         time_t RunStart;
 
         float guideNSOffset {0};
@@ -280,6 +282,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         };
 
         INDI::PropertyNumber EqPENP {2};
+
+        // Renders the sky away from where the mount points, so solved images disagree with the
+        // mount coordinates. Simulates a bad pointing model for testing alignment.
+        INDI::PropertyNumber PointingOffsetNP {2};
+        enum
+        {
+            SIM_OFFSET_RA,
+            SIM_OFFSET_DE
+        };
 
         INDI::PropertySwitch CoolerSP {2};
 

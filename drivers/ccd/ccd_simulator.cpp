@@ -191,6 +191,13 @@ bool CCDSim::initProperties()
     EqPENP.fill(getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
                 IPS_IDLE);
 
+    // Pointing offset, added to the mount coordinates before rendering
+    PointingOffsetNP[SIM_OFFSET_RA].fill("SIM_OFFSET_RA", "RA Offset (deg)", "%.4f", -180, 180, 0, 0);
+    PointingOffsetNP[SIM_OFFSET_DE].fill("SIM_OFFSET_DE", "DE Offset (deg)", "%.4f", -90, 90, 0, 0);
+    PointingOffsetNP.fill(getDeviceName(), "SIM_POINTING_OFFSET", "Pointing Offset", SIMULATOR_TAB, IP_RW, 60,
+                          IPS_IDLE);
+    PointingOffsetNP.load();
+
     // FWHM
     auto focuser = ActiveDeviceTP[ACTIVE_FOCUSER].getText() ? ActiveDeviceTP[ACTIVE_FOCUSER].getText() : "";
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
@@ -337,6 +344,7 @@ void CCDSim::ISGetProperties(const char * dev)
 
     defineProperty(SimulatorSettingsNP);
     defineProperty(EqPENP);
+    defineProperty(PointingOffsetNP);
     defineProperty(FocusSimulationNP);
     defineProperty(TiltSimulationNP);
     defineProperty(SimTestsSP);
@@ -760,37 +768,50 @@ double CCDSim::cameraRotation()
 
 void CCDSim::updatePointing()
 {
+    double ra = RA, de = Dec;
 #ifdef USE_EQUATORIAL_PE
     if (usePE)
     {
-        currentRA = raPE + guideWEOffset;
-        currentDE = decPE + guideNSOffset;
-        return;
+        ra = raPE;
+        de = decPE;
     }
-
-    static bool s_warnedNoSnoop = false;
-    if (!s_warnedNoSnoop)
+    else
     {
-        LOG_WARN("EQUATORIAL_PE not yet snooped -- rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
-        s_warnedNoSnoop = true;
+        static bool s_warnedNoSnoop = false;
+        if (!s_warnedNoSnoop)
+        {
+            LOG_WARN("EQUATORIAL_PE not yet snooped -- rendering at raw EQUATORIAL_EOD_COORD (mount errors not active)");
+            s_warnedNoSnoop = true;
+        }
     }
 #endif
-    currentRA  = RA;
-    currentDE = Dec;
 
-    if (std::isnan(currentRA))
+    if (std::isnan(ra))
     {
-        currentRA = 0;
-        currentDE = 0;
+        ra = 0;
+        de = 0;
     }
 
-    INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
-    INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
-    currentRA = J2000Pos.rightascension;
-    currentDE = J2000Pos.declination;
+    // Offset the JNow pointing, so solving the image gives exactly the mount coordinates plus the offset
+    applyPointingOffset(ra, de);
 
-    currentDE += guideNSOffset;
-    currentRA += guideWEOffset;
+    INDI::IEquatorialCoordinates epochPos { ra, de }, J2000Pos { 0, 0 };
+    INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
+    currentRA = J2000Pos.rightascension + guideWEOffset;
+    currentDE = J2000Pos.declination + guideNSOffset;
+}
+
+void CCDSim::applyPointingOffset(double &ra, double &de)
+{
+    ra = range24(ra + PointingOffsetNP[SIM_OFFSET_RA].getValue() / 15.0);
+    de += PointingOffsetNP[SIM_OFFSET_DE].getValue();
+
+    // Past a pole, continue down the other side of it
+    if (de > 90 || de < -90)
+    {
+        de = (de > 0 ? 180 : -180) - de;
+        ra = range24(ra + 12);
+    }
 }
 
 float CCDSim::CalcTimeLeft(timeval start, float req)
@@ -922,19 +943,23 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             EqPENP.update(values, names, n);
             EqPENP.setState(IPS_OK);
 
-            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.rightascension  = EqPENP[AXIS_RA].getValue();
-            epochPos.declination = EqPENP[AXIS_DE].getValue();
-
             RA = EqPENP[AXIS_RA].getValue();
             Dec = EqPENP[AXIS_DE].getValue();
 
-            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
-            currentRA  = J2000Pos.rightascension;
-            currentDE = J2000Pos.declination;
+            // updatePointing() renders from raPE/decPE once usePE is set
+            raPE  = RA;
+            decPE = Dec;
             usePE = true;
 
             EqPENP.apply();
+            return true;
+        }
+        else if (PointingOffsetNP.isNameMatch(name))
+        {
+            PointingOffsetNP.update(values, names, n);
+            PointingOffsetNP.setState(IPS_OK);
+            PointingOffsetNP.apply();
+            saveConfig(PointingOffsetNP);
             return true;
         }
         else if (FocusSimulationNP.isNameMatch(name))
@@ -1349,17 +1374,15 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0)
         {
-            INDI::IEquatorialCoordinates epochPos { newra, newdec }, J2000Pos { 0, 0 };
-            INDI::ObservedToJ2000(&epochPos, m_Clock.julianDate(), &J2000Pos);
-            raPE  = J2000Pos.rightascension;
-            decPE = J2000Pos.declination;
+            raPE  = newra;
+            decPE = newdec;
 
             // Only activate PE rendering once the telescope reports a valid (Ok) state.
             // The initial defNumberVector arrives with state Idle and values 0/0.
             const char * state = findXMLAttValu(root, "state");
             if (!usePE && strcmp(state, "Ok") == 0)
             {
-                LOGF_INFO("EQUATORIAL_PE snoop active: JNow RA %.4f Dec %.4f -> J2000 RA %.4f Dec %.4f", newra, newdec, raPE, decPE);
+                LOGF_INFO("EQUATORIAL_PE snoop active: JNow RA %.4f Dec %.4f", newra, newdec);
                 usePE = true;
             }
 
@@ -1367,7 +1390,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
             EqPENP[AXIS_DE].setValue(newdec);
             EqPENP.apply();
 
-            LOGF_DEBUG("Snooped EQUATORIAL_PE JNow RA %g Dec %g -> J2000 RA %g Dec %g", newra, newdec, raPE, decPE);
+            LOGF_DEBUG("Snooped EQUATORIAL_PE JNow RA %g Dec %g", newra, newdec);
             return true;
         }
     }
@@ -1402,6 +1425,8 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Tilt simulation
     TiltSimulationNP.save(fp);
+
+    PointingOffsetNP.save(fp);
 
     // Planet simulation
     PlanetSettingsNP.save(fp);

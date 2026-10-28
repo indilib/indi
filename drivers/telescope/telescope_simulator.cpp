@@ -26,6 +26,7 @@
 
 using namespace INDI::AlignmentSubsystem;
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -100,8 +101,18 @@ bool ScopeSim::initProperties()
     mountAxisNP.fill(getDeviceName(), "MOUNT_AXES", "Mount Axes",
                      "Simulation", IP_RO, 0, IPS_IDLE);
 
-    decBacklashNP[0].fill("DEC_BACKLASH", "DEC Backlash (ms)", "%.0f", 0, 5000, 0, 0);
-    decBacklashNP.fill(getDeviceName(), "DEC_BACKLASH", "DEC Backlash",
+    // Bad guiding: backlash is pulse time lost after a direction reversal, rate is the
+    // actual axis motion relative to the guide rate, jitter randomly changes each pulse
+    // duration by up to +/- that percentage and drop is the chance a pulse is ignored.
+    guideErrorsNP[GE_BACKLASH_RA + RA_AXIS].fill("RA_BACKLASH", "RA Backlash (ms)", "%.0f", 0, 5000, 0, 0);
+    guideErrorsNP[GE_BACKLASH_RA + DEC_AXIS].fill("DEC_BACKLASH", "DEC Backlash (ms)", "%.0f", 0, 5000, 0, 0);
+    guideErrorsNP[GE_RATE_RA + RA_AXIS].fill("RA_RATE", "RA Rate (%)", "%.0f", 0, 300, 0, 100);
+    guideErrorsNP[GE_RATE_RA + DEC_AXIS].fill("DEC_RATE", "DEC Rate (%)", "%.0f", 0, 300, 0, 100);
+    guideErrorsNP[GE_JITTER_RA + RA_AXIS].fill("RA_JITTER", "RA Jitter (%)", "%.0f", 0, 100, 0, 0);
+    guideErrorsNP[GE_JITTER_RA + DEC_AXIS].fill("DEC_JITTER", "DEC Jitter (%)", "%.0f", 0, 100, 0, 0);
+    guideErrorsNP[GE_DROP_RA + RA_AXIS].fill("RA_DROP", "RA Dropped (%)", "%.0f", 0, 100, 0, 0);
+    guideErrorsNP[GE_DROP_RA + DEC_AXIS].fill("DEC_DROP", "DEC Dropped (%)", "%.0f", 0, 100, 0, 0);
+    guideErrorsNP.fill(getDeviceName(), "GUIDE_ERRORS", "Guide Errors",
                        "Simulation", IP_RW, 0, IPS_IDLE);
 
     PACDeviceTP[0].fill("PAC_DEVICE", "Alignment Corrector", "Alignment Correction Simulator");
@@ -174,8 +185,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineProperty(mountAxisNP);
     defineProperty(flipHourAngleNP);
     flipHourAngleNP.load();
-    defineProperty(decBacklashNP);
-    decBacklashNP.load();
+    defineProperty(guideErrorsNP);
+    guideErrorsNP.load();
     defineProperty(PACDeviceTP);
     PACDeviceTP.load();
 #endif
@@ -783,12 +794,12 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             alignment.setFlipHourAngle(flipHourAngleNP[0].getValue());
             return true;
         }
-        if (decBacklashNP.isNameMatch(name))
+        if (guideErrorsNP.isNameMatch(name))
         {
-            decBacklashNP.update(values, names, n);
-            decBacklashNP.setState(IPS_OK);
-            decBacklashNP.apply();
-            m_DecGuideBacklashMs = decBacklashNP[0].getValue();
+            guideErrorsNP.update(values, names, n);
+            guideErrorsNP.setState(IPS_OK);
+            guideErrorsNP.apply();
+            saveConfig(guideErrorsNP);
             return true;
         }
 #endif
@@ -986,48 +997,51 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-uint32_t ScopeSim::backlashComputation(uint32_t ms)
+uint32_t ScopeSim::applyGuideErrors(int axis, double &rate, uint32_t ms)
 {
-    if (m_DecGuideRemainingBacklash <= 0)
-    {
-        m_DecGuideRemainingBacklash = 0;
-    }
-    else if (m_DecGuideRemainingBacklash >= ms)
-    {
-        m_DecGuideRemainingBacklash -= ms;
-        ms = 0;
-    }
-    else
-    {
-        ms -= m_DecGuideRemainingBacklash;
-        m_DecGuideRemainingBacklash = 0;
-    }
-    return ms;
-}
+    const char *axisName = (axis == RA_AXIS) ? "RA" : "DEC";
+    std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
-uint32_t ScopeSim::applyDecBacklash(double rate, uint32_t ms)
-{
-    const bool changingDirections = (rate < 0 && m_GuideDecLastNorth) ||
-                                    (rate > 0 && !m_GuideDecLastNorth);
-    m_GuideDecLastNorth = rate >= 0;
-
-    if (!changingDirections)
+    // A dropped pulse never reaches the motor, so it leaves the backlash state alone.
+    if (uniform(m_GuideRng) * 100 < guideErrorsNP[GE_DROP_RA + axis].getValue())
     {
-        ms = backlashComputation(ms);
-        return ms;
+        LOGF_DEBUG("%s guide pulse of %u ms dropped.", axisName, ms);
+        return 0;
     }
-    else
+
+    const double jitter = guideErrorsNP[GE_JITTER_RA + axis].getValue();
+    if (jitter > 0)
     {
-        if (m_DecGuideRemainingBacklash <= 0)
-            m_DecGuideRemainingBacklash = m_DecGuideBacklashMs;
-        else if (m_DecGuideRemainingBacklash >= m_DecGuideBacklashMs)
-            m_DecGuideRemainingBacklash = 0;
+        const uint32_t requested = ms;
+        ms = static_cast<uint32_t>(std::lround(ms * (1 + (2 * uniform(m_GuideRng) - 1) * jitter / 100)));
+        LOGF_DEBUG("%s guide pulse jitter: %u ms => %u ms", axisName, requested, ms);
+    }
+
+    // In milliseconds. Doesn't depend on guide rate.
+    const uint32_t backlash = static_cast<uint32_t>(guideErrorsNP[GE_BACKLASH_RA + axis].getValue());
+    uint32_t &remaining = m_GuideRemainingBacklash[axis];
+    const bool positive = rate >= 0;
+    if (positive != m_GuideLastPositive[axis])
+    {
+        if (remaining == 0)
+            remaining = backlash;
+        else if (remaining >= backlash)
+            remaining = 0;
         else
-            m_DecGuideRemainingBacklash = m_DecGuideBacklashMs - m_DecGuideRemainingBacklash;
-
-        ms = backlashComputation(ms);
-        return ms;
+            remaining = backlash - remaining;
     }
+    m_GuideLastPositive[axis] = positive;
+
+    const uint32_t taken = std::min(remaining, ms);
+    if (taken > 0)
+    {
+        remaining -= taken;
+        ms -= taken;
+        LOGF_DEBUG("%s backlash took %u ms of the guide pulse, %u ms left to clear.", axisName, taken, remaining);
+    }
+
+    rate *= guideErrorsNP[GE_RATE_RA + axis].getValue() / 100.0;
+    return ms;
 }
 
 void ScopeSim::guideAltAzDecomposed(double dNS, double dEW, uint32_t ms)
@@ -1071,16 +1085,17 @@ void ScopeSim::guideAltAzDecomposed(double dNS, double dEW, uint32_t ms)
 
 IPState ScopeSim::GuideNorth(uint32_t ms)
 {
+    double rate = GuideRateNP[DEC_AXIS].getValue();
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
     {
-        guideAltAzDecomposed(GuideRateNP[DEC_AXIS].getValue(), 0.0, ms);
+        ms = applyGuideErrors(DEC_AXIS, rate, ms);
+        guideAltAzDecomposed(rate, 0.0, ms);
     }
     else
     {
-        double rate = GuideRateNP[DEC_AXIS].getValue();
         if (HasPierSide() && (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
             rate = -rate;
-        ms = applyDecBacklash(rate, ms);
+        ms = applyGuideErrors(DEC_AXIS, rate, ms);
         axisSecondary.StartGuide(rate, ms);
     }
     guidingNS = true;
@@ -1089,17 +1104,18 @@ IPState ScopeSim::GuideNorth(uint32_t ms)
 
 IPState ScopeSim::GuideSouth(uint32_t ms)
 {
+    double rate = -GuideRateNP[DEC_AXIS].getValue();
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
     {
-        guideAltAzDecomposed(-GuideRateNP[DEC_AXIS].getValue(), 0.0, ms);
+        ms = applyGuideErrors(DEC_AXIS, rate, ms);
+        guideAltAzDecomposed(rate, 0.0, ms);
     }
     else
     {
-        double rate = GuideRateNP[DEC_AXIS].getValue();
         if (HasPierSide() && (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
             rate = -rate;
-        ms = applyDecBacklash(-rate, ms);
-        axisSecondary.StartGuide(-rate, ms);
+        ms = applyGuideErrors(DEC_AXIS, rate, ms);
+        axisSecondary.StartGuide(rate, ms);
     }
     guidingNS = true;
     return IPS_BUSY;
@@ -1107,20 +1123,24 @@ IPState ScopeSim::GuideSouth(uint32_t ms)
 
 IPState ScopeSim::GuideEast(uint32_t ms)
 {
+    double rate = -GuideRateNP[RA_AXIS].getValue();
+    ms = applyGuideErrors(RA_AXIS, rate, ms);
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
-        guideAltAzDecomposed(0.0, -GuideRateNP[RA_AXIS].getValue(), ms);
+        guideAltAzDecomposed(0.0, rate, ms);
     else
-        axisPrimary.StartGuide(-GuideRateNP[RA_AXIS].getValue(), ms);
+        axisPrimary.StartGuide(rate, ms);
     guidingEW = true;
     return IPS_BUSY;
 }
 
 IPState ScopeSim::GuideWest(uint32_t ms)
 {
+    double rate = GuideRateNP[RA_AXIS].getValue();
+    ms = applyGuideErrors(RA_AXIS, rate, ms);
     if (m_MountType == Alignment::MOUNT_TYPE::ALTAZ)
-        guideAltAzDecomposed(0.0, GuideRateNP[RA_AXIS].getValue(), ms);
+        guideAltAzDecomposed(0.0, rate, ms);
     else
-        axisPrimary.StartGuide(GuideRateNP[RA_AXIS].getValue(), ms);
+        axisPrimary.StartGuide(rate, ms);
     guidingEW = true;
     return IPS_BUSY;
 }
@@ -1206,7 +1226,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     simPierSideSP.save(fp);
     mountModelNP.save(fp);
     flipHourAngleNP.save(fp);
-    decBacklashNP.save(fp);
+    guideErrorsNP.save(fp);
     PACDeviceTP.save(fp);
 
 #endif

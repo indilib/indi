@@ -23,6 +23,8 @@
 #include "scopesim_helper.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
+#include <random>
+
 #define USE_SIM_TAB
 
 /**
@@ -121,18 +123,19 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         bool guidingNS = false;
         bool guidingEW = false;
 
-        uint32_t applyDecBacklash(double rate, uint32_t ms);
-        uint32_t backlashComputation(uint32_t ms);
+        /// Apply the simulated guiding errors of one axis (RA_AXIS or DEC_AXIS) to a guide pulse:
+        /// dropped pulses, duration jitter, backlash on direction reversal and a rate error.
+        /// Scales rate in place and returns the effective pulse duration in ms.
+        uint32_t applyGuideErrors(int axis, double &rate, uint32_t ms);
 
-        // In milliseconds. Doesn't depend on guide rate.
-        uint32_t m_DecGuideBacklashMs { 30 };
-        // True if last dec guide pulse was north. Actually a little more complicated
-        // than that because of pier side...
-        bool m_GuideDecLastNorth = false;
-        // Will be between 0 and decGuideBacklash. When guide pulses change directions,
+        // True if the last guide pulse moved the axis in the positive direction, per axis.
+        // For DEC this is a little more complicated than north because of pier side...
+        bool m_GuideLastPositive[2] { false, false };
+        // Will be between 0 and the axis backlash. When guide pulses change directions,
         // a pulse may not completely clear the backlash. This is how much is left
         // after that pulse.
-        uint32_t m_DecGuideRemainingBacklash { 0 };
+        uint32_t m_GuideRemainingBacklash[2] { 0, 0 };
+        std::mt19937 m_GuideRng { std::random_device{}() };
 
         INDI::PropertyNumber GuideRateNP {2};
         enum
@@ -197,7 +200,15 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         };
 
         INDI::PropertyNumber flipHourAngleNP {1};
-        INDI::PropertyNumber decBacklashNP {1};
+        // Per axis guiding errors. Element index is the error type + RA_AXIS/DEC_AXIS.
+        INDI::PropertyNumber guideErrorsNP {8};
+        enum
+        {
+            GE_BACKLASH_RA = 0,
+            GE_RATE_RA     = 2,
+            GE_JITTER_RA   = 4,
+            GE_DROP_RA     = 6
+        };
 
         INDI::PropertyText PACDeviceTP {1};
         double m_snoopedAzError { 0 };
