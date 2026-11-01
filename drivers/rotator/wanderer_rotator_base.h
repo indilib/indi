@@ -45,6 +45,8 @@ protected:
     virtual const char * getRotatorHandshakeName() = 0;
     virtual int getMinimumCompatibleFirmwareVersion() = 0;
     virtual int getStepsPerDegree() = 0;
+    virtual int getMovePositionOffset() { return 1000000; }
+    virtual int getLatestFirmwareVersion() { return getMinimumCompatibleFirmwareVersion(); }
 
     IPState MoveRotator(double angle) override;
     IPState HomeRotator() override;
@@ -59,11 +61,13 @@ protected:
     INDI::PropertySwitch SetZeroSP{1};
     INDI::PropertyNumber BacklashNP{1};
     INDI::PropertyNumber AccuracyNP{1};
+    INDI::PropertyNumber DeviceIDNP{1};
 
     int firmware = 0;
     double M_angleread = 0;
     double M_backlashread = 0;
     double M_reverseread = 0;
+    double deviceID = 1;
     double initangle = 0;
     bool haltcommand = false;
     bool ReverseState = false;

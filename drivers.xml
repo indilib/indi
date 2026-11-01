@@ -450,6 +450,10 @@
             <driver name="Wanderer Rotator Lite V2">indi_wanderer_rotator_lite_v2</driver>
             <version>1.0</version>
         </device>
+        <device label="Rotator Pro V2" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Rotator Pro V2">indi_wanderer_rotator_pro_v2</driver>
+            <version>1.0</version>
+        </device>
         <device label="NightCrawler" manufacturer="MoonLite">
             <driver name="NightCrawler">indi_nightcrawler_focus</driver>
             <version>1.4</version>
