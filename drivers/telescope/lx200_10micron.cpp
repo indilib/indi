@@ -194,15 +194,17 @@ bool LX200_10MICRON::initProperties()
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                            "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
-        
+
         IUFillText(&WoLMacT[0], "MAC", "MAC Address (XX:XX:XX:XX:XX:XX)", "");
-        IUFillTextVector(&WoLMacTP, WoLMacT, 1, getDeviceName(), WAKE_ON_LAN_MAC, "Wake on LAN", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+        IUFillTextVector(&WoLMacTP, WoLMacT, 1, getDeviceName(), WAKE_ON_LAN_MAC, "Wake on LAN", CONNECTION_TAB, IP_RW, 60,
+                         IPS_IDLE);
         char wolMacBuf[128] = {};
         if (IUGetConfigText(getDeviceName(), WoLMacTP.name, WoLMacT[0].name, wolMacBuf, sizeof(wolMacBuf)) == 0)
             IUSaveText(&WoLMacT[0], wolMacBuf);
 
         IUFillSwitch(&WoLSendS[0], "SEND", "Wake Mount", ISS_OFF);
-        IUFillSwitchVector(&WoLSendSP, WoLSendS, 1, getDeviceName(), WAKE_ON_LAN_SEND, "Wake on LAN", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+        IUFillSwitchVector(&WoLSendSP, WoLSendS, 1, getDeviceName(), WAKE_ON_LAN_SEND, "Wake on LAN", CONNECTION_TAB, IP_RW,
+                           ISR_ATMOST1, 60, IPS_IDLE);
 
         MountShutdownSP[0].fill("SHUTDOWN", "Shutdown Mount", ISS_OFF);
         MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
@@ -1916,7 +1918,8 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
             SatPassWindowTP.update(texts, names, n);
-            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(), SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
+            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(),
+                                            SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
             {
                 SatPassWindowTP.setState(IPS_OK);
                 SatPassWindowTP.apply();
