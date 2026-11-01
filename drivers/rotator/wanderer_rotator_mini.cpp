@@ -54,6 +54,10 @@ int WandererRotatorMini::getMinimumCompatibleFirmwareVersion() {
     return 20240226;
 }
 
+int WandererRotatorMini::getLatestFirmwareVersion() {
+    return 20261025;
+}
+
 int WandererRotatorMini::getStepsPerDegree() {
     return 1142;
 }

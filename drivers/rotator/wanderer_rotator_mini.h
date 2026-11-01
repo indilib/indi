@@ -35,6 +35,7 @@ protected:
     const char * getDefaultName() override;
     const char * getRotatorHandshakeName() override;
     int getMinimumCompatibleFirmwareVersion() override;
+    int getLatestFirmwareVersion() override;
     int getStepsPerDegree() override;
 };
 
