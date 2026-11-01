@@ -1449,6 +1449,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
                 {
                     m_TemperatureElapsedTimer.start();
+                    m_TemperatureRampTimer.start();
                     m_InitialRampTemperature = TemperatureNP[0].getValue();
                 }
 
@@ -3196,20 +3197,20 @@ void CCD::checkTemperatureTarget()
             double rampSlope = TemperatureRampNP[RAMP_SLOPE].getValue();
             if (rampSlope > 0)
             {
-                // Calculate minimum expected time to traverse the full temperature range
+                // Advance temperature by one step every minute until the target is reached
+                if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+                {
+                    double nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + rampSlope);
+                    m_TemperatureElapsedTimer.restart();
+                    SetTemperature(nextTemperature);
+                }
+
+                // Calculate minimum expected time to traverse the full temperature range. Use the total
+                // ramp time here since m_TemperatureElapsedTimer is restarted on every step above.
                 double tempDelta = std::abs(m_TargetTemperature - m_InitialRampTemperature);
                 long minTimeToTarget_ms = static_cast<long>((tempDelta / rampSlope) * 60000);
-                if (m_TemperatureElapsedTimer.elapsed() < minTimeToTarget_ms)
-                {
-                    // Ramp still in progress — advance temperature by one step if >= 60s elapsed
-                    if (m_TemperatureElapsedTimer.elapsed() >= 60000)
-                    {
-                        double nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + rampSlope);
-                        m_TemperatureElapsedTimer.restart();
-                        SetTemperature(nextTemperature);
-                    }
+                if (m_TemperatureRampTimer.elapsed() < minTimeToTarget_ms)
                     return;
-                }
             }
 
             // After expected ramp time has elapsed (or no ramp configured),

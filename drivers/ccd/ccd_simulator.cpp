@@ -1058,8 +1058,12 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 TemperatureRequest = AMBIENT_TEMPERATURE;
                 m_TargetTemperature = AMBIENT_TEMPERATURE;
                 TemperatureNP.setState(IPS_BUSY);
+                m_InitialRampTemperature = TemperatureNP[0].getValue();
+                m_TemperatureStabilizationValue = TemperatureNP[0].getValue();
+                m_TemperatureStabilizationTimer.start();
                 m_TemperatureCheckTimer.start();
                 m_TemperatureElapsedTimer.start();
+                m_TemperatureRampTimer.start();
             }
 
             CoolerSP.apply();

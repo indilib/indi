@@ -607,6 +607,9 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::ElapsedTimer m_TemperatureStabilizationTimer;
         // Temperature when the ramp was initiated, used to compute expected ramp duration
         double m_InitialRampTemperature {0};
+        // Total time since the ramp was initiated. Unlike m_TemperatureElapsedTimer, this is not
+        // restarted on every ramp step.
+        INDI::ElapsedTimer m_TemperatureRampTimer;
 
         // Threading
         std::mutex ccdBufferLock;
