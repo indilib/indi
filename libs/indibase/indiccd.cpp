@@ -1449,6 +1449,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
                 {
                     m_TemperatureElapsedTimer.start();
+                    m_TemperatureRampTimer.start();
                     m_InitialRampTemperature = TemperatureNP[0].getValue();
                 }
 
@@ -2323,16 +2324,11 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
             fitsKeywords.push_back({"CROTA1", rotation, 10, "CROTA1"});
             fitsKeywords.push_back({"CROTA2", rotation, 10, "CROTA2"});
 
-            /*double cd[4];
-            cd[0] = degpix1;
-            cd[1] = 0;
-            cd[2] = 0;
-            cd[3] = degpix2;
-
-            fits_update_key_s(fptr, TDOUBLE, "CD1_1", &cd[0], "CD1_1", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD1_2", &cd[1], "CD1_2", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD2_1", &cd[2], "CD2_1", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD2_2", &cd[3], "CD2_2", &status);*/
+            double rotationRad = rotation / 180.0 * M_PI;
+            fitsKeywords.push_back({"CD1_1", std::cos(rotationRad) * degpix1, 10, "CD1_1"});
+            fitsKeywords.push_back({"CD1_2",-std::sin(rotationRad) * degpix2, 10, "CD1_2"});
+            fitsKeywords.push_back({"CD2_1", std::sin(rotationRad) * degpix1, 10, "CD2_1"});
+            fitsKeywords.push_back({"CD2_2", std::cos(rotationRad) * degpix2, 10, "CD2_2"});
         }
     }
 
@@ -2604,6 +2600,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
                 std::unique_lock<std::mutex> guard(ccdBufferLock);
                 std::memcpy(image.imageData(), targetChip->getFrameBuffer(), image.imageDataSize());
+                image.convertWCSToAstrometricSolution();
                 xisfWriter.writeImage(image);
 
                 LibXISF::ByteArray xisfFile;
@@ -3200,20 +3197,20 @@ void CCD::checkTemperatureTarget()
             double rampSlope = TemperatureRampNP[RAMP_SLOPE].getValue();
             if (rampSlope > 0)
             {
-                // Calculate minimum expected time to traverse the full temperature range
+                // Advance temperature by one step every minute until the target is reached
+                if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+                {
+                    double nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + rampSlope);
+                    m_TemperatureElapsedTimer.restart();
+                    SetTemperature(nextTemperature);
+                }
+
+                // Calculate minimum expected time to traverse the full temperature range. Use the total
+                // ramp time here since m_TemperatureElapsedTimer is restarted on every step above.
                 double tempDelta = std::abs(m_TargetTemperature - m_InitialRampTemperature);
                 long minTimeToTarget_ms = static_cast<long>((tempDelta / rampSlope) * 60000);
-                if (m_TemperatureElapsedTimer.elapsed() < minTimeToTarget_ms)
-                {
-                    // Ramp still in progress — advance temperature by one step if >= 60s elapsed
-                    if (m_TemperatureElapsedTimer.elapsed() >= 60000)
-                    {
-                        double nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + rampSlope);
-                        m_TemperatureElapsedTimer.restart();
-                        SetTemperature(nextTemperature);
-                    }
+                if (m_TemperatureRampTimer.elapsed() < minTimeToTarget_ms)
                     return;
-                }
             }
 
             // After expected ramp time has elapsed (or no ramp configured),

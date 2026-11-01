@@ -11,7 +11,11 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, xcode-27]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Get INDI Sources
@@ -34,6 +38,7 @@ jobs:
         run: indi/scripts/indi-core-test.sh
 
       - name: Archive INDI Core Package
+        if: matrix.os == 'macos-26'
         uses: actions/upload-artifact@v4
         with:
           name: indi-core-package-macos
