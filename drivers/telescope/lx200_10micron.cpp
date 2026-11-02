@@ -31,6 +31,7 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <strings.h>
@@ -62,6 +63,10 @@
 #define WAKE_ON_LAN_MAC  "WAKE_ON_LAN_MAC"
 #define WAKE_ON_LAN_SEND "WAKE_ON_LAN_SEND"
 #define MOUNT_SHUTDOWN "MOUNT_SHUTDOWN"
+#define MERIDIAN_LIMITS "MERIDIAN_LIMITS"
+#define TRACKING_END "TRACKING_END"
+#define ALLOWED_MERIDIAN_SIDE "ALLOWED_MERIDIAN_SIDE"
+#define TARGET_PIER_SIDE "TARGET_PIER_SIDE"
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
@@ -83,7 +88,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 4); // don't forget to update drivers.xml
+    setVersion(1, 5); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -189,18 +194,48 @@ bool LX200_10MICRON::initProperties()
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                            "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
-        
+
         IUFillText(&WoLMacT[0], "MAC", "MAC Address (XX:XX:XX:XX:XX:XX)", "");
-        IUFillTextVector(&WoLMacTP, WoLMacT, 1, getDeviceName(), WAKE_ON_LAN_MAC, "Wake on LAN", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+        IUFillTextVector(&WoLMacTP, WoLMacT, 1, getDeviceName(), WAKE_ON_LAN_MAC, "Wake on LAN", CONNECTION_TAB, IP_RW, 60,
+                         IPS_IDLE);
         char wolMacBuf[128] = {};
         if (IUGetConfigText(getDeviceName(), WoLMacTP.name, WoLMacT[0].name, wolMacBuf, sizeof(wolMacBuf)) == 0)
             IUSaveText(&WoLMacT[0], wolMacBuf);
 
         IUFillSwitch(&WoLSendS[0], "SEND", "Wake Mount", ISS_OFF);
-        IUFillSwitchVector(&WoLSendSP, WoLSendS, 1, getDeviceName(), WAKE_ON_LAN_SEND, "Wake on LAN", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+        IUFillSwitchVector(&WoLSendSP, WoLSendS, 1, getDeviceName(), WAKE_ON_LAN_SEND, "Wake on LAN", CONNECTION_TAB, IP_RW,
+                           ISR_ATMOST1, 60, IPS_IDLE);
 
         MountShutdownSP[0].fill("SHUTDOWN", "Shutdown Mount", ISS_OFF);
         MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+        // Meridian. The limits and allowed side are mount settings,
+        // the time to tracking end and target pier side are computed by the mount and read-only.
+        // Ranges from the manual (firmware 3.1.4) 6.3.11 Flip Slew Tol. and 6.3.12 Flip Guide Tol.
+        MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].fill("SLEW_LIMIT_IN_DEG", "Slew limit (deg), Flip Slew Tolerance", "%.0f", 0, 30, 1,
+                0);
+        MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].fill("TRACK_LIMIT_IN_DEG",
+                "Tracking limit (deg), Flip Guide Tolerance, >= slew limit",
+                "%.0f", 2, 30, 1, 2);
+        MeridianLimitsNP.fill(getDeviceName(), MERIDIAN_LIMITS, "Meridian Limits", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s)", "%.0f", 0, 999999, 0, 0);
+        TrackingEndNP.fill(getDeviceName(), TRACKING_END, "Tracking End", MOTION_TAB, IP_RO, 60, IPS_IDLE);
+
+        // Labels (TELESCOPE_PIER_SIDE style): the pier side the mount is allowed to use.
+        // The manual names the choices by the objects allowed.
+        // This results in "West" in 10Micron = "East (pointing west)" in INDI, and vice versa.
+        AllowedMeridianSideSP[MERIDIAN_SIDE_BOTH].fill("BOTH", "Both", ISS_ON);
+        AllowedMeridianSideSP[MERIDIAN_SIDE_WEST_ONLY].fill("WEST_ONLY", "East (pointing west)", ISS_OFF);
+        AllowedMeridianSideSP[MERIDIAN_SIDE_EAST_ONLY].fill("EAST_ONLY", "West (pointing east)", ISS_OFF);
+        AllowedMeridianSideSP.fill(getDeviceName(), ALLOWED_MERIDIAN_SIDE, "Meridian Side", MOTION_TAB, IP_RW,
+                                   ISR_1OFMANY, 60, IPS_IDLE);
+
+        TargetPierSideSP[TARGET_PIER_WEST].fill("PIER_WEST", "West (pointing east)", ISS_OFF);
+        TargetPierSideSP[TARGET_PIER_EAST].fill("PIER_EAST", "East (pointing west)", ISS_OFF);
+        TargetPierSideSP[TARGET_PIER_NONE].fill("NONE", "None (no target or unreachable)", ISS_ON);
+        TargetPierSideSP.fill(getDeviceName(), TARGET_PIER_SIDE, "Target Pier Side", MOTION_TAB, IP_RO, ISR_1OFMANY, 60,
+                              IPS_IDLE);
     }
     return result;
 }
@@ -246,6 +281,13 @@ bool LX200_10MICRON::updateProperties()
         defineProperty(&NewAlignmentPointsNP);
         defineProperty(&NewModelNameTP);
         defineProperty(&TLEfromDatabaseNP);
+        // Read the values before defining the properties: clients such as KStars fill their edit fields
+        // (sliders) from the definition, so pressing Set without changes then writes the mount's own values.
+        updateMeridianValues(true);
+        defineProperty(MeridianLimitsNP);
+        defineProperty(TrackingEndNP);
+        defineProperty(AllowedMeridianSideSP);
+        defineProperty(TargetPierSideSP);
 
         // read UnAttendedFlip setting from config and apply if available
         int readit = 0;
@@ -255,17 +297,25 @@ bool LX200_10MICRON::updateProperties()
         }
         if (readit == 0)
         {
-            if (UnattendedFlipS[UnattendedFlip].s == ISS_ON)
+            if (UnattendedFlip >= 0 && UnattendedFlipS[UnattendedFlip].s == ISS_ON)
             {
                 LOGF_INFO("Unattended Flip from config and mount are %s",
                           (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled");
             }
             else
             {
-                LOGF_INFO("Read Unattended Flip %s from config while mount has %s, updating mount",
-                          (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled",
-                          (UnattendedFlip == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
-                setUnattendedFlipSetting(UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON);
+                if (UnattendedFlip < 0)
+                    LOGF_INFO("Could not read Unattended Flip from the mount, applying %s from config",
+                              (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled");
+                else
+                    LOGF_INFO("Read Unattended Flip %s from config while mount has %s, updating mount",
+                              (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled",
+                              (UnattendedFlip == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
+                const int wanted = (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? UNATTENDED_FLIP_ENABLED :
+                                   UNATTENDED_FLIP_DISABLED;
+                setUnattendedFlipSetting(wanted == UNATTENDED_FLIP_ENABLED);
+                // Show what the mount uses now, clients still show the value read before the update
+                confirmUnattendedFlipSetting(wanted);
             }
         }
         else
@@ -289,6 +339,10 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
         deleteProperty(TLEfromDatabaseNP.name);
+        deleteProperty(MeridianLimitsNP);
+        deleteProperty(TrackingEndNP);
+        deleteProperty(AllowedMeridianSideSP);
+        deleteProperty(TargetPierSideSP);
     }
 
     return result;
@@ -346,20 +400,7 @@ void LX200_10MICRON::getBasicData()
         LOGF_INFO("%d Alignment Stars in active model", static_cast<int>(AlignmentPointsN[0].value));
         IDSetNumber(&AlignmentPointsNP, nullptr);
 
-        if (false == getUnattendedFlipSetting())
-        {
-            UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = ISS_ON;
-            UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = ISS_OFF;
-            LOG_INFO("Unattended Flip is disabled.");
-        }
-        else
-        {
-            UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = ISS_OFF;
-            UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = ISS_ON;
-            LOG_INFO("Unattended Flip is enabled.");
-        }
-        UnattendedFlipSP.s = IPS_OK;
-        IDSetSwitch(&UnattendedFlipSP, nullptr);
+        updateUnattendedFlipSetting(READ_AT_CONNECT);
     }
 
     if (sendLocationOnStartup)
@@ -586,6 +627,8 @@ bool LX200_10MICRON::ReadScopeStatus()
     MiniNewAlpRON[MALPRO_SIDTIME].value = Ginfo.SiderealTime;
     IDSetNumber(&MiniNewAlpRONP, nullptr);
 
+    updateMeridianValues(false);
+
     return true;
 }
 
@@ -669,9 +712,16 @@ bool LX200_10MICRON::getUnattendedFlipSetting()
     // 1 enabled
     // Available from version 2.11.
     // Note: unattended flip didn't work properly in firmware versions up to 2.13.8 included.
+    // The reply is a single digit without a '#' terminator, so read exactly one character instead of
+    // waiting for a '#' that never comes (that cost a 5 second timeout on every connect).
+    // When the setting cannot be read, UnattendedFlip is set to -1 (unknown) and false is returned.
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
-    char guaf[80];
-    getCommandString(PortFD, guaf, "#:Guaf#");
+    char guaf[2] = {0};
+    if (0 != setStandardProcedureAndReturnResponse(fd, "#:Guaf#", guaf, 1) || (guaf[0] != '0' && guaf[0] != '1'))
+    {
+        UnattendedFlip = -1;
+        return false;
+    }
     if ('1' == guaf[0])
     {
         UnattendedFlip = UNATTENDED_FLIP_ENABLED;
@@ -681,6 +731,66 @@ bool LX200_10MICRON::getUnattendedFlipSetting()
         UnattendedFlip = UNATTENDED_FLIP_DISABLED;
     }
     return '1' == guaf[0];
+}
+
+// Read the unattended flip setting back from the mount and show it. The mount resets it to disabled at
+// every power up, so this also runs periodically, see updateMeridianValues. What is logged and sent to
+// clients depends on the context: at connect always, periodically only on change, and after a write
+// nothing, as the caller reports the result of the write.
+void LX200_10MICRON::updateUnattendedFlipSetting(LX200_10MICRON_READ_CONTEXT context)
+{
+    const bool enabled = getUnattendedFlipSetting();
+    if (UnattendedFlip < 0)
+    {
+        if (context == READ_AFTER_WRITE)
+        {
+            UnattendedFlipSP.s = IPS_ALERT;
+        }
+        else if (context == READ_AT_CONNECT || UnattendedFlipSP.s != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the Unattended Flip setting.");
+            UnattendedFlipSP.s = IPS_ALERT;
+            IDSetSwitch(&UnattendedFlipSP, nullptr);
+        }
+        return;
+    }
+    const ISState enabledState = enabled ? ISS_ON : ISS_OFF;
+    const bool changed = UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s != enabledState || UnattendedFlipSP.s != IPS_OK;
+    UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = enabled ? ISS_OFF : ISS_ON;
+    UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = enabledState;
+    UnattendedFlipSP.s = IPS_OK;
+    if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+    {
+        if (context == READ_AT_CONNECT)
+            LOGF_INFO("Unattended Flip is %s.", enabled ? "enabled" : "disabled");
+        else
+            LOGF_INFO("Unattended Flip changed on the mount: %s.", enabled ? "enabled" : "disabled");
+        IDSetSwitch(&UnattendedFlipSP, nullptr);
+    }
+}
+
+// After writing the unattended flip setting (:SuafN# returns nothing), read it back to confirm what the
+// mount actually uses, then report the result in one log line and one property update.
+bool LX200_10MICRON::confirmUnattendedFlipSetting(int wanted)
+{
+    updateUnattendedFlipSetting(READ_AFTER_WRITE);
+    bool result = false;
+    if (UnattendedFlip < 0)
+    {
+        LOG_WARN("Unattended Flip was written, but could not be read back.");
+    }
+    else if (UnattendedFlip != wanted)
+    {
+        LOGF_ERROR("The mount did not take Unattended Flip %s.", (wanted == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
+        UnattendedFlipSP.s = IPS_ALERT;
+    }
+    else
+    {
+        LOGF_INFO("Unattended Flip set: %s.", (wanted == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
+        result = true;
+    }
+    IDSetSwitch(&UnattendedFlipSP, nullptr);
+    return result;
 }
 
 bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
@@ -706,6 +816,304 @@ bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
         return true;
     }
     return false;
+}
+
+// Called at connect with all=true, and by ReadScopeStatus with all=false.
+// The time to tracking end and the target pier side change while the mount tracks, so they are read
+// every 10 seconds. The limits, meridian side and unattended flip only change when someone changes them,
+// here or elsewhere, or (unattended flip) when the mount powers up, so they are read every 60 seconds.
+// Properties are only sent when they change.
+void LX200_10MICRON::updateMeridianValues(bool all)
+{
+    if (isSimulation())
+        return;
+
+    const auto now = std::chrono::steady_clock::now();
+    if (all || now - lastMeridianFastPoll >= std::chrono::seconds(10))
+    {
+        getTimeToTrackingEnd();
+        getTargetPierSide();
+        lastMeridianFastPoll = now;
+    }
+    if (all || now - lastMeridianSlowPoll >= std::chrono::seconds(60))
+    {
+        const LX200_10MICRON_READ_CONTEXT context = all ? READ_AT_CONNECT : READ_PERIODIC;
+        getMeridianLimits(context);
+        getAllowedMeridianSide(context);
+        // At connect this is already done by getBasicData
+        if (!all)
+            updateUnattendedFlipSetting(READ_PERIODIC);
+        lastMeridianSlowPoll = now;
+    }
+}
+
+bool LX200_10MICRON::getMeridianLimits(LX200_10MICRON_READ_CONTEXT context)
+{
+    // #:Glms#
+    // Returns the meridian limit for slews in degrees.
+    // Returns: NN#
+    // The meridian limit for slews in degrees.
+    // Available from version 2.11.
+    // #:Glmt#
+    // Returns the meridian limit for tracking in degrees.
+    // Returns: NN#
+    // The meridian limit for tracking in degrees.
+    // Available from version 2.11.
+    // The manual (firmware 3.1.4) calls these Flip Slew Tol. and Flip Guide Tol.:
+    // 6.3.11 Flip Slew Tol.
+    // Normally, the mount will point an object going to the "correct" side of the meridian; i.e. the telescope
+    // will be to the east of the mount when observing an object in the western sky and vice versa. This option
+    // allows you to "anticipate" an object that has not yet crossed the meridian, if the object is nearer than the
+    // specified value to the meridian. The user movements are blocked after they have gone through the meridian
+    // the "wrong way" more than this value. The value can vary from 0 to 30 degrees. Since this feature allows
+    // the telescope to go to the "wrong" side of the meridian, check that the value you enter here does not allow
+    // collisions between the instrumentation and the mount or the mount's support.
+    // 6.3.12 Flip Guide Tol.
+    // This option allows you to track an object through the meridian for up to 30 degrees on the "wrong" side.
+    // The value can vary from 2 to 30 degrees, and must be greater than the Flip Slew Tol. value. Since this
+    // feature allows the telescope to go to the "wrong" side of the meridian, check that the value you enter here
+    // does not allow collisions between the instrumentation and the mount or the mount's support.
+    // What is logged and sent to clients depends on the context: at connect always, periodically only on
+    // change, and after a write nothing, as the caller reports the result of the write.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char slewLimitString[80] = {0}, trackLimitString[80] = {0};
+    int slewLimit = 0, trackLimit = 0;
+    if (getCommandString(PortFD, slewLimitString, "#:Glms#") != 0 || sscanf(slewLimitString, "%d", &slewLimit) != 1 ||
+            getCommandString(PortFD, trackLimitString, "#:Glmt#") != 0 || sscanf(trackLimitString, "%d", &trackLimit) != 1)
+    {
+        if (context == READ_AFTER_WRITE)
+        {
+            MeridianLimitsNP.setState(IPS_ALERT);
+        }
+        else if (context == READ_AT_CONNECT || MeridianLimitsNP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the meridian limits.");
+            MeridianLimitsNP.setState(IPS_ALERT);
+            MeridianLimitsNP.apply();
+        }
+        return false;
+    }
+    const bool changed = MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].getValue() != slewLimit ||
+                         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue() != trackLimit || MeridianLimitsNP.getState() != IPS_OK;
+    MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].setValue(slewLimit);
+    MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].setValue(trackLimit);
+    MeridianLimitsNP.setState(IPS_OK);
+    if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+    {
+        if (context == READ_AT_CONNECT)
+            LOGF_INFO("Meridian limits are: slew %d, tracking %d degrees.", slewLimit, trackLimit);
+        else
+            LOGF_INFO("Meridian limits changed on the mount: slew %d, tracking %d degrees.", slewLimit, trackLimit);
+        MeridianLimitsNP.apply();
+    }
+    return true;
+}
+
+bool LX200_10MICRON::setMeridianLimits(int slewLimit, int trackLimit)
+{
+    // #:SlmsNN#
+    // Sets the meridian limit for slews in degrees. Setting a meridian limit for slews greater
+    // than the meridian limit for tracking will increase the meridian limit for tracking to the same value.
+    // Returns:
+    // 0 invalid
+    // 1 valid
+    // Available from version 2.11.
+    // Note: on AZ2000HPS and AZ4000HPS mounts the meridian limit cannot be set. This command returns always 0.
+    // #:SlmtNN#
+    // Sets the meridian limit for tracking in degrees. The minimum value is the same as the
+    // meridian limit for slews.
+    // Returns:
+    // 0 invalid
+    // 1 valid
+    // Available from version 2.11.
+    // Note: on AZ2000HPS and AZ4000HPS mounts the meridian limit cannot be set. This command returns always 0.
+    // See getMeridianLimits for the manual's description (Flip Slew Tol. and Flip Guide Tol.). The manual says the
+    // tracking limit must be greater than the slew limit, this protocol description says at least the same, so
+    // the caller checks >= and the mount has the final say.
+    // The slew limit is set first, so that any tracking limit at or above the new slew limit is valid.
+    // Afterwards the limits are read back, so clients see what the mount actually uses. Returns false when
+    // the mount refused a value; a failed read back leaves MeridianLimitsNP in Alert for the caller to report.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char data[64];
+    snprintf(data, sizeof(data), "#:Slms%02d#", slewLimit);
+    bool result = (0 == setStandardProcedureAndExpectChar(fd, data, "1"));
+    if (result)
+    {
+        snprintf(data, sizeof(data), "#:Slmt%02d#", trackLimit);
+        result = (0 == setStandardProcedureAndExpectChar(fd, data, "1"));
+    }
+    getMeridianLimits(READ_AFTER_WRITE);
+    return result;
+}
+
+bool LX200_10MICRON::getTimeToTrackingEnd()
+{
+    // #:Gmte#
+    // Returns the estimated time to tracking end due to horizon / flip limits reached.
+    // Returns: NNNN#
+    // The estimated time to tracking end in minutes of time.
+    // Available from version 2.11.
+    // The mount reports whole minutes, the property is in seconds.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char timeToEndString[80] = {0};
+    int minutes = 0;
+    if (getCommandString(PortFD, timeToEndString, "#:Gmte#") != 0 || sscanf(timeToEndString, "%d", &minutes) != 1)
+    {
+        if (TrackingEndNP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the time to tracking end.");
+            TrackingEndNP.setState(IPS_ALERT);
+            TrackingEndNP.apply();
+        }
+        return false;
+    }
+    if (TrackingEndNP[0].getValue() != minutes * 60 || TrackingEndNP.getState() != IPS_OK)
+    {
+        TrackingEndNP[0].setValue(minutes * 60);
+        TrackingEndNP.setState(IPS_OK);
+        TrackingEndNP.apply();
+    }
+    return true;
+}
+
+bool LX200_10MICRON::getAllowedMeridianSide(LX200_10MICRON_READ_CONTEXT context)
+{
+    // #:GMF#
+    // Get meridian side behaviour.
+    // Returns: n#
+    // A number with the following interpretation:
+    // 1 both sides of the meridian allowed;
+    // 2 only objects west of the meridian allowed (plus slew flip tolerance) – all
+    //   slews are done so that after the slew the ":pS#" command would return "East#";
+    // 3 only objects east of the meridian allowed (plus slew flip tolerance) – all slews
+    //   are done so that after the slew the ":pS#" command would return "West#".
+    // Available from version 2.7.7.
+    // The manual (firmware 3.1.4) describes this as:
+    // 6.3.16 Meridian side
+    // This function controls the side of the meridian you can observe. As a security feature, you may restrict the
+    // motion of the mount to only one side of the meridian. Select Both if you want to allow the mount to slew
+    // to both sides of the meridian (east and west). This is the normal operation, and is required for alignment
+    // and balance functions.
+    // Select West or East if you want to restrict the mount so that the scope may point only at objects on one
+    // side of the meridian (west or east, respectively).
+    // [...]
+    // When pointing an object with the command protocol (i.e. from a planetarium software), the mount will fail
+    // the slew if the object is on the forbidden side of the meridian.
+    // The INDI labels follow TELESCOPE_PIER_SIDE: West (objects west only) is shown as East (pointing west).
+    // What is logged and sent to clients depends on the context: at connect always, periodically only on
+    // change, and after a write nothing, as the caller reports the result of the write.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char sideString[80] = {0};
+    int side = 0;
+    if (getCommandString(PortFD, sideString, "#:GMF#") != 0 || sscanf(sideString, "%d", &side) != 1 || side < 1
+            || side > MERIDIAN_SIDE_COUNT)
+    {
+        if (context == READ_AFTER_WRITE)
+        {
+            AllowedMeridianSideSP.setState(IPS_ALERT);
+        }
+        else if (context == READ_AT_CONNECT || AllowedMeridianSideSP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the meridian side.");
+            AllowedMeridianSideSP.setState(IPS_ALERT);
+            AllowedMeridianSideSP.apply();
+        }
+        return false;
+    }
+    const int index = side - 1;
+    const bool changed = AllowedMeridianSideSP.findOnSwitchIndex() != index || AllowedMeridianSideSP.getState() != IPS_OK;
+    AllowedMeridianSideSP.reset();
+    AllowedMeridianSideSP[index].setState(ISS_ON);
+    AllowedMeridianSideSP.setState(IPS_OK);
+    if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+    {
+        if (context == READ_AT_CONNECT)
+            LOGF_INFO("Meridian side is %s.", AllowedMeridianSideSP[index].getLabel());
+        else
+            LOGF_INFO("Meridian side changed on the mount: %s.", AllowedMeridianSideSP[index].getLabel());
+        AllowedMeridianSideSP.apply();
+    }
+    return true;
+}
+
+bool LX200_10MICRON::setAllowedMeridianSide(int side)
+{
+    // #:SMFn#
+    // Set meridian side behaviour, where n is an ASCII digit (1..3) with the following
+    // interpretation:
+    // 1 both sides of the meridian allowed;
+    // 2 only objects west of the meridian allowed (plus slew flip tolerance) – all slews
+    //   are done so that after the slew the ":pS#" command would return "East#";
+    // 3 only objects east of the meridian allowed (plus slew flip tolerance) – all slews
+    //   are done so that after the slew the ":pS#" command would return "West#".
+    // Returns:
+    // 0 invalid
+    // 1 valid
+    // See getAllowedMeridianSide for the manual's description (6.3.16 Meridian side).
+    // Afterwards the side is read back, so clients see what the mount actually uses. Returns false when the
+    // mount refused; a failed read back leaves AllowedMeridianSideSP in Alert for the caller to report.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char data[64];
+    snprintf(data, sizeof(data), "#:SMF%d#", side + 1);
+    const bool result = (0 == setStandardProcedureAndExpectChar(fd, data, "1"));
+    getAllowedMeridianSide(READ_AFTER_WRITE);
+    return result;
+}
+
+bool LX200_10MICRON::getTargetPierSide()
+{
+    // #:GTsid#
+    // Get the destination side of the target object
+    // Returns:
+    // 0 no target defined, or the target object is located in a position where it is not
+    //   possible to go
+    // 2 the target is located in a position where the mount would slew the telescope to
+    //   the west side so that after the slew the ":pS#" command would return "West#".
+    // 3 the target is located in a position where the mount would slew the telescope to
+    //   the east side so that after the slew the ":pS#" command would return "East#".
+    // Available from version 2.9.9.
+    // Notes
+    // See the :MSfs command.
+    // Up to version 2.15.31 included, return values 2 and 3 were reversed in the southern hemisphere.
+    // The reply is a single digit without a '#' terminator, so read exactly one character.
+    // The target is the last one set, normally by the last goto. This is the pier side a new slew to it
+    // would end on, which can change while the target moves across the meridian.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char sideString[2] = {0};
+    int index = -1;
+    if (0 == setStandardProcedureAndReturnResponse(fd, "#:GTsid#", sideString, 1))
+    {
+        switch (sideString[0])
+        {
+            case '0':
+                index = TARGET_PIER_NONE;
+                break;
+            case '2':
+                index = TARGET_PIER_WEST;
+                break;
+            case '3':
+                index = TARGET_PIER_EAST;
+                break;
+        }
+    }
+    if (index < 0)
+    {
+        if (TargetPierSideSP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the target pier side.");
+            TargetPierSideSP.setState(IPS_ALERT);
+            TargetPierSideSP.apply();
+        }
+        return false;
+    }
+    if (TargetPierSideSP.findOnSwitchIndex() != index || TargetPierSideSP.getState() != IPS_OK)
+    {
+        TargetPierSideSP.reset();
+        TargetPierSideSP[index].setState(ISS_ON);
+        TargetPierSideSP.setState(IPS_OK);
+        TargetPierSideSP.apply();
+    }
+    return true;
 }
 
 bool LX200_10MICRON::Flip(double ra, double dec)
@@ -1080,6 +1488,46 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (MeridianLimitsNP.isNameMatch(name))
+        {
+            int slewLimit = static_cast<int>(MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].getValue());
+            int trackLimit = static_cast<int>(MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue());
+            for (int i = 0; i < n; i++)
+            {
+                if (MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].isNameMatch(names[i]))
+                    slewLimit = static_cast<int>(std::lround(values[i]));
+                else if (MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].isNameMatch(names[i]))
+                    trackLimit = static_cast<int>(std::lround(values[i]));
+            }
+            if (trackLimit < slewLimit)
+            {
+                LOGF_ERROR("Tracking limit (Flip Guide Tolerance) %d must be >= slew limit (Flip Slew Tolerance) %d, "
+                           "nothing written to the mount.", trackLimit, slewLimit);
+                MeridianLimitsNP.setState(IPS_ALERT);
+                MeridianLimitsNP.apply();
+                return false;
+            }
+            // One log line and one property update, showing what the mount reports after the write
+            bool result = false;
+            if (!setMeridianLimits(slewLimit, trackLimit))
+            {
+                LOGF_ERROR("The mount refused tracking limit %d with slew limit %d.", trackLimit, slewLimit);
+                MeridianLimitsNP.setState(IPS_ALERT);
+            }
+            else if (MeridianLimitsNP.getState() == IPS_ALERT)
+            {
+                LOG_WARN("Meridian limits were written, but could not be read back.");
+            }
+            else
+            {
+                LOGF_INFO("Meridian limits set: slew %d, tracking %d degrees.",
+                          static_cast<int>(MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].getValue()),
+                          static_cast<int>(MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue()));
+                result = true;
+            }
+            MeridianLimitsNP.apply();
+            return result;
+        }
         if (strcmp(name, REFRACTION_MODEL_TEMPERATURE) == 0)
         {
             IUUpdateNumber(&RefractionModelTemperatureNP, values, names, n);
@@ -1203,6 +1651,41 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (AllowedMeridianSideSP.isNameMatch(name))
+        {
+            AllowedMeridianSideSP.update(states, names, n);
+            const int index = AllowedMeridianSideSP.findOnSwitchIndex();
+            if (index < 0)
+            {
+                AllowedMeridianSideSP.setState(IPS_ALERT);
+                AllowedMeridianSideSP.apply();
+                return false;
+            }
+            // One log line and one property update, showing what the mount reports after the write
+            const char *label = AllowedMeridianSideSP[index].getLabel();
+            bool result = false;
+            if (!setAllowedMeridianSide(index))
+            {
+                LOGF_ERROR("The mount refused meridian side %s.", label);
+                AllowedMeridianSideSP.setState(IPS_ALERT);
+            }
+            else if (AllowedMeridianSideSP.getState() == IPS_ALERT)
+            {
+                LOG_WARN("Meridian side was written, but could not be read back.");
+            }
+            else if (AllowedMeridianSideSP.findOnSwitchIndex() != index)
+            {
+                LOGF_ERROR("The mount did not take meridian side %s.", label);
+                AllowedMeridianSideSP.setState(IPS_ALERT);
+            }
+            else
+            {
+                LOGF_INFO("Meridian side set: %s.", label);
+                result = true;
+            }
+            AllowedMeridianSideSP.apply();
+            return result;
+        }
         if (strcmp(AlignmentStateSP.name, name) == 0)
         {
             IUUpdateSwitch(&AlignmentStateSP, states, names, n);
@@ -1332,7 +1815,6 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                         IDSetSwitch(&UnattendedFlipSP, nullptr);
                         return false;
                     }
-                    LOG_INFO("Unattended flip disabled");
                     break;
                 case UNATTENDED_FLIP_ENABLED:
                     if (false == setUnattendedFlipSetting(true))
@@ -1342,16 +1824,14 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                         IDSetSwitch(&UnattendedFlipSP, nullptr);
                         return false;
                     }
-                    LOG_INFO("Unattended flip enabled");
                     break;
                 default:
                     UnattendedFlipSP.s = IPS_ALERT;
                     IDSetSwitch(&UnattendedFlipSP, "Unknown unattended flip setting %d", index);
                     return false;
             }
-            UnattendedFlipSP.s = IPS_OK;
-            IDSetSwitch(&UnattendedFlipSP, nullptr);
-            return true;
+            // :SuafN# returns nothing, so read the setting back to confirm what the mount actually uses
+            return confirmUnattendedFlipSetting(index);
         }
         if (strcmp(WoLSendSP.name, name) == 0)
         {
@@ -1438,7 +1918,8 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
             SatPassWindowTP.update(texts, names, n);
-            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(), SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
+            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(),
+                                            SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
             {
                 SatPassWindowTP.setState(IPS_OK);
                 SatPassWindowTP.apply();
