@@ -1252,6 +1252,8 @@ bool ScopeSim::updateTime(ln_date *utc, double utc_offset)
     // so it agrees with the client instead of the system clock
     alignment.clockOffsetDays = ln_get_julian_day(utc) - ln_get_julian_from_sys();
     LOGF_DEBUG("Simulated clock is %.3f s from the system clock", alignment.clockOffsetDays * 86400);
+    // The ALTAZ tracking servo predicts from Az/Alt samples taken at the old time; sample again
+    m_IsPipelinePrimed = false;
     return true;
 }
 

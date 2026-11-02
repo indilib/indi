@@ -160,8 +160,10 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         void applyPointingOffset(double &ra, double &de);
         // Periodic error offset in RA (degrees)
         float periodicErrorOffset();
-        // Camera rotation (degrees): manual offset + snooped rotator + pier flip
+        // Camera rotation (degrees): manual offset + snooped rotator + pier flip, or field rotation on an Alt-Az mount
         double cameraRotation();
+        // Parallactic angle (degrees) of the pointing at the simulated time, 0 while the location is unknown
+        double parallacticAngle();
 
         // Turns on/off Bayer RGB simulation.
         void setBayerEnabled(bool onOff);
@@ -206,6 +208,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         // Without a rotator device ("Manual Rotator") the rotator angle is
         // considered fixed to 0° and the camera rotation is equal to offset
         float m_RotationOffset { 0 };
+        // The snooped mount is Alt-Az, so the field turns with the parallactic angle
+        bool m_AltAzMount { false };
 
         bool m_SimulateBayer { false };
         bool m_SimulateTimeout { false };
@@ -282,6 +286,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         };
 
         INDI::PropertyNumber EqPENP {2};
+
+        // Parallactic angle added to the camera rotation while the mount is Alt-Az
+        INDI::PropertyNumber FieldRotationNP {1};
 
         // Renders the sky away from where the mount points, so solved images disagree with the
         // mount coordinates. Simulates a bad pointing model for testing alignment.

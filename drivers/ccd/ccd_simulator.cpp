@@ -83,10 +83,8 @@ bool CCDSim::setupParameters()
     // This is the rotation of the simulated camera respective to North.
     // Because the simulated star field is calculated with their RA/DEC-coordinates
     // (see DrawCcdFrame()) the origin angle of star field points north. So this value
-    // for EQ mounts normally simulate a certain camera offset and is a constant.
-    // For ALTAZ-mount this variable is altered consecutively by the value of the parallactic
-    // angle (transfered through a signal from KStars/skymapdrawabstract.cpp) and this way used
-    // to simulate the deviation of the camera orientation from N.
+    // simulates a certain camera offset and is a constant. On an ALTAZ mount cameraRotation()
+    // adds the parallactic angle to it, which simulates the field rotation.
     m_RotationOffset = SimulatorSettingsNP[SIM_ROTATION].getValue();
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
@@ -191,6 +189,11 @@ bool CCDSim::initProperties()
     EqPENP.fill(getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
                 IPS_IDLE);
 
+    // Field rotation of an ALTAZ mount
+    FieldRotationNP[0].fill("SIM_PARALLACTIC_ANGLE", "Parallactic Angle", "%.3f", -180, 180, 0, 0);
+    FieldRotationNP.fill(getDeviceName(), "SIM_FIELD_ROTATION", "Field Rotation", SIMULATOR_TAB, IP_RO, 60,
+                         IPS_IDLE);
+
     // Pointing offset, added to the mount coordinates before rendering
     PointingOffsetNP[SIM_OFFSET_RA].fill("SIM_OFFSET_RA", "RA Offset (deg)", "%.4f", -180, 180, 0, 0);
     PointingOffsetNP[SIM_OFFSET_DE].fill("SIM_OFFSET_DE", "DE Offset (deg)", "%.4f", -90, 90, 0, 0);
@@ -247,6 +250,7 @@ bool CCDSim::initProperties()
 #else
     IDSnoopDevice(mount, "EQUATORIAL_EOD_COORD");
 #endif
+    IDSnoopDevice(mount, "TELESCOPE_MOUNT_TYPE");
 
     IDSnoopDevice(focuser, "FWHM");
 
@@ -344,6 +348,7 @@ void CCDSim::ISGetProperties(const char * dev)
 
     defineProperty(SimulatorSettingsNP);
     defineProperty(EqPENP);
+    defineProperty(FieldRotationNP);
     defineProperty(PointingOffsetNP);
     defineProperty(FocusSimulationNP);
     defineProperty(TiltSimulationNP);
@@ -761,9 +766,39 @@ double CCDSim::cameraRotation()
     double theta = m_RotationOffset;
     if (!std::isnan(RotatorAngle))
         theta += RotatorAngle;
-    if (pierSide == 1)
+    // The camera of an ALTAZ mount stays fixed to the horizon, so the sky turns by the parallactic angle.
+    // An ALTAZ mount has no meridian flip, and its pier side is not maintained.
+    if (m_AltAzMount)
+        theta += parallacticAngle();
+    else if (pierSide == 1)
         theta -= 180;
     return range360(theta);
+}
+
+double CCDSim::parallacticAngle()
+{
+    double ra = RA, de = Dec;
+#ifdef USE_EQUATORIAL_PE
+    if (usePE)
+    {
+        ra = raPE;
+        de = decPE;
+    }
+#endif
+    if (std::isnan(ra) || std::isnan(de) || std::isnan(Latitude) || std::isnan(Longitude))
+        return 0;
+
+    // Meeus, Astronomical Algorithms, eq. 14.1: the position angle of the zenith, east of north
+    const double ha  = (m_Clock.localSiderealTime(Longitude) - ra) * 15.0 * (M_PI / 180.0);
+    const double dec = de * (M_PI / 180.0);
+    const double lat = Latitude * (M_PI / 180.0);
+    const double q = std::atan2(std::sin(ha), std::tan(lat) * std::cos(dec) - std::sin(dec) * std::cos(ha))
+                     * (180.0 / M_PI);
+
+    FieldRotationNP[0].setValue(q);
+    FieldRotationNP.setState(IPS_OK);
+    FieldRotationNP.apply();
+    return q;
 }
 
 void CCDSim::updatePointing()
@@ -1295,7 +1330,9 @@ void CCDSim::activeDevicesUpdated()
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_PE");
 #endif
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "TELESCOPE_MOUNT_TYPE");
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM");
+    m_AltAzMount = false;
 
     snprintf(FWHMNP.device, MAXINDIDEVICE, "%s", ActiveDeviceTP[ACTIVE_FOCUSER].getText());
 }
@@ -1345,6 +1382,28 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
             {
                 RotatorAngle = atof(pcdataXMLEle(ep));
                 LOGF_DEBUG("Snooped RotatorAngle %f", RotatorAngle);
+                return true;
+            }
+        }
+    }
+    else if (!strcmp(propName, "TELESCOPE_MOUNT_TYPE"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp(findXMLAttValu(ep, "name"), "ALTAZ"))
+            {
+                const bool altAz = !strcmp(pcdataXMLEle(ep), "On");
+                if (altAz != m_AltAzMount)
+                {
+                    LOGF_INFO("Mount is %s, field rotation is %s.", altAz ? "Alt-Az" : "equatorial",
+                              altAz ? "simulated" : "off");
+                    if (!altAz)
+                    {
+                        FieldRotationNP.setState(IPS_IDLE);
+                        FieldRotationNP.apply();
+                    }
+                }
+                m_AltAzMount = altAz;
                 return true;
             }
         }
