@@ -117,6 +117,9 @@ struct hid_device_
     pthread_cond_t condition;
     pthread_barrier_t barrier; /* Ensures correct startup sequence */
     int shutdown_thread;
+    /* Set by read_callback() when the read transfer is no longer in flight (it was cancelled, the device is
+       gone, or it wasn't resubmitted). hid_close() must not free the transfer before that. */
+    int transfer_loop_finished;
     struct libusb_transfer *transfer;
 
     /* List of received input reports. */
@@ -696,11 +699,13 @@ static void read_callback(struct libusb_transfer *transfer)
     else if (transfer->status == LIBUSB_TRANSFER_CANCELLED)
     {
         dev->shutdown_thread = 1;
+        dev->transfer_loop_finished = 1;
         return;
     }
     else if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE)
     {
         dev->shutdown_thread = 1;
+        dev->transfer_loop_finished = 1;
         return;
     }
     else if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT)
@@ -712,12 +717,21 @@ static void read_callback(struct libusb_transfer *transfer)
         LOG("Unknown transfer code: #%d %s\n", transfer->status, libusb_error_name(res));
     }
 
+    /* Don't re-submit once hid_close() asked the read thread to stop: the transfer would be in flight again
+       while hid_close() frees it. */
+    if (dev->shutdown_thread)
+    {
+        dev->transfer_loop_finished = 1;
+        return;
+    }
+
     /* Re-submit the transfer object. */
     res = libusb_submit_transfer(transfer);
     if (res != 0)
     {
         LOG("Unable to submit URB. libusb error code: #%d %s\n", res, libusb_error_name(res));
         dev->shutdown_thread = 1;
+        dev->transfer_loop_finished = 1;
     }
 }
 
@@ -735,7 +749,11 @@ static void *read_thread(void *param)
 
     /* Make the first submission. Further submissions are made
        from inside read_callback() */
-    libusb_submit_transfer(dev->transfer);
+    if (libusb_submit_transfer(dev->transfer) != 0)
+    {
+        /* Nothing in flight, so there is no callback to wait for when the thread stops. */
+        dev->transfer_loop_finished = 1;
+    }
 
     // Notify the main thread that the read thread is up and running.
     pthread_barrier_wait(&dev->barrier);
@@ -759,13 +777,14 @@ static void *read_thread(void *param)
         }
     }
 
-    /* Cancel any transfer that may be pending. This call will fail
-       if no transfers are pending, but that's OK. */
-    if (libusb_cancel_transfer(dev->transfer) == 0)
-    {
-        /* The transfer was cancelled, so wait for its completion. */
-        libusb_handle_events(usb_context);
-    }
+    /* Cancel any transfer that may be pending. This call fails if no transfer is pending, or if hid_close()
+       already cancelled it, but that's OK. Then wait until the transfer is really no longer in flight: its
+       callback reports that. A single libusb_handle_events() call wasn't enough, and it was skipped entirely
+       when hid_close() had cancelled first, so hid_close() could free a transfer that libusb still had in its
+       list of transfers in flight, and libusb_close() then aborted on the freed transfer's mutex. */
+    libusb_cancel_transfer(dev->transfer);
+    while (!dev->transfer_loop_finished)
+        libusb_handle_events_completed(usb_context, &dev->transfer_loop_finished);
 
     /* Now that the read thread is stopping, Wake any threads which are
        waiting on data (in hid_read_timeout()). Do this under a mutex to
