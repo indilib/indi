@@ -18,7 +18,13 @@
 #include <fcntl.h>
 #include <map>
 #include <mutex>
+#if defined(__APPLE__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#include <util.h>
+#elif defined(__FreeBSD__)
+#include <libutil.h>
+#else
 #include <pty.h>
+#endif
 #include <regex>
 #include <string>
 #include <termios.h>
