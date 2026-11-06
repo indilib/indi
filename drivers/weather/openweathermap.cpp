@@ -232,12 +232,12 @@ IPState OpenWeatherMap::updateWeather()
             // Mist and so on
             forecast = 1;
         }
-        else if (code == 800)
+        else if (code == 800 || code == 801)
         {
-            // Clear!
+            // Clear sky or few clouds.
             forecast = 0;
         }
-        else if (code >= 801 && code <= 803)
+        else if (code >= 802 && code <= 803)
         {
             // Some clouds
             forecast = 1;
