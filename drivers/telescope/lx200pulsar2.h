@@ -51,6 +51,7 @@ class LX200Pulsar2 : public LX200Generic
 
     protected:
         virtual bool SetSlewRate(int index) override;
+        virtual bool SetMountType(TelescopeMountType type) override;
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
         virtual bool Abort() override;
@@ -123,10 +124,6 @@ class LX200Pulsar2 : public LX200Generic
         // SwapTubeDelay
         INumberVectorProperty SwapTubeDelayNP;
         INumber SwapTubeDelayN[1];
-
-        // Mount Type
-        ISwitchVectorProperty MountTypeSP;
-        ISwitch MountTypeS[3];
 
         // Periodic error correction on or off
         ISwitchVectorProperty PeriodicErrorCorrectionSP;

@@ -32,6 +32,8 @@ class ToupSH20 : public LX200Generic
         virtual bool Goto(double ra, double dec) override;
         // Slew Rate
         virtual bool SetSlewRate(int index) override;
+        // Mount Type
+        virtual bool SetMountType(TelescopeMountType type) override;
         // Track
         virtual bool SetTrackEnabled(bool enabled) override;
         // Park
@@ -57,8 +59,7 @@ class ToupSH20 : public LX200Generic
         void getStartupData();
 
         // Mount type
-        bool setMountType(int type);
-        bool getMountType();
+        bool readMountType();
         // Home
         bool goHome();
         bool findHome();
@@ -79,12 +80,6 @@ class ToupSH20 : public LX200Generic
         static constexpr uint8_t        DRIVER_TIMEOUT = 3;
         static constexpr char           DRIVER_STOP_CHAR = 0x23;
         
-        enum TypeSwitch
-        {
-            TYPE_AZIMUTH,
-            TYPE_EQUATORIAL
-        };
-
         enum BuzzerSwitch
         {
             BUZZER_OFF,
@@ -98,7 +93,6 @@ class ToupSH20 : public LX200Generic
             MERIDIAN_STOP
         };
 
-        INDI::PropertySwitch        MountTypeSP {2};
         INDI::PropertyNumber        GuideRateNP {1};
         INDI::PropertySwitch        BuzzerSP {3};
         INDI::PropertySwitch        MeridianFlipSP {2};

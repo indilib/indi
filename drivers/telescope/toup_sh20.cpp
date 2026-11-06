@@ -26,7 +26,8 @@ ToupSH20::ToupSH20()
         TELESCOPE_CAN_HOME_GO |
         TELESCOPE_CAN_HOME_FIND |
         TELESCOPE_HAS_TRACK_MODE |
-        TELESCOPE_CAN_CONTROL_TRACK,
+        TELESCOPE_CAN_CONTROL_TRACK |
+        TELESCOPE_CAN_SET_MOUNT_TYPE,
         SLEW_RATE_COUNT);
 }
 
@@ -37,12 +38,15 @@ bool ToupSH20::initProperties()
     SetParkDataType(PARK_AZ_ALT);
     timeFormat = LX200_24;
 
-    // Mount Type
-    MountTypeSP[TYPE_AZIMUTH].fill("Azimuth", "Azimuth", ISS_OFF);
-    MountTypeSP[TYPE_EQUATORIAL].fill("Equatorial", "Equatorial", ISS_ON);
-    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    MountTypeSP.load();
-    if (MountTypeSP[TYPE_EQUATORIAL].getState() == ISS_ON)
+    // The last known mount type decides the pier side capability before connecting.
+    if (!MountTypeSP.load())
+    {
+        // Older configurations stored it in MOUNT_TYPE (0 = Alt-Az, 1 = Equatorial).
+        int legacyType = 1;
+        if (IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &legacyType) == 0 && legacyType == 0)
+            setMountType(MOUNT_ALTAZ);
+    }
+    if (getMountType() != MOUNT_ALTAZ)
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_RATE_COUNT);
 
     // Slew Rates
@@ -109,14 +113,11 @@ bool ToupSH20::updateProperties()
 
     if (isConnected())
     {
-        deleteProperty("TELESCOPE_MOUNT_TYPE");
-
         getStartupData();
 
-        defineProperty(MountTypeSP);
         defineProperty(GuideRateNP);
         defineProperty(BuzzerSP);
-        if (MountTypeSP[TYPE_EQUATORIAL].getState() == ISS_ON)
+        if (getMountType() != MOUNT_ALTAZ)
         {
             defineProperty(MeridianFlipSP);
             defineProperty(MeridianTrackSP);
@@ -125,10 +126,9 @@ bool ToupSH20::updateProperties()
     }
     else
     {
-        deleteProperty(MountTypeSP);
         deleteProperty(GuideRateNP);
         deleteProperty(BuzzerSP);
-        if (MountTypeSP[TYPE_EQUATORIAL].getState() == ISS_ON)
+        if (getMountType() != MOUNT_ALTAZ)
         {
             deleteProperty(MeridianFlipSP);
             deleteProperty(MeridianTrackSP);
@@ -143,26 +143,6 @@ bool ToupSH20::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Mount Type
-        if (MountTypeSP.isNameMatch(name))
-        {
-            int previousType = MountTypeSP.findOnSwitchIndex();
-            MountTypeSP.update(states, names, n);
-            IPState state = IPS_OK;
-            // Only update if already connected.
-            if (isConnected())
-            {
-                auto targetType = MountTypeSP.findOnSwitchIndex();
-                state = setMountType(targetType) ? IPS_OK : IPS_ALERT;
-                if (state == IPS_OK && previousType != targetType)
-                    LOG_WARN("You must reconnect mount for change to take effect.");
-            }
-            MountTypeSP.setState(state);
-            MountTypeSP.apply();
-            saveConfig(MountTypeSP);
-            return true;
-        }
-
         // Meridian Flip Enable
         if (MeridianFlipSP.isNameMatch(name))
         {
@@ -615,38 +595,47 @@ void ToupSH20::hexDump(char * buf, const char * data, int size)
 void ToupSH20::getStartupData()
 {
     InitPark();
-    getMountType();
+    readMountType();
     getTrackMode();
     getGuideRate();
     getBuzzer();
-    if (MountTypeSP[TYPE_EQUATORIAL].getState() == ISS_ON)
+    if (getMountType() != MOUNT_ALTAZ)
         getMeridianFlipSettings();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 /// Mount Type
 /////////////////////////////////////////////////////////////////////////////
-bool ToupSH20::setMountType(int type)
+bool ToupSH20::SetMountType(TelescopeMountType type)
 {
-    return sendCommand((type == TYPE_EQUATORIAL) ? ":AP#" : ":AA#");
-}
-
-bool ToupSH20::getMountType()
-{
-    char response[DRIVER_LEN] = {0};
-    if (sendCommand(":GU#", response))
+    if (type == MOUNT_EQ_FORK)
     {
-        MountTypeSP.reset();
-        MountTypeSP[TYPE_AZIMUTH].setState(strchr(response, 'Z') ? ISS_ON : ISS_OFF);
-        MountTypeSP[TYPE_EQUATORIAL].setState(strchr(response, 'G') ? ISS_ON : ISS_OFF);
-        MountTypeSP.setState(IPS_OK);
-        return true;
-    }
-    else
-    {
-        MountTypeSP.setState(IPS_ALERT);
+        LOG_ERROR("SH20 supports Alt-Az and German equatorial modes only.");
         return false;
     }
+
+    // When disconnected the selection is only saved.
+    if (!isConnected())
+        return true;
+
+    if (!sendCommand((type == MOUNT_ALTAZ) ? ":AA#" : ":AP#"))
+        return false;
+
+    LOG_WARN("You must reconnect mount for change to take effect.");
+    return true;
+}
+
+bool ToupSH20::readMountType()
+{
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":GU#", response))
+        return false;
+
+    if (strchr(response, 'Z'))
+        setMountType(MOUNT_ALTAZ);
+    else if (strchr(response, 'G'))
+        setMountType(MOUNT_EQ_GEM);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////

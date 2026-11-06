@@ -312,12 +312,15 @@ bool PlaneWave::Handshake()
     {
         case 0:
             geomStr = "Alt-Az";
+            setMountType(MOUNT_ALTAZ);
             break;
         case 1:
             geomStr = "Equatorial Fork";
+            setMountType(MOUNT_EQ_FORK);
             break;
         case 2:
             geomStr = "German Equatorial";
+            setMountType(MOUNT_EQ_GEM);
             break;
     }
     MountGeometryTP[0].setText(geomStr);

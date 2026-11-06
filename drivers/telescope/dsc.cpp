@@ -40,7 +40,7 @@ std::unique_ptr<DSC> dsc(new DSC());
 
 DSC::DSC()
 {
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_HAS_LOCATION, 0);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_SET_MOUNT_TYPE, 0);
 }
 
 const char *DSC::getDefaultName()
@@ -83,9 +83,7 @@ bool DSC::initProperties()
                        ISR_NOFMANY, 0, IPS_IDLE);
 
 
-    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    MountTypeSP.reset();
-    MountTypeSP[ALTAZ].setState(ISS_ON);
+    setMountType(MOUNT_ALTAZ);
 
     // Offsets applied to raw encoder values to adjust them as necessary
 #if 0
@@ -152,7 +150,6 @@ bool DSC::saveConfigItems(FILE *fp)
     //IUSaveConfigNumber(fp, &EncoderOffsetNP);
     IUSaveConfigSwitch(fp, &AxisRangeSP);
     IUSaveConfigSwitch(fp, &ReverseSP);
-    MountTypeSP.save(fp);
 
     return true;
 }
@@ -207,14 +204,6 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             IUUpdateSwitch(&ReverseSP, states, names, n);
             ReverseSP.s = IPS_OK;
             IDSetSwitch(&ReverseSP, nullptr);
-            return true;
-        }
-
-        if (MountTypeSP.isNameMatch(name))
-        {
-            MountTypeSP.update(states, names, n);
-            MountTypeSP.setState(IPS_OK);
-            MountTypeSP.apply();
             return true;
         }
 
@@ -367,7 +356,7 @@ bool DSC::ReadScopeStatus()
     INDI::IEquatorialCoordinates eq { 0, 0 };
 
     // Now we proceed depending on mount type
-    if (MountTypeSP[MOUNT_EQ_GEM].s == ISS_ON)
+    if (getMountType() != MOUNT_ALTAZ)
     {
         encoderEquatorialCoordinates.rightascension = Axis1Degrees / 15.0;
 
@@ -407,7 +396,7 @@ bool DSC::Sync(double ra, double dec)
     INDI::IEquatorialCoordinates RaDec { 0, 0 };
     INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-    if (MountTypeSP[MOUNT_EQ_GEM].getState() == ISS_ON)
+    if (getMountType() != MOUNT_ALTAZ)
     {
         double LST = get_local_sidereal_time(m_Location.longitude);
         RaDec.rightascension = range24(LST - encoderEquatorialCoordinates.rightascension);
@@ -423,7 +412,7 @@ bool DSC::Sync(double ra, double dec)
     NewEntry.RightAscension = ra;
     NewEntry.Declination   = dec;
 
-    if (MountTypeSP[MOUNT_EQ_GEM].getState() == ISS_ON)
+    if (getMountType() != MOUNT_ALTAZ)
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
     else
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);

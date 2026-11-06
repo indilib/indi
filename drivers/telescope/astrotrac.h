@@ -42,7 +42,6 @@ class AstroTrac :
         virtual const char *getDefaultName() override;
         virtual bool Handshake() override;
         virtual bool ReadScopeStatus() override;
-        virtual void ISGetProperties(const char *dev) override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
@@ -70,6 +69,9 @@ class AstroTrac :
         virtual bool SetTrackMode(uint8_t mode) override;
         virtual bool SetTrackRate(double raRate, double deRate) override;
         virtual bool SetTrackEnabled(bool enabled) override;
+
+        // Mount Type
+        virtual bool SetMountType(TelescopeMountType type) override;
 
         // Parking
         virtual bool SetCurrentPark() override;
@@ -152,14 +154,6 @@ class AstroTrac :
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// INDI Properties
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        // Mount Type
-        INDI::PropertySwitch MountTypeSP {2};
-        enum
-        {
-            MOUNT_GEM,
-            MOUNT_SINGLE_ARM
-        };
-
         // Guide Rate
         INDI::PropertyNumber GuideRateNP {2};
         // Firmware Version

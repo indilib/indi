@@ -106,14 +106,6 @@ class alpacaTelescopeDriver : public INDI::Telescope
 
         unsigned int DBG_SCOPE { 0 };
 
-        // Scope type and alignment
-        INDI::PropertySwitch mountTypeSP {2};
-        enum
-        {
-            ALTAZ,
-            EQ_FORK
-        };
-
         // HTTP client for Alpaca communication
         std::unique_ptr<httplib::Client> httpClient;
         int m_DeviceNumber{0};

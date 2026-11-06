@@ -1997,33 +1997,30 @@ void LX200_OnStep::getBasicData()
         int gxem_error = getCommandSingleCharErrorOrLongResponse(PortFD, mountTypeResponse, ":GXEM#");
         if (gxem_error > 0)
         {
-            MountTypeSP.reset();
             switch (mountTypeResponse[0])
             {
                 case 'A':
                     OSMountType = MOUNTTYPE_ALTAZ;
-                    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+                    setMountType(MOUNT_ALTAZ);
                     LOG_INFO("Mount type detected: AltAz");
                     break;
                 case 'K':
                     OSMountType = MOUNTTYPE_FORK;
-                    MountTypeSP[MOUNT_EQ_FORK].setState(ISS_ON);
+                    setMountType(MOUNT_EQ_FORK);
                     LOG_INFO("Mount type detected: Fork (Equatorial)");
                     break;
                 case 'k':
                     OSMountType = MOUNTTYPE_FORK_ALT;
-                    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+                    setMountType(MOUNT_ALTAZ);
                     LOG_INFO("Mount type detected: Fork Alt (AltAz)");
                     break;
                 case 'E':
                 default:
                     OSMountType = MOUNTTYPE_GEM;
-                    MountTypeSP[MOUNT_EQ_GEM].setState(ISS_ON);
+                    setMountType(MOUNT_EQ_GEM);
                     LOG_INFO("Mount type detected: GEM");
                     break;
             }
-            MountTypeSP.setState(IPS_OK);
-            MountTypeSP.apply();
         }
         else
         {

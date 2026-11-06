@@ -74,6 +74,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         virtual IPState GuideWest(uint32_t ms) override;
 
         virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetMountType(TelescopeMountType type) override;
         virtual bool SetTrackEnabled(bool enabled) override;
         virtual bool SetTrackRate(double raRate, double deRate) override;
 
@@ -165,15 +166,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
 
 #ifdef USE_SIM_TAB
         // Simulator Tab properties
-        // Scope type and alignment
-        INDI::PropertySwitch mountTypeSP {3};
-        enum
-        {
-            ALTAZ,
-            EQ_FORK,
-            EQ_GEM
-        };
-
+        // Scope type and alignment use the standard TELESCOPE_MOUNT_TYPE property (MountTypeSP).
         INDI::PropertySwitch simPierSideSP {2};
         enum
         {

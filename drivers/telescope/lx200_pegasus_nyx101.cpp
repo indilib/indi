@@ -53,7 +53,8 @@ LX200NYX101::LX200NYX101()
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_CAN_HOME_SET |
-                           TELESCOPE_CAN_HOME_GO,
+                           TELESCOPE_CAN_HOME_GO |
+                           TELESCOPE_CAN_SET_MOUNT_TYPE,
                            SLEW_MODES
                           );
 }
@@ -66,14 +67,10 @@ bool LX200NYX101::initProperties()
     timeFormat = LX200_24;
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    // Mount Type
-    int mountType = Equatorial;
-    IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &mountType);
-    MountTypeSP[AltAz].fill("AltAz", "AltAz", mountType == AltAz ? ISS_ON : ISS_OFF);
-    MountTypeSP[Equatorial].fill("Equatorial", "Equatorial", mountType == Equatorial ? ISS_ON : ISS_OFF);
-    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // The last known mount type decides the pier side capability before connecting.
+    MountTypeSP.load();
 
-    if (mountType == Equatorial)
+    if (getMountType() != MOUNT_ALTAZ)
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Overwrite TRACK_CUSTOM, with TRACK_KING
@@ -216,11 +213,10 @@ bool LX200NYX101::updateProperties()
             else
                 SetParked(false);
 
-            MountTypeSP.reset();
-            MountTypeSP[AltAz].setState(strchr(status, 'A') ? ISS_ON : ISS_OFF);
-            MountTypeSP[Equatorial].setState(strchr(status, 'E') ? ISS_ON : ISS_OFF);
-            MountTypeSP.setState(IPS_OK);
-            MountTypeSP.apply();
+            if (strchr(status, 'A'))
+                setMountType(MOUNT_ALTAZ);
+            else if (strchr(status, 'E'))
+                setMountType(MOUNT_EQ_GEM);
         }
 
         if(sendCommand(":GX90#", status))
@@ -253,7 +249,6 @@ bool LX200NYX101::updateProperties()
             MeridianLimitNP[0].setValue(std::stoi(c));
         }
 
-        defineProperty(MountTypeSP);
         defineProperty(GuideRateSP);
         // defineProperty(HomeSP);
         // defineProperty(ResetHomeSP);
@@ -286,7 +281,6 @@ bool LX200NYX101::updateProperties()
     }
     else
     {
-        deleteProperty(MountTypeSP);
         deleteProperty(GuideRateSP);
         //deleteProperty(HomeSP);
         deleteProperty(MeridianLimitNP);
@@ -627,24 +621,7 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Mount Type
-        if (MountTypeSP.isNameMatch(name))
-        {
-            int previousType = MountTypeSP.findOnSwitchIndex();
-            MountTypeSP.update(states, names, n);
-            IPState state = IPS_OK;
-            if (isConnected())
-            {
-                auto targetType = MountTypeSP.findOnSwitchIndex();
-                state = setMountType(targetType) ? IPS_OK : IPS_ALERT;
-                if (state == IPS_OK && previousType != targetType)
-                    LOG_WARN("Restart mount in order to apply changes to Mount Type.");
-            }
-            MountTypeSP.setState(state);
-            MountTypeSP.apply();
-            return true;
-        }
-        else if(GuideRateSP.isNameMatch(name))
+        if(GuideRateSP.isNameMatch(name))
         {
             int previousType = GuideRateSP.findOnSwitchIndex();
             GuideRateSP.update(states, names, n);
@@ -857,9 +834,22 @@ bool LX200NYX101::SetTrackMode(uint8_t mode)
     return false;
 }
 
-bool LX200NYX101::setMountType(int type)
+bool LX200NYX101::SetMountType(TelescopeMountType type)
 {
-    return sendCommand((type == Equatorial) ? ":SXEM,1#" : "::SXEM,3#");
+    if (type == MOUNT_EQ_FORK)
+    {
+        LOG_ERROR("NYX-101 supports Alt-Az and German equatorial modes only.");
+        return false;
+    }
+
+    if (!isConnected())
+        return true;
+
+    if (!sendCommand((type == MOUNT_EQ_GEM) ? ":SXEM,1#" : ":SXEM,3#"))
+        return false;
+
+    LOG_WARN("Restart mount in order to apply changes to Mount Type.");
+    return true;
 }
 
 bool LX200NYX101::goToPark()

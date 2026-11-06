@@ -195,10 +195,17 @@ bool alpacaTelescopeDriver::Handshake()
         if (alignmentMode == 1)
         {
             LOG_INFO("Telescope alignment mode: Alt-Az (no meridian flips)");
+            setMountType(MOUNT_ALTAZ);
         }
-        else if (alignmentMode == 0 || alignmentMode == 2)
+        else if (alignmentMode == 0)
         {
             LOG_INFO("Telescope alignment mode: Equatorial (Fork mount - no meridian flips)");
+            setMountType(MOUNT_EQ_FORK);
+        }
+        else if (alignmentMode == 2)
+        {
+            LOG_INFO("Telescope alignment mode: German Equatorial");
+            setMountType(MOUNT_EQ_GEM);
         }
     }
 

@@ -202,6 +202,15 @@ void IEQPro::getStartupData()
     firmwareInfo = driver->getFirmwareInfo();
 
     IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
+
+    // Alt-Az models (e.g. "Cube II AA", "AZ Mount Pro") and dual-mode mounts in Alt-Az mode
+    {
+        const std::string &model = firmwareInfo.Model;
+        const bool altAz = (model.size() >= 3 && model.compare(model.size() - 3, 3, " AA") == 0) ||
+                           model.find("AZ Mount") != std::string::npos;
+        setMountType(altAz ? MOUNT_ALTAZ : MOUNT_EQ_GEM);
+    }
+
     IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
     // The mount reports "xxxxxx" for the hand controller firmware when no Go2Nova
     // hand controller is present in the serial path (e.g. connected directly to the

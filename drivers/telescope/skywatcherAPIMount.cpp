@@ -266,8 +266,7 @@ bool SkywatcherAPIMount::initProperties()
     Axis2TrackRateNP.fill(getDeviceName(), "AXIS2TrackRate", "Axis 2 Track", TRACKING_TAB, IP_RW, 60, IPS_IDLE);
 
 
-    MountTypeSP.reset();
-    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+    setMountType(MOUNT_ALTAZ);
 
     tcpConnection->setDefaultHost("192.168.4.1");
     tcpConnection->setDefaultPort(11880);

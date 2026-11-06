@@ -95,11 +95,11 @@ bool PMC8::initProperties()
     IUFillSwitchVector(&SerialCableTypeSP, SerialCableTypeS, 3, getDeviceName(), "SERIAL_CABLE_TYPE", "Serial Cable",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Mount Type
-    IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
-    IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_OFF);
-    IUFillSwitch(&MountTypeS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
-    IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB, IP_RW,
+    // Mount Model
+    IUFillSwitch(&MountModelS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
+    IUFillSwitch(&MountModelS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_OFF);
+    IUFillSwitch(&MountModelS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
+    IUFillSwitchVector(&MountModelSP, MountModelS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Model", CONNECTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
 
@@ -233,19 +233,20 @@ void PMC8::getStartupData()
 
         // not sure if there's really a point to the mount switch anymore if we know the mount from the firmware - perhaps remove as newer firmware becomes standard?
         // populate mount type switch in interface from firmware if possible
+        IUResetSwitch(&MountModelSP);
         if (firmwareInfo.MountType == MOUNT_EXOS2)
         {
-            MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+            MountModelS[MOUNT_EXOS2].s = ISS_ON;
             LOG_INFO("Detected mount type as Exos2.");
         }
         else if (firmwareInfo.MountType == MOUNT_G11)
         {
-            MountTypeS[MOUNT_G11].s = ISS_ON;
+            MountModelS[MOUNT_G11].s = ISS_ON;
             LOG_INFO("Detected mount type as G11.");
         }
         else if (firmwareInfo.MountType == MOUNT_iEXOS100)
         {
-            MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+            MountModelS[MOUNT_iEXOS100].s = ISS_ON;
             LOG_INFO("Detected mount type as iExos100.");
         }
         else
@@ -253,22 +254,22 @@ void PMC8::getStartupData()
             LOG_INFO("Cannot detect mount type--perhaps this is older firmware?");
             if (strstr(getDeviceName(), "EXOS2"))
             {
-                MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+                MountModelS[MOUNT_EXOS2].s = ISS_ON;
                 LOG_INFO("Guessing mount is EXOS2 from device name.");
             }
             else if (strstr(getDeviceName(), "iEXOS100"))
             {
-                MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+                MountModelS[MOUNT_iEXOS100].s = ISS_ON;
                 LOG_INFO("Guessing mount is iEXOS100 from device name.");
             }
             else
             {
-                MountTypeS[MOUNT_G11].s = ISS_ON;
+                MountModelS[MOUNT_G11].s = ISS_ON;
                 LOG_INFO("Guessing mount is G11.");
             }
         }
-        MountTypeSP.s = IPS_OK;
-        IDSetSwitch(&MountTypeSP, nullptr);
+        MountModelSP.s = IPS_OK;
+        IDSetSwitch(&MountModelSP, nullptr);
 
         IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
@@ -397,7 +398,7 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 void PMC8::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
-    defineProperty(&MountTypeSP);
+    defineProperty(&MountModelSP);
     defineProperty(&SerialCableTypeSP);
     loadConfig(true, SerialCableTypeSP.name);
 
@@ -416,16 +417,16 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, MountTypeSP.name) == 0)
+        if (strcmp(name, MountModelSP.name) == 0)
         {
-            IUUpdateSwitch(&MountTypeSP, states, names, n);
-            int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
-            LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
+            IUUpdateSwitch(&MountModelSP, states, names, n);
+            int currentMountIndex = IUFindOnSwitchIndex(&MountModelSP);
+            LOGF_INFO("Selected mount is %s", MountModelS[currentMountIndex].label);
 
             //right now, this lets the user override the parameters for the detected mount.  Perhaps we should prevent the user from doing so?
             set_pmc8_mountParameters(currentMountIndex);
-            MountTypeSP.s = IPS_OK;
-            IDSetSwitch(&MountTypeSP, nullptr);
+            MountModelSP.s = IPS_OK;
+            IDSetSwitch(&MountModelSP, nullptr);
             return true;
         }
         if (strcmp(name, SerialCableTypeSP.name) == 0)
@@ -1376,7 +1377,7 @@ bool PMC8::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &SerialCableTypeSP);
-    IUSaveConfigSwitch(fp, &MountTypeSP);
+    IUSaveConfigSwitch(fp, &MountModelSP);
     IUSaveConfigNumber(fp, &RampNP);
     IUSaveConfigNumber(fp, &LegacyGuideRateNP);
     IUSaveConfigSwitch(fp, &PostGotoSP);

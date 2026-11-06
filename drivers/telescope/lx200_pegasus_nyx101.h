@@ -52,6 +52,7 @@ class LX200NYX101 : public LX200Generic
         virtual bool SetTrackEnabled(bool enabled) override;
         virtual bool SetTrackMode(uint8_t mode) override;
         virtual bool SetSlewRate(int index) override;
+        virtual bool SetMountType(TelescopeMountType type) override;
 
         // Homing
         virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
@@ -80,13 +81,6 @@ class LX200NYX101 : public LX200Generic
             TRACK_SOLAR,
             TRACK_LUNAR,
             TRACK_KING
-        };
-
-        INDI::PropertySwitch MountTypeSP {2};
-        enum MountType
-        {
-            AltAz,
-            Equatorial
         };
 
         enum ElevationNumber
@@ -128,7 +122,6 @@ class LX200NYX101 : public LX200Generic
         std::vector<std::string> split(const std::string &input, const std::string &regex);
         bool goToPark();
         bool goToUnPark();
-        bool setMountType(int type);
         bool setGuideRate(int rate);
         bool verboseReport = false;
         void SetPropertyText(INDI::PropertyText propertyTxt, IPState state);

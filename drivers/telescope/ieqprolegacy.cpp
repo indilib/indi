@@ -196,6 +196,15 @@ void IEQProLegacy::getStartupData()
     if (get_ieqpro_firmware(PortFD, &firmwareInfo))
     {
         IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
+
+        // Alt-Az models (e.g. "Cube II AA", "AZ Mount Pro") and dual-mode mounts in Alt-Az mode
+        {
+            const std::string &model = firmwareInfo.Model;
+            const bool altAz = (model.size() >= 3 && model.compare(model.size() - 3, 3, " AA") == 0) ||
+                               model.find("AZ Mount") != std::string::npos;
+            setMountType(altAz ? MOUNT_ALTAZ : MOUNT_EQ_GEM);
+        }
+
         IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
         IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
         IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());

@@ -47,7 +47,8 @@ ScopeSim::ScopeSim(): GI(this)
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK |
-                           TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_HOME_FIND | TELESCOPE_CAN_HOME_SET | TELESCOPE_CAN_HOME_GO,
+                           TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_HOME_FIND | TELESCOPE_CAN_HOME_SET | TELESCOPE_CAN_HOME_GO |
+                           TELESCOPE_CAN_SET_MOUNT_TYPE,
                            4
                           );
 
@@ -71,9 +72,6 @@ bool ScopeSim::initProperties()
 {
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
-
-    // Override the mount type property to make it writable in the simulator
-    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 #ifdef USE_SIM_TAB
     // alignment properties, these are in the Simulation tab
@@ -817,17 +815,6 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 #ifdef USE_SIM_TAB
-        if (MountTypeSP.isNameMatch(name))
-        {
-            if (!MountTypeSP.update(states, names, n))
-                return false;
-
-            MountTypeSP.setState(IPS_OK);
-            MountTypeSP.apply();
-            updateMountAndPierSide();
-            saveConfig(MountTypeSP);
-            return true;
-        }
         if (simPierSideSP.isNameMatch(name))
         {
             if (!simPierSideSP.update(states, names, n))
@@ -1222,7 +1209,6 @@ bool ScopeSim::saveConfigItems(FILE *fp)
 
 #ifdef USE_SIM_TAB
     GuideRateNP.save(fp);
-    MountTypeSP.save(fp);
     simPierSideSP.save(fp);
     mountModelNP.save(fp);
     flipHourAngleNP.save(fp);
@@ -1255,6 +1241,13 @@ bool ScopeSim::updateTime(ln_date *utc, double utc_offset)
     // The ALTAZ tracking servo predicts from Az/Alt samples taken at the old time; sample again
     m_IsPipelinePrimed = false;
     return true;
+}
+
+bool ScopeSim::SetMountType(TelescopeMountType type)
+{
+    INDI_UNUSED(type);
+    // Telescope has already selected the requested type in MountTypeSP.
+    return updateMountAndPierSide();
 }
 
 bool ScopeSim::updateMountAndPierSide()

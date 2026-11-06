@@ -1284,7 +1284,7 @@ LX200Pulsar2::LX200Pulsar2() : LX200Generic(), just_started_slewing(false)
     // Note that we do not have TELESCOPE_PIER_SIDE indicated here, since we re-implement it --
     // there is just too much confusion surrounding that value, so we preempt it.
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_SET_MOUNT_TYPE, 4);
 
     PulsarTX::lastCmd[0] = LX200Pulsar2::Null; // paranoid
 }
@@ -1505,13 +1505,6 @@ bool LX200Pulsar2::initProperties()
         IUFillNumberVector(&HomePositionNP, HomePositionN, 2, getDeviceName(), "HOME_POSITION", "Home Pos.",
                            SITE_TAB, IP_RW, 0, IPS_IDLE);
 
-        // mount type
-        IUFillSwitch(&MountTypeS[(int)Pulsar2Commands::German], "MOUNT_TYPE_GERMAN", "German", ISS_OFF); // no default
-        IUFillSwitch(&MountTypeS[(int)Pulsar2Commands::Fork], "MOUNT_TYPE_FORK", "Fork", ISS_OFF); // no default
-        IUFillSwitch(&MountTypeS[(int)Pulsar2Commands::AltAz], "MOUNT_TYPE_ALTAZ", "AltAz", ISS_OFF); // no default
-        IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type",
-                           MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
         // pier side (indicator)
         IUFillSwitch(&PierSideS[Pulsar2Commands::EastOfPier], "PIER_EAST", "OTA on East side (-> west)", ISS_OFF); // no default
         IUFillSwitch(&PierSideS[Pulsar2Commands::WestOfPier], "PIER_WEST", "OTA on West side (-> east)", ISS_OFF); // no default
@@ -1574,7 +1567,6 @@ bool LX200Pulsar2::updateProperties()
         if (!this->local_properties_updated)
         {
             // note that there are several other "defines" embedded within getBasicData()
-            defineProperty(&MountTypeSP);
             defineProperty(&RotationRASP);
 
             defineProperty(&PierSideSP);
@@ -1591,7 +1583,6 @@ bool LX200Pulsar2::updateProperties()
     else
     {
         deleteProperty(TrackingRateIndSP.name);
-        deleteProperty(MountTypeSP.name);
         deleteProperty(PierSideSP.name);
         deleteProperty(PierSideToggleSP.name);
         deleteProperty(PeriodicErrorCorrectionSP.name);
@@ -2160,36 +2151,6 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
         // end Sites copy
 
-        // mount type
-        if (strcmp(name, MountTypeSP.name) == 0)
-        {
-            if (IUUpdateSwitch(&MountTypeSP, states, names, n) < 0)
-                return false;
-
-            if (!isSimulation())
-            {
-                bool success = false; // start out pessimistic
-                for (int idx = 0; idx < MountTypeSP.nsp; idx++)
-                {
-                    if (MountTypeS[idx].s == ISS_ON)
-                    {
-                        success = setMountType(PortFD, (Pulsar2Commands::MountType)(idx));
-                        break;
-                    }
-                }
-                if (success)
-                {
-                    MountTypeSP.s = IPS_OK;
-                    IDSetSwitch(&MountTypeSP, nullptr);
-                }
-                else
-                {
-                    MountTypeSP.s = IPS_ALERT;
-                    IDSetSwitch(&MountTypeSP, "Could not determine or change the mount type");
-                }
-            }
-        }
-
         // pier side toggle -- the sync command requires that the pier side be known.
         // This is *not* related to a meridian flip, but rather, to the OTA orientation.
         if (strcmp(name, PierSideToggleSP.name) == 0)
@@ -2425,6 +2386,25 @@ bool LX200Pulsar2::SetSlewRate(int index)
         SlewRateSP.apply();
     }
     return success;
+}
+
+bool LX200Pulsar2::SetMountType(TelescopeMountType type)
+{
+    if (isSimulation() || !isConnected())
+        return true;
+
+    Pulsar2Commands::MountType pulsarType = Pulsar2Commands::German;
+    if (type == MOUNT_EQ_FORK)
+        pulsarType = Pulsar2Commands::Fork;
+    else if (type == MOUNT_ALTAZ)
+        pulsarType = Pulsar2Commands::AltAz;
+
+    if (!Pulsar2Commands::setMountType(PortFD, pulsarType))
+    {
+        LOG_ERROR("Could not change the mount type.");
+        return false;
+    }
+    return true;
 }
 
 bool LX200Pulsar2::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand motionCommand)
@@ -3055,9 +3035,18 @@ void LX200Pulsar2::getBasicData()
                                          Pulsar2Commands::nonGuideSpeedUnit;
 
         // mount type
-        Pulsar2Commands::MountType mount_type = Pulsar2Commands::getMountType(PortFD);
-        MountTypeS[(int)mount_type].s = ISS_ON;
-        IDSetSwitch(&MountTypeSP, nullptr);
+        switch (Pulsar2Commands::getMountType(PortFD))
+        {
+            case Pulsar2Commands::Fork:
+                setMountType(MOUNT_EQ_FORK);
+                break;
+            case Pulsar2Commands::AltAz:
+                setMountType(MOUNT_ALTAZ);
+                break;
+            default:
+                setMountType(MOUNT_EQ_GEM);
+                break;
+        }
 
         // PE correction (one value used for both RA and Dec)
         Pulsar2Commands::PECorrection pec_ra  = Pulsar2Commands::PECorrectionOff,

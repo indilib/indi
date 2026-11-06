@@ -275,11 +275,7 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_CAN_AUX], canAuxGuide ? "Mount" : "Time Guide");
             IUSaveText(&FirmwareT[FW_HAS_FOC], fwInfo.hasFocuser ? "True" : "False");
 
-            if (!fwInfo.isGem)
-            {
-                MountTypeSP.reset();
-                MountTypeSP[MOUNT_EQ_FORK].setState(ISS_ON);
-            }
+            setMountType(fwInfo.isGem ? MOUNT_EQ_GEM : MOUNT_EQ_FORK);
 
             usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
             // set the default switch index, will be updated from the mount if possible

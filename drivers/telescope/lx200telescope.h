@@ -138,6 +138,8 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
 
         // Get mount alignment type (AltAz..etc)
         void getAlignment();
+        /** Report TELESCOPE_MOUNT_TYPE for an Alignment switch index (0 Polar, 1 AltAz, 2 Land). */
+        void updateMountTypeFromAlignment(int index);
 
         // Send Mount time and location settings to client
         virtual bool sendScopeTime();

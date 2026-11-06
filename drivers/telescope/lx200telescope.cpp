@@ -807,6 +807,7 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
             AlignmentSP.s = IPS_OK;
             IDSetSwitch(&AlignmentSP, nullptr);
+            updateMountTypeFromAlignment(index);
             return true;
         }
 
@@ -1174,10 +1175,35 @@ void LX200Telescope::getAlignment()
         case 'L':
             AlignmentS[2].s = ISS_ON;
             break;
+        case 'G':
+            // German equatorial: no matching Alignment switch
+            setMountType(MOUNT_EQ_GEM);
+            break;
     }
 
     AlignmentSP.s = IPS_OK;
     IDSetSwitch(&AlignmentSP, nullptr);
+
+    int index = IUFindOnSwitchIndex(&AlignmentSP);
+    if (index >= 0)
+        updateMountTypeFromAlignment(index);
+}
+
+void LX200Telescope::updateMountTypeFromAlignment(int index)
+{
+    switch (index)
+    {
+        // Polar: a fork on a wedge, unless the driver already reports an equatorial type (e.g. GEM)
+        case 0:
+            if (getMountType() == MOUNT_ALTAZ)
+                setMountType(MOUNT_EQ_FORK);
+            break;
+        // AltAz or Land
+        case 1:
+        case 2:
+            setMountType(MOUNT_ALTAZ);
+            break;
+    }
 }
 
 bool LX200Telescope::getLocalTime(char *timeString)

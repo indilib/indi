@@ -91,8 +91,7 @@ bool LX200GPS::initProperties()
     GuideRateNP[1].fill("GUIDE_RATE_NS", "N/S Rate", "%g", 0, 2, 0.05, 0.5);
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Custom Guide Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    MountTypeSP.reset();
-    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+    setMountType(MOUNT_ALTAZ);
 
     return true;
 }

@@ -97,8 +97,7 @@ bool LX200Classic::initProperties()
     IUFillSwitchVector(&UnparkAlignmentSP, UnparkAlignmentS, 3, getDeviceName(), "Unpark Mode", "", SITE_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    MountTypeSP.reset();
-    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+    setMountType(MOUNT_ALTAZ);
 
     return true;
 }

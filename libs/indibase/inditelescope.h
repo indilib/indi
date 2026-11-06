@@ -148,6 +148,17 @@ class Telescope : public DefaultDevice
             PEC_ON      = 1
         };
 
+        /**
+         * \brief Mount geometry reported in the standard TELESCOPE_MOUNT_TYPE property.
+         * The values are the indices of the switches in MountTypeSP.
+         */
+        enum TelescopeMountType
+        {
+            MOUNT_ALTAZ,            /*!< Alt-Az mount. */
+            MOUNT_EQ_FORK,          /*!< Equatorial fork (or single arm) mount. No meridian flip. */
+            MOUNT_EQ_GEM            /*!< German equatorial mount. */
+        };
+
         /*! Dome Locking Policy */
         enum DomeLockingPolicy
         {
@@ -189,6 +200,7 @@ class Telescope : public DefaultDevice
             TELESCOPE_CAN_HOME_FIND               = 1 << 14, /** Can the telescope find home position? */
             TELESCOPE_CAN_HOME_SET                = 1 << 15, /** Can the telescope set the current position as the new home position? */
             TELESCOPE_CAN_HOME_GO                 = 1 << 16, /** Can the telescope slew to home position? */
+            TELESCOPE_CAN_SET_MOUNT_TYPE          = 1 << 17, /** Can the user select the mount type? If not set, TELESCOPE_MOUNT_TYPE is read-only and set by the driver. */
         } TelescopeCapability;
 
         Telescope();
@@ -352,6 +364,16 @@ class Telescope : public DefaultDevice
             return capability & TELESCOPE_CAN_HOME_GO;
         }
 
+        /**
+         * @return True if the user can select the mount type. TELESCOPE_MOUNT_TYPE is then writable,
+         * saved to the configuration file, and each change is passed to SetMountType().
+         * Otherwise it is read-only and the driver reports the mount type with setMountType().
+         */
+        bool CanSetMountType()
+        {
+            return capability & TELESCOPE_CAN_SET_MOUNT_TYPE;
+        }
+
         /** \brief Called to initialize basic properties required all the time */
         virtual bool initProperties() override;
         /** \brief Called when connected state changes, to add/remove properties */
@@ -478,6 +500,19 @@ class Telescope : public DefaultDevice
         {
             return currentPECState;
         }
+
+        /**
+         * @brief setMountType Report the mount type in TELESCOPE_MOUNT_TYPE. Drivers call it when the type
+         * is fixed by the driver, read from the firmware, or changed by the mount. It only updates the
+         * property; it does not call SetMountType().
+         * @param type Current mount type.
+         */
+        void setMountType(TelescopeMountType type);
+
+        /**
+         * @return Mount type currently set in TELESCOPE_MOUNT_TYPE. MOUNT_EQ_GEM unless the driver or user changed it.
+         */
+        TelescopeMountType getMountType() const;
 
     protected:
         virtual bool saveConfigItems(FILE *fp) override;
@@ -691,6 +726,19 @@ class Telescope : public DefaultDevice
          * level. Most telescope drivers only utilize slew rate when issuing a motion command.
          */
         virtual bool SetSlewRate(int index);
+
+        /**
+         * @brief SetMountType Called when the user selects a different mount type in TELESCOPE_MOUNT_TYPE.
+         * Only used if the driver sets the TELESCOPE_CAN_SET_MOUNT_TYPE capability.
+         * @param type Requested mount type.
+         * @return True if the mount type is accepted. Telescope then updates the property and saves it to the
+         * configuration file. False to reject it; the previous mount type is restored.
+         *
+         * \note This function as implemented in Telescope accepts any mount type and returns true. Reimplement it
+         * to send the mount type to the hardware, to reject types the mount does not support, or to update
+         * driver state that depends on the mount geometry. Use getMountType() to read the current type.
+         */
+        virtual bool SetMountType(TelescopeMountType type);
 
         /**
          * @brief callHandshake Helper function that sets the port file descriptor before calling the
@@ -920,14 +968,12 @@ class Telescope : public DefaultDevice
         // PEC State
         INDI::PropertySwitch PECStateSP {2};
 
-        // Mount Type
+        /**
+         * \brief Standard TELESCOPE_MOUNT_TYPE property, indexed by TelescopeMountType.
+         * Writable if the driver sets TELESCOPE_CAN_SET_MOUNT_TYPE, read-only otherwise.
+         * Do not access the switches directly; use setMountType() and getMountType().
+         */
         INDI::PropertySwitch MountTypeSP {3};
-        enum
-        {
-            MOUNT_ALTAZ,
-            MOUNT_EQ_FORK,
-            MOUNT_EQ_GEM
-        };
 
         // Track Mode
         INDI::PropertySwitch TrackModeSP {0};

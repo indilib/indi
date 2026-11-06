@@ -286,6 +286,17 @@ void IOptronV3::getStartupData()
 
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
+
+        // Alt-Az models and dual-mode mounts in Alt-Az mode: "... AA", HAZ (unless "... EQ"), AZ Mount Pro
+        const std::string &model = firmwareInfo.Model;
+        auto endsWith = [&model](const char *suffix)
+        {
+            const size_t len = strlen(suffix);
+            return model.size() >= len && model.compare(model.size() - len, len, suffix) == 0;
+        };
+        const bool altAz = endsWith(" AA") || model.find("AZ Mount") != std::string::npos ||
+                           (model.rfind("HAZ", 0) == 0 && !endsWith(" EQ"));
+        setMountType(altAz ? MOUNT_ALTAZ : MOUNT_EQ_GEM);
     }
 
     LOG_DEBUG("Getting guiding rate...");

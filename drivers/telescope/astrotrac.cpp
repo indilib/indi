@@ -46,7 +46,8 @@ AstroTrac::AstroTrac(): GI(this)
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
-                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_HAS_PIER_SIDE,
+                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_HAS_PIER_SIDE |
+                           TELESCOPE_CAN_SET_MOUNT_TYPE,
                            SLEW_MODES);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -77,14 +78,14 @@ bool AstroTrac::initProperties()
     }
     SlewRateSP[5].setState(ISS_ON);
 
-    // Mount Type
-    int configMountType = MOUNT_GEM;
-    IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &configMountType);
-    MountTypeSP[MOUNT_GEM].fill("MOUNT_GEM", "GEM",
-                                configMountType == MOUNT_GEM ? ISS_ON : ISS_OFF);
-    MountTypeSP[MOUNT_SINGLE_ARM].fill("MOUNT_SINGLE_ARM", "Single ARM",
-                                       configMountType == MOUNT_GEM ? ISS_OFF : ISS_ON);
-    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // Mount Type: GEM, or Fork for the single arm setup (no meridian flip).
+    if (!MountTypeSP.load())
+    {
+        // Older configurations stored it in MOUNT_TYPE (0 = GEM, 1 = Single Arm).
+        int legacyType = 0;
+        if (IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &legacyType) == 0 && legacyType == 1)
+            setMountType(MOUNT_EQ_FORK);
+    }
 
     // Acceleration
     AccelerationNP[AXIS_RA].fill("AXIS_RA", "RA arcsec/sec^2", "%.2f", 0, 3600, 100, 0);
@@ -126,16 +127,6 @@ bool AstroTrac::initProperties()
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")[0].setState(ISS_ON);
 
     return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-void AstroTrac::ISGetProperties(const char *dev)
-{
-    INDI::Telescope::ISGetProperties(dev);
-
-    defineProperty(MountTypeSP);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -438,7 +429,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
         // "Normal" Pointing State (West, looking East)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
+        if (getMountType() == MOUNT_EQ_FORK || deEncoder >= 0)
         {
             de = std::min(90 - deEncoder, 90.0);
             ha = -6.0 + (haEncoder / 360.0) * 24.0;
@@ -456,7 +447,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     else
     {
         // "Normal" Pointing State (West, looking East)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder <= 0)
+        if (getMountType() == MOUNT_EQ_FORK || deEncoder <= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0;
@@ -495,7 +486,7 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
     if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
+        if (getMountType() == MOUNT_EQ_FORK || dHA <= 0)
         {
             deEncoder = -(de - 90.0);
             haEncoder = (dHA + 6.0) * 360.0 / 24.0;
@@ -510,7 +501,7 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
     else
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
+        if (getMountType() == MOUNT_EQ_FORK || dHA <= 0)
         {
             deEncoder = -(de + 90.0);
             haEncoder = -(dHA + 6.0) * 360.0 / 24.0;
@@ -823,15 +814,6 @@ bool AstroTrac::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Mount Type
-        if (MountTypeSP.isNameMatch(name))
-        {
-            MountTypeSP.update(states, names, n);
-            MountTypeSP.setState(IPS_OK);
-            MountTypeSP.apply();
-            return true;
-        }
-
         // Process alignment properties
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
     }
@@ -916,6 +898,19 @@ bool AstroTrac::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         stopMotion(AXIS_RA);
     }
 
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::SetMountType(TelescopeMountType type)
+{
+    if (type == MOUNT_ALTAZ)
+    {
+        LOG_ERROR("AstroTrac supports GEM and single arm (Fork) setups only.");
+        return false;
+    }
     return true;
 }
 
@@ -1207,7 +1202,6 @@ bool AstroTrac::SetTrackEnabled(bool enabled)
 bool AstroTrac::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
-    MountTypeSP.save(fp);
     SaveAlignmentConfigProperties(fp);
     return true;
 }

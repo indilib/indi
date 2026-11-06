@@ -86,8 +86,7 @@ bool LX200Basic::initProperties()
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    MountTypeSP.reset();
-    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+    setMountType(MOUNT_ALTAZ);
 
     addAuxControls();
 

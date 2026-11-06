@@ -143,7 +143,8 @@ bool Telescope::initProperties()
     MountTypeSP[MOUNT_ALTAZ].fill("ALTAZ", "ALTAZ", ISS_OFF);
     MountTypeSP[MOUNT_EQ_FORK].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
     MountTypeSP[MOUNT_EQ_GEM].fill("EQ_GEM", "GEM", ISS_ON);
-    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB, IP_RO, ISR_1OFMANY, 60, IPS_IDLE);
+    MountTypeSP.fill(getDeviceName(), "TELESCOPE_MOUNT_TYPE", "Mount Type", MOTION_TAB,
+                     CanSetMountType() ? IP_RW : IP_RO, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Track Mode. Child class must call AddTrackMode to add members
     // @INDI_STANDARD_PROPERTY@
@@ -662,6 +663,8 @@ bool Telescope::saveConfigItems(FILE *fp)
         TrackModeSP.save(fp);
     if (HasTrackRate())
         TrackRateNP.save(fp);
+    if (CanSetMountType())
+        MountTypeSP.save(fp);
 
     controller->saveConfigItems(fp);
     MotionControlModeTP.save(fp);
@@ -1369,6 +1372,57 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         ///////////////////////////////////
+        // Mount Type
+        ///////////////////////////////////
+        if (MountTypeSP.isNameMatch(name))
+        {
+            if (!CanSetMountType())
+            {
+                LOG_WARN("The mount type is reported by the driver and cannot be changed.");
+                MountTypeSP.apply();
+                return true;
+            }
+
+            const auto previousType = getMountType();
+            if (!MountTypeSP.update(states, names, n))
+            {
+                MountTypeSP.setState(IPS_ALERT);
+                MountTypeSP.apply();
+                return false;
+            }
+
+            const auto requestedIndex = MountTypeSP.findOnSwitchIndex();
+            if (requestedIndex < 0)
+            {
+                setMountType(previousType);
+                return false;
+            }
+
+            const auto requestedType = static_cast<TelescopeMountType>(requestedIndex);
+            if (requestedType == previousType)
+            {
+                MountTypeSP.setState(IPS_OK);
+                MountTypeSP.apply();
+                return true;
+            }
+
+            if (SetMountType(requestedType))
+            {
+                MountTypeSP.setState(IPS_OK);
+                MountTypeSP.apply();
+                saveConfig(MountTypeSP);
+            }
+            else
+            {
+                MountTypeSP.reset();
+                MountTypeSP[previousType].setState(ISS_ON);
+                MountTypeSP.setState(IPS_ALERT);
+                MountTypeSP.apply();
+            }
+            return true;
+        }
+
+        ///////////////////////////////////
         // Track Mode
         ///////////////////////////////////
         if (TrackModeSP.isNameMatch(name))
@@ -1698,6 +1752,12 @@ bool Telescope::UnPark()
     return false;
 }
 
+bool Telescope::SetMountType(TelescopeMountType type)
+{
+    INDI_UNUSED(type);
+    return true;
+}
+
 bool Telescope::SetTrackMode(uint8_t mode)
 {
     INDI_UNUSED(mode);
@@ -1899,6 +1959,8 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 {
     capability = cap;
     nSlewRate  = slewRateCount;
+
+    MountTypeSP.setPermission(CanSetMountType() ? IP_RW : IP_RO);
 
     generateCoordSet();
 
@@ -2782,6 +2844,28 @@ Telescope::TelescopePierSide Telescope::expectedPierSide(double ra)
     double hourAngle = get_local_hour_angle(lst, ra);
 
     return hourAngle <= 0 ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST;
+}
+
+void Telescope::setMountType(TelescopeMountType type)
+{
+    if (type < MOUNT_ALTAZ || type > MOUNT_EQ_GEM)
+        return;
+
+    if (MountTypeSP[type].getState() == ISS_ON && MountTypeSP.getState() == IPS_OK)
+        return;
+
+    MountTypeSP.reset();
+    MountTypeSP[type].setState(ISS_ON);
+    MountTypeSP.setState(IPS_OK);
+    // The property is only defined while connected.
+    if (isConnected())
+        MountTypeSP.apply();
+}
+
+Telescope::TelescopeMountType Telescope::getMountType() const
+{
+    const auto index = MountTypeSP.findOnSwitchIndex();
+    return index < 0 ? MOUNT_EQ_GEM : static_cast<TelescopeMountType>(index);
 }
 
 void Telescope::setPECState(TelescopePECState state)

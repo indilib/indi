@@ -63,8 +63,7 @@ bool LX200_16::initProperties()
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
                        "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    MountTypeSP.reset();
-    MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
+    setMountType(MOUNT_ALTAZ);
 
     return true;
 }

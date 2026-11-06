@@ -149,9 +149,9 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
 
-        /* Mount Types */
-        ISwitch MountTypeS[3];
-        ISwitchVectorProperty MountTypeSP;
+        /* Mount Model (G11, EXOS2, iEXOS100). Kept as MOUNT_TYPE for config compatibility. */
+        ISwitch MountModelS[3];
+        ISwitchVectorProperty MountModelSP;
 
         /* SRF Guide Rates */
         INumber GuideRateN[2];

@@ -48,6 +48,7 @@ class LX200AM5 : public LX200Generic
         // Motion & Goto
         virtual bool ReadScopeStatus() override;
         virtual bool SetSlewRate(int index) override;
+        virtual bool SetMountType(TelescopeMountType type) override;
 
         // Tracking
         virtual bool SetTrackEnabled(bool enabled) override;
@@ -102,13 +103,6 @@ class LX200AM5 : public LX200Generic
         //////////////////////////////////////////////////////////////////////////////////
         // Go Home
         //INDI::PropertySwitch HomeSP {1};
-        // Mount Type
-        INDI::PropertySwitch MountTypeSP {2};
-        enum
-        {
-            Azimuth,
-            Equatorial
-        };
         // Guide Rate
         INDI::PropertyNumber GuideRateNP {1};
         // Buzzer control
@@ -226,8 +220,7 @@ class LX200AM5 : public LX200Generic
         bool setHeavyDutyMode(bool enable);
 
         // Mount type
-        bool setMountType(int type);
-        bool getMountType();
+        bool readMountType();
 
         // Track Mode
         bool getTrackMode();

@@ -47,7 +47,8 @@ LX200AM5::LX200AM5()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
-                           TELESCOPE_CAN_HOME_GO,
+                           TELESCOPE_CAN_HOME_GO |
+                           TELESCOPE_CAN_SET_MOUNT_TYPE,
                            SLEW_MODES
                           );
 }
@@ -69,12 +70,16 @@ bool LX200AM5::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Properties
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    MountTypeSP[Azimuth].fill("Azimuth", "Azimuth", ISS_OFF);
-    MountTypeSP[Equatorial].fill("Equatorial", "Equatorial", ISS_ON);
-    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    MountTypeSP.load();
+    // The last known mount type decides the pier side capability before connecting.
+    if (!MountTypeSP.load())
+    {
+        // Older configurations stored it in MOUNT_TYPE (0 = Alt-Az, 1 = Equatorial).
+        int legacyType = 1;
+        if (IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &legacyType) == 0 && legacyType == 0)
+            setMountType(MOUNT_ALTAZ);
+    }
 
-    if (MountTypeSP[Equatorial].getState() == ISS_ON)
+    if (getMountType() != MOUNT_ALTAZ)
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Slew Rates
@@ -184,7 +189,7 @@ bool LX200AM5::updateProperties()
         defineProperty(HeavyDutyModeSP);
 
         // Only define meridian flip properties for equatorial mount
-        if (MountTypeSP[Equatorial].getState() == ISS_ON)
+        if (getMountType() != MOUNT_ALTAZ)
         {
             defineProperty(MeridianFlipSP);
             defineProperty(PostMeridianTrackSP);
@@ -212,7 +217,7 @@ bool LX200AM5::updateProperties()
         deleteProperty(HeavyDutyModeSP);
 
         // Only delete meridian flip properties if they were defined
-        if (MountTypeSP[Equatorial].getState() == ISS_ON)
+        if (getMountType() != MOUNT_ALTAZ)
         {
             deleteProperty(MeridianFlipSP);
             deleteProperty(PostMeridianTrackSP);
@@ -269,21 +274,17 @@ bool LX200AM5::checkConnection()
 /////////////////////////////////////////////////////////////////////////////
 void LX200AM5::setup()
 {
-    // Mount Type
-    //    MountTypeSP.setState(setMountType(MountTypeSP.findOnSwitchIndex()) ? IPS_OK : IPS_ALERT);
-    //    MountTypeSP.apply();
-
     InitPark();
 
     getFirmwareInfo();
-    getMountType();
+    readMountType();
     getTrackMode();
     getGuideRate();
     getBuzzer();
     getHeavyDutyMode();
 
     // Only get meridian flip settings for equatorial mount
-    if (MountTypeSP[Equatorial].getState() == ISS_ON)
+    if (getMountType() != MOUNT_ALTAZ)
         getMeridianFlipSettings();
 
     // Get altitude limit settings
@@ -302,26 +303,6 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Mount Type
-        // updateProperty only calls the lambda when the value actually changes.
-        // When disconnected the lambda returns true so the selection is still saved.
-        if (MountTypeSP.isNameMatch(name))
-        {
-            return updateProperty(MountTypeSP, states, names, n, [this, names]()
-            {
-                if (isConnected())
-                {
-                    int previousType = MountTypeSP.findOnSwitchIndex();
-                    int newType = MountTypeSP[Azimuth].isNameMatch(names[0]) ? Azimuth : Equatorial;
-                    bool rc = setMountType(newType);
-                    if (rc && previousType != newType)
-                        LOG_WARN("You must restart mount for change to take effect.");
-                    return rc;
-                }
-                return true;
-            }, true);
-        }
-
         // Buzzer
         if (BuzzerSP.isNameMatch(name))
         {
@@ -465,30 +446,39 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool LX200AM5::setMountType(int type)
+bool LX200AM5::SetMountType(TelescopeMountType type)
 {
-    return sendCommand((type == Azimuth) ? ":AA#" : ":AP#");
+    if (type == MOUNT_EQ_FORK)
+    {
+        LOG_ERROR("AM5 supports Alt-Az and German equatorial modes only.");
+        return false;
+    }
+
+    // When disconnected the selection is only saved.
+    if (!isConnected())
+        return true;
+
+    if (!sendCommand((type == MOUNT_ALTAZ) ? ":AA#" : ":AP#"))
+        return false;
+
+    LOG_WARN("You must restart mount for change to take effect.");
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool LX200AM5::getMountType()
+bool LX200AM5::readMountType()
 {
     char response[DRIVER_LEN] = {0};
-    if (sendCommand(":GU#", response))
-    {
-        MountTypeSP.reset();
-        MountTypeSP[Azimuth].setState(strchr(response, 'Z') ? ISS_ON : ISS_OFF);
-        MountTypeSP[Equatorial].setState(strchr(response, 'G') ? ISS_ON : ISS_OFF);
-        MountTypeSP.setState(IPS_OK);
-        return true;
-    }
-    else
-    {
-        MountTypeSP.setState(IPS_ALERT);
-        return true;
-    }
+    if (!sendCommand(":GU#", response))
+        return false;
+
+    if (strchr(response, 'Z'))
+        setMountType(MOUNT_ALTAZ);
+    else if (strchr(response, 'G'))
+        setMountType(MOUNT_EQ_GEM);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1418,7 +1408,6 @@ bool LX200AM5::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
-    MountTypeSP.save(fp);
     GuideRateNP.save(fp);
     BuzzerSP.save(fp);
     HeavyDutyModeSP.save(fp);

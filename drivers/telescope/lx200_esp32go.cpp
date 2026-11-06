@@ -612,7 +612,6 @@ void LX200_esp32go::getBasicData()
     // process parent
     LX200Generic::getBasicData();
 
-    bool _MountTypeSP_Apply = false;
     bool _TrackStateSP_Apply = false;
     bool _VersionTP_Apply = false;
     bool _GuideRateNP_Apply = false;
@@ -642,24 +641,13 @@ void LX200_esp32go::getBasicData()
             GuideRateNP[1].setValue(atof(lines[6]));
             _GuideRateNP_Apply=true;
 
-            // mount mode index 18
-            MountTypeSP.reset();
+            // mount mode index 18: 1 = AltAz, 2 = Fork, otherwise GEM
             if(*lines[18]=='1')
-            {
-                //LOG_INFO("Mount AltAz");
-                MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
-            }
+                setMountType(MOUNT_ALTAZ);
             else if(*lines[18]=='2')
-            {
-                //LOG_INFO("Mount FORK");
-                MountTypeSP[MOUNT_EQ_FORK].setState(ISS_ON);
-            }
-            else // default GEM
-            {
-                //LOG_INFO("Mount DEFAULT/GEM");
-                MountTypeSP[MOUNT_EQ_GEM].setState(ISS_ON);
-            }
-            _MountTypeSP_Apply=true;
+                setMountType(MOUNT_EQ_FORK);
+            else
+                setMountType(MOUNT_EQ_GEM);
         }
         else
         {
@@ -668,18 +656,7 @@ void LX200_esp32go::getBasicData()
             activeFocus = false;
             char MountAlign[2];
             *MountAlign = ACK(PortFD); // get mount type from ACK response
-            MountTypeSP.reset();
-            if(MountAlign[0] == 'A')
-            {
-                //LOG_INFO("Mount AltAz");
-                MountTypeSP[MOUNT_ALTAZ].setState(ISS_ON);
-            }
-            else
-            {
-                //LOG_INFO("Mount Default/GEM");
-                MountTypeSP[MOUNT_EQ_GEM].setState(ISS_ON); // Default GEM
-            }
-            _MountTypeSP_Apply=true;
+            setMountType(MountAlign[0] == 'A' ? MOUNT_ALTAZ : MOUNT_EQ_GEM);
         }
         double version = 0.0;
         if(picgotoMode || getCommandSexa(PortFD, &version, ":GVN#") < 0)
@@ -778,8 +755,6 @@ void LX200_esp32go::getBasicData()
     if(activeFocus)
         LOG_INFO("Focuser is active");
 
-    if(_MountTypeSP_Apply)
-        MountTypeSP.apply();
     if(_TrackStateSP_Apply)
         TrackStateSP.apply();
     if(_GuideRateNP_Apply)
