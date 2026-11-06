@@ -59,6 +59,9 @@ class SkySafari : public INDI::DefaultDevice
 
         bool startServer();
         bool stopServer();
+        bool startDiscovery();
+        void stopDiscovery();
+        void handleDiscovery();
 
         bool sendSkySafari(const char *message);
 
@@ -96,10 +99,20 @@ class SkySafari : public INDI::DefaultDevice
             SERVER_DISABLE
         };
 
+        // SkyFi Discovery
+        ISwitchVectorProperty SkyFiDiscoverySP;
+        ISwitch SkyFiDiscoveryS[2] {};
+        enum
+        {
+            SKYFI_DISCOVERY_ENABLE,
+            SKYFI_DISCOVERY_DISABLE
+        };
+
         // Our client
         std::unique_ptr<SkySafariClient> skySafariClient;
 
-        int lsocket = -1, clientFD = -1;
+        int lsocket = -1, clientFD = -1, discoverySocket = -1;
+        unsigned short serverPort = 0;
 
         bool isSkySafariConnected = false, haveLatitude = false, haveLongitude = false;
         bool haveUTCoffset = false, haveUTCtime = false, haveUTCdate = false;
