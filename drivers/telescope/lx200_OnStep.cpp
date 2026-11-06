@@ -51,7 +51,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 27);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 28);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -5364,7 +5364,14 @@ bool LX200_OnStep::Goto(double ra, double dec)
 
     //OnStep: DON'T set TrackState, this may resolve issues with the autoalign, this is updated by the status updates.
     //     TrackState = SCOPE_SLEWING;
-    //EqNP.s     = IPS_BUSY;
+
+    // Do report the goto as busy, though. Clients mark EQUATORIAL_EOD_COORD busy when they send it, and
+    // ReadScopeStatus() only publishes EqNP when its state or the position changes. A goto that OnStep
+    // finishes before the next status poll without changing the reported position (e.g. a goto to where
+    // the mount already is) would otherwise never be answered, and the client would wait forever. With
+    // EqNP busy here, the next poll finds the state changed and publishes the real one.
+    EqNP.setState(IPS_BUSY);
+    EqNP.apply();
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
