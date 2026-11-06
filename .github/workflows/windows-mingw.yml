@@ -28,8 +28,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
-#         - { sys: mingw32, env: i686 }
+          - { sys: ucrt64, env: ucrt-x86_64 }
 
     defaults:
       run:
@@ -40,14 +39,12 @@ jobs:
       with:
         msystem: ${{matrix.sys}}
         update: true
+        # Client-only build: zlib is the only external dependency on Windows
         install: >-
-          mingw-w64-${{matrix.env}}-openssl
-
-          base-devel
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-gcc
-          mingw-w64-${{matrix.env}}-libnova
-          zlib-devel
+          mingw-w64-${{matrix.env}}-ninja
+          mingw-w64-${{matrix.env}}-zlib
 
     - name: Get INDI Sources
       uses: actions/checkout@v3
@@ -56,5 +53,5 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DINDI_BUILD_SERVER=OFF -DINDI_BUILD_DRIVERS=OFF
+        cmake .. -G Ninja -DINDI_BUILD_SERVER=OFF -DINDI_BUILD_DRIVERS=OFF
         cmake --build .

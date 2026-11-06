@@ -40,5 +40,6 @@ jobs:
         cd ${{ github.workspace }}
         mkdir build
         cd build
-        cmake .. -DINDI_BUILD_SERVER=OFF -DINDI_BUILD_DRIVERS=OFF -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+        # Match KDE Craft's Windows configuration: static client library only
+        cmake .. -DINDI_BUILD_SERVER=OFF -DINDI_BUILD_DRIVERS=OFF -DINDI_BUILD_STATIC=ON -DINDI_BUILD_SHARED=OFF -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
         cmake --build .
