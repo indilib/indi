@@ -2166,6 +2166,10 @@ bool LX200_OnStep::Park()
         }
     }
     ParkSP.setState(IPS_BUSY);
+    // Report the park as running until OnStep reports it parked (see ReadScopeStatus()). Without this the base class
+    // marks the park done as soon as the command is sent, and clients disconnect while the mount still moves.
+    TrackState = SCOPE_PARKING;
+    LOG_INFO("Parking telescope in progress...");
     return true;
 }
 
@@ -2299,6 +2303,21 @@ bool LX200_OnStep::ReadScopeStatus()
                 {
                     OnstepStatTP[1].setText("Slewing");
                     TrackState = SCOPE_SLEWING;
+                }
+                // A park we started is still running until OnStep reports 'P'. The first polls after :hP# may not
+                // show 'I' yet, so don't let them end the park. A failed park ends it with an error.
+                if (ParkSP.getState() == IPS_BUSY && ParkSP[PARK].getState() == ISS_ON)
+                {
+                    if (strstr(OSStat, "F"))
+                    {
+                        LOG_ERROR("OnStep reports that parking failed.");
+                        ParkSP.setState(IPS_ALERT);
+                        ParkSP.apply();
+                    }
+                    else
+                    {
+                        TrackState = SCOPE_PARKING;
+                    }
                 }
                 PrintTrackState();
                 if (isParked())   //IMPORTANT: SET AFTER setting TrackState!

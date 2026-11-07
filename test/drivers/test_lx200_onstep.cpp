@@ -207,6 +207,20 @@ class OnStepUnderTest : public LX200_OnStep
             char *names[2] = {ra_name, dec_name};
             return ISNewNumber(getDeviceName(), "EQUATORIAL_EOD_COORD", values, names, 2);
         }
+
+        // Send a park request the way a client does it.
+        bool requestPark()
+        {
+            ISState states[2] = {ISS_ON, ISS_OFF};
+            char park_name[] = "PARK", unpark_name[] = "UNPARK";
+            char *names[2] = {park_name, unpark_name};
+            return ISNewSwitch(getDeviceName(), "TELESCOPE_PARK", states, names, 2);
+        }
+
+        bool parked()
+        {
+            return isParked();
+        }
 };
 
 // Captures what the driver publishes on stdout and returns the states of the EQUATORIAL_EOD_COORD updates.
@@ -230,6 +244,17 @@ class PublishedStates
 
         std::vector<std::string> eqStates()
         {
+            return states("setNumberVector", "EQUATORIAL_EOD_COORD");
+        }
+
+        std::vector<std::string> parkStates()
+        {
+            return states("setSwitchVector", "TELESCOPE_PARK");
+        }
+
+    private:
+        std::vector<std::string> states(const std::string &vector, const std::string &property)
+        {
             restore();
             std::string text;
             rewind(m_File);
@@ -239,13 +264,12 @@ class PublishedStates
                 text.append(chunk, n);
 
             std::vector<std::string> states;
-            std::regex update("<setNumberVector[^>]*name=['\"]EQUATORIAL_EOD_COORD['\"][^>]*state=['\"](\\w+)['\"]");
+            std::regex update("<" + vector + "[^>]*name=['\"]" + property + "['\"][^>]*state=['\"](\\w+)['\"]");
             for (auto it = std::sregex_iterator(text.begin(), text.end(), update); it != std::sregex_iterator(); ++it)
                 states.push_back((*it)[1]);
             return states;
         }
 
-    private:
         void restore()
         {
             if (m_SavedStdout < 0)
@@ -368,8 +392,76 @@ TEST(LX200OnStepTest, missedStatusReplyDuringGotoIsNotAnError)
     EXPECT_EQ(mount.gotos(), 1);
 }
 
+// OnStep :GU# while parking ('I' = park in progress), parked ('P') and after a failed park ('F').
+const char *STATUS_IDLE         = "nNpa/ET160";
+const char *STATUS_PARKING      = "nIa/ET160";
+const char *STATUS_PARKED       = "nNPa/ET160";
+const char *STATUS_PARK_FAILED  = "nNFa/ET160";
+
+// The park must stay busy until OnStep reports the mount parked. A client that waits for the park (e.g. a scheduler
+// before it disconnects) must not see it done while the mount still moves, also not on an early poll that doesn't
+// show the park yet.
+TEST(LX200OnStepTest, parkStaysBusyUntilOnStepReportsParked)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestPark());
+    mount.setStatus(STATUS_IDLE, "02:34:50", "+61*34:42");
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_PARKING, "03:10:12", "+75*02:44");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> whileParking = published.parkStates();
+    bool parkedEarly = driver.parked();
+
+    ASSERT_FALSE(whileParking.empty());
+    for (const auto &state : whileParking)
+        EXPECT_EQ(state, "Busy") << "The park was reported done before OnStep reported the mount parked";
+    EXPECT_FALSE(parkedEarly);
+
+    PublishedStates afterPark;
+    mount.setStatus(STATUS_PARKED, "06:01:00", "+89*59:59");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = afterPark.parkStates();
+
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Ok");
+    EXPECT_TRUE(driver.parked());
+}
+
+// A park that OnStep reports as failed ends with an error, not as parked.
+TEST(LX200OnStepTest, failedParkIsReported)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestPark());
+    mount.setStatus(STATUS_PARKING, "03:10:12", "+75*02:44");
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_PARK_FAILED, "04:00:00", "+80*00:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = published.parkStates();
+
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Alert");
+    EXPECT_FALSE(driver.parked());
+}
+
 int main(int argc, char **argv)
 {
+    // Never touch the user's real ~/.indi (park data is written to $HOME/.indi).
+    char homeTemplate[] = "/tmp/test_lx200_onstep_home_XXXXXX";
+    const char *home = mkdtemp(homeTemplate);
+    if (home)
+        setenv("HOME", home, 1);
     // Never read or write the user's real ~/.indi driver configuration.
     const std::string configFile = "/tmp/test_lx200_onstep_" + std::to_string(getpid()) + "_config.xml";
     setenv("INDICONFIG", configFile.c_str(), 1);
@@ -379,5 +471,12 @@ int main(int argc, char **argv)
     int rc = RUN_ALL_TESTS();
     std::remove(configFile.c_str());
     std::remove((configFile + ".default").c_str());
+    if (home)
+    {
+        const std::string parkData = std::string(home) + "/.indi/ParkData.xml";
+        std::remove(parkData.c_str());
+        std::remove((std::string(home) + "/.indi").c_str());
+        std::remove(home);
+    }
     return rc;
 }
