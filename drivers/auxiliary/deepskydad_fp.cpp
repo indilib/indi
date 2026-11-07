@@ -85,6 +85,7 @@ bool DeepSkyDadFP::initProperties()
     });
     registerConnection(serialConnection);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    serialConnection->setPortMatchPattern("Deep_Sky_Dad_FP[0-9]");
     return true;
 }
 
@@ -324,12 +325,15 @@ bool DeepSkyDadFP::getStatus()
     else
         sscanf(response, "(%d)", &lightStatus);
 
-    if(isFP2) {
+    if(isFP2)
+    {
         if (!sendCommand("[GOPS]", response))
             return false;
         else
             sscanf(response, "(%d)", &coverStatus);
-    } else {
+    }
+    else
+    {
         if (!sendCommand("[GPOS]", response))
             return false;
         else
@@ -349,7 +353,8 @@ bool DeepSkyDadFP::getStatus()
 
     bool statusUpdated = false;
 
-    if(isFP2) {
+    if(isFP2)
+    {
         if (coverStatus != prevCoverStatus)
         {
             if(motorStatus == 1)
@@ -403,7 +408,9 @@ bool DeepSkyDadFP::getStatus()
                 }
             }
         }
-    } else {
+    }
+    else
+    {
         if (coverStatus != prevCoverStatus)
         {
             if(motorStatus == 1)
