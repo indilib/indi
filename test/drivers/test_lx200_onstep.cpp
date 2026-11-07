@@ -85,6 +85,13 @@ class FakeOnStep
             return m_Gotos;
         }
 
+        // Leave the next n :GU# requests unanswered, as a real controller sometimes does right after :MS#.
+        void dropStatusReplies(int n)
+        {
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            m_DropStatusReplies = n;
+        }
+
     private:
         static void makeRaw(int fd)
         {
@@ -130,7 +137,9 @@ class FakeOnStep
             std::string answer;
             {
                 std::lock_guard<std::mutex> lock(m_Mutex);
-                if (command == ":GU#")
+                if (command == ":GU#" && m_DropStatusReplies > 0)
+                    m_DropStatusReplies--;
+                else if (command == ":GU#")
                     answer = m_Status + "#";
                 else if (command == ":GR#")
                     answer = m_RA + "#";
@@ -172,6 +181,7 @@ class FakeOnStep
         std::string m_RA {"17:57:13"};
         std::string m_DEC {"+51*29:19"};
         int m_Gotos {0};
+        int m_DropStatusReplies {0};
 };
 
 class OnStepUnderTest : public LX200_OnStep
@@ -326,6 +336,36 @@ TEST(LX200OnStepTest, realSlewStaysBusyUntilOnStepReportsTracking)
 
     ASSERT_FALSE(states.empty());
     EXPECT_EQ(states.back(), "Ok");
+}
+
+// The controller doesn't answer the first status poll after the goto (seen on a WD-20EP 50 ms after :MS#). The
+// driver must skip that poll instead of failing it: a failed poll puts EQUATORIAL_EOD_COORD into Alert, clients
+// then abort and resend the goto, which OnStep refuses with "Goto in progress".
+TEST(LX200OnStepTest, missedStatusReplyDuringGotoIsNotAnError)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    mount.setStatus(STATUS_TRACKING, "17:31:01", "+52*17:02");
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestGoto(ELTANIN_RA, ELTANIN_DEC));
+    mount.setStatus(STATUS_SLEWING, "17:44:07", "+51*53:10");
+    mount.dropStatusReplies(1);
+    EXPECT_TRUE(driver.poll()) << "A missed :GU# reply failed the status poll";
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_TRACKING, "17:57:13", "+51*29:19");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = published.eqStates();
+
+    ASSERT_FALSE(states.empty());
+    for (const auto &state : states)
+        EXPECT_NE(state, "Alert");
+    EXPECT_EQ(states.front(), "Busy");
+    EXPECT_EQ(states.back(), "Ok");
+    EXPECT_EQ(mount.gotos(), 1);
 }
 
 int main(int argc, char **argv)

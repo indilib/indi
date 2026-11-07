@@ -2702,7 +2702,12 @@ bool LX200_OnStep::ReadScopeStatus()
         }
         else
         {
-            return false;
+            // No (complete) :GU# answer, e.g. right after :MS# while the controller starts the slew. Treat it like
+            // the other communication errors above: skip this update and try again, don't put the mount in an
+            // error state (clients would abort and resend the goto, which OnStep refuses with "Goto in progress").
+            LOG_DEBUG(":GU# got no answer, this update aborted, will try again...");
+            flushIO(PortFD);
+            return true;
         }
 
 #ifdef OnStep_Alpha // For the moment, for :Gu
