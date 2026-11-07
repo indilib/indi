@@ -183,6 +183,14 @@ bool CCDSim::initProperties()
     TiltSimulationNP.fill(getDeviceName(), "SIM_TILT", "Tilt Simulation",
                           SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Simulate fixed sensor defects. Hot pixels gain (rate x exposure) ADU in every frame type,
+    // cold pixels read half the CCD_OFFSET bias. The layout is the same in every session.
+    DefectSimulationNP[SIM_HOT_PIXELS].fill("SIM_HOT_PIXELS", "Hot pixels", "%.f", 0, 100000, 100, 0);
+    DefectSimulationNP[SIM_COLD_PIXELS].fill("SIM_COLD_PIXELS", "Cold pixels", "%.f", 0, 100000, 100, 0);
+    DefectSimulationNP[SIM_HOT_RATE].fill("SIM_HOT_RATE", "Hot rate (ADU/s)", "%.f", 0, 65000, 100, 1000);
+    DefectSimulationNP.fill(getDeviceName(), "SIM_DEFECTS", "Sensor Defects",
+                            SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+
     // Periodic Error
     EqPENP[AXIS_RA].fill("RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     EqPENP[AXIS_DE].fill("DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -352,6 +360,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineProperty(PointingOffsetNP);
     defineProperty(FocusSimulationNP);
     defineProperty(TiltSimulationNP);
+    defineProperty(DefectSimulationNP);
     defineProperty(SimTestsSP);
 
     // Planet simulation properties
@@ -729,6 +738,13 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         }
 
         m_Renderer.applyReadoutNoise(targetChip, m_Bias, m_MaxNoise);
+
+        // Defects belong to the primary sensor only; the guide head is a separate sensor.
+        if (targetChip == &PrimaryCCD)
+        {
+            updateDefects();
+            m_Renderer.applyDefects(targetChip, m_Defects, exposure_time, m_Bias);
+        }
     }
     else
     {
@@ -746,6 +762,28 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         }
     }
     return 0;
+}
+
+void CCDSim::updateDefects()
+{
+    int const xres = PrimaryCCD.getXRes();
+    int const yres = PrimaryCCD.getYRes();
+    int const hot  = static_cast<int>(DefectSimulationNP[SIM_HOT_PIXELS].getValue());
+    int const cold = static_cast<int>(DefectSimulationNP[SIM_COLD_PIXELS].getValue());
+    double const rate = DefectSimulationNP[SIM_HOT_RATE].getValue();
+
+    if (xres == m_DefectsXRes && yres == m_DefectsYRes && hot == m_DefectsHot && cold == m_DefectsCold &&
+            rate == m_DefectsRate)
+        return;
+
+    m_Defects = SkyRenderer::generateDefects(xres, yres, hot, cold, static_cast<float>(rate));
+    m_DefectsXRes = xres;
+    m_DefectsYRes = yres;
+    m_DefectsHot  = hot;
+    m_DefectsCold = cold;
+    m_DefectsRate = rate;
+    if (hot > 0 || cold > 0)
+        LOGF_DEBUG("Simulating %d hot and %d cold pixels on a %dx%d sensor.", hot, cold, xres, yres);
 }
 
 float CCDSim::periodicErrorOffset()
@@ -1009,6 +1047,13 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             TiltSimulationNP.update(values, names, n);
             TiltSimulationNP.setState(IPS_OK);
             TiltSimulationNP.apply();
+        }
+        else if (DefectSimulationNP.isNameMatch(name))
+        {
+            DefectSimulationNP.update(values, names, n);
+            DefectSimulationNP.setState(IPS_OK);
+            DefectSimulationNP.apply();
+            return true;
         }
         else if (PlanetDriftNP.isNameMatch(name))
         {
@@ -1488,6 +1533,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Tilt simulation
     TiltSimulationNP.save(fp);
+
+    // Sensor defects
+    DefectSimulationNP.save(fp);
 
     PointingOffsetNP.save(fp);
 

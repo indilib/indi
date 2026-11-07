@@ -1,6 +1,20 @@
 #pragma once
 #include <indiccd.h>
 
+#include <cstdint>
+#include <vector>
+
+// A fixed sensor defect at full-sensor (unbinned) pixel coordinates.
+struct SensorDefect
+{
+    int   x    {0};
+    int   y    {0};
+    // Extra dark current of a hot pixel, in ADU per second of exposure. Unused for cold pixels.
+    float rate {0};
+    // A cold (dead) pixel reads half the bias level whatever the exposure.
+    bool  cold {false};
+};
+
 // Configuration parameters for the sky renderer.
 // All fields have sensible defaults; update via setConfig() when INDI properties change.
 struct RenderConfig
@@ -75,6 +89,19 @@ class SkyRenderer
         int drawImageStar(INDI::CCDChip *, float mag, float x, float y, float exp_s);
 
         void applyReadoutNoise(INDI::CCDChip *chip, int bias, int maxNoise);
+
+        // Generate a reproducible defect layout for an xres x yres sensor: hotCount hot pixels and
+        // coldCount cold pixels, all at distinct positions. Hot pixel rates are spread uniformly over
+        // [0.5, 1.5) x hotRate so that defect detection thresholds have something to separate.
+        // The same arguments always produce the same layout on every platform.
+        static std::vector<SensorDefect> generateDefects(int xres, int yres, int hotCount, int coldCount,
+                float hotRate, uint32_t seed = 1);
+
+        // Apply the defects to the chip's (unbinned) subframe. Call it after applyReadoutNoise() so the
+        // defects survive in every frame type: hot pixels add rate * exposure_s ADU, cold pixels read bias / 2.
+        // Defects outside the current subframe are skipped.
+        void applyDefects(INDI::CCDChip *chip, const std::vector<SensorDefect> &defects, float exposure_s,
+                          int bias) const;
 
     private:
         RenderConfig m_Cfg;

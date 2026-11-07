@@ -5,6 +5,8 @@
 #include "ccd_simulator.h"
 
 #include <cmath>
+#include <set>
+#include <utility>
 
 char _me[] = "MockCCDSimDriver";
 char *me = _me;
@@ -33,6 +35,14 @@ class MockCCDSimDriver: public CCDSim
             ASSERT_NE(p.findWidgetByName("SIM_OAGOFFSET"), nullptr);
             ASSERT_NE(p.findWidgetByName("SIM_POLAR"), nullptr);
             ASSERT_NE(p.findWidgetByName("SIM_POLARDRIFT"), nullptr);
+
+            auto defects = getNumber("SIM_DEFECTS");
+            ASSERT_TRUE(defects.isValid());
+            ASSERT_NE(defects.findWidgetByName("SIM_HOT_PIXELS"), nullptr);
+            ASSERT_NE(defects.findWidgetByName("SIM_COLD_PIXELS"), nullptr);
+            ASSERT_NE(defects.findWidgetByName("SIM_HOT_RATE"), nullptr);
+            EXPECT_EQ(defects[SIM_HOT_PIXELS].getValue(), 0) << "defects must be off by default";
+            EXPECT_EQ(defects[SIM_COLD_PIXELS].getValue(), 0) << "defects must be off by default";
         }
 
         void testGuideAPI()
@@ -584,6 +594,141 @@ TEST_F(SkyRendererTest, readout_noise_skipped_when_zero)
 
     EXPECT_EQ(sumFrame(xres, yres), 0)
             << "maxNoise <= 0 must skip noise application entirely";
+}
+
+// --- sensor defects ---
+
+TEST_F(SkyRendererTest, defects_are_reproducible_distinct_and_in_bounds)
+{
+    int const xres = 200;
+    int const yres = 150;
+
+    auto const a = SkyRenderer::generateDefects(xres, yres, 300, 100, 1000.0f);
+    auto const b = SkyRenderer::generateDefects(xres, yres, 300, 100, 1000.0f);
+    auto const c = SkyRenderer::generateDefects(xres, yres, 300, 100, 1000.0f, 2);
+
+    ASSERT_EQ(a.size(), 400u);
+    ASSERT_EQ(b.size(), a.size());
+
+    std::set<std::pair<int, int>> positions;
+    int hot = 0, cold = 0;
+    bool differsFromOtherSeed = false;
+    for (size_t i = 0; i < a.size(); i++)
+    {
+        EXPECT_EQ(a[i].x, b[i].x);
+        EXPECT_EQ(a[i].y, b[i].y);
+        EXPECT_EQ(a[i].rate, b[i].rate);
+        if (a[i].x != c[i].x || a[i].y != c[i].y)
+            differsFromOtherSeed = true;
+
+        EXPECT_GE(a[i].x, 0);
+        EXPECT_LT(a[i].x, xres);
+        EXPECT_GE(a[i].y, 0);
+        EXPECT_LT(a[i].y, yres);
+        positions.insert({a[i].x, a[i].y});
+
+        if (a[i].cold)
+        {
+            cold++;
+        }
+        else
+        {
+            hot++;
+            EXPECT_GE(a[i].rate, 500.0f);
+            EXPECT_LT(a[i].rate, 1500.0f);
+        }
+    }
+    EXPECT_EQ(positions.size(), a.size()) << "defects must not share a pixel";
+    EXPECT_EQ(hot, 300);
+    EXPECT_EQ(cold, 100);
+    EXPECT_TRUE(differsFromOtherSeed);
+}
+
+TEST_F(SkyRendererTest, defects_are_clamped_to_sensor_size)
+{
+    auto const defects = SkyRenderer::generateDefects(4, 4, 10, 10, 100.0f);
+    EXPECT_EQ(defects.size(), 16u);
+    EXPECT_TRUE(SkyRenderer::generateDefects(0, 4, 10, 10, 100.0f).empty());
+    EXPECT_TRUE(SkyRenderer::generateDefects(4, 4, 0, 0, 100.0f).empty());
+}
+
+TEST_F(SkyRendererTest, hot_pixels_scale_with_exposure_and_cold_pixels_read_low)
+{
+    int const xres = 32;
+    int const yres = 32;
+    int const bias = 1000;
+
+    RenderConfig cfg;
+    cfg.maxVal = 65000;
+    renderer.setConfig(cfg);
+
+    std::vector<SensorDefect> defects(2);
+    defects[0].x = 5;
+    defects[0].y = 7;
+    defects[0].rate = 200.0f;
+    defects[1].x = 20;
+    defects[1].y = 3;
+    defects[1].cold = true;
+
+    for (float exposure : {1.0f, 3.0f})
+    {
+        setupChip(xres, yres);
+        renderer.applyReadoutNoise(&chip, bias, 1); // flat bias, no noise
+        renderer.applyDefects(&chip, defects, exposure, bias);
+
+        uint16_t *buf = fb();
+        EXPECT_EQ(buf[7 * xres + 5], static_cast<uint16_t>(bias + 200 * exposure));
+        EXPECT_EQ(buf[3 * xres + 20], static_cast<uint16_t>(bias / 2));
+        EXPECT_EQ(buf[0], static_cast<uint16_t>(bias)) << "other pixels must be left alone";
+        EXPECT_EQ(sumFrame(xres, yres), static_cast<long>(xres * yres * bias + 200 * exposure - bias / 2));
+    }
+}
+
+TEST_F(SkyRendererTest, hot_pixels_clamp_at_max_val)
+{
+    RenderConfig cfg;
+    cfg.maxVal = 4095;
+    renderer.setConfig(cfg);
+    setupChip(8, 8);
+
+    std::vector<SensorDefect> defects(1);
+    defects[0].x = 2;
+    defects[0].y = 2;
+    defects[0].rate = 60000.0f;
+    renderer.applyDefects(&chip, defects, 10.0f, 0);
+
+    EXPECT_EQ(fb()[2 * 8 + 2], 4095u);
+}
+
+TEST_F(SkyRendererTest, defects_follow_the_subframe)
+{
+    int const xres = 64;
+    int const yres = 64;
+
+    RenderConfig cfg;
+    cfg.maxVal = 65000;
+    renderer.setConfig(cfg);
+    setupChip(xres, yres);
+
+    // 16x16 subframe starting at (10, 20)
+    chip.setFrame(10, 20, 16, 16);
+    memset(chip.getFrameBuffer(), 0, chip.getFrameBufferSize());
+
+    std::vector<SensorDefect> defects(3);
+    defects[0].x = 12; // inside -> subframe (2, 3)
+    defects[0].y = 23;
+    defects[0].rate = 100.0f;
+    defects[1].x = 9;  // left of the subframe
+    defects[1].y = 23;
+    defects[1].rate = 100.0f;
+    defects[2].x = 26; // right of the subframe (10 + 16)
+    defects[2].y = 25;
+    defects[2].rate = 100.0f;
+
+    renderer.applyDefects(&chip, defects, 1.0f, 0);
+
+    EXPECT_EQ(fb()[3 * 16 + 2], 100u);
+    EXPECT_EQ(sumFrame(16, 16), 100) << "defects outside the subframe must not be drawn";
 }
 
 // --- benchmark (no assertions, informational only) ---

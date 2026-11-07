@@ -6,6 +6,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <random>
+#include <unordered_set>
 
 double SkyRenderer::flux(double mag) const
 {
@@ -127,6 +129,85 @@ void SkyRenderer::applyReadoutNoise(INDI::CCDChip *chip, int bias, int maxNoise)
                 newval = m_Cfg.maxVal;
             buf[y * nx + x] = static_cast<uint16_t>(newval);
         }
+}
+
+std::vector<SensorDefect> SkyRenderer::generateDefects(int xres, int yres, int hotCount, int coldCount,
+        float hotRate, uint32_t seed)
+{
+    std::vector<SensorDefect> defects;
+    if (xres <= 0 || yres <= 0)
+        return defects;
+
+    uint64_t const total = static_cast<uint64_t>(xres) * yres;
+    hotCount  = std::max(0, hotCount);
+    coldCount = std::max(0, coldCount);
+    if (static_cast<uint64_t>(hotCount) + coldCount > total)
+    {
+        hotCount  = static_cast<int>(std::min<uint64_t>(hotCount, total));
+        coldCount = static_cast<int>(total - hotCount);
+    }
+
+    // std::mt19937 output is fully specified by the standard, unlike the std:: distributions, so the
+    // layout is the same with every standard library.
+    std::mt19937 rng(seed);
+    std::unordered_set<uint64_t> used;
+    defects.reserve(hotCount + coldCount);
+
+    auto const pickFree = [&]()
+    {
+        uint64_t index;
+        do
+        {
+            // Two statements: the evaluation order of operands within one expression is unspecified.
+            uint64_t const high = rng();
+            uint64_t const low  = rng();
+            index = ((high << 32) | low) % total;
+        }
+        while (!used.insert(index).second);
+        return index;
+    };
+
+    for (int i = 0; i < hotCount + coldCount; i++)
+    {
+        uint64_t const index = pickFree();
+        SensorDefect defect;
+        defect.x    = static_cast<int>(index % xres);
+        defect.y    = static_cast<int>(index / xres);
+        defect.cold = (i >= hotCount);
+        if (!defect.cold)
+            defect.rate = hotRate * (0.5f + static_cast<float>(rng()) / 4294967296.0f);
+        defects.push_back(defect);
+    }
+
+    return defects;
+}
+
+void SkyRenderer::applyDefects(INDI::CCDChip *chip, const std::vector<SensorDefect> &defects, float exposure_s,
+                               int bias) const
+{
+    int const subX = chip->getSubX();
+    int const subY = chip->getSubY();
+    int const nx   = chip->getSubW();
+    int const ny   = chip->getSubH();
+    auto *buf = reinterpret_cast<uint16_t *>(chip->getFrameBuffer());
+
+    for (const auto &defect : defects)
+    {
+        int const x = defect.x - subX;
+        int const y = defect.y - subY;
+        if (x < 0 || x >= nx || y < 0 || y >= ny)
+            continue;
+
+        uint16_t &pixel = buf[y * nx + x];
+        if (defect.cold)
+        {
+            pixel = static_cast<uint16_t>(std::max(0, bias / 2));
+            continue;
+        }
+
+        double const value = static_cast<double>(pixel) + static_cast<double>(defect.rate) * exposure_s;
+        pixel = static_cast<uint16_t>(std::min(value, static_cast<double>(m_Cfg.maxVal)));
+    }
 }
 
 void SkyRenderer::drawSkyGlow(INDI::CCDChip *chip, float exp_s)

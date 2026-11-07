@@ -172,6 +172,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         SkyRenderer m_Renderer;
 
+        // Defect layout of the primary sensor, regenerated whenever the resolution or the
+        // SIM_DEFECTS settings change.
+        void updateDefects();
+        std::vector<SensorDefect> m_Defects;
+        int m_DefectsXRes {0}, m_DefectsYRes {0}, m_DefectsHot {0}, m_DefectsCold {0};
+        double m_DefectsRate {0};
+
         // Follows the client's TIME_UTC, so the rendered sky agrees with the telescope simulator's
         SimulatorClock m_Clock;
 
@@ -283,6 +290,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         {
             SIM_TILT_LR,
             SIM_TILT_TB
+        };
+
+        // Fixed hot and cold pixels on the primary sensor, to test dark subtraction and defect maps.
+        INDI::PropertyNumber DefectSimulationNP {3};
+        enum
+        {
+            SIM_HOT_PIXELS,
+            SIM_COLD_PIXELS,
+            SIM_HOT_RATE
         };
 
         INDI::PropertyNumber EqPENP {2};
