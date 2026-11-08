@@ -2174,6 +2174,33 @@ bool LX200_OnStep::Park()
 }
 
 // Periodically Polls OnStep Parameter from controller
+// The reason for the :GU# error codes that make OnStep stop the mount (limits, faults), nullptr for the others
+static const char *gotoStopReason(Errors error)
+{
+    switch (error)
+    {
+        case ERR_MOTOR_FAULT:
+            return "Motor/Driver Fault";
+        case ERR_ALT_MIN:
+            return "Below Horizon Limit";
+        case ERR_LIMIT_SENSE:
+            return "Limit Sense";
+        case ERR_DEC:
+            return "Dec Limit Exceeded";
+        case ERR_AZM:
+            return "Azm Limit Exceeded";
+        case ERR_UNDER_POLE:
+            return "Under Pole Limit Exceeded";
+        case ERR_MERIDIAN:
+            // OnStepX reports both sides with this code
+            return "Meridian Limit Exceeded";
+        case ERR_ALT_MAX:
+            return "Above Overhead Limit";
+        default:
+            return nullptr;
+    }
+}
+
 bool LX200_OnStep::ReadScopeStatus()
 {
     char OSbacklashDEC[RB_MAX_LEN] = {0};
@@ -2260,6 +2287,20 @@ bool LX200_OnStep::ReadScopeStatus()
 
 
 
+
+            // ============= Error Code
+            //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
+
+            //For redoing this, quick python, if needed (will only give the error name):
+            //all_errors=' (Insert)
+            //split_errors=all_errors.split(', ')
+            //for specific in split_errors:
+            //     print('case ' +specific+':')
+            //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
+            //     print('\tbreak;')
+
+            // Read before EqNP is updated below: a goto that ends with a limit error is reported as failed
+            Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
 
             // ============= Telescope Status
 
@@ -2398,7 +2439,19 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 case SCOPE_PARKED:
                 case SCOPE_IDLE:
-                    if (EqNP.getState() != IPS_IDLE)
+                {
+                    // OnStep stops a goto at a limit (or doesn't start it while a limit error is set) and leaves
+                    // the mount idle, with the reason only in the error code. Report that goto as failed: clients
+                    // would otherwise take the idle mount for a goto that ended without tracking and wait.
+                    const char *stopReason = (TrackState == SCOPE_IDLE && EqNP.getState() == IPS_BUSY) ?
+                                             gotoStopReason(Lasterror) : nullptr;
+                    if (stopReason != nullptr)
+                    {
+                        LOGF_ERROR("OnStep stopped the slew: %s.", stopReason);
+                        EqNP.setState(IPS_ALERT);
+                        update_needed = true;
+                    }
+                    else if (EqNP.getState() != IPS_IDLE)
                     {
                         EqNP.setState(IPS_IDLE);
                         update_needed = true;
@@ -2406,7 +2459,8 @@ bool LX200_OnStep::ReadScopeStatus()
                         LOG_DEBUG("EqNP set to IPS_IDLE");
 #endif
                     }
-                    break;
+                }
+                break;
 
                 case SCOPE_SLEWING:
                 case SCOPE_PARKING:
@@ -2694,18 +2748,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 }
             }
 
-            // ============= Error Code
-            //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
-
-            //For redoing this, quick python, if needed (will only give the error name):
-            //all_errors=' (Insert)
-            //split_errors=all_errors.split(', ')
-            //for specific in split_errors:
-            //     print('case ' +specific+':')
-            //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
-            //     print('\tbreak;')
-
-            Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
+            // ============= Error Code: read with the telescope status above
 
             // Refresh current Slew Rate
             int idx = OSStat[strlen(OSStat) - 2] - '0';

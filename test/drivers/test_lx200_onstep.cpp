@@ -455,6 +455,106 @@ TEST(LX200OnStepTest, failedParkIsReported)
     EXPECT_FALSE(driver.parked());
 }
 
+// OnStep :GU# of a mount that is idle with no error ('0') and with the meridian limit error ('7' = ERR_MERIDIAN).
+// Both seen on a WD-20EP: a goto with tracking off ends "nN...0", a goto that OnStep stopped at its meridian limit
+// ends "nN...7", and OnStep then keeps the error and accepts gotos without moving.
+const char *STATUS_MERIDIAN_LIMIT = "nNpa/ET167";
+
+// A goto that OnStep stops at a limit must be reported as failed (Alert), not as an idle mount: a client waiting
+// for the goto to end (e.g. Ekos Align waiting for tracking) would otherwise wait forever.
+TEST(LX200OnStepTest, gotoStoppedAtLimitIsReported)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    mount.setStatus(STATUS_TRACKING, "03:48:37", "+24*14:05");
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+    ASSERT_TRUE(driver.requestGoto(3.0 + 48.0 / 60 + 37.0 / 3600, 24.0 + 14.0 / 60 + 5.0 / 3600));
+    mount.setStatus(STATUS_SLEWING, "04:20:00", "+40*00:00");
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates atStop;
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:10", "+24*29:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = atStop.eqStates();
+
+    ASSERT_FALSE(states.empty()) << "The end of the goto was never published";
+    EXPECT_EQ(states.front(), "Alert") << "The goto stopped at the limit was not reported as failed";
+
+    // The mount stays idle afterwards
+    PublishedStates afterStop;
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:14", "+24*29:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> later = afterStop.eqStates();
+    ASSERT_FALSE(later.empty());
+    EXPECT_EQ(later.back(), "Idle");
+}
+
+// While the limit error is set, OnStep accepts a goto (":MS#" answers "0") but doesn't move. That goto must fail too.
+TEST(LX200OnStepTest, gotoNotStartedAtLimitIsReported)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:10", "+24*29:00");
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestGoto(3.0 + 48.0 / 60 + 37.0 / 3600, 24.0 + 14.0 / 60 + 5.0 / 3600));
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:14", "+24*29:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = published.eqStates();
+
+    EXPECT_EQ(mount.gotos(), 1);
+    ASSERT_FALSE(states.empty()) << "The goto was never answered";
+    EXPECT_EQ(states.front(), "Busy");
+    EXPECT_EQ(states.back(), "Alert") << "The goto that OnStep didn't start was not reported as failed";
+}
+
+// Controls: a goto that ends idle without an error (tracking switched off before it) and an idle mount polled with
+// the limit error but without a goto are not errors.
+TEST(LX200OnStepTest, idleWithoutGotoErrorIsNotAnError)
+{
+    {
+        FakeOnStep mount;
+        ASSERT_GE(mount.driverFD(), 0);
+        mount.setStatus(STATUS_IDLE, "17:31:01", "+52*17:02");
+        OnStepUnderTest driver(mount.driverFD());
+
+        ASSERT_TRUE(driver.poll());
+        PublishedStates published;
+        ASSERT_TRUE(driver.requestGoto(ELTANIN_RA, ELTANIN_DEC));
+        mount.setStatus(STATUS_SLEWING, "17:44:07", "+51*53:10");
+        ASSERT_TRUE(driver.poll());
+        mount.setStatus(STATUS_IDLE, "17:57:13", "+51*29:19");
+        ASSERT_TRUE(driver.poll());
+        std::vector<std::string> states = published.eqStates();
+
+        ASSERT_FALSE(states.empty());
+        for (const auto &state : states)
+            EXPECT_NE(state, "Alert") << "A goto that ended idle without an error was reported as failed";
+        EXPECT_EQ(states.back(), "Idle");
+    }
+    {
+        FakeOnStep mount;
+        ASSERT_GE(mount.driverFD(), 0);
+        mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:10", "+24*29:00");
+        OnStepUnderTest driver(mount.driverFD());
+
+        PublishedStates published;
+        ASSERT_TRUE(driver.poll());
+        mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:14", "+24*29:05");
+        ASSERT_TRUE(driver.poll());
+        std::vector<std::string> states = published.eqStates();
+
+        ASSERT_FALSE(states.empty());
+        for (const auto &state : states)
+            EXPECT_NE(state, "Alert") << "An idle mount without a goto was reported as failed";
+    }
+}
+
 int main(int argc, char **argv)
 {
     // Never touch the user's real ~/.indi (park data is written to $HOME/.indi).
