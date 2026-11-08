@@ -42,7 +42,7 @@ static std::unique_ptr<PegasusFocusCube3> focusCube(new PegasusFocusCube3());
 
 PegasusFocusCube3::PegasusFocusCube3()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -113,7 +113,7 @@ bool PegasusFocusCube3::initProperties()
     INDI::Focuser::initProperties();
 
     TemperatureNP[0].fill("TEMPERATURE", "Level", "%.0f", -40, 40, 1, 0);
-    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", FOCUS_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", FOCUS_SETTINGS_TAB, IP_RO, 60, IPS_IDLE);
 
     FirmwareVersionTP[0].fill("Version", "Version", "");
     FirmwareVersionTP.fill(getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -179,9 +179,8 @@ bool PegasusFocusCube3::updateProperties()
 
 bool PegasusFocusCube3::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
-
         if(SpeedNP.isNameMatch(name))
         {
             SpeedNP.update(values, names, n);
@@ -195,8 +194,8 @@ bool PegasusFocusCube3::ISNewNumber(const char * dev, const char * name, double 
             }
             SpeedNP.setState(result);
             SpeedNP.apply();
+            return true;
         }
-
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -211,6 +210,7 @@ IPState PegasusFocusCube3::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
+    moveStarted = std::chrono::steady_clock::now();
     FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
@@ -231,6 +231,8 @@ IPState PegasusFocusCube3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     if (!rc)
         return IPS_ALERT;
 
+    targetPosition = newPosition;
+    moveStarted = std::chrono::steady_clock::now();
     FocusRelPosNP[0].setValue(ticks);
     FocusRelPosNP.setState(IPS_BUSY);
 
@@ -241,10 +243,11 @@ bool PegasusFocusCube3::move(uint32_t newPosition)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
     snprintf(expectedResponse, PEGASUS_LEN, "%u", newPosition);
-    snprintf(cmd, PEGASUS_LEN, "FM:%d", newPosition);
+    snprintf(cmd, PEGASUS_LEN, "FM:%u", newPosition);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(expectedResponse, res))
+        // The reply carries the target position, e.g. "FM:12345".
+        if(!strstr(res, expectedResponse))
         {
             LOGF_ERROR("Error on move [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -303,10 +306,10 @@ bool PegasusFocusCube3::setSpeed(uint16_t speed)
 
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
     snprintf(expectedResponse, PEGASUS_LEN, "%u", speed);
-    snprintf(cmd, PEGASUS_LEN, "SP:%d", speed);
-    if(sendCommand(expectedResponse, res))
+    snprintf(cmd, PEGASUS_LEN, "SP:%u", speed);
+    if(sendCommand(cmd, res))
     {
-        if(!strstr(cmd, res))
+        if(strncmp(res, "SP:", 3) || !strstr(res, expectedResponse))
         {
             LOGF_ERROR("Error on set speed [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -371,10 +374,10 @@ bool PegasusFocusCube3::SyncFocuser(uint32_t ticks)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
     snprintf(expectedResponse, PEGASUS_LEN, "%u", ticks);
-    snprintf(cmd, PEGASUS_LEN, "FN:%ud", ticks);
+    snprintf(cmd, PEGASUS_LEN, "FN:%u", ticks);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(expectedResponse, res))
+        if(!strstr(res, expectedResponse))
         {
             LOGF_ERROR("Error on sync  [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -399,7 +402,7 @@ bool PegasusFocusCube3::ReverseFocuser(bool enabled)
     }
     else
     {
-        LOG_ERROR("Error on sync");
+        LOG_ERROR("Error on reverse");
         return false;
     }
 
@@ -413,15 +416,15 @@ bool PegasusFocusCube3::SetFocuserBacklash(int32_t steps)
     snprintf(cmd, PEGASUS_LEN, "BL:%d", steps);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(expectedResponse, res))
+        if(!strstr(res, expectedResponse))
         {
-            LOGF_ERROR("Error on sync  [Cmd=%s Res=%s]", cmd, res);
+            LOGF_ERROR("Error on backlash [Cmd=%s Res=%s]", cmd, res);
             return false;
         }
     }
     else
     {
-        LOG_ERROR("Error on sync");
+        LOG_ERROR("Error on backlash");
         return false;
     }
 
@@ -442,7 +445,10 @@ void PegasusFocusCube3::TimerHit()
     {
         if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
         {
-            if (isMoving == false)
+            // A stopped focuser away from the target may not have started yet.
+            const bool atTarget = currentPosition == targetPosition ||
+                                  std::chrono::steady_clock::now() - moveStarted > MOVE_START_TIMEOUT;
+            if (isMoving == false && atTarget)
             {
                 FocusAbsPosNP.setState(IPS_OK);
                 FocusRelPosNP.setState(IPS_OK);
@@ -472,9 +478,12 @@ bool PegasusFocusCube3::updateFocusParams()
 
     std::vector<std::string> result = split(res, ":");
 
-    // Status
-    if(result[0] != "FC3")
+    // Status: FC3:position:running:temperature:reverse:backlash
+    if(result.size() < 6 || result[0] != "FC3")
+    {
+        LOGF_WARN("Unexpected status data: %s", res);
         return false;
+    }
 
 
     // #1 Position
@@ -531,9 +540,9 @@ bool PegasusFocusCube3::updateFocusParams()
 
         if (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON)
         {
-            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
-            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-            FocusBacklashSP.setState(IPS_IDLE);
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_ON);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_OFF);
+            FocusBacklashSP.setState(IPS_OK);
             FocusBacklashSP.apply();
         }
     }

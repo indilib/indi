@@ -25,6 +25,8 @@
 
 #include "indifocuser.h"
 
+#include <chrono>
+
 class PegasusFocusCube3 : public INDI::Focuser
 {
     public:
@@ -65,6 +67,9 @@ class PegasusFocusCube3 : public INDI::Focuser
         uint32_t currentPosition { 0 };
         uint32_t targetPosition { 0 };
         bool isMoving = false;
+        // Start of the last move, to tell a finished move from one that has not started yet.
+        std::chrono::steady_clock::time_point moveStarted;
+        static constexpr std::chrono::seconds MOVE_START_TIMEOUT {5};
 
 
         INDI::PropertyNumber TemperatureNP {1};
