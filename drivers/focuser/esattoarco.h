@@ -25,6 +25,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "indielapsedtimer.h"
 #include "inditimer.h"
 #include "indirotatorinterface.h"
 #include "primalucacommandset.h"
@@ -77,8 +78,15 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
+        bool isFocusMoveFinished();
+        bool isRotatorMoveFinished();
 
         uint16_t m_TemperatureCounter { 0 };
+
+        double m_FocusMoveStart { 0 }, m_RotatorMoveStart { 0 };
+        INDI::ElapsedTimer m_FocusMoveTimer, m_RotatorMoveTimer;
+        // BUSY can lag behind the command, a motor that has not moved yet may still start
+        static constexpr int MOVE_START_GRACE_MS {2000};
 
         INDI::PropertyNumber TemperatureNP {2};
         enum

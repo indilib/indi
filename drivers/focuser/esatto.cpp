@@ -261,6 +261,8 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
     if (m_Esatto->goAbsolutePosition(targetTicks) == false)
         return IPS_ALERT;
 
+    m_MoveStartPosition = FocusAbsPosNP[0].getValue();
+    m_MoveTimer.start();
     return IPS_BUSY;
 }
 
@@ -301,9 +303,12 @@ void Esatto::TimerHit()
 
     auto lastPos = FocusAbsPosNP[0].getValue();
     bool rc = updatePosition();
-    if (rc && (std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 0))
+    if (rc)
     {
-        if (FocusAbsPosNP.getState() == IPS_BUSY && m_Esatto->isBusy() == false)
+        const bool moved = std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 0;
+        const bool finished = FocusAbsPosNP.getState() == IPS_BUSY && isMoveFinished();
+
+        if (finished)
         {
             // To prevent reporting a bit too old position as the final one
             updatePosition();
@@ -313,7 +318,8 @@ void Esatto::TimerHit()
             FocusRelPosNP.apply();
         }
 
-        FocusAbsPosNP.apply();
+        if (moved || finished)
+            FocusAbsPosNP.apply();
     }
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
@@ -346,6 +352,17 @@ void Esatto::TimerHit()
     }
 
     SetTimer(getCurrentPollingPeriod());
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::isMoveFinished()
+{
+    if (m_Esatto->isBusy())
+        return false;
+
+    return FocusAbsPosNP[0].getValue() != m_MoveStartPosition || m_MoveTimer.elapsed() >= MOVE_START_GRACE_MS;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

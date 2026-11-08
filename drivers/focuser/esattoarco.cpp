@@ -384,6 +384,28 @@ bool EsattoArco::isMotionComplete()
 /************************************************************************************************************
  *
 *************************************************************************************************************/
+bool EsattoArco::isFocusMoveFinished()
+{
+    if (m_Esatto->isBusy())
+        return false;
+
+    return FocusAbsPosNP[0].getValue() != m_FocusMoveStart || m_FocusMoveTimer.elapsed() >= MOVE_START_GRACE_MS;
+}
+
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::isRotatorMoveFinished()
+{
+    if (m_Arco->isBusy())
+        return false;
+
+    return RotatorAbsPosNP[0].getValue() != m_RotatorMoveStart || m_RotatorMoveTimer.elapsed() >= MOVE_START_GRACE_MS;
+}
+
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
 bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -531,7 +553,11 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
     else if (RotatorAbsPosNP.isNameMatch(name))
     {
         if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_STEPS, values[0]))
+        {
+            m_RotatorMoveStart = RotatorAbsPosNP[0].getValue();
+            m_RotatorMoveTimer.start();
             RotatorAbsPosNP.setState(IPS_BUSY);
+        }
         else
             RotatorAbsPosNP.setState(IPS_ALERT);
         GotoRotatorNP.setState(RotatorAbsPosNP.getState());
@@ -556,7 +582,11 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
 IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (m_Esatto->goAbsolutePosition(targetTicks))
+    {
+        m_FocusMoveStart = FocusAbsPosNP[0].getValue();
+        m_FocusMoveTimer.start();
         return IPS_BUSY;
+    }
     return IPS_ALERT;
 }
 
@@ -595,27 +625,33 @@ void EsattoArco::TimerHit()
     auto currentRotatorPosition = RotatorAbsPosNP[0].getValue();
     if (updatePosition())
     {
-        if (std::abs(currentFocusPosition - FocusAbsPosNP[0].getValue()) > 0)
+        // Focuser State Machine
+        if (FocusAbsPosNP.getState() == IPS_BUSY && isFocusMoveFinished())
         {
-            // Focuser State Machine
-            if (FocusAbsPosNP.getState() == IPS_BUSY && m_Esatto->isBusy() == false)
-            {
-                FocusAbsPosNP.setState(IPS_OK);
-                FocusRelPosNP.setState(IPS_OK);
-                FocusAbsPosNP.apply();
-                FocusRelPosNP.apply();
-            }
-            else
-                FocusAbsPosNP.apply();
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
         }
+        else if (std::abs(currentFocusPosition - FocusAbsPosNP[0].getValue()) > 0)
+            FocusAbsPosNP.apply();
 
         // Rotator State Machine
+        const bool rotatorMoved = std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0;
+        bool rotatorFinished = false;
+        if (GotoRotatorNP.getState() == IPS_BUSY)
+        {
+            // The calibration pauses between its phases, only trust the end of a movement
+            if (RotatorCalibrationSP.getState() == IPS_BUSY)
+                rotatorFinished = rotatorMoved && m_Arco->isBusy() == false;
+            else
+                rotatorFinished = isRotatorMoveFinished();
+        }
 
-        // Only check status if position changed.
-        if (std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0)
+        if (rotatorMoved || rotatorFinished)
         {
             // Rotator was busy and now stopped?
-            if (GotoRotatorNP.getState() == IPS_BUSY && m_Arco->isBusy() == false)
+            if (rotatorFinished)
             {
                 // Check if we were calibrating
                 if(RotatorCalibrationSP.getState() == IPS_BUSY)
@@ -802,7 +838,11 @@ IPState EsattoArco::MoveRotator(double angle)
         newAngle = ( angle > 180 ? angle - 360 : angle);
 
     if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, newAngle))
+    {
+        m_RotatorMoveStart = RotatorAbsPosNP[0].getValue();
+        m_RotatorMoveTimer.start();
         return IPS_BUSY;
+    }
     return IPS_ALERT;
 }
 
