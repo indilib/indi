@@ -25,6 +25,7 @@
 #pragma once
 
 #include "indirotator.h"
+#include <chrono>
 #include <stdint.h>
 
 class PegasusFalconV2 : public INDI::Rotator
@@ -65,7 +66,7 @@ class PegasusFalconV2 : public INDI::Rotator
         /// Device Control Functions
         ///////////////////////////////////////////////////////////////////////////////
         bool reloadFirmware();
-        bool setDerotation(uint32_t ms);
+        bool setDerotation(int32_t rate);
         bool setRotatorSpeed(uint32_t speed);
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -106,10 +107,18 @@ class PegasusFalconV2 : public INDI::Rotator
 
         std::vector<std::string> lastStatusData;
 
+        /// Target of the last move, to tell a finished move from one that has not started yet.
+        double m_TargetAngle {0};
+        std::chrono::steady_clock::time_point m_MoveStarted;
+
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         static constexpr const uint8_t DRIVER_STOP_CHAR {0xA};
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
         static constexpr const uint8_t DRIVER_LEN {128};
+        /// A move counts as finished within this distance of the target (degrees).
+        static constexpr double TARGET_TOLERANCE {0.05};
+        /// Accept a stopped rotator away from the target after this time, e.g. if it rejected the move.
+        static constexpr std::chrono::seconds MOVE_START_TIMEOUT {5};
 };

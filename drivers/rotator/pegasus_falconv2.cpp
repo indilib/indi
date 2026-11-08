@@ -44,7 +44,7 @@ static std::unique_ptr<PegasusFalconV2> falconv2(new PegasusFalconV2());
 
 PegasusFalconV2::PegasusFalconV2()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     lastStatusData.reserve(7);
 }
 
@@ -68,8 +68,8 @@ bool PegasusFalconV2::initProperties()
                           IP_RW, ISR_ATMOST1,
                           60, IPS_IDLE);
 
-    // Derotate
-    DerotateNP[0].fill("INTERVAL", "Interval (ms)", "%.f", 0, 10000, 1000, 0);
+    // Derotate: rate in arcseconds per second, negative values rotate in reverse. 0 disables it.
+    DerotateNP[0].fill("RATE", "Rate (arcsec/s)", "%.f", -3600, 3600, 1, 0);
     DerotateNP.fill(getDeviceName(), "ROTATOR_DEROTATE", "Derotation", MAIN_CONTROL_TAB, IP_RW,
                     60, IPS_IDLE);
 
@@ -141,14 +141,14 @@ bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double valu
         // De-rotation
         if (DerotateNP.isNameMatch(name))
         {
-            const uint32_t ms = static_cast<uint32_t>(values[0]);
-            if (setDerotation(ms))
+            const int32_t rate = static_cast<int32_t>(values[0]);
+            if (setDerotation(rate))
             {
-                DerotateNP[0].setValue(values[0]);
-                if (values[0] > 0)
-                    LOGF_INFO("De-rotation is enabled and set to 1 step per %u milliseconds.", ms);
+                DerotateNP[0].setValue(rate);
+                if (rate != 0)
+                    LOGF_INFO("De-rotation is enabled at %d arcsec/s.", rate);
                 else
-                    LOG_INFO("De-rotaiton is disabled.");
+                    LOG_INFO("De-rotation is disabled.");
                 DerotateNP.setState(IPS_OK);
             }
             else
@@ -203,12 +203,14 @@ IPState PegasusFalconV2::MoveRotator(double angle)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "MD:%.2f", angle);
-    if (sendCommand(cmd, res))
+    if (sendCommand(cmd, res) && !strncmp(res, "MD:", 3))
     {
-        return (!strncmp(res, cmd, 8) ? IPS_BUSY : IPS_ALERT);
-        //Restrict length to 8 chars for correct compare
+        m_TargetAngle = angle;
+        m_MoveStarted = std::chrono::steady_clock::now();
+        return IPS_BUSY;
     }
 
+    LOGF_ERROR("Unexpected move response: %s", res);
     return IPS_ALERT;
 }
 
@@ -246,9 +248,9 @@ bool PegasusFalconV2::ReverseRotator(bool enabled)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::SyncRotator(double angle)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "SD:%.2f", angle);
-    return sendCommand(cmd, nullptr);
+    return sendCommand(cmd, res) && !strncmp(res, "SD:", 3);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -256,17 +258,18 @@ bool PegasusFalconV2::SyncRotator(double angle)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::reloadFirmware()
 {
-    return sendCommand("FQ");
+    // FF reboots the device and reloads the firmware; it sends no reply.
+    return sendCommand("FF");
 }
 
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool PegasusFalconV2::setDerotation(uint32_t ms)
+bool PegasusFalconV2::setDerotation(int32_t rate)
 {
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "DR:%d", ms);
-    return sendCommand(cmd, nullptr);
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "DR:%d", rate);
+    return sendCommand(cmd, res) && !strncmp(res, "DR:", 3);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -326,8 +329,8 @@ bool PegasusFalconV2::setRotatorSpeed(uint32_t speed)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::saveConfigItems(FILE * fp)
 {
+    // De-rotation is not saved, so it never starts by itself on the next connection.
     INDI::Rotator::saveConfigItems(fp);
-    DerotateNP.save(fp);
     return true;
 }
 
@@ -372,13 +375,34 @@ bool PegasusFalconV2::getStatusData()
             return false;
         }
 
-        if (result == lastStatusData)
+        // While a move is in progress, evaluate every reply so it always gets finished.
+        if (result == lastStatusData && GotoRotatorNP.getState() != IPS_BUSY)
             return true;
 
-        // Position
-        const double position = std::stod(result[1]);
-        // Is running?
-        const IPState motionState = std::stoi(result[2]) == 1 ? IPS_BUSY : IPS_OK;
+        double position = 0;
+        bool running = false, reversed = false;
+        try
+        {
+            position = std::stod(result[1]);
+            running  = std::stoi(result[2]) == 1;
+            reversed = std::stoi(result[5]) == 1;
+        }
+        catch (const std::exception &e)
+        {
+            LOGF_WARN("Invalid status data (%s): %s", e.what(), res);
+            return false;
+        }
+
+        // A stopped rotator away from the target may not have started yet; wait for it,
+        // unless it stays put for too long (e.g. the move was rejected).
+        IPState motionState = running ? IPS_BUSY : IPS_OK;
+        if (!running && GotoRotatorNP.getState() == IPS_BUSY)
+        {
+            double distance = std::fmod(std::fabs(position - m_TargetAngle), 360.0);
+            distance = std::min(distance, 360.0 - distance);
+            if (distance > TARGET_TOLERANCE && std::chrono::steady_clock::now() - m_MoveStarted < MOVE_START_TIMEOUT)
+                motionState = IPS_BUSY;
+        }
 
         // Update Absolute Position property if either position changes, or status changes.
         if (std::abs(position - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
@@ -389,7 +413,6 @@ bool PegasusFalconV2::getStatusData()
         }
 
 
-        const bool reversed = std::stoi(result[5]) == 1;
         const bool wasReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
         if (reversed != wasReversed)
         {
@@ -462,8 +485,10 @@ bool PegasusFalconV2::sendCommand(const char * cmd, char * res, int cmd_len, int
     }
     else
     {
-        // Remove extra \r
+        // Remove the trailing \n and, if present, \r
         res[nbytes_read - 1] = 0;
+        if (nbytes_read > 1 && res[nbytes_read - 2] == '\r')
+            res[nbytes_read - 2] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
