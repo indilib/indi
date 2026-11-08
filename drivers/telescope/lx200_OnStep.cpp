@@ -51,7 +51,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 28);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 29);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -1991,8 +1991,9 @@ void LX200_OnStep::getBasicData()
         }
 
         // Query mount type via :GXEM# - more reliable than ACK (0x06) which has a known bug in OnStepX
-        // :GXEM# returns a string where the first character indicates mount type:
-        //   E = GEM, K = Fork, k = Fork Alt, A = AltAz
+        // Older firmware may reply with a letter: E = GEM, K = Fork, k = Fork Alt, A = AltAz.
+        // OnStepX replies with a numeric setting, which is not mapped here. In that case the mount type
+        // is taken from the :GU# status string during the first ReadScopeStatus() instead.
         char mountTypeResponse[RB_MAX_LEN] = {0};
         int gxem_error = getCommandSingleCharErrorOrLongResponse(PortFD, mountTypeResponse, ":GXEM#");
         if (gxem_error > 0)
@@ -2015,10 +2016,12 @@ void LX200_OnStep::getBasicData()
                     LOG_INFO("Mount type detected: Fork Alt (AltAz)");
                     break;
                 case 'E':
-                default:
                     OSMountType = MOUNTTYPE_GEM;
                     setMountType(MOUNT_EQ_GEM);
                     LOG_INFO("Mount type detected: GEM");
+                    break;
+                default:
+                    LOGF_DEBUG(":GXEM# returned '%s', mount type will be determined from :GU# status", mountTypeResponse);
                     break;
             }
         }
@@ -2578,6 +2581,23 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 OnstepStatTP[6].setText("AltAZ Mount");
                 OSMountType = MOUNTTYPE_ALTAZ;
+            }
+
+            // Keep TELESCOPE_MOUNT_TYPE in sync with the :GU# status, which is the authoritative source.
+            // setMountType() is a no-op if the type has not changed.
+            switch (OSMountType)
+            {
+                case MOUNTTYPE_ALTAZ:
+                case MOUNTTYPE_FORK_ALT:
+                    setMountType(MOUNT_ALTAZ);
+                    break;
+                case MOUNTTYPE_FORK:
+                    setMountType(MOUNT_EQ_FORK);
+                    break;
+                case MOUNTTYPE_GEM:
+                default:
+                    setMountType(MOUNT_EQ_GEM);
+                    break;
             }
 
 
