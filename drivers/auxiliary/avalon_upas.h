@@ -32,12 +32,13 @@
  *
  * Protocol summary:
  *   - Relative jog:  $J=G91G21{X|Y}{mm} F{feed_rate}\n
- *     (X = azimuth axis, Y = altitude axis; mm = degrees × gear_ratio)
+ *     (X = azimuth axis, Y = altitude axis; mm = degrees × 60 × gear_ratio [mm/arcmin])
  *   - Position query: ?  →  <State|MPos:az_mm,alt_mm|...>\n
  *   - Abort (jog cancel): 0x85 byte
  *   - Axis reverse:  $3={mask}\n  (bit 0 = AZ, bit 1 = ALT)
  *
- * Capabilities: PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION
+ * Capabilities: PAC_CAN_REVERSE | PAC_HAS_POSITION
+ * Feed rate is set per axis (PAC_FEED_RATE) instead of the interface's single speed.
  */
 class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
 {
@@ -63,9 +64,8 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         IPState MoveALT(double degrees) override;
         IPState MoveBoth(double azDegrees, double altDegrees) override;
 
-        // PACInterface – abort, speed and reverse
+        // PACInterface – abort and reverse
         bool AbortMotion() override;
-        bool SetPACSpeed(uint16_t speed) override;
         bool ReverseAZ(bool enabled) override;
         bool ReverseALT(bool enabled) override;
 
@@ -89,16 +89,27 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
 
         void hexDump(char *buf, const char *data, int size);
 
+        /** @brief GRBL feed rate for a jog, so that no axis exceeds its own feed rate. */
+        double feedRateFor(double azMM, double altMM);
+
         ///////////////////////////////////////////////////////////////////////////////
         /// Driver properties
         ///////////////////////////////////////////////////////////////////////////////
 
-        // Gear ratio (mm per degree) for each axis; converts PAC interface degrees to GRBL mm.
+        // Gear ratio (mm per arcminute) for each axis; converts PAC interface degrees to GRBL mm.
         INDI::PropertyNumber GearRatioNP {2};
         enum
         {
             GEAR_AZ,
             GEAR_ALT
+        };
+
+        // GRBL feed rate (mm/min) for each axis.
+        INDI::PropertyNumber FeedRateNP {2};
+        enum
+        {
+            FEED_AZ,
+            FEED_ALT
         };
 
         // Read-only firmware version string returned at connect.

@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <termios.h>
 #include <regex>
@@ -37,8 +38,8 @@ static std::unique_ptr<AvalonUPAS> upas(new AvalonUPAS());
 AvalonUPAS::AvalonUPAS()
     : PACInterface(this)
 {
-    setVersion(1, 1);
-    SetCapability(PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION);
+    setVersion(1, 2);
+    SetCapability(PAC_CAN_REVERSE | PAC_HAS_POSITION);
 }
 
 const char *AvalonUPAS::getDefaultName()
@@ -52,17 +53,15 @@ bool AvalonUPAS::initProperties()
 
     PACI::initProperties(MAIN_CONTROL_TAB);
 
-    // Speed: map directly to GRBL feed rate (mm/min), range 100–1000 step 100 default 500.
-    SpeedNP[0].setMin(100);
-    SpeedNP[0].setMax(1000);
-    SpeedNP[0].setStep(100);
-    SpeedNP[0].setValue(500);
+    // Feed rate per axis in mm/min (GRBL F word). Defaults are Avalon's suggested speeds (AZ 1000, ALT 700).
+    FeedRateNP[FEED_AZ].fill("FEED_AZ", "Azimuth (mm/min)", "%.0f", 10, 1000, 50, 1000);
+    FeedRateNP[FEED_ALT].fill("FEED_ALT", "Altitude (mm/min)", "%.0f", 10, 1000, 50, 700);
+    FeedRateNP.fill(getDeviceName(), "PAC_FEED_RATE", "Feed Rate", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    // Gear ratio: mm of motor travel per degree of polar-axis correction.
-    // Default 1.0 mm/deg; user should calibrate for their specific hardware.
-    // Avalon Default is 1.0 mm/arcmin 
-    GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 1.0);
-    GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 1.0);
+    // Gear ratio: mm of motor travel per arcminute of polar-axis correction.
+    // Defaults are the Avalon specifications (AZ 2, ALT 22), as also used by Avalon's own software.
+    GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 2.0);
+    GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 22.0);
     GearRatioNP.fill(getDeviceName(), "PAC_GEAR_RATIO", "Gear Ratio", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Firmware (read-only, populated in Handshake)
@@ -91,11 +90,13 @@ bool AvalonUPAS::updateProperties()
     if (isConnected())
     {
         defineProperty(GearRatioNP);
+        defineProperty(FeedRateNP);
         defineProperty(FirmwareTP);
     }
     else
     {
         deleteProperty(GearRatioNP);
+        deleteProperty(FeedRateNP);
         deleteProperty(FirmwareTP);
     }
 
@@ -107,6 +108,7 @@ bool AvalonUPAS::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     GearRatioNP.save(fp);
+    FeedRateNP.save(fp);
     PACI::saveConfigItems(fp);
     return true;
 }
@@ -212,9 +214,9 @@ bool AvalonUPAS::parseStatus(const char *response)
 
 IPState AvalonUPAS::MoveAZ(double degrees)
 {
-    // incluce conversion from arcminutes to degrees in the gear ratio, so users can calibrate in more intuitive mm/arcmin instead of mm/degree.
+    // The gear ratio is in mm/arcmin, so convert the requested degrees to arcminutes first.
     const double mm       = degrees * 60 * GearRatioNP[GEAR_AZ].getValue();
-    const double feedRate = SpeedNP[0].getValue();
+    const double feedRate = feedRateFor(mm, 0);
 
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4f F%.0f", mm, feedRate);
@@ -237,9 +239,9 @@ IPState AvalonUPAS::MoveAZ(double degrees)
 
 IPState AvalonUPAS::MoveALT(double degrees)
 {
-    // incluce conversion from arcminutes to degrees in the gear ratio, so users can calibrate in more intuitive mm/arcmin instead of mm/degree.
-    const double mm       = degrees * 60 *GearRatioNP[GEAR_ALT].getValue();
-    const double feedRate = SpeedNP[0].getValue();
+    // The gear ratio is in mm/arcmin, so convert the requested degrees to arcminutes first.
+    const double mm       = degrees * 60 * GearRatioNP[GEAR_ALT].getValue();
+    const double feedRate = feedRateFor(0, mm);
 
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "$J=G91G21Y%.4f F%.0f", mm, feedRate);
@@ -266,7 +268,7 @@ IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
     // two separate jog commands.
     const double mmAZ    = azDegrees  * 60 * GearRatioNP[GEAR_AZ].getValue();
     const double mmALT   = altDegrees * 60 * GearRatioNP[GEAR_ALT].getValue();
-    const double feedRate = SpeedNP[0].getValue();
+    const double feedRate = feedRateFor(mmAZ, mmALT);
 
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4fY%.4f F%.0f", mmAZ, mmALT, feedRate);
@@ -287,6 +289,22 @@ IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
     return IPS_BUSY;
 }
 
+double AvalonUPAS::feedRateFor(double azMM, double altMM)
+{
+    // GRBL applies one feed rate to the whole jog vector. Choose it so that each axis moves
+    // at most at its own feed rate; the limiting axis then moves at exactly that rate.
+    const double length = std::hypot(azMM, altMM);
+    if (length == 0)
+        return FeedRateNP[FEED_AZ].getValue();
+
+    double feedRate = std::numeric_limits<double>::max();
+    if (azMM != 0)
+        feedRate = std::min(feedRate, FeedRateNP[FEED_AZ].getValue() * length / std::fabs(azMM));
+    if (altMM != 0)
+        feedRate = std::min(feedRate, FeedRateNP[FEED_ALT].getValue() * length / std::fabs(altMM));
+    return feedRate;
+}
+
 bool AvalonUPAS::AbortMotion()
 {
     // GRBL real-time jog cancel command (single byte 0x85, no newline needed).
@@ -303,14 +321,6 @@ bool AvalonUPAS::AbortMotion()
 
     m_IsMoving = false;
     LOG_INFO("UPAS motion aborted.");
-    return true;
-}
-
-bool AvalonUPAS::SetPACSpeed(uint16_t speed)
-{
-    // Speed is stored in SpeedNP and used in the next jog command; nothing is
-    // sent to the hardware here since GRBL feed rate is per-command.
-    LOGF_INFO("UPAS speed set to %u mm/min.", speed);
     return true;
 }
 
@@ -359,6 +369,14 @@ bool AvalonUPAS::ISNewNumber(const char *dev, const char *name, double values[],
             GearRatioNP.update(values, names, n);
             GearRatioNP.setState(IPS_OK);
             GearRatioNP.apply();
+            return true;
+        }
+
+        if (FeedRateNP.isNameMatch(name))
+        {
+            FeedRateNP.update(values, names, n);
+            FeedRateNP.setState(IPS_OK);
+            FeedRateNP.apply();
             return true;
         }
 
