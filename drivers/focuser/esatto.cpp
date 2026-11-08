@@ -70,12 +70,6 @@ bool Esatto::initProperties()
     TemperatureNP[TEMPERATURE_EXTERNAL].fill("TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Speed Moves
-    FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
-    FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
-    FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
-    FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
     // Override the default Max. Position to make it Read-Only
     FocusMaxPosNP.setPermission(IP_RO);
 
@@ -212,42 +206,6 @@ bool Esatto::updateVoltageIn()
     if (m_Esatto->getVoltageUSB(voltage))
         VoltageNP[VOLTAGE_USB].setValue(voltage);
     return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // Fast motion
-        if (FastMoveSP.isNameMatch(name))
-        {
-            FastMoveSP.update(states, names, n);
-            auto current_switch = FastMoveSP.findOnSwitchIndex();
-
-            switch (current_switch)
-            {
-                case FASTMOVE_IN:
-                    m_Esatto->fastMoveIn();
-                    break;
-                case FASTMOVE_OUT:
-                    m_Esatto->fastMoveOut();
-                    break;
-                case FASTMOVE_STOP:
-                    m_Esatto->stop();
-                    break;
-                default:
-                    break;
-            }
-
-            FastMoveSP.setState(IPS_BUSY);
-            FastMoveSP.apply();
-            return true;
-        }
-    }
-    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

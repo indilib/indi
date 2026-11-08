@@ -34,7 +34,6 @@ class Esatto : public INDI::Focuser
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         virtual bool Handshake() override;
@@ -88,14 +87,6 @@ class Esatto : public INDI::Focuser
         {
             VOLTAGE_12V,
             VOLTAGE_USB
-        };
-
-        INDI::PropertySwitch FastMoveSP {3};
-        enum
-        {
-            FASTMOVE_IN,
-            FASTMOVE_OUT,
-            FASTMOVE_STOP
         };
 
         std::unique_ptr<PrimalucaLabs::Esatto> m_Esatto;

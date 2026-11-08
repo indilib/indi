@@ -77,7 +77,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
 
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
-        bool isMotionComplete();
+        void updateSpeed();
         bool isFocusMoveFinished();
         bool isRotatorMoveFinished();
 
@@ -113,14 +113,6 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
             VOLTAGE_USB
         };
 
-
-        INDI::PropertySwitch FastMoveSP {3};
-        enum
-        {
-            FASTMOVE_IN,
-            FASTMOVE_OUT,
-            FASTMOVE_STOP
-        };
 
         INDI::PropertySwitch BacklashMeasurementSP {2};
         enum

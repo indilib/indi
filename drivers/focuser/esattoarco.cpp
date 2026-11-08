@@ -106,13 +106,6 @@ bool EsattoArco::initProperties()
                                MAIN_CONTROL_TAB,
                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    // Speed Moves
-    FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
-    FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
-    FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
-    FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
-                    ISR_ATMOST1, 0, IPS_IDLE);
-
     // Override the default Max. Position to make it Read-Only
     FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
@@ -195,7 +188,11 @@ bool EsattoArco::updateProperties()
             defineProperty(TemperatureNP);
 
         if (updateVoltageIn())
+        {
             defineProperty(VoltageNP);
+            if (VoltageNP[VOLTAGE_12V].getValue() < 11.0)
+                LOG_WARN("Please check 12v DC power supply is connected. The Arco cannot rotate reliably on USB power.");
+        }
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
@@ -371,14 +368,14 @@ bool EsattoArco::updateVoltageIn()
 /************************************************************************************************************
  *
 *************************************************************************************************************/
-bool EsattoArco::isMotionComplete()
+void EsattoArco::updateSpeed()
 {
-    uint32_t speed;
-    if (m_Esatto->getCurrentSpeed(speed))
+    uint32_t speed = 0;
+    if (m_Esatto->getCurrentSpeed(speed) && SpeedNP[0].getValue() != speed)
     {
-        return speed == 0;
+        SpeedNP[0].setValue(speed);
+        SpeedNP.apply();
     }
-    return false;
 }
 
 /************************************************************************************************************
@@ -489,39 +486,10 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             }
             return true;
         }
-        // Fast motion
-        else if (FastMoveSP.isNameMatch(name))
-        {
-            FastMoveSP.update(states, names, n);
-            auto current_switch = FastMoveSP.findOnSwitchIndex();
-
-            switch (current_switch)
-            {
-                case FASTMOVE_IN:
-                    if (!m_Esatto->fastMoveIn())
-                        return false;
-                    FastMoveSP.setState(IPS_BUSY);
-                    break;
-                case FASTMOVE_OUT:
-                    if (!m_Esatto->fastMoveOut())
-                        return false;
-                    FastMoveSP.setState(IPS_BUSY);
-                    break;
-                case FASTMOVE_STOP:
-                    if (!m_Esatto->stop())
-                        return false;
-                    FastMoveSP.setState(IPS_IDLE);
-                    break;
-                default:
-                    break;
-            }
-
-            FastMoveSP.apply();
-            return true;
-        }
         // Rotator Calibration
         else if (RotatorCalibrationSP.isNameMatch(name))
         {
+            LOG_WARN("The Arco calibration makes a full rotation. Make sure the cables can follow it.");
             if(m_Arco->calibrate())
             {
                 LOG_INFO("Calibrating Arco. Please wait.");
@@ -632,6 +600,9 @@ void EsattoArco::TimerHit()
     auto currentRotatorPosition = RotatorAbsPosNP[0].getValue();
     if (updatePosition())
     {
+        if (FocusAbsPosNP.getState() == IPS_BUSY)
+            updateSpeed();
+
         // Focuser State Machine
         if (FocusAbsPosNP.getState() == IPS_BUSY && isFocusMoveFinished())
         {
@@ -759,11 +730,16 @@ bool EsattoArco::Ack()
         return false;
     }
 
+    const bool wasEnabled = m_Arco->isEnabled();
+
     if (m_Arco->setEnabled(true) && !m_Arco->isEnabled())
     {
         LOG_ERROR("Failed to enable ARCO rotator. Please check it is powered and connected.");
         return false;
     }
+
+    if (!wasEnabled)
+        LOG_WARN("The Arco was disabled and is enabled now. It has to be calibrated before use.");
 
     bool rc1 = m_Esatto->getSerialNumber(serial);
     bool rc2 = m_Esatto->getFirmwareVersion(firmware);
