@@ -273,9 +273,7 @@ IPState Esatto::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
-    bool rc = MoveAbsFocuser(newPosition);
-
-    return (rc ? IPS_BUSY : IPS_ALERT);
+    return MoveAbsFocuser(newPosition);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

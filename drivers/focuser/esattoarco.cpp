@@ -556,11 +556,7 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
 IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (m_Esatto->goAbsolutePosition(targetTicks))
-    {
-        RotatorAbsPosNP.setState(IPS_BUSY);
-        RotatorAbsPosNP.apply();
         return IPS_BUSY;
-    }
     return IPS_ALERT;
 }
 
@@ -573,9 +569,7 @@ IPState EsattoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
-    bool rc = MoveAbsFocuser(newPosition);
-
-    return (rc ? IPS_BUSY : IPS_ALERT);
+    return MoveAbsFocuser(newPosition);
 }
 
 /************************************************************************************************************
