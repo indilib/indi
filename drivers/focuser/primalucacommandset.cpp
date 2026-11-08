@@ -78,11 +78,12 @@ bool Communication::sendRequest(const json &command, json *response)
     do
     {
         memset(read_buf, 0, sizeof(read_buf));
-        if ( (tty_rc = tty_read_section(m_PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) != TTY_OK)
+        if ( (tty_rc = tty_nread_section(m_PortFD, read_buf, sizeof(read_buf) - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT,
+                                         &nbytes_read)) != TTY_OK)
         {
             char errorMessage[MAXRBUF] = {0};
             tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-            LOGF_ERROR("Serial write error: %s", errorMessage);
+            LOGF_ERROR("Serial read error: %s", errorMessage);
             return false;
         }
     }
@@ -403,7 +404,15 @@ bool Focuser::getFirmwareVersion(std::string &response)
     json versions;
     if (m_Communication->get(GENERIC_NODE, "SWVERS", versions))
     {
-        versions["SWAPP"].get_to(response);
+        try
+        {
+            versions["SWAPP"].get_to(response);
+        }
+        catch (json::exception &e)
+        {
+            DEBUGFDEVICE(m_Communication->getDeviceName(), INDI::Logger::DBG_ERROR, "Unexpected firmware version reply: %s", e.what());
+            return false;
+        }
         return true;
     }
     return false;

@@ -417,6 +417,13 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             BacklashMeasurementSP.update(states, names, n);
 
             auto current_switch = BacklashMeasurementSP.findOnSwitchIndex();
+            if (current_switch < 0)
+            {
+                BacklashMeasurementSP.setState(IPS_IDLE);
+                BacklashMeasurementSP.apply();
+                return true;
+            }
+
             BacklashMeasurementSP[current_switch].setState(ISS_ON);
             BacklashMeasurementSP.apply();
 
