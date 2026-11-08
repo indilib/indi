@@ -50,7 +50,7 @@ static const char *ROTATOR_TAB = "Rotator";
 
 EsattoArco::EsattoArco() : RotatorInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     // Focuser capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
