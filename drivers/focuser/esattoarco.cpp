@@ -801,7 +801,7 @@ IPState EsattoArco::MoveRotator(double angle)
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
     const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
-    auto newAngle = 0;
+    double newAngle = 0;
     if (isReversed)
         newAngle = ( angle > 180 ? 360 - angle : angle * -1);
     else
@@ -847,7 +847,7 @@ bool  EsattoArco::ReverseRotator(bool enabled)
 bool EsattoArco::SyncRotator(double angle)
 {
     const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
-    auto newAngle = 0;
+    double newAngle = 0;
     if (isReversed)
         newAngle = ( angle > 180 ? 360 - angle : angle * -1);
     else
