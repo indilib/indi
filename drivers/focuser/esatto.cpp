@@ -176,13 +176,10 @@ bool Esatto::updateTemperature()
     TemperatureNP.setState(IPS_OK);
 
     // External temperature - Optional
-    if (m_Esatto->getExternalTemp(temperature))
-    {
-        if (temperature < 90)
-            TemperatureNP[TEMPERATURE_EXTERNAL].setValue(temperature);
-        else
-            TemperatureNP[TEMPERATURE_EXTERNAL].setValue(-273.15);
-    }
+    if (m_Esatto->getExternalTemp(temperature) && temperature > -127 && temperature < 90)
+        TemperatureNP[TEMPERATURE_EXTERNAL].setValue(temperature);
+    else
+        TemperatureNP[TEMPERATURE_EXTERNAL].setValue(-273.15);
 
     return true;
 }
@@ -207,7 +204,7 @@ bool Esatto::updatePosition()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Esatto::updateVoltageIn()
 {
-    double voltage;
+    double voltage = 0;
     if (m_Esatto->getVoltage12v(voltage))
         VoltageNP[VOLTAGE_12V].setValue(voltage);
 
@@ -370,13 +367,13 @@ bool Esatto::isMoveFinished()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Esatto::getStartupValues()
 {
+    // updateMaxLimit() resets the position, so it has to come first
+    auto rc3 = updateMaxLimit();
     auto rc1 = updatePosition();
     uint32_t steps {0};
     auto rc2 = m_Esatto->getBacklash(steps);
     if (rc2)
         FocusBacklashNP[0].setValue(steps);
-
-    auto rc3 = updateMaxLimit();
 
     return rc1 && rc2 && rc3;
 }

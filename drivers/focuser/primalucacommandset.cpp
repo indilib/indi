@@ -115,8 +115,7 @@ bool Communication::getStringAsDouble(NodeType type, const std::string &paramete
     std::string response;
     if (get(type, parameter, response))
     {
-        sscanf(response.c_str(), "%lf", &value);
-        return true;
+        return sscanf(response.c_str(), "%lf", &value) == 1;
     }
     return false;
 }

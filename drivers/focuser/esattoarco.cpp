@@ -330,7 +330,7 @@ bool EsattoArco::updatePosition()
     if (m_Esatto->getAbsolutePosition(steps))
         FocusAbsPosNP[0].setValue(steps);
 
-    double arcoPosition;
+    double arcoPosition = 0;
     // Update Arco steps position
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_STEPS, arcoPosition))
     {
@@ -358,7 +358,7 @@ bool EsattoArco::updatePosition()
 *************************************************************************************************************/
 bool EsattoArco::updateVoltageIn()
 {
-    double voltage;
+    double voltage = 0;
     if (m_Esatto->getVoltage12v(voltage))
         VoltageNP[VOLTAGE_12V].setValue(voltage);
 
@@ -461,7 +461,7 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 }
                 else if (bStage == BacklashMaximum)
                 {
-                    FocusBacklashNP[0].setValue(FocusBacklashNP[0].getValue() - FocusAbsPosNP[0].getValue());
+                    FocusBacklashNP[0].setValue(std::abs(FocusBacklashNP[0].getValue() - FocusAbsPosNP[0].getValue()));
 
                     // Set Esatto backlash
                     SetFocuserBacklash(FocusBacklashNP[0].getValue());
@@ -684,10 +684,12 @@ void EsattoArco::TimerHit()
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
     {
-        auto currentTemperature = TemperatureNP[0].getValue();
+        auto currentExternal = TemperatureNP[TEMPERATURE_EXTERNAL].getValue();
+        auto currentMotor = TemperatureNP[TEMPERATURE_MOTOR].getValue();
         if (updateTemperature())
         {
-            if (std::abs(currentTemperature - TemperatureNP[0].getValue()) >= 0.1)
+            if (std::abs(currentExternal - TemperatureNP[TEMPERATURE_EXTERNAL].getValue()) >= 0.1 ||
+                    std::abs(currentMotor - TemperatureNP[TEMPERATURE_MOTOR].getValue()) >= 0.1)
                 TemperatureNP.apply();
         }
 
@@ -716,6 +718,11 @@ void EsattoArco::TimerHit()
 bool EsattoArco::getStartupValues()
 {
     updatePosition();
+
+    uint32_t backlash = 0;
+    if (m_Esatto->getBacklash(backlash))
+        FocusBacklashNP[0].setValue(backlash);
+
     json info;
     if (m_Arco->getMotorInfo(info))
     {
