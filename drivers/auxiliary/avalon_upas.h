@@ -37,7 +37,12 @@
  *   - Abort (jog cancel): 0x85 byte
  *   - Axis reverse:  $3={mask}\n  (bit 0 = AZ, bit 1 = ALT)
  *
- * Capabilities: PAC_CAN_REVERSE | PAC_HAS_POSITION
+ * Backlash compensation is done in software, since GRBL has none: when enabled,
+ * every move ends in the configured approach direction. A move against that
+ * direction overshoots by the backlash and is followed by a second jog back
+ * (GRBL queues both jogs in its planner). Backlash is set in arcminutes.
+ *
+ * Capabilities: PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
  * Feed rate is set per axis (PAC_FEED_RATE) instead of the interface's single speed.
  */
 class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
@@ -69,6 +74,11 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         bool ReverseAZ(bool enabled) override;
         bool ReverseALT(bool enabled) override;
 
+        // PACInterface – backlash (applied in software, see class description)
+        bool SetBacklashEnabled(bool enabled) override;
+        bool SetBacklashAZ(int32_t steps) override;
+        bool SetBacklashALT(int32_t steps) override;
+
     private:
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication
@@ -93,6 +103,23 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         double feedRateFor(double azMM, double altMM);
 
         ///////////////////////////////////////////////////////////////////////////////
+        /// Motion
+        ///////////////////////////////////////////////////////////////////////////////
+        /** @brief Send one relative jog. An axis with 0 mm is left out of the command. */
+        bool sendJog(double azMM, double altMM);
+
+        /** @brief Jog both axes, adding a final-approach jog when backlash compensation needs one. */
+        IPState jogWithBacklash(double azMM, double altMM);
+
+        /**
+         * @brief finalApproachMM Split a move so that it ends in the configured approach direction.
+         * @param axis BACKLASH_AZ or BACKLASH_ALT.
+         * @param mm   Requested move; extended by the backlash if it runs against the approach direction.
+         * @return The final-approach move in mm, or 0 if none is needed.
+         */
+        double finalApproachMM(int axis, double &mm);
+
+        ///////////////////////////////////////////////////////////////////////////////
         /// Driver properties
         ///////////////////////////////////////////////////////////////////////////////
 
@@ -110,6 +137,15 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         {
             FEED_AZ,
             FEED_ALT
+        };
+
+        // Direction in which every move ends when backlash compensation is enabled.
+        INDI::PropertySwitch AZApproachSP {2};
+        INDI::PropertySwitch ALTApproachSP {2};
+        enum
+        {
+            APPROACH_POSITIVE,
+            APPROACH_NEGATIVE
         };
 
         // Read-only firmware version string returned at connect.

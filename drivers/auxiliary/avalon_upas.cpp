@@ -39,7 +39,7 @@ AvalonUPAS::AvalonUPAS()
     : PACInterface(this)
 {
     setVersion(1, 2);
-    SetCapability(PAC_CAN_REVERSE | PAC_HAS_POSITION);
+    SetCapability(PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH);
 }
 
 const char *AvalonUPAS::getDefaultName()
@@ -63,6 +63,21 @@ bool AvalonUPAS::initProperties()
     GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 2.0);
     GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 22.0);
     GearRatioNP.fill(getDeviceName(), "PAC_GEAR_RATIO", "Gear Ratio", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Backlash: compensated in software, so use arcminutes instead of the interface's motor steps.
+    BacklashNP[BACKLASH_AZ].fill("BACKLASH_AZ", "Azimuth (arcmin)", "%.2f", 0, 60, 0.1, 0);
+    BacklashNP[BACKLASH_ALT].fill("BACKLASH_ALT", "Altitude (arcmin)", "%.2f", 0, 60, 0.1, 0);
+    BacklashNP.setLabel("Backlash");
+
+    // Final approach direction per axis. ALT usually works best when the last move lifts against gravity.
+    AZApproachSP[APPROACH_POSITIVE].fill("APPROACH_POSITIVE", "+", ISS_ON);
+    AZApproachSP[APPROACH_NEGATIVE].fill("APPROACH_NEGATIVE", "-", ISS_OFF);
+    AZApproachSP.fill(getDeviceName(), "PAC_AZ_APPROACH", "Azimuth Approach", MAIN_CONTROL_TAB, IP_RW,
+                      ISR_1OFMANY, 60, IPS_IDLE);
+    ALTApproachSP[APPROACH_POSITIVE].fill("APPROACH_POSITIVE", "+", ISS_ON);
+    ALTApproachSP[APPROACH_NEGATIVE].fill("APPROACH_NEGATIVE", "-", ISS_OFF);
+    ALTApproachSP.fill(getDeviceName(), "PAC_ALT_APPROACH", "Altitude Approach", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Firmware (read-only, populated in Handshake)
     FirmwareTP[0].fill("VERSION", "Version", "Unknown");
@@ -101,6 +116,19 @@ bool AvalonUPAS::updateProperties()
     }
 
     PACI::updateProperties();
+
+    // Define after the PAC properties so the approach switches follow the backlash controls.
+    if (isConnected())
+    {
+        defineProperty(AZApproachSP);
+        defineProperty(ALTApproachSP);
+    }
+    else
+    {
+        deleteProperty(AZApproachSP);
+        deleteProperty(ALTApproachSP);
+    }
+
     return true;
 }
 
@@ -109,6 +137,8 @@ bool AvalonUPAS::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     GearRatioNP.save(fp);
     FeedRateNP.save(fp);
+    AZApproachSP.save(fp);
+    ALTApproachSP.save(fp);
     PACI::saveConfigItems(fp);
     return true;
 }
@@ -218,23 +248,10 @@ IPState AvalonUPAS::MoveAZ(double degrees)
     const double mm       = degrees * 60 * GearRatioNP[GEAR_AZ].getValue();
     const double feedRate = feedRateFor(mm, 0);
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4f F%.0f", mm, feedRate);
-
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res))
-        return IPS_ALERT;
-
-    // GRBL acknowledges jog commands with "ok"
-    if (strncmp(res, "ok", 2) != 0)
-    {
-        LOGF_ERROR("Unexpected AZ jog response: %s", res);
-        return IPS_ALERT;
-    }
-
-    m_IsMoving = true;
-    LOGF_INFO("AZ jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
-    return IPS_BUSY;
+    IPState state = jogWithBacklash(mm, 0);
+    if (state == IPS_BUSY)
+        LOGF_INFO("AZ jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
+    return state;
 }
 
 IPState AvalonUPAS::MoveALT(double degrees)
@@ -243,22 +260,10 @@ IPState AvalonUPAS::MoveALT(double degrees)
     const double mm       = degrees * 60 * GearRatioNP[GEAR_ALT].getValue();
     const double feedRate = feedRateFor(0, mm);
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "$J=G91G21Y%.4f F%.0f", mm, feedRate);
-
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res))
-        return IPS_ALERT;
-
-    if (strncmp(res, "ok", 2) != 0)
-    {
-        LOGF_ERROR("Unexpected ALT jog response: %s", res);
-        return IPS_ALERT;
-    }
-
-    m_IsMoving = true;
-    LOGF_INFO("ALT jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
-    return IPS_BUSY;
+    IPState state = jogWithBacklash(0, mm);
+    if (state == IPS_BUSY)
+        LOGF_INFO("ALT jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
+    return state;
 }
 
 IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
@@ -270,23 +275,77 @@ IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
     const double mmALT   = altDegrees * 60 * GearRatioNP[GEAR_ALT].getValue();
     const double feedRate = feedRateFor(mmAZ, mmALT);
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4fY%.4f F%.0f", mmAZ, mmALT, feedRate);
+    IPState state = jogWithBacklash(mmAZ, mmALT);
+    if (state == IPS_BUSY)
+        LOGF_INFO("MoveBoth: AZ %.4f° (%.4f mm), ALT %.4f° (%.4f mm) @ %.0f mm/min.",
+                  azDegrees, mmAZ, altDegrees, mmALT, feedRate);
+    return state;
+}
 
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res))
+IPState AvalonUPAS::jogWithBacklash(double azMM, double altMM)
+{
+    const double azApproach  = finalApproachMM(BACKLASH_AZ, azMM);
+    const double altApproach = finalApproachMM(BACKLASH_ALT, altMM);
+
+    if (!sendJog(azMM, altMM))
         return IPS_ALERT;
 
-    if (strncmp(res, "ok", 2) != 0)
+    // GRBL queues jogs in its planner, so the final approach runs right after the main jog.
+    if (azApproach != 0 || altApproach != 0)
     {
-        LOGF_ERROR("MoveBoth GRBL response: %s", res);
-        return IPS_ALERT;
+        if (!sendJog(azApproach, altApproach))
+        {
+            AbortMotion();
+            return IPS_ALERT;
+        }
+
+        LOGF_INFO("Backlash: overshoot and final approach AZ %.4f mm, ALT %.4f mm.", azApproach, altApproach);
     }
 
     m_IsMoving = true;
-    LOGF_INFO("MoveBoth: AZ %.4f° (%.4f mm), ALT %.4f° (%.4f mm) @ %.0f mm/min.",
-              azDegrees, mmAZ, altDegrees, mmALT, feedRate);
     return IPS_BUSY;
+}
+
+double AvalonUPAS::finalApproachMM(int axis, double &mm)
+{
+    if (BacklashSP[DefaultDevice::INDI_ENABLED].getState() != ISS_ON)
+        return 0;
+
+    // BACKLASH_AZ/ALT and GEAR_AZ/ALT share the same indices.
+    const double backlashMM = BacklashNP[axis].getValue() * GearRatioNP[axis].getValue();
+    const auto &approachSP  = (axis == BACKLASH_AZ) ? AZApproachSP : ALTApproachSP;
+    const double direction  = approachSP[APPROACH_NEGATIVE].getState() == ISS_ON ? -1 : 1;
+
+    // Moves that already end in the approach direction need no compensation.
+    if (backlashMM <= 0 || mm * direction >= 0)
+        return 0;
+
+    mm -= direction * backlashMM;
+    return direction * backlashMM;
+}
+
+bool AvalonUPAS::sendJog(double azMM, double altMM)
+{
+    char cmd[DRIVER_LEN] = {0};
+    int len = snprintf(cmd, DRIVER_LEN, "$J=G91G21");
+    if (azMM != 0)
+        len += snprintf(cmd + len, DRIVER_LEN - len, "X%.4f", azMM);
+    if (altMM != 0)
+        len += snprintf(cmd + len, DRIVER_LEN - len, "Y%.4f", altMM);
+    snprintf(cmd + len, DRIVER_LEN - len, " F%.0f", feedRateFor(azMM, altMM));
+
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand(cmd, res))
+        return false;
+
+    // GRBL acknowledges jog commands with "ok"
+    if (strncmp(res, "ok", 2) != 0)
+    {
+        LOGF_ERROR("Unexpected jog response to %s: %s", cmd, res);
+        return false;
+    }
+
+    return true;
 }
 
 double AvalonUPAS::feedRateFor(double azMM, double altMM)
@@ -360,6 +419,28 @@ bool AvalonUPAS::ReverseALT(bool enabled)
     return (strncmp(res, "ok", 2) == 0);
 }
 
+bool AvalonUPAS::SetBacklashEnabled(bool enabled)
+{
+    // Compensation is applied when jogging; nothing to send to GRBL.
+    LOGF_INFO("Backlash compensation %s.", enabled ? "enabled" : "disabled");
+    return true;
+}
+
+bool AvalonUPAS::SetBacklashAZ(int32_t steps)
+{
+    // The interface passes whole steps; use the arcminute value from the property instead.
+    INDI_UNUSED(steps);
+    LOGF_INFO("AZ backlash set to %.2f arcmin.", BacklashNP[BACKLASH_AZ].getValue());
+    return true;
+}
+
+bool AvalonUPAS::SetBacklashALT(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    LOGF_INFO("ALT backlash set to %.2f arcmin.", BacklashNP[BACKLASH_ALT].getValue());
+    return true;
+}
+
 bool AvalonUPAS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -391,6 +472,16 @@ bool AvalonUPAS::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (AZApproachSP.isNameMatch(name) || ALTApproachSP.isNameMatch(name))
+        {
+            auto &approachSP = AZApproachSP.isNameMatch(name) ? AZApproachSP : ALTApproachSP;
+            approachSP.update(states, names, n);
+            approachSP.setState(IPS_OK);
+            approachSP.apply();
+            saveConfig(approachSP);
+            return true;
+        }
+
         if (PACI::processSwitch(dev, name, states, names, n))
             return true;
     }
