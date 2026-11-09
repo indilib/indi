@@ -51,7 +51,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 29);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 30);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -1992,12 +1992,16 @@ void LX200_OnStep::getBasicData()
 
         // Query mount type via :GXEM# - more reliable than ACK (0x06) which has a known bug in OnStepX
         // Older firmware may reply with a letter: E = GEM, K = Fork, k = Fork Alt, A = AltAz.
-        // OnStepX replies with a numeric setting, which is not mapped here. In that case the mount type
-        // is taken from the :GU# status string during the first ReadScopeStatus() instead.
+        // OnStepX can reply with a numeric setting (e.g. "0" = use the compiled-in default), which is not
+        // mapped here. In that case fall back to the LX200 alignment status :GW#, whose first character is
+        // A = AltAz, P = Polar (Fork), G = German (GEM). If both fail, the mount type is taken from the
+        // :GU# status string during the first ReadScopeStatus().
+        bool mountTypeDetected = false;
         char mountTypeResponse[RB_MAX_LEN] = {0};
         int gxem_error = getCommandSingleCharErrorOrLongResponse(PortFD, mountTypeResponse, ":GXEM#");
         if (gxem_error > 0)
         {
+            mountTypeDetected = true;
             switch (mountTypeResponse[0])
             {
                 case 'A':
@@ -2021,13 +2025,49 @@ void LX200_OnStep::getBasicData()
                     LOG_INFO("Mount type detected: GEM");
                     break;
                 default:
-                    LOGF_DEBUG(":GXEM# returned '%s', mount type will be determined from :GU# status", mountTypeResponse);
+                    mountTypeDetected = false;
+                    LOGF_DEBUG(":GXEM# returned '%s', falling back to :GW#", mountTypeResponse);
                     break;
             }
         }
         else
         {
-            LOGF_WARN("Could not query mount type via :GXEM# (error %d), defaulting to GEM", gxem_error);
+            LOGF_DEBUG("Could not query mount type via :GXEM# (error %d), falling back to :GW#", gxem_error);
+        }
+
+        if (!mountTypeDetected)
+        {
+            memset(mountTypeResponse, 0, sizeof(mountTypeResponse));
+            int gw_error = getCommandSingleCharErrorOrLongResponse(PortFD, mountTypeResponse, ":GW#");
+            if (gw_error > 0)
+            {
+                mountTypeDetected = true;
+                switch (mountTypeResponse[0])
+                {
+                    case 'A':
+                        OSMountType = MOUNTTYPE_ALTAZ;
+                        setMountType(MOUNT_ALTAZ);
+                        LOG_INFO("Mount type detected via :GW#: AltAz");
+                        break;
+                    case 'P':
+                        OSMountType = MOUNTTYPE_FORK;
+                        setMountType(MOUNT_EQ_FORK);
+                        LOG_INFO("Mount type detected via :GW#: Fork (Equatorial)");
+                        break;
+                    case 'G':
+                        OSMountType = MOUNTTYPE_GEM;
+                        setMountType(MOUNT_EQ_GEM);
+                        LOG_INFO("Mount type detected via :GW#: GEM");
+                        break;
+                    default:
+                        mountTypeDetected = false;
+                        break;
+                }
+            }
+
+            if (!mountTypeDetected)
+                LOGF_WARN("Could not determine mount type via :GXEM# or :GW# (reply '%s'), "
+                          "it will be determined from :GU# status", mountTypeResponse);
         }
 
         if (InitPark())
