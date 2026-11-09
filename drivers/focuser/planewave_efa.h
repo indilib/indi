@@ -48,6 +48,8 @@ class EFA : public INDI::Focuser
             MTR_GOTO_OVER = 0x13,
             MTR_SLEWLIMITMAX = 0x1B,
             MTR_SLEWLIMITGETMAX = 0x1D,
+            // Not a speed setting: these MOVE the motor positive/negative at speed 0x00 (stop) to 0x09
+            // until the slew limit is reached (PlaneWave EFA protocol). Never send them to query anything.
             MTR_PMSLEW_RATE = 0x24,
             MTR_NMSLEW_RATE = 0x25,
             TEMP_GET = 0x26,
@@ -78,7 +80,6 @@ class EFA : public INDI::Focuser
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
         virtual bool AbortFocuser() override;
-        virtual bool SetFocuserSpeed(int speed) override;
         virtual void TimerHit() override;
         virtual bool Disconnect() override;
 
@@ -94,7 +95,6 @@ class EFA : public INDI::Focuser
         bool readFanState();
         bool readCalibrationState();
         bool readMaxSlewLimit();
-        bool readSlewRate();
         bool readApproachDirection();
         bool readStopDetect();
 
@@ -103,7 +103,6 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         bool setFanEnabled(bool enabled);
         bool setCalibrationEnabled(bool enabled);
-        bool setMotorSlewRate(uint8_t rate);
         bool setApproachDirection(uint8_t direction);
         bool setStopDetect(bool enabled);
 

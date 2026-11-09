@@ -40,15 +40,15 @@ static std::unique_ptr<EFA> steelDrive(new EFA());
 /////////////////////////////////////////////////////////////////////////////
 EFA::EFA()
 {
-    setVersion(1, 4);
+    setVersion(1, 5);
 
     // Focuser Capabilities
+    // No variable speed: the EFA has no speed setting. MTR_PMSLEW_RATE / MTR_NMSLEW_RATE start a move.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
                       FOCUSER_CAN_ABORT    |
                       FOCUSER_CAN_REVERSE  |
-                      FOCUSER_CAN_SYNC     |
-                      FOCUSER_HAS_VARIABLE_SPEED);
+                      FOCUSER_CAN_SYNC);
 }
 
 bool EFA::initProperties()
@@ -108,12 +108,6 @@ bool EFA::initProperties()
     StopDetectSP[STOP_DETECT_OFF].fill("STOP_DETECT_OFF", "Disabled", ISS_OFF);
     StopDetectSP.fill(getDeviceName(), "FOCUS_STOP_DETECT", "Stop Detection",
                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // Setup focuser speed limits (rates 1–9 supported by the EFA hardware)
-    FocusSpeedNP[0].setMin(1);
-    FocusSpeedNP[0].setMax(9);
-    FocusSpeedNP[0].setValue(4);
-    FocusSpeedNP[0].setStep(1);
 
     // Setup limits
     FocusMaxPosNP[0].setValue(1e7);
@@ -485,15 +479,6 @@ bool EFA::AbortFocuser()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Set Focuser Speed
-/// Maps the INDI speed (1-9) to the EFA positive and negative slew rates.
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::SetFocuserSpeed(int speed)
-{
-    return setMotorSlewRate(static_cast<uint8_t>(speed));
-}
-
-/////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
 void EFA::TimerHit()
@@ -668,7 +653,6 @@ void EFA::getStartupValues()
     readCalibrationState();
     readFanState();
     readTemperature();
-    readSlewRate();
     readApproachDirection();
     readStopDetect();
 
@@ -987,83 +971,6 @@ bool EFA::readMaxSlewLimit()
     }
 
     return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Read Motor Slew Rate
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::readSlewRate()
-{
-    // Read the positive (outward) slew rate and use it as the current speed
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
-
-    cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x03;
-    cmd[2] = DEVICE_PC;
-    cmd[3] = DEVICE_FOC;
-    cmd[4] = MTR_PMSLEW_RATE;
-    cmd[5] = calculateCheckSum(cmd, len);
-
-    if (!validateLengths(cmd, len))
-        return false;
-
-    if (!sendCommand(cmd, res, len, DRIVER_LEN))
-        return false;
-
-    uint8_t rate = res[5];
-    if (rate >= 1 && rate <= 9)
-    {
-        FocusSpeedNP[0].setValue(rate);
-        FocusSpeedNP.setState(IPS_OK);
-    }
-
-    return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Set Motor Slew Rate
-/// Sets both positive (outward) and negative (inward) slew rates to the same value.
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::setMotorSlewRate(uint8_t rate)
-{
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
-
-    // Set positive (outward) rate
-    cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x04;
-    cmd[2] = DEVICE_PC;
-    cmd[3] = DEVICE_FOC;
-    cmd[4] = MTR_PMSLEW_RATE;
-    cmd[5] = rate;
-    cmd[6] = calculateCheckSum(cmd, len);
-
-    if (!validateLengths(cmd, len))
-        return false;
-
-    if (!sendCommand(cmd, res, len, DRIVER_LEN))
-        return false;
-
-    if (res[5] != 1)
-        return false;
-
-    // Set negative (inward) rate
-    memset(cmd, 0, sizeof(cmd));
-    memset(res, 0, sizeof(res));
-    cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x04;
-    cmd[2] = DEVICE_PC;
-    cmd[3] = DEVICE_FOC;
-    cmd[4] = MTR_NMSLEW_RATE;
-    cmd[5] = rate;
-    cmd[6] = calculateCheckSum(cmd, len);
-
-    if (!validateLengths(cmd, len))
-        return false;
-
-    if (!sendCommand(cmd, res, len, DRIVER_LEN))
-        return false;
-
-    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////

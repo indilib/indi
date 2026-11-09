@@ -75,3 +75,17 @@ TARGET_LINK_LIBRARIES(test_lx200_onstep
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_lx200_onstep test_lx200_onstep)
+# The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_planewave_efa
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/planewave_efa.cpp"
+        test_planewave_efa.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_planewave_efa
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_planewave_efa test_planewave_efa)
+ENDIF()
