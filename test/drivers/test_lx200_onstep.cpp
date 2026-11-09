@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <fcntl.h>
@@ -220,6 +221,11 @@ class OnStepUnderTest : public LX200_OnStep
         bool parked()
         {
             return isParked();
+        }
+
+        void setParkTimeoutSeconds(int seconds)
+        {
+            m_ParkTimeoutSeconds = seconds;
         }
 };
 
@@ -453,6 +459,62 @@ TEST(LX200OnStepTest, failedParkIsReported)
     ASSERT_FALSE(states.empty());
     EXPECT_EQ(states.back(), "Alert");
     EXPECT_FALSE(driver.parked());
+}
+
+// A controller that never reports the mount parked (no 'P') nor a failed park ('F') must not leave the park running
+// forever: after the park timeout it ends with an error.
+TEST(LX200OnStepTest, parkWithoutParkedStatusTimesOut)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+    driver.setParkTimeoutSeconds(1);
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestPark());
+    mount.setStatus(STATUS_PARKING, "03:10:12", "+75*02:44");
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_IDLE, "06:01:00", "+89*59:59");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> beforeTimeout = published.parkStates();
+
+    PublishedStates afterTimeout;
+    std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = afterTimeout.parkStates();
+
+    ASSERT_FALSE(beforeTimeout.empty());
+    for (const auto &state : beforeTimeout)
+        EXPECT_EQ(state, "Busy") << "The park ended before the timeout";
+    ASSERT_FALSE(states.empty()) << "The park was never ended";
+    EXPECT_EQ(states.back(), "Alert");
+    EXPECT_FALSE(driver.parked());
+}
+
+// A lost connection must still be reported: a single missed :GU# answer is skipped, but after
+// MAX_MISSED_STATUS_REPLIES in a row the poll fails (the base class then sets EQUATORIAL_EOD_COORD to Alert), and
+// the first answer afterwards ends the error.
+TEST(LX200OnStepTest, lostConnectionFailsPollAfterThreeMissedReplies)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    mount.dropStatusReplies(5);
+    std::vector<bool> results;
+    for (int i = 0; i < 5; i++)
+        results.push_back(driver.poll());
+    EXPECT_EQ(results, (std::vector<bool> {true, true, false, false, false}));
+
+    // The connection is back: polls succeed again, and a single missed answer is skipped again
+    EXPECT_TRUE(driver.poll());
+    mount.dropStatusReplies(1);
+    EXPECT_TRUE(driver.poll());
+    EXPECT_TRUE(driver.poll());
 }
 
 // OnStep :GU# of a mount that is idle with no error ('0') and with the meridian limit error ('7' = ERR_MERIDIAN).

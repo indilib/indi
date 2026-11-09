@@ -153,6 +153,7 @@
 #include "indipropertyswitch.h"
 #include "indipropertynumber.h"
 
+#include <chrono>
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
@@ -444,6 +445,14 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
          */
         // #define DEBUG_TRACKSTATE
         void PrintTrackState();
+
+        // A status poll without a :GU# answer is skipped, up to this many in a row. Then the poll fails as before,
+        // so a lost connection is still reported.
+        static constexpr int MAX_MISSED_STATUS_REPLIES = 3;
+        int m_MissedStatusReplies { 0 };
+        // A park that OnStep reports neither as parked ('P') nor as failed ('F') within this time ends with an error.
+        int m_ParkTimeoutSeconds { 300 };
+        std::chrono::steady_clock::time_point m_ParkStartTime;
 
     private:
         int currentCatalog;
