@@ -62,6 +62,21 @@ target_link_libraries(test_onstepxsite
 
 add_test(test-onstepxsite test_onstepxsite)
 
+add_executable(test_onstepxlimits
+    test_onstepxlimits.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXLimits.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
+)
+
+target_link_libraries(test_onstepxlimits
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_test(test-onstepxlimits test_onstepxlimits)
+
 add_executable(test_onstepxguide
     test_onstepxguide.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
@@ -94,6 +109,22 @@ target_link_libraries(test_onstepxtracking
 
 add_test(test-onstepxtracking test_onstepxtracking)
 
+add_executable(test_onstepxmeridian
+    test_onstepxmeridian.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXMeridian.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXStatus.cpp"
+)
+
+target_link_libraries(test_onstepxmeridian
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_test(test-onstepxmeridian test_onstepxmeridian)
+
 add_executable(test_onstepxdriverstatus
     test_onstepxdriverstatus.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
@@ -108,6 +139,37 @@ target_link_libraries(test_onstepxdriverstatus
 )
 
 add_test(test-onstepxdriverstatus test_onstepxdriverstatus)
+
+add_executable(test_onstepxpec
+    test_onstepxpec.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXPec.cpp"
+)
+
+target_link_libraries(test_onstepxpec
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_test(test-onstepxpec test_onstepxpec)
+
+add_executable(test_onstepxalignment
+    test_onstepxalignment.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXAlignment.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXStatus.cpp"
+)
+
+target_link_libraries(test_onstepxalignment
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_test(test-onstepxalignment test_onstepxalignment)
 
 add_executable(test_onstepxformat
     test_onstepxformat.cpp
