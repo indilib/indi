@@ -407,7 +407,10 @@
            <driver name="MX-HD Telescope">indi_mxhd_telescope</driver>
            <version>1.0</version>
         </device>
-        
+        <device label="OnStepX" manufacturer="OnStepX Project">
+            <driver name="OnStepX">indi_onstepx</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Rotators">
         <device label="Rigelsys nFrame" manufacturer="Rigel Systems">
@@ -1015,6 +1018,10 @@
         <device label="Wake On Lan" manufacturer="Others">
             <driver name="Wake On Lan">indi_wake_on_lan</driver>
             <version>1.0</version>
+        </device>
+        <device label="OnStepX Controller" manufacturer="OnStepX Project">
+            <driver name="OnStepX Controller">indi_onstepx_aux</driver>
+            <version>0.1</version>
         </device>
     </devGroup>
     <devGroup group="Domes">
