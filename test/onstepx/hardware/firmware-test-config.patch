@@ -1,0 +1,168 @@
+diff --git a/Config.h b/Config.h
+index 5cb9a8e..0eed83b 100644
+--- a/Config.h
++++ b/Config.h
+@@ -17,12 +17,12 @@
+ #define HOST_NAME                "OnStep" // nStep", Hostname for this device up to 16 chars.                                 Adjust
+ 
+ // PINMAP ------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#PINMAP
+-#define PINMAP                        OFF //    OFF, Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP4, MaxSTM3, FYSETC_E4,   <-Req'd
++#define PINMAP                       MaxESP4 //    OFF, Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP4, MaxSTM3, FYSETC_E4,   <-Req'd
+                                           //         BTT_SKR_PRO, etc.  Other boards and more info. in ~/src/Constants.h
+ 
+ // SERIAL PORT COMMAND CHANNELS --------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#SERIAL_PORTS
+ #define SERIAL_A_BAUD_DEFAULT        9600 //   9600, n. Where n=9600,19200,57600,115200,230400,460800 (common baud rates.)    Infreq
+-#define SERIAL_B_BAUD_DEFAULT        9600 //   9600, n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.   Infreq
++#define SERIAL_B_BAUD_DEFAULT         OFF //   9600, n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.   Infreq
+ #define SERIAL_B_ESP_FLASHING         OFF //    OFF, ON Upload ESP8266 WiFi firmware through SERIAL_B with :ESPFLASH# cmd.    Option
+ #define SERIAL_C_BAUD_DEFAULT         OFF //    OFF, n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.   Infreq
+ #define SERIAL_D_BAUD_DEFAULT         OFF //    OFF, n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.   Infreq
+@@ -56,7 +56,7 @@
+ // Typically: A4988, DRV8825, LV8729, S109, TMC2130, TMC5160, TMC2209, etc.
+ 
+ // AXIS1 RA/AZM -------------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Axes
+-#define AXIS1_DRIVER_MODEL            OFF //    OFF, Enter motor driver model (above) in both axes to activate the mount.    <-Often
++#define AXIS1_DRIVER_MODEL           A4988 //    OFF, Enter motor driver model (above) in both axes to activate the mount.    <-Often
+ 
+ // If runtime axis settings are enabled changes in the section below will be ignored (disable in SWS or by wiping NV/EEPROM):
+ // \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ 
+@@ -92,7 +92,7 @@
+                                           //         |HYST(n) Where n=0..1023 (ADU) for +/- Hystersis range.
+ 
+ // AXIS2 DEC/ALT ------------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Axes
+-#define AXIS2_DRIVER_MODEL            OFF //    OFF, Enter motor driver model (above) in both axes to activate the mount.    <-Often
++#define AXIS2_DRIVER_MODEL           A4988 //    OFF, Enter motor driver model (above) in both axes to activate the mount.    <-Often
+ 
+ // If runtime axis settings are enabled changes in the section below will be ignored (disable in SWS or by wiping NV/EEPROM):
+ // \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+@@ -186,7 +186,7 @@
+ #define PARK_STATUS                   OFF //    OFF, signals with a HIGH or LOW state when successfully parked.               Option
+ 
+ // PEC ------------------------------------------------------------ see https://onstep.groups.io/g/main/wiki/Configuration_Mount#PEC
+-#define PEC_STEPS_PER_WORM_ROTATION     0 //      0, n. Steps per worm rotation (0 disables else 720 sec buffer allocated.)  <-Req'd
++#define PEC_STEPS_PER_WORM_ROTATION  32000 //      0, n. Steps per worm rotation (0 disables else 720 sec buffer allocated.)  <-Req'd
+                                           //         n = (AXIS1_STEPS_PER_DEGREE*360)/reduction_final_stage
+ 
+ #define PEC_SENSE                     OFF //    OFF, HIGH. Senses the PEC signal rising edge or use LOW for falling edge.     Option
+@@ -237,7 +237,7 @@
+ // Typically: A4988, DRV8825, LV8729, S109, TMC2130S, etc.
+ 
+ // AXIS3 ROTATOR ---------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Rotator
+-#define AXIS3_DRIVER_MODEL            OFF //    OFF, Enter motor driver model (above) to activate the rotator.                Option
++#define AXIS3_DRIVER_MODEL           A4988 //    OFF, Enter motor driver model (above) to activate the rotator.                Option
+ #define AXIS3_SLEW_RATE_BASE_DESIRED  1.0 //    1.0, n. Desired slew rate in deg/sec. Adjustable at run-time from            <-Req'd
+                                           //         1/2 to 2x this rate, and as performance considerations require.
+ 
+@@ -276,7 +276,7 @@
+ // Typically: A4988, DRV8825, LV8729, S109, TMC2130S, etc.
+ 
+ // AXIS4 FOCUSER 1 -------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Focuser
+-#define AXIS4_DRIVER_MODEL            OFF //    OFF, Enter motor driver model (above) to activate the focuser.                Option
++#define AXIS4_DRIVER_MODEL           A4988 //    OFF, Enter motor driver model (above) to activate the focuser.                Option
+ #define AXIS4_SLEW_RATE_BASE_DESIRED  500 //    500, n, Where n=200..5000 (um/s.) Adjustable at run-time from                <-Req'd
+                                           //         1/2 to 2x this rate, and as performance considerations require.
+ #define AXIS4_SLEW_RATE_MINIMUM        20 //     20, n. Where n=5..200 (um/s.) Minimum microns/second.                        Adjust
+@@ -314,48 +314,58 @@
+ // FOCUSER TEMPERATURE ---------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Focuser
+ #define FOCUSER_TEMPERATURE           OFF //    OFF, THERMISTOR or n. Where n is the ds18b20 s/n for focuser temp.            Adjust
+ 
++// INDI driver test build: focusers 1 and 2 (Axis4, Axis5).  A gap (Axis5
++// without Axis4) crashes OnStepX 10.29c at boot: Focuser::init() dereferences
++// axes[index] for absent lower slots.
++#define AXIS5_DRIVER_MODEL          A4988
++
++// INDI driver test build: plain step/dir drivers (no chips fitted).  The TMC
++// sources still compile and default SERIAL_TMC to SoftSerial, which the ESP32
++// core lacks; point it at a hardware port (unused with A4988).
++#define SERIAL_TMC                  Serial1
++
+ // =================================================================================================================================
+ // AUXILIARY FEATURES ==============================================================================================================
+ 
+ // FEATURES ------------------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Aux
+ // Note: Temporarily set DEBUG mode to VERBOSE and use "FEATURE1_TEMP DS1820" to list the DS18B20 device serial numbers.
+ 
+-#define FEATURE1_PURPOSE              OFF //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
+-#define FEATURE1_NAME          "FEATURE1" // "FE..", Name of feature being controlled.                                        Adjust
++#define FEATURE1_PURPOSE             SWITCH //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
++#define FEATURE1_NAME                "Switch" // "FE..", Name of feature being controlled.                                        Adjust
+ #define FEATURE1_TEMP                 OFF //    OFF, THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
+-#define FEATURE1_PIN                  OFF //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
++#define FEATURE1_PIN                 23 //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
+ #define FEATURE1_VALUE_DEFAULT        OFF //    OFF, ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
+ #define FEATURE1_VALUE_MEMORY         OFF //    OFF, ON remembers SWITCH, ANALOG_OUT, DEW_HEATER state across power cycles.   Adjust
+ #define FEATURE1_ON_STATE            HIGH //   HIGH, LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
+ 
+-#define FEATURE2_PURPOSE              OFF //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
+-#define FEATURE2_NAME          "FEATURE2" // "FE..", Name of feature being controlled.                                        Adjust
++#define FEATURE2_PURPOSE             ANALOG_OUT //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
++#define FEATURE2_NAME                "Analog" // "FE..", Name of feature being controlled.                                        Adjust
+ #define FEATURE2_TEMP                 OFF //    OFF, THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
+-#define FEATURE2_PIN                  OFF //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
++#define FEATURE2_PIN                 25 //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
+ #define FEATURE2_VALUE_DEFAULT        OFF //    OFF, ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
+ #define FEATURE2_VALUE_MEMORY         OFF //    OFF, ON remembers SWITCH, ANALOG_OUT, DEW_HEATER state across power cycles.   Adjust
+ #define FEATURE2_ON_STATE            HIGH //   HIGH, LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
+ 
+-#define FEATURE3_PURPOSE              OFF //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
+-#define FEATURE3_NAME          "FEATURE3" // "FE..", Name of feature being controlled.                                        Adjust
++#define FEATURE3_PURPOSE             DEW_HEATER //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
++#define FEATURE3_NAME                "Dew Heat" // "FE..", Name of feature being controlled.                                        Adjust
+ #define FEATURE3_TEMP                 OFF //    OFF, THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
+-#define FEATURE3_PIN                  OFF //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
++#define FEATURE3_PIN                 32 //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
+ #define FEATURE3_VALUE_DEFAULT        OFF //    OFF, ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
+ #define FEATURE3_VALUE_MEMORY         OFF //    OFF, ON remembers SWITCH, ANALOG_OUT, DEW_HEATER state across power cycles.   Adjust
+ #define FEATURE3_ON_STATE            HIGH //   HIGH, LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
+ 
+-#define FEATURE4_PURPOSE              OFF //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
+-#define FEATURE4_NAME          "FEATURE4" // "FE..", Name of feature being controlled.                                        Adjust
++#define FEATURE4_PURPOSE             INTERVALOMETER //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
++#define FEATURE4_NAME                "Interval" // "FE..", Name of feature being controlled.                                        Adjust
+ #define FEATURE4_TEMP                 OFF //    OFF, THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
+-#define FEATURE4_PIN                  OFF //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
++#define FEATURE4_PIN                 33 //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
+ #define FEATURE4_VALUE_DEFAULT        OFF //    OFF, ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
+ #define FEATURE4_VALUE_MEMORY         OFF //    OFF, ON remembers SWITCH, ANALOG_OUT, DEW_HEATER state across power cycles.   Adjust
+ #define FEATURE4_ON_STATE            HIGH //   HIGH, LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
+ 
+-#define FEATURE5_PURPOSE              OFF //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
+-#define FEATURE5_NAME          "FEATURE5" // "FE..", Name of feature being controlled.                                        Adjust
++#define FEATURE5_PURPOSE             SWITCH //    OFF, SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
++#define FEATURE5_NAME                "Switch" // "FE..", Name of feature being controlled.                                        Adjust
+ #define FEATURE5_TEMP                 OFF //    OFF, THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
+-#define FEATURE5_PIN                  OFF //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
++#define FEATURE5_PIN                 4 //    OFF, AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
+ #define FEATURE5_VALUE_DEFAULT        OFF //    OFF, ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
+ #define FEATURE5_VALUE_MEMORY         OFF //    OFF, ON remembers SWITCH, ANALOG_OUT, DEW_HEATER state across power cycles.   Adjust
+ #define FEATURE5_ON_STATE            HIGH //   HIGH, LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
+diff --git a/src/plugins/Plugins.config.h b/src/plugins/Plugins.config.h
+index b430947..7eb7510 100644
+--- a/src/plugins/Plugins.config.h
++++ b/src/plugins/Plugins.config.h
+@@ -16,9 +16,9 @@
+ //#define PLUGIN1                    sample //    OFF, Specify the class instance (same as plugin directory name) to enable.    Option
+ //#include "sample/Sample.h"                //         Specify the header file to include the class.
+ 
+-#define PLUGIN1                       OFF //    OFF, Specify the class instance (same as plugin directory name) to enable.    Option
+-//#include "website/Website.h"            //         Specify the header file to include the class.
+-#define PLUGIN1_COMMAND_PROCESSING    OFF //    OFF, Set to ON for plugins that allow command processing
++#define PLUGIN1                       usb //    INDI driver test build
++#include "usb/Usb.h"
++#define PLUGIN1_COMMAND_PROCESSING    ON
+ 
+ #define PLUGIN2                       OFF //    OFF, Specify the class instance (same as plugin directory name) to enable.    Option
+ //#include "power/Power.h"                //         Specify the header file to include the class.
+diff --git a/src/telescope/rotator/local/Rotator.cpp b/src/telescope/rotator/local/Rotator.cpp
+index 005071c..87d979e 100644
+--- a/src/telescope/rotator/local/Rotator.cpp
++++ b/src/telescope/rotator/local/Rotator.cpp
+@@ -41,7 +41,7 @@ bool Rotator::init() {
+ 
+   settings.backlash = constrain(settings.backlash, 0, 10000);
+   settings.gotoRate = constrain(settings.gotoRate, 0.125, 20);
+-  settings.parkState = constrain(settings.parkState, PS_PARK_FAILED, PS_UNPARKING);
++  settings.parkState = constrain(settings.parkState, PS_UNPARKED, PS_UNPARKING); // TEST BUILD PATCH: upstream constrains to PS_PARK_FAILED
+   settings.position = constrain(settings.position, AXIS3_LIMIT_MIN, AXIS3_LIMIT_MAX);
+ 
+   VLF("MSG: Rotator, init (Axis3)");
