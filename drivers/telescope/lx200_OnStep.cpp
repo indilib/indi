@@ -2166,10 +2166,42 @@ bool LX200_OnStep::Park()
         }
     }
     ParkSP.setState(IPS_BUSY);
+    // Report the park as running until OnStep reports it parked (see ReadScopeStatus()). Without this the base class
+    // marks the park done as soon as the command is sent, and clients disconnect while the mount still moves.
+    TrackState = SCOPE_PARKING;
+    m_ParkStartTime = std::chrono::steady_clock::now();
+    LOG_INFO("Parking telescope in progress...");
     return true;
 }
 
 // Periodically Polls OnStep Parameter from controller
+// The reason for the :GU# error codes that make OnStep stop the mount (limits, faults), nullptr for the others
+static const char *gotoStopReason(Errors error)
+{
+    switch (error)
+    {
+        case ERR_MOTOR_FAULT:
+            return "Motor/Driver Fault";
+        case ERR_ALT_MIN:
+            return "Below Horizon Limit";
+        case ERR_LIMIT_SENSE:
+            return "Limit Sense";
+        case ERR_DEC:
+            return "Dec Limit Exceeded";
+        case ERR_AZM:
+            return "Azm Limit Exceeded";
+        case ERR_UNDER_POLE:
+            return "Under Pole Limit Exceeded";
+        case ERR_MERIDIAN:
+            // OnStepX reports both sides with this code
+            return "Meridian Limit Exceeded";
+        case ERR_ALT_MAX:
+            return "Above Overhead Limit";
+        default:
+            return nullptr;
+    }
+}
+
 bool LX200_OnStep::ReadScopeStatus()
 {
     char OSbacklashDEC[RB_MAX_LEN] = {0};
@@ -2257,6 +2289,20 @@ bool LX200_OnStep::ReadScopeStatus()
 
 
 
+            // ============= Error Code
+            //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
+
+            //For redoing this, quick python, if needed (will only give the error name):
+            //all_errors=' (Insert)
+            //split_errors=all_errors.split(', ')
+            //for specific in split_errors:
+            //     print('case ' +specific+':')
+            //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
+            //     print('\tbreak;')
+
+            // Read before EqNP is updated below: a goto that ends with a limit error is reported as failed
+            Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
+
             // ============= Telescope Status
 
             if (strstr(OSStat, "P"))
@@ -2299,6 +2345,31 @@ bool LX200_OnStep::ReadScopeStatus()
                 {
                     OnstepStatTP[1].setText("Slewing");
                     TrackState = SCOPE_SLEWING;
+                }
+                // A park we started is still running until OnStep reports 'P'. The first polls after :hP# may not
+                // show 'I' yet, so don't let them end the park. A failed park ends it with an error.
+                if (ParkSP.getState() == IPS_BUSY && ParkSP[PARK].getState() == ISS_ON)
+                {
+                    const auto parkSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                                 std::chrono::steady_clock::now() - m_ParkStartTime).count();
+                    if (strstr(OSStat, "F"))
+                    {
+                        LOG_ERROR("OnStep reports that parking failed.");
+                        ParkSP.setState(IPS_ALERT);
+                        ParkSP.apply();
+                    }
+                    else if (parkSeconds >= m_ParkTimeoutSeconds)
+                    {
+                        // Don't report a park forever as running if the controller never reports it parked
+                        LOGF_ERROR("OnStep did not report the mount parked within %d seconds, park failed.",
+                                   m_ParkTimeoutSeconds);
+                        ParkSP.setState(IPS_ALERT);
+                        ParkSP.apply();
+                    }
+                    else
+                    {
+                        TrackState = SCOPE_PARKING;
+                    }
                 }
                 PrintTrackState();
                 if (isParked())   //IMPORTANT: SET AFTER setting TrackState!
@@ -2379,7 +2450,19 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 case SCOPE_PARKED:
                 case SCOPE_IDLE:
-                    if (EqNP.getState() != IPS_IDLE)
+                {
+                    // OnStep stops a goto at a limit (or doesn't start it while a limit error is set) and leaves
+                    // the mount idle, with the reason only in the error code. Report that goto as failed: clients
+                    // would otherwise take the idle mount for a goto that ended without tracking and wait.
+                    const char *stopReason = (TrackState == SCOPE_IDLE && EqNP.getState() == IPS_BUSY) ?
+                                             gotoStopReason(Lasterror) : nullptr;
+                    if (stopReason != nullptr)
+                    {
+                        LOGF_ERROR("OnStep stopped the slew: %s.", stopReason);
+                        EqNP.setState(IPS_ALERT);
+                        update_needed = true;
+                    }
+                    else if (EqNP.getState() != IPS_IDLE)
                     {
                         EqNP.setState(IPS_IDLE);
                         update_needed = true;
@@ -2387,7 +2470,8 @@ bool LX200_OnStep::ReadScopeStatus()
                         LOG_DEBUG("EqNP set to IPS_IDLE");
 #endif
                     }
-                    break;
+                }
+                break;
 
                 case SCOPE_SLEWING:
                 case SCOPE_PARKING:
@@ -2675,18 +2759,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 }
             }
 
-            // ============= Error Code
-            //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
-
-            //For redoing this, quick python, if needed (will only give the error name):
-            //all_errors=' (Insert)
-            //split_errors=all_errors.split(', ')
-            //for specific in split_errors:
-            //     print('case ' +specific+':')
-            //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
-            //     print('\tbreak;')
-
-            Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
+            // ============= Error Code: read with the telescope status above
 
             // Refresh current Slew Rate
             int idx = OSStat[strlen(OSStat) - 2] - '0';
@@ -2702,8 +2775,21 @@ bool LX200_OnStep::ReadScopeStatus()
         }
         else
         {
+            // No (complete) :GU# answer, e.g. right after :MS# while the controller starts the slew. Skip this update
+            // and try again, don't put the mount in an error state (clients would abort and resend the goto, which
+            // OnStep refuses with "Goto in progress"). Several missed answers in a row mean a lost connection: fail
+            // the poll as before, so that it is reported.
+            flushIO(PortFD);
+            if (++m_MissedStatusReplies < MAX_MISSED_STATUS_REPLIES)
+            {
+                LOG_DEBUG(":GU# got no answer, this update aborted, will try again...");
+                return true;
+            }
+            if (m_MissedStatusReplies == MAX_MISSED_STATUS_REPLIES)
+                LOGF_WARN(":GU# got no answer %d times in a row, check the connection.", m_MissedStatusReplies);
             return false;
         }
+        m_MissedStatusReplies = 0;
 
 #ifdef OnStep_Alpha // For the moment, for :Gu
     }

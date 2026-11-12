@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <fcntl.h>
@@ -85,6 +86,13 @@ class FakeOnStep
             return m_Gotos;
         }
 
+        // Leave the next n :GU# requests unanswered, as a real controller sometimes does right after :MS#.
+        void dropStatusReplies(int n)
+        {
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            m_DropStatusReplies = n;
+        }
+
     private:
         static void makeRaw(int fd)
         {
@@ -130,7 +138,9 @@ class FakeOnStep
             std::string answer;
             {
                 std::lock_guard<std::mutex> lock(m_Mutex);
-                if (command == ":GU#")
+                if (command == ":GU#" && m_DropStatusReplies > 0)
+                    m_DropStatusReplies--;
+                else if (command == ":GU#")
                     answer = m_Status + "#";
                 else if (command == ":GR#")
                     answer = m_RA + "#";
@@ -172,6 +182,7 @@ class FakeOnStep
         std::string m_RA {"17:57:13"};
         std::string m_DEC {"+51*29:19"};
         int m_Gotos {0};
+        int m_DropStatusReplies {0};
 };
 
 class OnStepUnderTest : public LX200_OnStep
@@ -197,6 +208,25 @@ class OnStepUnderTest : public LX200_OnStep
             char *names[2] = {ra_name, dec_name};
             return ISNewNumber(getDeviceName(), "EQUATORIAL_EOD_COORD", values, names, 2);
         }
+
+        // Send a park request the way a client does it.
+        bool requestPark()
+        {
+            ISState states[2] = {ISS_ON, ISS_OFF};
+            char park_name[] = "PARK", unpark_name[] = "UNPARK";
+            char *names[2] = {park_name, unpark_name};
+            return ISNewSwitch(getDeviceName(), "TELESCOPE_PARK", states, names, 2);
+        }
+
+        bool parked()
+        {
+            return isParked();
+        }
+
+        void setParkTimeoutSeconds(int seconds)
+        {
+            m_ParkTimeoutSeconds = seconds;
+        }
 };
 
 // Captures what the driver publishes on stdout and returns the states of the EQUATORIAL_EOD_COORD updates.
@@ -220,6 +250,17 @@ class PublishedStates
 
         std::vector<std::string> eqStates()
         {
+            return states("setNumberVector", "EQUATORIAL_EOD_COORD");
+        }
+
+        std::vector<std::string> parkStates()
+        {
+            return states("setSwitchVector", "TELESCOPE_PARK");
+        }
+
+    private:
+        std::vector<std::string> states(const std::string &vector, const std::string &property)
+        {
             restore();
             std::string text;
             rewind(m_File);
@@ -229,13 +270,12 @@ class PublishedStates
                 text.append(chunk, n);
 
             std::vector<std::string> states;
-            std::regex update("<setNumberVector[^>]*name=['\"]EQUATORIAL_EOD_COORD['\"][^>]*state=['\"](\\w+)['\"]");
+            std::regex update("<" + vector + "[^>]*name=['\"]" + property + "['\"][^>]*state=['\"](\\w+)['\"]");
             for (auto it = std::sregex_iterator(text.begin(), text.end(), update); it != std::sregex_iterator(); ++it)
                 states.push_back((*it)[1]);
             return states;
         }
 
-    private:
         void restore()
         {
             if (m_SavedStdout < 0)
@@ -328,8 +368,262 @@ TEST(LX200OnStepTest, realSlewStaysBusyUntilOnStepReportsTracking)
     EXPECT_EQ(states.back(), "Ok");
 }
 
+// The controller doesn't answer the first status poll after the goto (seen on a WD-20EP 50 ms after :MS#). The
+// driver must skip that poll instead of failing it: a failed poll puts EQUATORIAL_EOD_COORD into Alert, clients
+// then abort and resend the goto, which OnStep refuses with "Goto in progress".
+TEST(LX200OnStepTest, missedStatusReplyDuringGotoIsNotAnError)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    mount.setStatus(STATUS_TRACKING, "17:31:01", "+52*17:02");
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestGoto(ELTANIN_RA, ELTANIN_DEC));
+    mount.setStatus(STATUS_SLEWING, "17:44:07", "+51*53:10");
+    mount.dropStatusReplies(1);
+    EXPECT_TRUE(driver.poll()) << "A missed :GU# reply failed the status poll";
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_TRACKING, "17:57:13", "+51*29:19");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = published.eqStates();
+
+    ASSERT_FALSE(states.empty());
+    for (const auto &state : states)
+        EXPECT_NE(state, "Alert");
+    EXPECT_EQ(states.front(), "Busy");
+    EXPECT_EQ(states.back(), "Ok");
+    EXPECT_EQ(mount.gotos(), 1);
+}
+
+// OnStep :GU# while parking ('I' = park in progress), parked ('P') and after a failed park ('F').
+const char *STATUS_IDLE         = "nNpa/ET160";
+const char *STATUS_PARKING      = "nIa/ET160";
+const char *STATUS_PARKED       = "nNPa/ET160";
+const char *STATUS_PARK_FAILED  = "nNFa/ET160";
+
+// The park must stay busy until OnStep reports the mount parked. A client that waits for the park (e.g. a scheduler
+// before it disconnects) must not see it done while the mount still moves, also not on an early poll that doesn't
+// show the park yet.
+TEST(LX200OnStepTest, parkStaysBusyUntilOnStepReportsParked)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestPark());
+    mount.setStatus(STATUS_IDLE, "02:34:50", "+61*34:42");
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_PARKING, "03:10:12", "+75*02:44");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> whileParking = published.parkStates();
+    bool parkedEarly = driver.parked();
+
+    ASSERT_FALSE(whileParking.empty());
+    for (const auto &state : whileParking)
+        EXPECT_EQ(state, "Busy") << "The park was reported done before OnStep reported the mount parked";
+    EXPECT_FALSE(parkedEarly);
+
+    PublishedStates afterPark;
+    mount.setStatus(STATUS_PARKED, "06:01:00", "+89*59:59");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = afterPark.parkStates();
+
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Ok");
+    EXPECT_TRUE(driver.parked());
+}
+
+// A park that OnStep reports as failed ends with an error, not as parked.
+TEST(LX200OnStepTest, failedParkIsReported)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestPark());
+    mount.setStatus(STATUS_PARKING, "03:10:12", "+75*02:44");
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_PARK_FAILED, "04:00:00", "+80*00:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = published.parkStates();
+
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Alert");
+    EXPECT_FALSE(driver.parked());
+}
+
+// A controller that never reports the mount parked (no 'P') nor a failed park ('F') must not leave the park running
+// forever: after the park timeout it ends with an error.
+TEST(LX200OnStepTest, parkWithoutParkedStatusTimesOut)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+    driver.setParkTimeoutSeconds(1);
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestPark());
+    mount.setStatus(STATUS_PARKING, "03:10:12", "+75*02:44");
+    ASSERT_TRUE(driver.poll());
+    mount.setStatus(STATUS_IDLE, "06:01:00", "+89*59:59");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> beforeTimeout = published.parkStates();
+
+    PublishedStates afterTimeout;
+    std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = afterTimeout.parkStates();
+
+    ASSERT_FALSE(beforeTimeout.empty());
+    for (const auto &state : beforeTimeout)
+        EXPECT_EQ(state, "Busy") << "The park ended before the timeout";
+    ASSERT_FALSE(states.empty()) << "The park was never ended";
+    EXPECT_EQ(states.back(), "Alert");
+    EXPECT_FALSE(driver.parked());
+}
+
+// A lost connection must still be reported: a single missed :GU# answer is skipped, but after
+// MAX_MISSED_STATUS_REPLIES in a row the poll fails (the base class then sets EQUATORIAL_EOD_COORD to Alert), and
+// the first answer afterwards ends the error.
+TEST(LX200OnStepTest, lostConnectionFailsPollAfterThreeMissedReplies)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    mount.dropStatusReplies(5);
+    std::vector<bool> results;
+    for (int i = 0; i < 5; i++)
+        results.push_back(driver.poll());
+    EXPECT_EQ(results, (std::vector<bool> {true, true, false, false, false}));
+
+    // The connection is back: polls succeed again, and a single missed answer is skipped again
+    EXPECT_TRUE(driver.poll());
+    mount.dropStatusReplies(1);
+    EXPECT_TRUE(driver.poll());
+    EXPECT_TRUE(driver.poll());
+}
+
+// OnStep :GU# of a mount that is idle with no error ('0') and with the meridian limit error ('7' = ERR_MERIDIAN).
+// Both seen on a WD-20EP: a goto with tracking off ends "nN...0", a goto that OnStep stopped at its meridian limit
+// ends "nN...7", and OnStep then keeps the error and accepts gotos without moving.
+const char *STATUS_MERIDIAN_LIMIT = "nNpa/ET167";
+
+// A goto that OnStep stops at a limit must be reported as failed (Alert), not as an idle mount: a client waiting
+// for the goto to end (e.g. Ekos Align waiting for tracking) would otherwise wait forever.
+TEST(LX200OnStepTest, gotoStoppedAtLimitIsReported)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    mount.setStatus(STATUS_TRACKING, "03:48:37", "+24*14:05");
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+    ASSERT_TRUE(driver.requestGoto(3.0 + 48.0 / 60 + 37.0 / 3600, 24.0 + 14.0 / 60 + 5.0 / 3600));
+    mount.setStatus(STATUS_SLEWING, "04:20:00", "+40*00:00");
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates atStop;
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:10", "+24*29:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = atStop.eqStates();
+
+    ASSERT_FALSE(states.empty()) << "The end of the goto was never published";
+    EXPECT_EQ(states.front(), "Alert") << "The goto stopped at the limit was not reported as failed";
+
+    // The mount stays idle afterwards
+    PublishedStates afterStop;
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:14", "+24*29:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> later = afterStop.eqStates();
+    ASSERT_FALSE(later.empty());
+    EXPECT_EQ(later.back(), "Idle");
+}
+
+// While the limit error is set, OnStep accepts a goto (":MS#" answers "0") but doesn't move. That goto must fail too.
+TEST(LX200OnStepTest, gotoNotStartedAtLimitIsReported)
+{
+    FakeOnStep mount;
+    ASSERT_GE(mount.driverFD(), 0);
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:10", "+24*29:00");
+    OnStepUnderTest driver(mount.driverFD());
+
+    ASSERT_TRUE(driver.poll());
+
+    PublishedStates published;
+    ASSERT_TRUE(driver.requestGoto(3.0 + 48.0 / 60 + 37.0 / 3600, 24.0 + 14.0 / 60 + 5.0 / 3600));
+    mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:14", "+24*29:00");
+    ASSERT_TRUE(driver.poll());
+    std::vector<std::string> states = published.eqStates();
+
+    EXPECT_EQ(mount.gotos(), 1);
+    ASSERT_FALSE(states.empty()) << "The goto was never answered";
+    EXPECT_EQ(states.front(), "Busy");
+    EXPECT_EQ(states.back(), "Alert") << "The goto that OnStep didn't start was not reported as failed";
+}
+
+// Controls: a goto that ends idle without an error (tracking switched off before it) and an idle mount polled with
+// the limit error but without a goto are not errors.
+TEST(LX200OnStepTest, idleWithoutGotoErrorIsNotAnError)
+{
+    {
+        FakeOnStep mount;
+        ASSERT_GE(mount.driverFD(), 0);
+        mount.setStatus(STATUS_IDLE, "17:31:01", "+52*17:02");
+        OnStepUnderTest driver(mount.driverFD());
+
+        ASSERT_TRUE(driver.poll());
+        PublishedStates published;
+        ASSERT_TRUE(driver.requestGoto(ELTANIN_RA, ELTANIN_DEC));
+        mount.setStatus(STATUS_SLEWING, "17:44:07", "+51*53:10");
+        ASSERT_TRUE(driver.poll());
+        mount.setStatus(STATUS_IDLE, "17:57:13", "+51*29:19");
+        ASSERT_TRUE(driver.poll());
+        std::vector<std::string> states = published.eqStates();
+
+        ASSERT_FALSE(states.empty());
+        for (const auto &state : states)
+            EXPECT_NE(state, "Alert") << "A goto that ended idle without an error was reported as failed";
+        EXPECT_EQ(states.back(), "Idle");
+    }
+    {
+        FakeOnStep mount;
+        ASSERT_GE(mount.driverFD(), 0);
+        mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:10", "+24*29:00");
+        OnStepUnderTest driver(mount.driverFD());
+
+        PublishedStates published;
+        ASSERT_TRUE(driver.poll());
+        mount.setStatus(STATUS_MERIDIAN_LIMIT, "03:49:14", "+24*29:05");
+        ASSERT_TRUE(driver.poll());
+        std::vector<std::string> states = published.eqStates();
+
+        ASSERT_FALSE(states.empty());
+        for (const auto &state : states)
+            EXPECT_NE(state, "Alert") << "An idle mount without a goto was reported as failed";
+    }
+}
+
 int main(int argc, char **argv)
 {
+    // Never touch the user's real ~/.indi (park data is written to $HOME/.indi).
+    char homeTemplate[] = "/tmp/test_lx200_onstep_home_XXXXXX";
+    const char *home = mkdtemp(homeTemplate);
+    if (home)
+        setenv("HOME", home, 1);
     // Never read or write the user's real ~/.indi driver configuration.
     const std::string configFile = "/tmp/test_lx200_onstep_" + std::to_string(getpid()) + "_config.xml";
     setenv("INDICONFIG", configFile.c_str(), 1);
@@ -339,5 +633,12 @@ int main(int argc, char **argv)
     int rc = RUN_ALL_TESTS();
     std::remove(configFile.c_str());
     std::remove((configFile + ".default").c_str());
+    if (home)
+    {
+        const std::string parkData = std::string(home) + "/.indi/ParkData.xml";
+        std::remove(parkData.c_str());
+        std::remove((std::string(home) + "/.indi").c_str());
+        std::remove(home);
+    }
     return rc;
 }
