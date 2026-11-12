@@ -230,6 +230,57 @@ target_link_libraries(test_onstepxusbplugin
 
 add_test(test-onstepxusbplugin test_onstepxusbplugin)
 
+add_executable(test_onstepxmodelmath
+    test_onstepxmodelmath.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelMath.cpp"
+)
+
+target_link_libraries(test_onstepxmodelmath
+    ${GTEST_BOTH_LIBRARIES}
+    ${GTEST_MAIN_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_test(test-onstepxmodelmath test_onstepxmodelmath)
+
+add_executable(test_onstepxmodelfitter
+    test_onstepxmodelfitter.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelFitter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelMath.cpp")
+
+target_link_libraries(test_onstepxmodelfitter
+    GTest::gtest_main)
+
+add_test(test-onstepxmodelfitter test_onstepxmodelfitter)
+
+add_executable(test_onstepxmodelprotocol
+    test_onstepxmodelprotocol.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelProtocol.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelMath.cpp")
+
+target_link_libraries(test_onstepxmodelprotocol
+    GTest::gtest_main)
+
+add_test(test-onstepxmodelprotocol test_onstepxmodelprotocol)
+
+add_executable(test_onstepxmodelbuilder
+    test_onstepxmodelbuilder.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelBuilder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelProtocol.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelFitter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXModelMath.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/onstepx/OnStepXComm.cpp"
+)
+
+target_link_libraries(test_onstepxmodelbuilder
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_test(test-onstepxmodelbuilder test_onstepxmodelbuilder)
+
 add_executable(test_onstepxformat
     test_onstepxformat.cpp
 )
