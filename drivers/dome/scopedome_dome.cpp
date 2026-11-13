@@ -59,6 +59,8 @@ ScopeDome::ScopeDome()
     targetShutter = SHUTTER_CLOSE;
 
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
+    // ScopeDome rotates to the park position first and closes the shutter afterwards (see TimerHit()).
+    SetShutterParkPolicyHandledByDriver(true);
 
     stepsPerRevolution = ~0;
 

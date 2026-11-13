@@ -46,6 +46,9 @@ DDW::DDW()
 {
     setVersion(1, 0);
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
+    // DDW runs one command at a time, and closing the shutter first rotates the dome to home,
+    // so Park()/UnPark() sequence the shutter themselves.
+    SetShutterParkPolicyHandledByDriver(true);
     setDomeConnection(CONNECTION_SERIAL);
 }
 

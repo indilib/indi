@@ -52,6 +52,12 @@ bool DomeSim::initProperties()
 
     SetParkDataType(PARK_AZ);
 
+    // The simulator traditionally closes the shutter on park and opens it on unpark.
+    // Keep that as the default, unless the user saved a different policy.
+    ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].setState(ISS_ON);
+    ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].setState(ISS_ON);
+    ShutterParkPolicySP.load();
+
     addAuxControls();
 
     return true;
@@ -198,12 +204,9 @@ void DomeSim::TimerHit()
         if (m_ShutterDistance <= 0)
         {
             m_ShutterDistance = 0;
-            DomeShutterSP.setState(IPS_OK);
-            LOGF_INFO("Shutter is %s.", (DomeShutterSP[0].getState() == ISS_ON ? "open" : "closed"));
-            DomeShutterSP.apply();
-
-            if (getDomeState() == DOME_UNPARKING)
-                SetParked(false);
+            auto opened = DomeShutterSP[SHUTTER_OPEN].getState() == ISS_ON;
+            LOGF_INFO("Shutter is %s.", opened ? "open" : "closed");
+            setShutterState(opened ? SHUTTER_OPENED : SHUTTER_CLOSED);
         }
     }
 
@@ -269,11 +272,8 @@ IPState DomeSim::MoveRel(double azDiff)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::Park()
 {
-    targetAz = DomeParamNP[0].getValue();
-    Dome::ControlShutter(SHUTTER_CLOSE);
-    Dome::MoveAbs(GetAxis1Park());
-
-    return IPS_BUSY;
+    // The shutter is closed by INDI::Dome according to the shutter park policy.
+    return MoveAbs(GetAxis1Park());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -281,7 +281,8 @@ IPState DomeSim::Park()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::UnPark()
 {
-    return Dome::ControlShutter(SHUTTER_OPEN);
+    // The shutter is opened by INDI::Dome according to the shutter park policy.
+    return IPS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -319,25 +319,17 @@ void DomeScript::TimerHit()
 
         if (TypeSP[Dome].getState() == ISS_ON)
         {
-            if (m_ShutterState == SHUTTER_OPENED)
+            auto reportedState = (shutter == 1) ? SHUTTER_OPENED : SHUTTER_CLOSED;
+            // While the shutter is moving, only accept the state it is moving to; the status may still
+            // report the previous state until the shutter actually starts moving.
+            auto movingTo = (DomeShutterSP.findOnSwitchIndex() == SHUTTER_OPEN) ? SHUTTER_OPENED : SHUTTER_CLOSED;
+            bool movingAway = (m_ShutterState == SHUTTER_MOVING && reportedState != movingTo);
+
+            if (reportedState != m_ShutterState && !movingAway)
             {
-                if (shutter == 0)
-                {
-                    m_ShutterState    = SHUTTER_CLOSED;
-                    DomeShutterSP.setState(IPS_OK);
-                    DomeShutterSP.apply();
-                    LOG_INFO("Shutter was successfully closed");
-                }
-            }
-            else
-            {
-                if (shutter == 1)
-                {
-                    m_ShutterState = SHUTTER_OPENED;
-                    DomeShutterSP.setState(IPS_OK);
-                    DomeShutterSP.apply();
-                    LOG_INFO("Shutter was successfully opened");
-                }
+                if (m_ShutterState == SHUTTER_MOVING)
+                    LOGF_INFO("Shutter was successfully %s", reportedState == SHUTTER_OPENED ? "opened" : "closed");
+                setShutterState(reportedState);
             }
         }
     }

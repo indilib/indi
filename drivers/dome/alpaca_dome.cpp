@@ -496,13 +496,6 @@ bool AlpacaDome::Abort()
 
 IPState AlpacaDome::Park()
 {
-    if (HasShutter() && ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON)
-    {
-        if (ControlShutter(SHUTTER_CLOSE) == IPS_ALERT)
-            return IPS_ALERT;
-        LOG_INFO("Close shutter on park");
-    }
-
     if (alpacaDomePark())
     {
         LOG_INFO("Parking dome...");
@@ -518,13 +511,6 @@ IPState AlpacaDome::Park()
 
 IPState AlpacaDome::UnPark()
 {
-    if (HasShutter() && ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON)
-    {
-        if (ControlShutter(SHUTTER_OPEN) == IPS_ALERT)
-            return IPS_ALERT;
-        LOG_INFO("Open shutter on unpark");
-    }
-
     LOG_INFO("Unparking dome...");
     IPState result = MoveAbs(DomeAbsPosNP[0].getValue());
     if (result != IPS_ALERT)

@@ -69,6 +69,9 @@ Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
     ParkdataXmlRoot = nullptr;
 
     m_MountUpdateTimer.callOnTimeout(std::bind(&Dome::UpdateMountCoords, this));
+
+    m_ShutterParkTimer.setInterval(SHUTTER_PARK_POLL_INTERVAL);
+    m_ShutterParkTimer.callOnTimeout(std::bind(&Dome::checkShutterParkSequence, this));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -335,6 +338,8 @@ bool Dome::updateProperties()
     }
     else
     {
+        cancelShutterParkSequence();
+
         if (HasShutter())
         {
             deleteProperty(DomeShutterSP);
@@ -644,15 +649,25 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             {
                 if (states[i] == ISS_ON)
                 {
-                    // Open
-                    if (DomeShutterSP[0].isNameMatch(names[i]))
+                    auto operation = DomeShutterSP[SHUTTER_OPEN].isNameMatch(names[i]) ? SHUTTER_OPEN : SHUTTER_CLOSE;
+
+                    // A manual shutter command that goes against an ongoing park or unpark wins: the park
+                    // or unpark then completes on the dome motion alone instead of waiting for the shutter.
+                    if (m_ShutterParkSequence != SHUTTER_SEQUENCE_NONE && !m_ShutterParkShutterDone)
                     {
-                        return (Dome::ControlShutter(SHUTTER_OPEN) != IPS_ALERT);
+                        auto sequenceOperation = (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK) ? SHUTTER_CLOSE : SHUTTER_OPEN;
+                        if (operation != sequenceOperation)
+                        {
+                            LOGF_WARN("Manual shutter command overrides the shutter park policy. Dome %s will not wait for the shutter.",
+                                      m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK ? "parking" : "unparking");
+                            m_ShutterParkShutterDone = true;
+                            m_ShutterParkShutterFailed = false;
+                        }
                     }
-                    else
-                    {
-                        return (Dome::ControlShutter(SHUTTER_CLOSE) != IPS_ALERT);
-                    }
+
+                    auto rc = Dome::ControlShutter(operation);
+                    checkShutterParkSequence();
+                    return (rc != IPS_ALERT);
                 }
             }
         }
@@ -1209,6 +1224,8 @@ void Dome::setShutterState(const Dome::ShutterState &value)
 
     DomeShutterSP.apply();
     m_ShutterState = value;
+
+    checkShutterParkSequence();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1216,6 +1233,20 @@ void Dome::setShutterState(const Dome::ShutterState &value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::setDomeState(const Dome::DomeState &value)
 {
+    if (m_ShutterParkSequence != SHUTTER_SEQUENCE_NONE)
+    {
+        // Dome motion of the park/unpark is complete, but the shutter may still be moving.
+        if ((value == DOME_PARKED && m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK) ||
+                (value == DOME_UNPARKED && m_ShutterParkSequence == SHUTTER_SEQUENCE_UNPARK))
+        {
+            shutterParkMotionDone();
+            return;
+        }
+        // Anything that ends the park/unpark otherwise invalidates the sequence.
+        else if (value == DOME_PARKED || value == DOME_UNPARKED || value == DOME_ERROR || value == DOME_UNKNOWN)
+            cancelShutterParkSequence();
+    }
+
     switch (value)
     {
         case DOME_IDLE:
@@ -1758,6 +1789,19 @@ void Dome::SyncParkStatus(bool isparked)
 
 void Dome::SetParked(bool isparked)
 {
+    if (m_ShutterParkSequence != SHUTTER_SEQUENCE_NONE)
+    {
+        // Dome motion of the park/unpark is complete, but the shutter may still be moving.
+        if (isparked == (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK))
+        {
+            shutterParkMotionDone();
+            return;
+        }
+
+        // The driver reports the opposite outcome (e.g. after an abort): drop the sequence.
+        cancelShutterParkSequence();
+    }
+
     SyncParkStatus(isparked);
     WriteParkData();
 }
@@ -2186,14 +2230,25 @@ bool Dome::Abort()
 
     AbortSP.reset();
 
+    // Drop any shutter park sequence first so the driver's own park updates during abort take effect.
+    // The park may still be busy waiting for the shutter even if the driver already left DOME_PARKING.
+    const bool sequenceParking = (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK);
+    const bool sequenceUnparking = (m_ShutterParkSequence == SHUTTER_SEQUENCE_UNPARK);
+    const bool sequenceMotionDone = m_ShutterParkMotionDone;
+    cancelShutterParkSequence();
+
     if (Abort())
     {
         AbortSP.setState(IPS_OK);
 
-        if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING)
+        const bool parkBusy = (ParkSP.getState() == IPS_BUSY);
+        const bool parking = (m_DomeState == DOME_PARKING) || (sequenceParking && parkBusy);
+        const bool unparking = (m_DomeState == DOME_UNPARKING) || (sequenceUnparking && parkBusy);
+
+        if (parking || unparking)
         {
             ParkSP.reset();
-            if (m_DomeState == DOME_PARKING)
+            if (parking)
             {
                 DEBUG(Logger::DBG_SESSION, "Parking aborted.");
                 // If parking was aborted then it was UNPARKED before
@@ -2217,11 +2272,17 @@ bool Dome::Abort()
         AbortSP.setState(IPS_ALERT);
 
         // If alert was aborted during parking or unparking, the parking state is unknown
-        if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING)
+        if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING ||
+                ((sequenceParking || sequenceUnparking) && ParkSP.getState() == IPS_BUSY))
         {
             ParkSP.reset();
             ParkSP.setState(IPS_IDLE);
             ParkSP.apply();
+
+            // The dome had already finished moving and was only waiting for the shutter: it is not
+            // parking anymore, so do not leave it in a state where new park requests are refused.
+            if (sequenceMotionDone && (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING))
+                m_DomeState = DOME_IDLE;
         }
     }
 
@@ -2322,13 +2383,46 @@ IPState Dome::Park()
         return IPS_ALERT;
     }
 
+    // A park request supersedes any unpark still waiting on the shutter.
+    cancelShutterParkSequence();
+
+    // Shutter park policy: close the shutter first, then park. The park only completes
+    // once the dome reached the park position AND the shutter is closed.
+    if (HasShutter() && !m_ShutterParkPolicyHandledByDriver &&
+            ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON && !isShutterKnownAt(SHUTTER_CLOSE))
+    {
+        LOG_INFO("Closing shutter on park...");
+        m_ShutterParkSequence = SHUTTER_SEQUENCE_PARK;
+        m_ShutterParkCommandSent = true;
+
+        if (Dome::ControlShutter(SHUTTER_CLOSE) == IPS_ALERT)
+        {
+            cancelShutterParkSequence();
+            LOG_ERROR("Failed to close shutter. Dome park aborted.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
+            return IPS_ALERT;
+        }
+
+        m_ShutterParkTimer.start();
+    }
+
     // Now ask child driver to start the actual parking process.
     ParkSP.setState(Park());
 
     // IPS_OK is when it is immediately parked so realisticly this does not happen
     // unless dome is physically parked but just needed a state change.
     if (ParkSP.getState() == IPS_OK)
+    {
         SetParked(true);
+
+        // Still waiting for the shutter to close.
+        if (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK)
+        {
+            setDomeState(DOME_PARKING);
+            return IPS_BUSY;
+        }
+    }
     // Dome is moving to parking position
     else if (ParkSP.getState() == IPS_BUSY)
     {
@@ -2341,7 +2435,10 @@ IPState Dome::Park()
         ParkSP[0].setState(ISS_ON);
     }
     else
+    {
+        cancelShutterParkSequence();
         ParkSP.apply();
+    }
 
     return ParkSP.getState();
 }
@@ -2363,16 +2460,169 @@ IPState Dome::UnPark()
         return IPS_OK;
     }
 
-    ParkSP.setState(UnPark());
+    cancelShutterParkSequence();
 
-    if (ParkSP.getState() == IPS_OK)
+    // Shutter park policy: unpark first, then open the shutter, so the shutter is never opened when
+    // the dome fails to unpark. The unpark only completes once the dome is unparked AND the shutter is open.
+    // The sequence starts before calling the child UnPark() so that it also covers drivers that report the
+    // unpark (SetParked(false)) from within UnPark() itself.
+    const bool openShutter = HasShutter() && !m_ShutterParkPolicyHandledByDriver &&
+                             ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON && !isShutterKnownAt(SHUTTER_OPEN);
+    if (openShutter)
+        m_ShutterParkSequence = SHUTTER_SEQUENCE_UNPARK;
+
+    auto rc = UnPark();
+
+    if (rc == IPS_ALERT)
+    {
+        cancelShutterParkSequence();
+        ParkSP.setState(IPS_ALERT);
+        ParkSP.apply();
+        return IPS_ALERT;
+    }
+
+    // The sequence may have been dropped from within UnPark() (e.g. driver reported an error).
+    if (openShutter && m_ShutterParkSequence == SHUTTER_SEQUENCE_UNPARK)
+    {
+        LOG_INFO("Opening shutter on unpark...");
+        m_ShutterParkCommandSent = true;
+        if (Dome::ControlShutter(SHUTTER_OPEN) == IPS_ALERT)
+        {
+            LOG_ERROR("Failed to open shutter on unpark.");
+            m_ShutterParkShutterFailed = true;
+        }
+        else
+            m_ShutterParkTimer.start();
+    }
+
+    if (rc == IPS_OK)
         SetParked(false);
-    else if (ParkSP.getState() == IPS_BUSY)
+    else if (rc == IPS_BUSY)
         setDomeState(DOME_UNPARKING);
     else
+    {
+        cancelShutterParkSequence();
+        ParkSP.setState(rc);
         ParkSP.apply();
+    }
+
+    // Still waiting for the dome motion and/or the shutter.
+    if (m_ShutterParkSequence == SHUTTER_SEQUENCE_UNPARK)
+    {
+        if (m_DomeState != DOME_UNPARKING)
+            setDomeState(DOME_UNPARKING);
+        return IPS_BUSY;
+    }
 
     return ParkSP.getState();
+}
+
+bool Dome::isShutterAt(ShutterOperation operation) const
+{
+    return DomeShutterSP.getState() == IPS_OK && DomeShutterSP[operation].getState() == ISS_ON;
+}
+
+bool Dome::isShutterKnownAt(ShutterOperation operation) const
+{
+    // DomeShutterSP starts as "closed" before the driver ever reads the shutter, and some drivers only
+    // update it while the shutter moves. Only skip a shutter command when the driver also reported the
+    // shutter state: an unneeded close is harmless, a skipped one leaves the observatory open.
+    return isShutterAt(operation) && m_ShutterState == (operation == SHUTTER_OPEN ? SHUTTER_OPENED : SHUTTER_CLOSED);
+}
+
+void Dome::cancelShutterParkSequence()
+{
+    m_ShutterParkTimer.stop();
+    m_ShutterParkSequence = SHUTTER_SEQUENCE_NONE;
+    m_ShutterParkCommandSent = false;
+    m_ShutterParkMotionDone = false;
+    m_ShutterParkShutterDone = false;
+    m_ShutterParkShutterFailed = false;
+}
+
+void Dome::shutterParkMotionDone()
+{
+    if (m_ShutterParkMotionDone)
+        return;
+
+    m_ShutterParkMotionDone = true;
+
+    // Settle the motion properties the way setDomeState(DOME_PARKED) would, but leave ParkSP busy.
+    if (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK)
+    {
+        if (DomeMotionSP.getState() == IPS_BUSY)
+        {
+            DomeMotionSP.reset();
+            DomeMotionSP.setState(IPS_IDLE);
+            DomeMotionSP.apply();
+        }
+        if (DomeAbsPosNP.getState() == IPS_BUSY)
+        {
+            DomeAbsPosNP.setState(IPS_IDLE);
+            DomeAbsPosNP.apply();
+        }
+        if (DomeRelPosNP.getState() == IPS_BUSY)
+        {
+            DomeRelPosNP.setState(IPS_IDLE);
+            DomeRelPosNP.apply();
+        }
+    }
+
+    checkShutterParkSequence();
+
+    if (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK)
+        LOG_INFO("Dome reached park position. Waiting for shutter to close...");
+    else if (m_ShutterParkSequence == SHUTTER_SEQUENCE_UNPARK)
+        LOG_INFO("Dome is unparked. Waiting for shutter to open...");
+}
+
+void Dome::checkShutterParkSequence()
+{
+    if (m_ShutterParkSequence == SHUTTER_SEQUENCE_NONE)
+        return;
+
+    const bool parking = (m_ShutterParkSequence == SHUTTER_SEQUENCE_PARK);
+
+    if (m_ShutterParkCommandSent && !m_ShutterParkShutterDone && !m_ShutterParkShutterFailed)
+    {
+        // Drivers report the shutter either through setShutterState() or directly through DomeShutterSP.
+        if (isShutterAt(parking ? SHUTTER_CLOSE : SHUTTER_OPEN) ||
+                m_ShutterState == (parking ? SHUTTER_CLOSED : SHUTTER_OPENED))
+            m_ShutterParkShutterDone = true;
+        else if (m_ShutterState == SHUTTER_ERROR)
+        {
+            LOGF_ERROR("Shutter failed to %s.", parking ? "close" : "open");
+            m_ShutterParkShutterFailed = true;
+        }
+    }
+
+    if (!m_ShutterParkMotionDone || !(m_ShutterParkShutterDone || m_ShutterParkShutterFailed))
+        return;
+
+    const bool failed = m_ShutterParkShutterFailed;
+    cancelShutterParkSequence();
+
+    if (parking)
+    {
+        if (failed)
+        {
+            // Do not report the dome as parked: the observatory is not closed, and a new park request must retry.
+            LOG_ERROR("Dome park failed: shutter is not closed.");
+            setDomeState(DOME_ERROR);
+        }
+        else
+            SetParked(true);
+    }
+    else
+    {
+        SetParked(false);
+        if (failed)
+        {
+            LOG_ERROR("Dome is unparked but shutter failed to open.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
+        }
+    }
 }
 
 bool Dome::SetCurrentPark()

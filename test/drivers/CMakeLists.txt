@@ -43,6 +43,16 @@ TARGET_LINK_LIBRARIES(test_telescope_simulator
 )
 ADD_TEST(test_telescope_simulator test_telescope_simulator)
 
+ADD_EXECUTABLE(test_dome_shutter_park_policy
+    test_dome_shutter_park_policy.cpp
+)
+TARGET_LINK_LIBRARIES(test_dome_shutter_park_policy
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_dome_shutter_park_policy test_dome_shutter_park_policy)
+
 ADD_EXECUTABLE(test_connection_serial
     test_connection_serial.cpp
 )

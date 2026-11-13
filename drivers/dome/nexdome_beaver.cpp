@@ -847,17 +847,6 @@ IPState Beaver::Park()
         std::string rStatus = "Parking";
         RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
-        // check shutter policy
-        if (shutterOnLine() && (ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON))
-        {
-            if(ControlShutter(SHUTTER_CLOSE))
-            {
-                DomeShutterSP[SHUTTER_OPEN].setState(ISS_OFF);
-                DomeShutterSP[SHUTTER_CLOSE].setState(ISS_ON);
-            }
-            else
-                return IPS_ALERT;
-        }
         return IPS_BUSY;
     }
     return IPS_ALERT;
@@ -871,17 +860,6 @@ IPState Beaver::UnPark()
     std::string rStatus = "unParked";
     RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
-    // check shutter policy
-    if (shutterOnLine() && (ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON))
-    {
-        if(ControlShutter(SHUTTER_OPEN))
-        {
-            DomeShutterSP[SHUTTER_OPEN].setState(ISS_ON);
-            DomeShutterSP[SHUTTER_CLOSE].setState(ISS_OFF);
-        }
-        else
-            return IPS_ALERT;
-    }
     return IPS_OK;
 }
 

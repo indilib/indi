@@ -338,6 +338,9 @@ class Dome : public DefaultDevice
 
         /**
              * \brief Goto Park Position. The park position is an absolute azimuth value.
+             * \note The shutter park policy (DOME_SHUTTER_PARK_POLICY) is applied by INDI::Dome before this
+             * function is called: if "Close On Park" is enabled, the shutter close command is already issued.
+             * Do not close the shutter here unless SetShutterParkPolicyHandledByDriver(true) was called.
              * \return Return IPS_OK if motion is completed and Dome reached park position. Return IPS_BUSY if Dome started motion to park requested position and is in progress.
                         Return -IPS_ALERT if there is an error.
              */
@@ -346,6 +349,9 @@ class Dome : public DefaultDevice
         /**
              * \brief UnPark dome. The action of the Unpark command is dome specific, but it may include opening the shutter and moving to home position. When UnPark() is successful
              * The observatory should be in a ready state to utilize the mount to perform observations.
+             * \note The shutter park policy (DOME_SHUTTER_PARK_POLICY) is applied by INDI::Dome after this
+             * function returns successfully: if "Open On UnPark" is enabled, the shutter open command is issued then.
+             * Do not open the shutter here unless SetShutterParkPolicyHandledByDriver(true) was called.
              * \return Return IPS_OK if motion is completed and Dome is unparked. Return IPS_BUSY if Dome unparking is in progress.
                         Return -IPS_ALERT if there is an error.
              */
@@ -370,8 +376,24 @@ class Dome : public DefaultDevice
              * \param operation Either open or close the shutter.
              * \return Return IPS_OK if shutter operation is complete. Return IPS_BUSY if shutter operation is in progress.
                         Return IPS_ALERT if there is an error.
+             * \note When IPS_BUSY is returned, report completion either by calling setShutterState()
+             * (SHUTTER_OPENED, SHUTTER_CLOSED or SHUTTER_ERROR), or by setting DomeShutterSP to IPS_OK with the
+             * matching switch on. INDI::Dome relies on this to complete a park or unpark that operates the shutter.
              */
         virtual IPState ControlShutter(ShutterOperation operation);
+
+        /**
+             * @brief SetShutterParkPolicyHandledByDriver By default, INDI::Dome applies the shutter park policy
+             * (DOME_SHUTTER_PARK_POLICY): it closes the shutter when parking and opens it when unparking, and keeps
+             * the park property busy until both the dome motion and the shutter operation are complete. Drivers whose
+             * hardware needs a specific sequence (e.g. rotate to park position before closing the shutter) can
+             * call this with true and implement the policy themselves in Park() and UnPark().
+             * @param enabled True if the driver applies the shutter park policy itself.
+             */
+        void SetShutterParkPolicyHandledByDriver(bool enabled)
+        {
+            m_ShutterParkPolicyHandledByDriver = enabled;
+        }
 
         /**
              * @brief getShutterStatusString
@@ -663,6 +685,38 @@ class Dome : public DefaultDevice
 
         bool callHandshake();
         uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+
+        /////////////////////////////////////////////////////////////////////////////
+        // Shutter park policy.
+        // A park (or unpark) that operates the shutter completes only when both
+        // the dome motion and the shutter operation are complete.
+        /////////////////////////////////////////////////////////////////////////////
+        enum ShutterParkSequence
+        {
+            SHUTTER_SEQUENCE_NONE,
+            SHUTTER_SEQUENCE_PARK,
+            SHUTTER_SEQUENCE_UNPARK
+        };
+
+        /** @return True if DomeShutterSP reports the shutter fully open or closed as given by operation. */
+        bool isShutterAt(ShutterOperation operation) const;
+        /** @return True if both DomeShutterSP and the driver-reported shutter state say the shutter is at operation. */
+        bool isShutterKnownAt(ShutterOperation operation) const;
+        /** @brief Called when the driver reports that the park/unpark motion of the sequence is complete. */
+        void shutterParkMotionDone();
+        /** @brief Evaluate the sequence and finish the park/unpark once motion and shutter are both done. */
+        void checkShutterParkSequence();
+        /** @brief Drop any active sequence without changing the park state. */
+        void cancelShutterParkSequence();
+
+        bool m_ShutterParkPolicyHandledByDriver {false};
+        ShutterParkSequence m_ShutterParkSequence {SHUTTER_SEQUENCE_NONE};
+        bool m_ShutterParkCommandSent {false};
+        bool m_ShutterParkMotionDone {false};
+        bool m_ShutterParkShutterDone {false};
+        bool m_ShutterParkShutterFailed {false};
+        INDI::Timer m_ShutterParkTimer;
+        static constexpr uint32_t SHUTTER_PARK_POLL_INTERVAL { 1000 };
 
         // How often we update horizontal coordinates (10 seconds).
         static constexpr uint32_t HORZ_UPDATE_TIMER { 10000 };
