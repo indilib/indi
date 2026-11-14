@@ -155,19 +155,22 @@ bool PegasusFocusCube3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(TemperatureNP);
-
+        // The temperature is defined once the status shows that a sensor is connected.
         defineProperty(FirmwareVersionTP);
         std::string firmware = getFirmwareVersion();
         FirmwareVersionTP[0].setText(firmware);
         FirmwareVersionTP.setState(IPS_OK);
         FirmwareVersionTP.apply();
+
+        // Show the speed the device actually uses instead of the default.
+        int speed = 0;
+        if (getSpeed(speed))
+            SpeedNP[0].setValue(speed);
         defineProperty(SpeedNP);
-
-
     }
     else
     {
+        hasTemperatureSensor = false;
         deleteProperty(TemperatureNP);
         deleteProperty(FirmwareVersionTP);
         deleteProperty(SpeedNP);
@@ -246,7 +249,7 @@ bool PegasusFocusCube3::move(uint32_t newPosition)
     snprintf(cmd, PEGASUS_LEN, "FM:%u", newPosition);
     if(sendCommand(cmd, res))
     {
-        // The reply carries the target position, e.g. "FM:12345".
+        // The reply carries the target position: "12345" on firmware 2.0, "FM:12345" in the command list.
         if(!strstr(res, expectedResponse))
         {
             LOGF_ERROR("Error on move [Cmd=%s Res=%s]", cmd, res);
@@ -301,23 +304,42 @@ bool PegasusFocusCube3::sendCommand(const char * cmd, char * res)
     return false;
 }
 
+bool PegasusFocusCube3::parseReply(const char *res, const char *prefix, int &value)
+{
+    // Firmware 2.0 replies with the value only (e.g. "400"), the command list shows "SP:400".
+    const size_t len = strlen(prefix);
+    const char *start = strncmp(res, prefix, len) == 0 ? res + len : res;
+    return sscanf(start, "%d", &value) == 1;
+}
+
 bool PegasusFocusCube3::setSpeed(uint16_t speed)
 {
-
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
-    snprintf(expectedResponse, PEGASUS_LEN, "%u", speed);
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "SP:%u", speed);
-    if(sendCommand(cmd, res))
+
+    int actual = 0;
+    if (!sendCommand(cmd, res) || !parseReply(res, "SP:", actual))
     {
-        if(strncmp(res, "SP:", 3) || !strstr(res, expectedResponse))
-        {
-            LOGF_ERROR("Error on set speed [Cmd=%s Res=%s]", cmd, res);
-            return false;
-        }
+        LOGF_ERROR("Error on set speed [Cmd=%s Res=%s]", cmd, res);
+        return false;
     }
-    else
+
+    // The reply is the speed in use. Values above the device maximum (400 on firmware 2.0) are ignored.
+    SpeedNP[0].setValue(actual);
+    if (actual != speed)
     {
-        LOGF_ERROR("Error on set speed [Speed=%d]", speed);
+        LOGF_WARN("Device kept speed %d, %u is outside its range.", actual, speed);
+        return false;
+    }
+    return true;
+}
+
+bool PegasusFocusCube3::getSpeed(int &speed)
+{
+    char res[PEGASUS_LEN] = {0};
+    if (!sendCommand("SP", res) || !parseReply(res, "SP:", speed))
+    {
+        LOGF_WARN("Could not read the speed [Res=%s].", res);
         return false;
     }
     return true;
@@ -498,10 +520,23 @@ bool PegasusFocusCube3::updateFocusParams()
     isMoving = (result[2] == "1");
 
 
-    // #3 Temperature
-    TemperatureNP[0].setValue(atof(result[3].c_str()));
-    TemperatureNP.setState(IPS_OK);
-    TemperatureNP.apply();
+    // #3 Temperature: -127 means that no sensor is connected, so the property is only shown with a sensor.
+    const double temperature = atof(result[3].c_str());
+    const bool sensor = temperature > -126;
+    if (sensor != hasTemperatureSensor)
+    {
+        hasTemperatureSensor = sensor;
+        if (sensor)
+            defineProperty(TemperatureNP);
+        else
+            deleteProperty(TemperatureNP);
+    }
+    if (sensor)
+    {
+        TemperatureNP[0].setValue(temperature);
+        TemperatureNP.setState(IPS_OK);
+        TemperatureNP.apply();
+    }
 
 
     // #4 Reverse Status

@@ -61,12 +61,17 @@ class PegasusFocusCube3 : public INDI::Focuser
     private:
         bool updateFocusParams();
         bool setSpeed(uint16_t speed);
+        bool getSpeed(int &speed);
+        /** @brief Read the number of a reply that may or may not start with the command prefix. */
+        static bool parseReply(const char *res, const char *prefix, int &value);
         bool move(uint32_t newPosition);
         std::string  getFirmwareVersion();
 
         uint32_t currentPosition { 0 };
         uint32_t targetPosition { 0 };
         bool isMoving = false;
+        // The firmware reports -127 when no temperature sensor is connected.
+        bool hasTemperatureSensor = false;
         // Start of the last move, to tell a finished move from one that has not started yet.
         std::chrono::steady_clock::time_point moveStarted;
         static constexpr std::chrono::seconds MOVE_START_TIMEOUT {5};
