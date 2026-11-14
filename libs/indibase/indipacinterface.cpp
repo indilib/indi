@@ -180,9 +180,10 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
 
     if (AZReverseSP.isNameMatch(name))
     {
-        m_DefaultDevice->updateProperty(AZReverseSP, states, names, n, [this, names]()
+        m_DefaultDevice->updateProperty(AZReverseSP, states, names, n, [this, states, names, n]()
         {
-            bool enabled = AZReverseSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+            const char *onSwitch = IUFindOnSwitchName(states, names, n);
+            bool enabled = onSwitch != nullptr && AZReverseSP[DefaultDevice::INDI_ENABLED].isNameMatch(onSwitch);
             return ReverseAZ(enabled);
         }, true);
         return true;
@@ -190,9 +191,10 @@ bool PACInterface::processSwitch(const char *dev, const char *name,
 
     if (ALTReverseSP.isNameMatch(name))
     {
-        m_DefaultDevice->updateProperty(ALTReverseSP, states, names, n, [this, names]()
+        m_DefaultDevice->updateProperty(ALTReverseSP, states, names, n, [this, states, names, n]()
         {
-            bool enabled = ALTReverseSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+            const char *onSwitch = IUFindOnSwitchName(states, names, n);
+            bool enabled = onSwitch != nullptr && ALTReverseSP[DefaultDevice::INDI_ENABLED].isNameMatch(onSwitch);
             return ReverseALT(enabled);
         }, true);
         return true;
