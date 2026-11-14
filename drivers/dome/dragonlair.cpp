@@ -328,7 +328,8 @@ void DragonLAIR::updateStatus()
             SafetySensorLP.apply();
 
             bool isRoofFullyClosed = j["roof"]["isRoofFullyClosed"];
-            bool isRoofFullyOpen = j["roof"]["isRoofFullyOpen"];
+            // Firmware 6.20.0 and later send isRoofFullyOpened. Older firmware sends isRoofFullyOpen.
+            bool isRoofFullyOpen = j["roof"].value("isRoofFullyOpened", j["roof"].value("isRoofFullyOpen", false));
 
             LimitSwitchLP[0].setState(isRoofFullyOpen ? IPS_OK : IPS_BUSY);
             LimitSwitchLP[1].setState(isRoofFullyClosed ? IPS_OK : IPS_BUSY);
