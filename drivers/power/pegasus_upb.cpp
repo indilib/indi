@@ -81,6 +81,23 @@ bool PegasusUPB::initProperties()
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption",
                             MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Power outputs switched on when the device boots (PE:bbbb), lost in the INDI::PowerInterface migration.
+    PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", "Port 1", ISS_ON);
+    PowerOnBootSP[POWER_PORT_2].fill("POWER_PORT_2", "Port 2", ISS_ON);
+    PowerOnBootSP[POWER_PORT_3].fill("POWER_PORT_3", "Port 3", ISS_ON);
+    PowerOnBootSP[POWER_PORT_4].fill("POWER_PORT_4", "Port 4", ISS_ON);
+    PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    // Over current flags of the 12 V and dew ports; the device switches an affected port off.
+    OverCurrentLP[POWER_PORT_1].fill("POWER_PORT_1", "Port 1", IPS_OK);
+    OverCurrentLP[POWER_PORT_2].fill("POWER_PORT_2", "Port 2", IPS_OK);
+    OverCurrentLP[POWER_PORT_3].fill("POWER_PORT_3", "Port 3", IPS_OK);
+    OverCurrentLP[POWER_PORT_4].fill("POWER_PORT_4", "Port 4", IPS_OK);
+    OverCurrentLP[DEW_A].fill("DEW_A", "Dew A", IPS_OK);
+    OverCurrentLP[DEW_B].fill("DEW_B", "Dew B", IPS_OK);
+    OverCurrentLP[DEW_C].fill("DEW_C", "Dew C", IPS_OK);
+    OverCurrentLP.fill(getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB, IPS_IDLE);
+
     ////////////////////////////////////////////////////////////////////////////
     /// Dew Group (Auto Dew Aggressiveness remains as is)
     ////////////////////////////////////////////////////////////////////////////
@@ -89,17 +106,6 @@ bool PegasusUPB::initProperties()
     AutoDewAggNP[AUTO_DEW_AGG].fill("AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
     AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
                       IPS_IDLE);
-
-    // Populate PI::USBPortLabelsTP with custom labels
-    if (PI::USBPortLabelsTP.size() >= 6)
-    {
-        PI::USBPortLabelsTP[0].setLabel("USB3 Port 1");
-        PI::USBPortLabelsTP[1].setLabel("USB3 Port 2");
-        PI::USBPortLabelsTP[2].setLabel("USB3 Port 3");
-        PI::USBPortLabelsTP[3].setLabel("USB3 Port 4");
-        PI::USBPortLabelsTP[4].setLabel("USB2 Port 5");
-        PI::USBPortLabelsTP[5].setLabel("USB2 Port 6");
-    }
 
     ////////////////////////////////////////////////////////////////////////////
     /// Focuser Group
@@ -295,6 +301,11 @@ bool PegasusUPB::Handshake()
                           POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE);
         // 4 DC ports, 3 DEW ports, 1 Variable port, 3 Auto Dew ports (per-port), 6 USB ports
         PI::initProperties(POWER_TAB, 4, 3, 1, 3, 6);
+
+        // USB ports 1-4 are USB3, 5-6 USB2. Set here, as PI::initProperties() creates the labels.
+        const char *usbLabels[] = {"USB3 Port 1", "USB3 Port 2", "USB3 Port 3", "USB3 Port 4", "USB2 Port 5", "USB2 Port 6"};
+        for (size_t i = 0; i < 6 && i < PI::USBPortLabelsTP.size(); i++)
+            PI::USBPortLabelsTP[i].setLabel(usbLabels[i]);
     }
 
     return true;
@@ -1100,6 +1111,7 @@ bool PegasusUPB::getSensorData()
                 OverCurrentLP[DEW_C].setState((over_curent[6] == '0') ? IPS_OK : IPS_ALERT);
             }
 
+            OverCurrentLP.setState(strchr(over_curent, '1') ? IPS_ALERT : IPS_OK);
             OverCurrentLP.apply();
         }
 

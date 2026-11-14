@@ -184,10 +184,11 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         };
 
         // Overcurrent status
+        // Lights 0-3 are the 12 V ports (POWER_PORT_1..4), 4-6 the dew ports.
         INDI::PropertyLight OverCurrentLP {7};
         enum
         {
-            DEW_A,
+            DEW_A = 4,
             DEW_B,
             DEW_C
         };
