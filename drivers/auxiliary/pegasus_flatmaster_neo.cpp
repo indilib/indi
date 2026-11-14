@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/ioctl.h>
+#include <vector>
 #include <math.h>
 
 
@@ -503,11 +504,16 @@ bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISStat
 
         if (RebootSP.isNameMatch(name))
         {
-            char response[16] = {0};
-            sendCommand("FQ", response);
+            // FQ restarts the device at once and sends no reply; its USB port goes away for a moment,
+            // so disconnect instead of polling a dead port.
+            int nbytes_written = 0;
+            tty_write(PortFD, "FQ\n", 3, &nbytes_written);
             RebootSP.setState(IPS_OK);
             RebootSP.apply();
-            LOG_INFO("Reboot command sent to device.");
+            LOG_INFO("Device restarts. Connect again in a few seconds.");
+            Disconnect();
+            setConnected(false, IPS_IDLE);
+            updateProperties();
             return true;
         }
 
@@ -631,9 +637,11 @@ bool PegasusFlatMasterNeo::sendCommandBuffer(const char *command, char *res, int
         // Discard the rest of a reply that did not fit, so the next reply starts clean.
         if (rc == TTY_OVERFLOW)
         {
+            // Bounded: after a reboot (FQ) the old port only returns end-of-file, which also
+            // counts as an overflow and would otherwise loop forever.
             char discard[256];
             int discarded = 0;
-            while (tty_nread_section(PortFD, discard, sizeof(discard), 0xA, 1, &discarded) == TTY_OVERFLOW)
+            for (int i = 0; i < 8 && tty_nread_section(PortFD, discard, sizeof(discard), 0xA, 1, &discarded) == TTY_OVERFLOW; i++)
                 ;
         }
         tcflush(PortFD, TCIOFLUSH);
@@ -645,8 +653,8 @@ bool PegasusFlatMasterNeo::sendCommandBuffer(const char *command, char *res, int
     if (nbytes_read > 1 && res[nbytes_read - 2] == '\r')
         res[nbytes_read - 2] = 0;
 
-    // AL answers <ssid>:<password>.
-    LOGF_DEBUG("RES <%s>", strcmp(command, "AL") == 0 ? "<ssid>:<password>" : res);
+    // AL answers <ssid>:<password>, and AP:/WP: may echo the password.
+    LOGF_DEBUG("RES <%s>", strcmp(command, "AL") == 0 ? "<ssid>:<password>" : secret ? "<password>" : res);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1074,8 +1082,14 @@ bool PegasusFlatMasterNeo::setDewAggressiveness(uint8_t level)
 
 bool PegasusFlatMasterNeo::saveDewLevels()
 {
+    // Pegasus firmware answers an unknown command with ">>"; firmware 1.4 does so for DSTR.
     char response[16] = {0};
     sendCommand("DSTR", response);
+    if (strncmp(response, ">>", 2) == 0)
+    {
+        LOG_WARN("This firmware does not support saving the dew levels (DSTR).");
+        return false;
+    }
     return true;
 }
 
@@ -1176,8 +1190,9 @@ bool PegasusFlatMasterNeo::setHotspot(const char *ssid, const char *password)
         return false;
     }
 
+    // The reply may echo the SSID or password, so it needs the same room as the command.
     char cmd[128] = {0};
-    char response[16] = {0};
+    char response[128] = {0};
 
     snprintf(cmd, sizeof(cmd), "AN:%s", ssid);
     if (!sendCommand(cmd, response) || !isWifiReplyOk(response))
@@ -1202,34 +1217,95 @@ bool PegasusFlatMasterNeo::getCurrentWifi()
     if (!sendCommand("WI", response))
         return false;
 
-    if (strcmp(response, "0") == 0)
+    // Reply: 0, or <ssid>,<signal %>,<security>,<ip address>. The SSID may contain commas,
+    // so take the other fields from the end.
+    std::string text = "Disconnected";
+    if (strcmp(response, "0") != 0)
     {
-        CurrentWifiTP[0].setText("Disconnected");
+        const std::string reply(response);
+        const size_t address  = reply.rfind(',');
+        const size_t security = address == std::string::npos || address == 0 ? std::string::npos : reply.rfind(',', address - 1);
+        const size_t signal   = security == std::string::npos || security == 0 ? std::string::npos : reply.rfind(',', security - 1);
+        if (signal != std::string::npos && signal > 0)
+            text = reply.substr(0, signal) + " (" + reply.substr(address + 1) + "), signal " +
+                   reply.substr(signal + 1, security - signal - 1) + "%";
+        else
+            text = reply;
     }
-    else
+
+    // Polled with the status; only send changes to the clients.
+    if (text != CurrentWifiTP[0].getText() || CurrentWifiTP.getState() != IPS_OK)
     {
-        CurrentWifiTP[0].setText(response);
+        CurrentWifiTP[0].setText(text.c_str());
+        CurrentWifiTP.setState(IPS_OK);
+        CurrentWifiTP.apply();
     }
-    CurrentWifiTP.setState(IPS_OK);
-    CurrentWifiTP.apply();
     return true;
 }
 
 bool PegasusFlatMasterNeo::scanWifiNetworks()
 {
+    LOG_INFO("Scanning for WiFi networks...");
     char response[2048] = {0};
-    // WS has up to 15 second scan timeout
-    if (!sendCommand("WS", response, 16))
-        return false;
+    // WS has up to 15 second scan timeout. Right after the radio changes state the first scans can
+    // come back empty ("0"), so ask a few times.
+    for (int i = 0; i < 4; i++)
+    {
+        if (!sendCommand("WS", response, 16))
+            return false;
+        if (strcmp(response, "0") != 0)
+            break;
+        if (i < 3)
+            usleep(3000000);
+    }
 
-    if (strcmp(response, "0") == 0)
-        WifiScanTP[0].setText("No networks found");
-    else
-        WifiScanTP[0].setText(response);
-
+    WifiScanTP[0].setText(strcmp(response, "0") == 0 ? "No networks found" : formatScan(response).c_str());
     WifiScanTP.setState(IPS_OK);
     WifiScanTP.apply();
     return true;
+}
+
+std::string PegasusFlatMasterNeo::formatScan(const char *reply)
+{
+    // Reply: <ssid>,<signal %>,<security>: per access point. List each SSID once with its best signal.
+    std::vector<std::pair<std::string, int>> networks;
+    const std::string entries(reply);
+    size_t start = 0;
+    while (start < entries.size())
+    {
+        size_t end = entries.find(':', start);
+        if (end == std::string::npos)
+            end = entries.size();
+        const std::string entry = entries.substr(start, end - start);
+        start = end + 1;
+
+        // The SSID may contain commas, so take signal and security from the end.
+        const size_t security = entry.rfind(',');
+        const size_t signal = security == std::string::npos || security == 0 ? std::string::npos : entry.rfind(',', security - 1);
+        if (signal == std::string::npos || signal == 0)
+            continue;
+
+        const std::string ssid = entry.substr(0, signal);
+        const int quality = atoi(entry.substr(signal + 1, security - signal - 1).c_str());
+        auto known = std::find_if(networks.begin(), networks.end(), [&](const auto & network)
+        {
+            return network.first == ssid;
+        });
+        if (known == networks.end())
+            networks.emplace_back(ssid, quality);
+        else
+            known->second = std::max(known->second, quality);
+    }
+
+    std::stable_sort(networks.begin(), networks.end(), [](const auto & a, const auto & b)
+    {
+        return a.second > b.second;
+    });
+
+    std::string text;
+    for (const auto &network : networks)
+        text += (text.empty() ? "" : ", ") + network.first + " (" + std::to_string(network.second) + "%)";
+    return text.empty() ? std::string(reply) : text;
 }
 
 bool PegasusFlatMasterNeo::connectToWifi(const char *ssid, const char *password)
@@ -1240,8 +1316,9 @@ bool PegasusFlatMasterNeo::connectToWifi(const char *ssid, const char *password)
         return false;
     }
 
+    // Firmware 1.4 echoes WN:<ssid> and WP:<password>, so the reply needs the same room as the command.
     char cmd[128]  = {0};
-    char response[16]  = {0};
+    char response[128]  = {0};
 
     // Empty password: send "PASSWORD" placeholder; otherwise 8 to 63 characters
     if (strlen(ssid) > 32 || strpbrk(ssid, "\r\n") ||
