@@ -71,6 +71,9 @@ class LX200NYX101 : public LX200Generic
 
         bool m_UnparkPending {false};
         std::chrono::steady_clock::time_point m_UnparkRequested;
+        // How long the mount may take to report parking ('I') or slewing after :hP#.
+        static constexpr std::chrono::seconds PARK_START_TIMEOUT {10};
+        std::chrono::steady_clock::time_point m_ParkRequested;
 
         enum RefractionState
         {

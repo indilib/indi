@@ -352,7 +352,7 @@ bool LX200NYX101::ReadScopeStatus()
     bool _IsParked = false;
     SetPropertyText(IsParked, IPS_BUSY);
 
-    //bool _IsParkginInProgress = false;
+    bool _IsParkingInProgress = false;
     SetPropertyText(IsParkginInProgress, IPS_BUSY);
 
     //bool _IsAtHomePosition = false;
@@ -373,7 +373,7 @@ bool LX200NYX101::ReadScopeStatus()
     //bool _IsHomePaused = false;
     SetPropertyText(IsHomePaused, IPS_BUSY);
 
-    //bool _ParkFailed = false;
+    bool _ParkFailed = false;
     SetPropertyText(ParkFailed, IPS_BUSY);
 
     //bool _SlewingHome = false;
@@ -407,7 +407,7 @@ bool LX200NYX101::ReadScopeStatus()
                     SetPropertyText(IsParked, IPS_OK);
                     continue;
                 case 'I':
-                    //_IsParkginInProgress = true;
+                    _IsParkingInProgress = true;
                     SetPropertyText(IsParkginInProgress, IPS_OK);
                     continue;
                 case 'H':
@@ -452,7 +452,7 @@ bool LX200NYX101::ReadScopeStatus()
                     SetPropertyText(IsHomePaused, IPS_OK);
                     continue;
                 case 'F':
-                    //_ParkFailed = true;
+                    _ParkFailed = true;
                     SetPropertyText(ParkFailed, IPS_OK);
                     continue;
                 case 'h':
@@ -531,6 +531,27 @@ bool LX200NYX101::ReadScopeStatus()
             m_UnparkPending = false;
             LOG_WARN("Mount is still parked after the unpark request.");
             SetParked(true);
+        }
+    }
+    else if (TrackState == SCOPE_PARKING && !_IsParked)
+    {
+        // A mount that is not operational yet (no time and location received) ignores :hP# and
+        // never reports 'P'. Report that instead of waiting forever.
+        const char *reason = nullptr;
+        if (_ParkFailed)
+            reason = "Mount reports that parking failed.";
+        else if (!_IsParkingInProgress && _IsSlewCompleted &&
+                 std::chrono::steady_clock::now() - m_ParkRequested > PARK_START_TIMEOUT)
+            reason = "Mount did not start parking. Check that it has received time and location, and has a park position.";
+
+        if (reason)
+        {
+            LOGF_ERROR("%s", reason);
+            TrackState = _IsTracking ? SCOPE_TRACKING : SCOPE_IDLE;
+            ParkSP.reset();
+            ParkSP[UNPARK].setState(ISS_ON);
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
         }
     }
     else if (TrackState != SCOPE_PARKED && _IsParked)
@@ -907,7 +928,15 @@ bool LX200NYX101::goToPark()
 
 bool LX200NYX101::goToUnPark()
 {
-    return sendCommand(":hR#");
+    // The mount answers 1, or 0 if it was not parked. Read the answer, otherwise it is left in the
+    // buffer and prepended to the next reply.
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":hR#", response, -1, 1))
+        return false;
+
+    if (response[0] != '1')
+        LOG_DEBUG("Mount answered 0 to unpark, it was not parked.");
+    return true;
 }
 
 bool LX200NYX101::Park()
@@ -916,6 +945,7 @@ bool LX200NYX101::Park()
     if (rc)
     {
         m_UnparkPending = false;
+        m_ParkRequested = std::chrono::steady_clock::now();
         TrackState = SCOPE_PARKING;
     }
 
