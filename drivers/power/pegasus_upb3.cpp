@@ -824,18 +824,18 @@ bool PegasusUPB3::ISNewNumber(const char * dev, const char * name, double values
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Auto Dew Aggressiveness (Global)
-        if (AutoDewAggNP.isNameMatch(name))
+        if (AutoDewSettingsNP.isNameMatch(name))
         {
             if (setAutoDewAgg(static_cast<uint8_t>(values[0])))
             {
-                AutoDewAggNP[0].setValue(values[0]);
-                AutoDewAggNP.setState(IPS_OK);
+                AutoDewSettingsNP[0].setValue(values[0]);
+                AutoDewSettingsNP.setState(IPS_OK);
             }
             else
             {
-                AutoDewAggNP.setState(IPS_ALERT);
+                AutoDewSettingsNP.setState(IPS_ALERT);
             }
-            AutoDewAggNP.apply();
+            AutoDewSettingsNP.apply();
             return true;
         }
 
@@ -914,7 +914,7 @@ bool PegasusUPB3::saveConfigItems(FILE * fp)
     PI::saveConfigItems(fp);
     INDI::OutputInterface::saveConfigItems(fp);
 
-    AutoDewAggNP.save(fp);
+    AutoDewSettingsNP.save(fp);
     AutoDewAggPerPortNP.save(fp);
     FocuserSettingsNP.save(fp);
     PowerOnBootSP.save(fp);
@@ -1134,9 +1134,9 @@ bool PegasusUPB3::initProperties()
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Power Consumption
-    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Power on Boot
@@ -1161,8 +1161,8 @@ bool PegasusUPB3::initProperties()
     OverCurrentLP.fill(getDeviceName(), "OVER_CURRENT", "Overcurrent", POWER_TAB, IPS_IDLE);
 
     // Auto Dew Aggressiveness (Global)
-    AutoDewAggNP[AUTO_DEW_AGG].fill("AUTO_DEW_AGG_VALUE", "Global (0-10)", "%.f", 0, 10, 1, 5);
-    AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (0-10)", "%.f", 0, 10, 1, 5);
+    AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Auto Dew Aggressiveness per Port
     AutoDewAggPerPortNP[AUTO_DEW_AGG_1].fill("AUTO_DEW_AGG_1", "Port 1 (1-10)", "%.f", 1, 10, 1, 5);
@@ -1214,7 +1214,7 @@ bool PegasusUPB3::updateProperties()
         defineProperty(OverCurrentLP);
 
         // Dew
-        defineProperty(AutoDewAggNP);
+        defineProperty(AutoDewSettingsNP);
         defineProperty(AutoDewAggPerPortNP);
 
         // Focuser
@@ -1246,7 +1246,7 @@ bool PegasusUPB3::updateProperties()
         deleteProperty(OverCurrentLP);
 
         // Dew
-        deleteProperty(AutoDewAggNP);
+        deleteProperty(AutoDewSettingsNP);
         deleteProperty(AutoDewAggPerPortNP);
 
         // Focuser

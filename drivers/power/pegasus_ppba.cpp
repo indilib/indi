@@ -114,11 +114,11 @@ bool PegasusPPBA::initProperties()
     PowerChannelsSP.setLabel("Quad Output");
 
     // Power Sensors
-    PowerStatisticsNP[STATS_AVG_AMPS].fill("STATS_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_AMP_HOURS].fill("STATS_AMP_HOURS", "Amp hours (Ah)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_WATT_HOURS].fill("STATS_WATT_HOURS", "Watt hours (Wh)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP[STATS_TOTAL_CURRENT].fill("STATS_TOTAL_CURRENT", "Total current (A)", "%4.2f", 0, 999, 100, 0);
-    PowerStatisticsNP.fill(getDeviceName(), "POWER_STATISTICS", "Power Statistics", POWER_TAB, IP_RO, 60, IPS_IDLE);
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Average Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours (Ah)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours (Wh)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_TOTAL_CURRENT].fill("CONSUMPTION_TOTAL_CURRENT", "Total Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption", POWER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Adjustable Voltage
     AdjOutVoltSP[ADJOUT_OFF].fill("ADJOUT_OFF", "Off", ISS_ON);
@@ -138,8 +138,8 @@ bool PegasusPPBA::initProperties()
     PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
                        IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
-    // Automatic Dew Settings
-    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AGGRESSION", "Aggresiveness (%)", "%.2f", 0, 100, 10, 0);
+    // Automatic Dew Aggressiveness
+    AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AUTO_DEW_AGGRESSION", "Aggressiveness (%)", "%.2f", 0, 100, 10, 0);
     AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -214,7 +214,7 @@ bool PegasusPPBA::updateProperties()
         // Power Interface properties
         PI::updateProperties();
         defineProperty(AdjOutVoltSP);
-        defineProperty(PowerStatisticsNP);
+        defineProperty(PowerConsumptionNP);
 
         // Focuser
         if (m_HasExternalMotor)
@@ -244,7 +244,7 @@ bool PegasusPPBA::updateProperties()
         // Power Interface properties
         PI::updateProperties();
         deleteProperty(AdjOutVoltSP);
-        deleteProperty(PowerStatisticsNP);
+        deleteProperty(PowerConsumptionNP);
 
         if (m_HasExternalMotor)
         {
@@ -822,16 +822,16 @@ bool PegasusPPBA::getConsumptionData()
         if (result == lastConsumptionData)
             return true;
 
-        // Power Statistics
-        PowerStatisticsNP[STATS_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
-        PowerStatisticsNP[STATS_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
-        PowerStatisticsNP[STATS_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
-        PowerStatisticsNP.setState(IPS_OK);
+        // Power Consumption
+        PowerConsumptionNP[CONSUMPTION_AVG_AMPS].setValue(std::stod(result[PS_AVG_AMPS]));
+        PowerConsumptionNP[CONSUMPTION_AMP_HOURS].setValue(std::stod(result[PS_AMP_HOURS]));
+        PowerConsumptionNP[CONSUMPTION_WATT_HOURS].setValue(std::stod(result[PS_WATT_HOURS]));
+        PowerConsumptionNP.setState(IPS_OK);
         if (lastConsumptionData.size() < PS_N ||
                 lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] ||
                 lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] ||
                 lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
-            PowerStatisticsNP.apply();
+            PowerConsumptionNP.apply();
 
         lastConsumptionData = result;
 
@@ -874,7 +874,7 @@ bool PegasusPPBA::getMetricsData()
             return true;
 
         // Power Sensors
-        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
+        PowerConsumptionNP[CONSUMPTION_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
         // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
         {
@@ -897,7 +897,7 @@ bool PegasusPPBA::getMetricsData()
         {
             PI::PowerChannelCurrentNP.apply();
             PI::DewChannelCurrentNP.apply();
-            PowerStatisticsNP.apply();
+            PowerConsumptionNP.apply();
         }
 
         std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));
