@@ -281,7 +281,8 @@ bool PegasusFlatMasterNeo::Ack()
 {
     PortFD = serialConnection->getPortFD();
 
-    char response[16] = {0};
+    // The reply "FMNEO_<id>_A\r\n" is 16 bytes, more than a 16-byte buffer holds with its terminating zero.
+    char response[NEO_LEN] = {0};
     if (sendCommand("F#", response))
     {
         if (strstr(response, "FMNEO") != nullptr)
@@ -315,8 +316,27 @@ bool PegasusFlatMasterNeo::SetLightBoxBrightness(uint16_t value)
     return true;
 }
 
+bool PegasusFlatMasterNeo::ignoredWhileLoadingConfig(const char *dev, const char *name) const
+{
+    // Versions up to 1.2 saved these settings, so older configurations still contain them.
+    static const char *const stored[] = {"DEW_HEATER", "CAP_ANGLE", "WEATHER_OFFSET", "DEW_AGGRESSIVENESS",
+                                         "DEW_THRESHOLD", "WIFI_CHANNEL", "HOTSPOT_CREDENTIALS", "AUTO_DEW",
+                                         "AUTO_CLOSE", "HOTSPOT_STATUS"
+                                        };
+    if (!isConfigLoading() || dev == nullptr || strcmp(dev, getDeviceName()) != 0)
+        return false;
+
+    for (const char *property : stored)
+        if (strcmp(name, property) == 0)
+            return true;
+    return false;
+}
+
 bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (ignoredWhileLoadingConfig(dev, name))
+        return true;
+
     if (LI::processNumber(dev, name, values, names, n))
         return true;
 
@@ -420,6 +440,9 @@ bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double
 
 bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
+    if (ignoredWhileLoadingConfig(dev, name))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (LI::processText(dev, name, texts, names, n))
@@ -452,6 +475,9 @@ bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *te
 
 bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    if (ignoredWhileLoadingConfig(dev, name))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (DI::processSwitch(dev, name, states, names, n))
@@ -579,10 +605,13 @@ bool PegasusFlatMasterNeo::sendCommandBuffer(const char *command, char *res, int
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    char cmd[32] = {0};
+    // Room for WN:/WP: with a 63-character password; a smaller buffer cut long passwords silently.
+    char cmd[128] = {0};
     snprintf(cmd, sizeof(cmd), "%s\n", command);
 
-    LOGF_DEBUG("CMD <%s>", command);
+    // Do not write WiFi and hotspot passwords to the log.
+    const bool secret = strncmp(command, "AP:", 3) == 0 || strncmp(command, "WP:", 3) == 0;
+    LOGF_DEBUG("CMD <%s>", secret ? "<password>" : command);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -616,7 +645,8 @@ bool PegasusFlatMasterNeo::sendCommandBuffer(const char *command, char *res, int
     if (nbytes_read > 1 && res[nbytes_read - 2] == '\r')
         res[nbytes_read - 2] = 0;
 
-    LOGF_DEBUG("RES <%s>", res);
+    // AL answers <ssid>:<password>.
+    LOGF_DEBUG("RES <%s>", strcmp(command, "AL") == 0 ? "<ssid>:<password>" : res);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1032,17 +1062,13 @@ bool PegasusFlatMasterNeo::setThreshold(uint8_t value)
     return sendEchoCommand(cmd);
 }
 
-// level 0..10 (logical) → DA:<level> (cache) + PD:<mapped_byte> (apply)
-// mapped_byte = 9 + round(level * 246 / 10), covering byte range 9..255
+// level 0..10 → DA:<level>. Firmware 1.4 applies it right away (FA field 8 follows). The Unity
+// Platform also sends PD:<9..255>, but the firmware answers that with PD:1 and treats it as
+// "auto dew on", so it would switch auto dew on as a side effect.
 bool PegasusFlatMasterNeo::setDewAggressiveness(uint8_t level)
 {
     char cmd[16] = {0};
     snprintf(cmd, sizeof(cmd), "DA:%d", level);
-    if (!sendEchoCommand(cmd))
-        return false;
-
-    const uint8_t mapped = static_cast<uint8_t>(9 + static_cast<int>(round(level * 246.0 / 10.0)));
-    snprintf(cmd, sizeof(cmd), "PD:%d", mapped);
     return sendEchoCommand(cmd);
 }
 
@@ -1143,7 +1169,14 @@ bool PegasusFlatMasterNeo::getHotspot()
 
 bool PegasusFlatMasterNeo::setHotspot(const char *ssid, const char *password)
 {
-    char cmd[NEO_LEN] = {0};
+    if (strlen(ssid) == 0 || strlen(ssid) > 32 || strlen(password) < 8 || strlen(password) > 63 ||
+            strpbrk(ssid, "\r\n") || strpbrk(password, "\r\n"))
+    {
+        LOG_ERROR("Hotspot SSID must have 1 to 32 characters and the password 8 to 63 characters.");
+        return false;
+    }
+
+    char cmd[128] = {0};
     char response[16] = {0};
 
     snprintf(cmd, sizeof(cmd), "AN:%s", ssid);
@@ -1207,13 +1240,14 @@ bool PegasusFlatMasterNeo::connectToWifi(const char *ssid, const char *password)
         return false;
     }
 
-    char cmd[NEO_LEN]  = {0};
+    char cmd[128]  = {0};
     char response[16]  = {0};
 
-    // Empty password: send "PASSWORD" placeholder; otherwise min 8 chars
-    if (password && password[0] != '\0' && strlen(password) < 8)
+    // Empty password: send "PASSWORD" placeholder; otherwise 8 to 63 characters
+    if (strlen(ssid) > 32 || strpbrk(ssid, "\r\n") ||
+            (password && password[0] != '\0' && (strlen(password) < 8 || strlen(password) > 63 || strpbrk(password, "\r\n"))))
     {
-        LOG_ERROR("WiFi password must be at least 8 characters.");
+        LOG_ERROR("WiFi SSID must have at most 32 characters and the password 8 to 63 characters.");
         return false;
     }
 

@@ -105,6 +105,8 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         // Replies of the WiFi/hotspot setters: "0" means failure, anything else success.
         static bool isWifiReplyOk(const char *response);
         static uint8_t aggressivenessLevel(double value);
+        // Settings the device stores itself; a configuration loaded from an older driver version must not send them back.
+        bool ignoredWhileLoadingConfig(const char *dev, const char *name) const;
         void updateFirmwareVersion();
 
         // Firmware version
