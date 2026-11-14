@@ -25,6 +25,7 @@
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <cmath>
 #include <cstring>
@@ -57,7 +58,12 @@ bool PegasusFocusCube3::Handshake()
 {
     int tty_rc = 0, nbytes_written = 0, nbytes_read = 0;
     char command[PEGASUS_LEN] = {0}, response[PEGASUS_LEN] = {0};
-    PortFD = serialConnection->getPortFD();
+    // Over TCP, log in with the hotspot password before any command.
+    const bool tcp = getActiveConnection() == tcpConnection;
+    PortFD = tcp ? tcpConnection->getPortFD() : serialConnection->getPortFD();
+    if (tcp && !wifi.login(PortFD))
+        return false;
+
     LOG_DEBUG("CMD <##>");
 
 
@@ -146,6 +152,42 @@ bool PegasusFocusCube3::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     serialConnection->setPortMatchPattern("FocusCube");
 
+    // Over WiFi the device announces itself as focuscube3.local and listens on TCP port 9999.
+    tcpConnection->setDefaultHost("focuscube3.local");
+    tcpConnection->setDefaultPort(PegasusAstro::WiFi::TCP_PORT);
+    wifi.initProperties("WiFi",
+                        [this](const char *name) { loadConfig(true, name); },
+                        [this](INDI::Property & property) { saveConfig(property); });
+
+    return true;
+}
+
+void PegasusFocusCube3::ISGetProperties(const char *dev)
+{
+    INDI::Focuser::ISGetProperties(dev);
+    wifi.ISGetProperties();
+}
+
+bool PegasusFocusCube3::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (wifi.ISNewSwitch(dev, name, states, names, n))
+        return true;
+
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool PegasusFocusCube3::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (wifi.ISNewText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::Focuser::ISNewText(dev, name, texts, names, n);
+}
+
+bool PegasusFocusCube3::saveConfigItems(FILE *fp)
+{
+    INDI::Focuser::saveConfigItems(fp);
+    wifi.saveConfigItems(fp);
     return true;
 }
 
@@ -167,11 +209,14 @@ bool PegasusFocusCube3::updateProperties()
         if (getSpeed(speed))
             SpeedNP[0].setValue(speed);
         defineProperty(SpeedNP);
+
+        wifi.updateProperties(true, PortFD);
     }
     else
     {
         hasTemperatureSensor = false;
         deleteProperty(TemperatureNP);
+        wifi.updateProperties(false, -1);
         deleteProperty(FirmwareVersionTP);
         deleteProperty(SpeedNP);
     }
@@ -182,6 +227,9 @@ bool PegasusFocusCube3::updateProperties()
 
 bool PegasusFocusCube3::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
+    if (wifi.ISNewNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
         if(SpeedNP.isNameMatch(name))

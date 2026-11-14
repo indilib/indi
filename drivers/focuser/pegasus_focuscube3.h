@@ -24,6 +24,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "pegasus_wifi.h"
 
 #include <chrono>
 
@@ -37,9 +38,13 @@ class PegasusFocusCube3 : public INDI::Focuser
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
+        virtual bool saveConfigItems(FILE *fp) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual bool AbortFocuser() override;
@@ -76,6 +81,9 @@ class PegasusFocusCube3 : public INDI::Focuser
         std::chrono::steady_clock::time_point moveStarted;
         static constexpr std::chrono::seconds MOVE_START_TIMEOUT {5};
 
+
+        // WiFi settings and login on the TCP command socket
+        PegasusAstro::WiFi wifi {this};
 
         INDI::PropertyNumber TemperatureNP {1};
         INDI::PropertyText FirmwareVersionTP {1};

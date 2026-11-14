@@ -28,6 +28,7 @@
 #include "pegasus_falconv2.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <algorithm>
 #include <cmath>
@@ -91,7 +92,28 @@ bool PegasusFalconV2::initProperties()
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
                     IPS_IDLE);
 
+    // Over WiFi the device announces itself as falcon2.local and listens on TCP port 9999.
+    tcpConnection->setDefaultHost("falcon2.local");
+    tcpConnection->setDefaultPort(PegasusAstro::WiFi::TCP_PORT);
+    wifi.initProperties("WiFi",
+                        [this](const char *name) { loadConfig(true, name); },
+                        [this](INDI::Property & property) { saveConfig(property); });
+
     return true;
+}
+
+void PegasusFalconV2::ISGetProperties(const char *dev)
+{
+    INDI::Rotator::ISGetProperties(dev);
+    wifi.ISGetProperties();
+}
+
+bool PegasusFalconV2::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (wifi.ISNewText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::Rotator::ISNewText(dev, name, texts, names, n);
 }
 
 bool PegasusFalconV2::updateProperties()
@@ -107,7 +129,6 @@ bool PegasusFalconV2::updateProperties()
         defineProperty(CableLimitSP);
         defineProperty(FirmwareTP);
         defineProperty(ReloadFirmwareSP);
-
     }
     else
     {
@@ -118,6 +139,8 @@ bool PegasusFalconV2::updateProperties()
         deleteProperty(FirmwareTP);
         deleteProperty(ReloadFirmwareSP);
     }
+
+    wifi.updateProperties(isConnected(), PortFD);
 
     return true;
 }
@@ -132,6 +155,10 @@ const char * PegasusFalconV2::getDefaultName()
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::Handshake()
 {
+    // Over TCP, log in with the hotspot password before any command.
+    if (getActiveConnection() == tcpConnection && !wifi.login(PortFD))
+        return false;
+
     if (!getFirmware())
         return false;
 
@@ -147,6 +174,9 @@ bool PegasusFalconV2::Handshake()
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (wifi.ISNewNumber(dev, name, values, names, n))
+        return true;
+
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // De-rotation
@@ -201,6 +231,9 @@ bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double valu
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
+    if (wifi.ISNewSwitch(dev, name, states, names, n))
+        return true;
+
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // ReloadFirmware
@@ -404,6 +437,7 @@ bool PegasusFalconV2::saveConfigItems(FILE * fp)
 {
     // De-rotation is not saved, so it never starts by itself on the next connection.
     INDI::Rotator::saveConfigItems(fp);
+    wifi.saveConfigItems(fp);
     return true;
 }
 

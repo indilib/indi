@@ -25,6 +25,7 @@
 #pragma once
 
 #include "indirotator.h"
+#include "pegasus_wifi.h"
 #include <chrono>
 #include <stdint.h>
 
@@ -36,8 +37,10 @@ class PegasusFalconV2 : public INDI::Rotator
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
         const char *getDefaultName() override;
@@ -108,6 +111,8 @@ class PegasusFalconV2 : public INDI::Rotator
         INDI::PropertyText FirmwareTP {1};
         /// Cable limit (FLIM), stored by the device itself
         INDI::PropertySwitch CableLimitSP {2};
+        /// WiFi settings and login on the TCP command socket
+        PegasusAstro::WiFi wifi {this};
 
         std::vector<std::string> lastStatusData;
 

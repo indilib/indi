@@ -75,10 +75,12 @@ install(TARGETS indi_camelot_rotator RUNTIME DESTINATION bin)
 
 # ############### Falcon V2 Rotator ################
 SET(falconv2_SRC
-    pegasus_falconv2.cpp)
+    pegasus_falconv2.cpp
+    ${CMAKE_SOURCE_DIR}/drivers/auxiliary/pegasus_wifi.cpp)
 
 add_executable(indi_falconv2_rotator ${falconv2_SRC})
 target_link_libraries(indi_falconv2_rotator indidriver)
+target_include_directories(indi_falconv2_rotator PRIVATE ${CMAKE_SOURCE_DIR}/drivers/auxiliary)
 install(TARGETS indi_falconv2_rotator RUNTIME DESTINATION bin)
 
 # ############### Wanderer Rotator Lite ################
