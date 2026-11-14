@@ -31,6 +31,7 @@
 #include <termios.h>
 #include <cstring>
 #include <sys/ioctl.h>
+#include <algorithm>
 #include <chrono>
 #include <math.h>
 #include <iomanip>
@@ -41,7 +42,7 @@ static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
 PegasusUPB::PegasusUPB() : INDI::DefaultDevice(), INDI::FocuserInterface(this), INDI::WeatherInterface(this),
     INDI::PowerInterface(this)
 {
-    setVersion(1, 6);
+    setVersion(1, 7);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -105,7 +106,7 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Settings
-    FocuserSettingsNP[SETTING_MAX_SPEED].fill("SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
+    FocuserSettingsNP[SETTING_MAX_SPEED].fill("SETTING_MAX_SPEED", "Max Speed", "%.f", 0, 900, 100, 400);
     FocuserSettingsNP.fill(getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
                            IP_RW, 60, IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
@@ -268,6 +269,12 @@ bool PegasusUPB::Handshake()
     LOGF_DEBUG("RES <%s>", response);
 
     setupComplete = false;
+    // PI::initProperties() below resets all port switches; forget the last readings so the next
+    // poll sends the real states even if nothing changed on the device since the last connection.
+    lastSensorData.clear();
+    lastPowerData.clear();
+    lastStepperData.clear();
+    lastDewAggData.clear();
 
     version = strstr(response, "UPB2_OK") ? UPB_V2 : UPB_V1;
 
@@ -312,16 +319,22 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         // Power on boot
         if (PowerOnBootSP.isNameMatch(name))
         {
+            // Stored in the device (PE:); configurations of version 1.6 and older still contain it.
+            if (isConfigLoading())
+                return true;
             PowerOnBootSP.update(states, names, n);
             PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
             PowerOnBootSP.apply();
-            saveConfig(PowerOnBootSP);
             return true;
         }
 
 
         if (strstr(name, "FOCUS"))
             return FI::processSwitch(dev, name, states, names, n);
+
+        // The adjustable output is always on; a configuration must not resend its voltage.
+        if (isConfigLoading() && PI::VariableChannelsSP.isNameMatch(name))
+            return true;
 
         // Process power-related switches via PowerInterface
         if (PI::processSwitch(dev, name, states, names, n))
@@ -341,6 +354,10 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
         // Auto Dew Aggressiveness (device-specific property, not in INDI::Power)
         if (AutoDewAggNP.isNameMatch(name))
         {
+            // Stored in the device; configurations of version 1.6 and older still contain it.
+            if (isConfigLoading())
+                return true;
+
             if (setAutoDewAgg(values[0]))
             {
                 AutoDewAggNP[0].setValue(values[0]);
@@ -358,6 +375,10 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
         // Focuser Settings
         if (FocuserSettingsNP.isNameMatch(name))
         {
+            // Stored in the device (SS:n); configurations of version 1.6 and older still contain it.
+            if (isConfigLoading())
+                return true;
+
             if (setFocuserMaxSpeed(values[0]))
             {
                 FocuserSettingsNP[0].setValue(values[0]);
@@ -377,6 +398,10 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
 
         if (strstr(name, "WEATHER_"))
             return WI::processNumber(dev, name, values, names, n);
+
+        // The device stores the adjustable output voltage (P8:n) itself; a configuration must not change it.
+        if (isConfigLoading() && PI::VariableChannelVoltsNP.isNameMatch(name))
+            return true;
 
         // Process power-related numbers via PowerInterface
         if (PI::processNumber(dev, name, values, names, n))
@@ -556,9 +581,10 @@ bool PegasusUPB::SyncFocuser(uint32_t ticks)
 //////////////////////////////////////////////////////////////////////
 bool PegasusUPB::SetFocuserBacklash(int32_t steps)
 {
-    char cmd[PEGASUS_LEN] = {0};
+    // Answered with SB:n; read it, otherwise it ends up as the reply to the next command.
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "SB:%d", steps);
-    return sendCommand(cmd, nullptr);
+    return sendCommand(cmd, res) && !strcmp(cmd, res);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -566,9 +592,10 @@ bool PegasusUPB::SetFocuserBacklash(int32_t steps)
 //////////////////////////////////////////////////////////////////////
 bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
 {
-    char cmd[PEGASUS_LEN] = {0};
+    // Answered with the new speed; read it, otherwise it ends up as the reply to the next command.
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "SS:%d", maxSpeed);
-    return sendCommand(cmd, nullptr);
+    return sendCommand(cmd, res);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -576,9 +603,12 @@ bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
 //////////////////////////////////////////////////////////////////////
 bool PegasusUPB::SetFocuserBacklashEnabled(bool enabled)
 {
-    char cmd[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "SB:%d", enabled ? 1 : 0);
-    return sendCommand(cmd, nullptr);
+    // SB:0 disables the compensation, any other value enables it with that many steps.
+    const int steps = static_cast<int>(FocusBacklashNP[0].getValue());
+    if (enabled && steps <= 0)
+        return true;
+
+    return SetFocuserBacklash(enabled ? steps : 0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -699,6 +729,12 @@ bool PegasusUPB::getPowerOnBoot()
         {
             PI::VariableChannelVoltsNP[0].setValue(std::stod(result[2]));
             PI::VariableChannelVoltsNP.setState(IPS_OK);
+            // The adjustable output always supplies its voltage; there is no command to switch it off.
+            if (PI::VariableChannelsSP.size() > 0)
+            {
+                PI::VariableChannelsSP[0].setState(ISS_ON);
+                PI::VariableChannelsSP.setState(IPS_OK);
+            }
         }
 
         return true;
@@ -811,12 +847,7 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     WI::saveConfigItems(fp);
     PI::saveConfigItems(fp);
 
-    if (version == UPB_V2)
-    {
-        AutoDewAggNP.save(fp);
-    }
-    FocuserSettingsNP.save(fp);
-    PowerOnBootSP.save(fp);
+    // Auto dew aggressiveness, focuser max speed and the power on boot states are stored in the device itself.
     return true;
 }
 
@@ -831,13 +862,21 @@ void PegasusUPB::TimerHit()
         return;
     }
 
-    if (getSensorData())
+    // A garbled reply must not end the driver with an uncaught std::stod exception.
+    try
     {
-        getPowerData();
-        getStepperData();
+        if (getSensorData())
+        {
+            getPowerData();
+            getStepperData();
 
-        if (version == UPB_V2)
-            getDewAggData();
+            if (version == UPB_V2)
+                getDewAggData();
+        }
+    }
+    catch (const std::exception &e)
+    {
+        LOGF_WARN("Failed to parse the device status: %s", e.what());
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -885,7 +924,7 @@ bool PegasusUPB::stepperUpdated(const std::vector<std::string> &result, uint8_t 
     if (lastStepperData.empty())
         return true;
 
-    return index >= lastStepperData.size() or result[index] != lastSensorData[index];
+    return index >= lastStepperData.size() or result[index] != lastStepperData[index];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -971,13 +1010,15 @@ bool PegasusUPB::getSensorData()
 
         // From here, we get differences between v1 and v2 readings
         int index = 9;
-        // Dew DEW
-        if (PI::DewChannelDutyCycleNP.size() >= 1)
-            PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[index]) / 255.0 * 100.0);
-        if (PI::DewChannelDutyCycleNP.size() >= 2)
-            PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[index + 1]) / 255.0 * 100.0);
-        if (version == UPB_V2 && PI::DewChannelDutyCycleNP.size() >= 3)
-            PI::DewChannelDutyCycleNP[2].setValue(std::stod(result[index + 2]) / 255.0 * 100.0);
+        // Dew duty cycles. A channel that is off reports 0; keep the duty cycle set for it then,
+        // otherwise switching the channel on would send 0 % (the duty cycle is only stored while off).
+        const size_t dewChannels = (version == UPB_V1) ? 2 : 3;
+        for (size_t i = 0; i < dewChannels && i < PI::DewChannelDutyCycleNP.size(); i++)
+        {
+            const double duty = std::stod(result[index + i]);
+            if (duty > 0)
+                PI::DewChannelDutyCycleNP[i].setValue(duty / 255.0 * 100.0);
+        }
         if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
             PI::DewChannelDutyCycleNP.apply();
 
@@ -1227,31 +1268,29 @@ bool PegasusUPB::getStepperData()
         FocusReverseSP[INDI_ENABLED].setState((std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF);
         FocusReverseSP[INDI_DISABLED].setState((std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON);
 
-        if (stepperUpdated(result, 1))
+        if (stepperUpdated(result, 2))
             FocusReverseSP.apply();
 
-        uint16_t backlash = std::stoi(result[3]);
-        if (backlash == 0)
+        // Backlash steps, 0 = compensation off. Keep the configured steps while it is off, so that
+        // enabling it again restores them; only switch off when the device turned it off.
+        const int backlash = std::stoi(result[3]);
+        if (stepperUpdated(result, 3))
         {
-            FocusBacklashNP[0].setValue(backlash);
-            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
-            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-            if (stepperUpdated(result, 3))
+            const bool wasOn = lastStepperData.size() > 3 && lastStepperData[3] != "0";
+            if (backlash > 0)
             {
-                FocusBacklashSP.apply();
-                FocuserSettingsNP.apply();
+                FocusBacklashSP[INDI_ENABLED].setState(ISS_ON);
+                FocusBacklashSP[INDI_DISABLED].setState(ISS_OFF);
+                FocusBacklashNP[0].setValue(backlash);
+                FocusBacklashNP.setState(IPS_OK);
+                FocusBacklashNP.apply();
             }
-        }
-        else
-        {
-            FocusBacklashSP[INDI_ENABLED].setState(ISS_ON);
-            FocusBacklashSP[INDI_DISABLED].setState(ISS_OFF);
-            FocusBacklashNP[0].setValue(backlash);
-            if (stepperUpdated(result, 3))
+            else if (wasOn || lastStepperData.empty())
             {
-                FocusBacklashSP.apply();
-                FocuserSettingsNP.apply();
+                FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+                FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
             }
+            FocusBacklashSP.apply();
         }
 
         lastStepperData = result;
@@ -1378,15 +1417,20 @@ bool PegasusUPB::SetDewPort(size_t port, bool enabled, double dutyCycle)
 bool PegasusUPB::SetVariablePort(size_t port, bool enabled, double voltage)
 {
     INDI_UNUSED(port);  // UPB only has one adjustable output
+    // P8:0 is answered with the stored voltage (P8:12): the output cannot be switched off.
     if (!enabled)
     {
-        return setAdjustableOutput(0);
+        LOG_WARN("The adjustable output cannot be switched off; it always supplies 3 to 12 V.");
+        return false;
     }
-    return setAdjustableOutput(static_cast<uint8_t>(voltage));
+    return setAdjustableOutput(static_cast<uint8_t>(std::lround(std::clamp(voltage, 3.0, 12.0))));
 }
 
 bool PegasusUPB::SetLEDEnabled(bool enabled)
 {
+    // Pegasus: from PCB revision C on, the stepper driver sleeps while the LED is off.
+    if (!enabled && version == UPB_V2)
+        LOG_WARN("With the LED off, the stepper motor output sleeps on UPB v2 boards from revision C on.");
     return setPowerLEDEnabled(enabled);
 }
 
@@ -1408,12 +1452,15 @@ bool PegasusUPB::SetAutoDewEnabled(size_t port, bool enabled)
 
 bool PegasusUPB::CyclePower()
 {
-    // PZ:1 cycles power off then on to all ports
+    // PZ:b switches all four 12 V outputs and the dew outputs off (0) or on (1). There is no power cycle
+    // command, and PZ:0 would also switch off a computer powered by the UPB, which could not switch it on
+    // again. So this only switches all outputs on.
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "PZ:1");
-    if (sendCommand(cmd, res))
+    if (sendCommand(cmd, res) && !strcmp(cmd, res))
     {
-        return (!strcmp(cmd, res));
+        LOG_INFO("All power outputs switched on (PZ:1). The UPB has no power cycle command.");
+        return true;
     }
     return false;
 }
