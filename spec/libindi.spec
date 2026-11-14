@@ -14,6 +14,8 @@ URL: http://www.indilib.org
 Source0: https://github.com/indilib/%{name}/archive/master.tar.gz
 
 BuildRequires: cmake
+BuildRequires: gcc
+BuildRequires: gcc-c++
 BuildRequires: libnova-devel
 BuildRequires: qt5-qtbase-devel
 BuildRequires: systemd
