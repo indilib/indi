@@ -1,5 +1,4 @@
 %global forgeurl https://github.com/indilib/indi.git
-%define __cmake_in_source_build %{_vpath_builddir}
 
 Name: indi
 Version: 2.2.5.git
@@ -84,11 +83,11 @@ chmod -x drivers/telescope/pmc8driver.cpp
 # TODO: fix pre-existing GCC -Wstringop-truncation warnings in
 # libs/indibase/webcam/v4l2_base.cpp (strncpy bound == destination size),
 # then remove -DFIX_WARNINGS=OFF to build with -Werror like CI does.
-%cmake . -DFIX_WARNINGS=OFF
-make VERBOSE=1 %{?_smp_mflags}
+%cmake -DFIX_WARNINGS=OFF
+%cmake_build
 
 %install
-make install DESTDIR=%{buildroot}
+%cmake_install
 
 %ldconfig_scriptlets libs
 
