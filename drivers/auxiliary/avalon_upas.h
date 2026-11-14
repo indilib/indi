@@ -41,6 +41,10 @@
  * every move ends in the configured approach direction. A move against that
  * direction overshoots by the backlash and is followed by a second jog back
  * (GRBL queues both jogs in its planner). Backlash is set in arcminutes.
+ * The UPAS has no limit switches and GRBL starts at 0 on every power-up, so the driver cannot
+ * know the mechanical stops; near a stop the overshoot can run into it.
+ *
+ * At connect the reverse mask ($3) is read from GRBL. Alarm and Door states are reported as errors.
  *
  * Capabilities: PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
  * Feed rate is set per axis (PAC_FEED_RATE) instead of the interface's single speed.
@@ -96,6 +100,9 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
 
         /** @brief Parse a GRBL status response (from '?') and update internal state. */
         bool parseStatus(const char *response);
+
+        /** @brief Read the axis reverse mask ($3) from GRBL so the reverse switches match the device. */
+        bool readReverseFlags();
 
         void hexDump(char *buf, const char *data, int size);
 
@@ -155,6 +162,7 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         /// Internal state
         ///////////////////////////////////////////////////////////////////////////////
         bool    m_IsMoving      {false};    ///< True while at least one axis is jogging.
+        bool    m_IsFault       {false};    ///< True while GRBL reports Alarm or Door.
         uint8_t m_ReverseFlags  {0};        ///< Bitmask: bit 0 = AZ reversed, bit 1 = ALT reversed.
 
         int     PortFD          {-1};

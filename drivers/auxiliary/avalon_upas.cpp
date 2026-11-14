@@ -204,8 +204,52 @@ bool AvalonUPAS::Handshake()
         }
     }
 
+    readReverseFlags();
+
     LOG_INFO("UPAS connected and ready.");
     return true;
+}
+
+bool AvalonUPAS::readReverseFlags()
+{
+    // "$$" lists every GRBL setting as one "$n=value" line, followed by "ok". The lines arrive
+    // as a burst, so read them directly; sendCommand() would flush the rest after the first line.
+    tcflush(PortFD, TCIOFLUSH);
+    int nbytes = 0;
+    if (tty_write_string(PortFD, "$$\n", &nbytes) != TTY_OK)
+        return false;
+
+    bool settingsSeen = false;
+    for (int i = 0; i < 64; i++)
+    {
+        char line[DRIVER_LEN] = {0};
+        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
+            break;
+
+        int mask = 0;
+        if (sscanf(line, "$3=%d", &mask) == 1)
+        {
+            m_ReverseFlags = static_cast<uint8_t>(mask & 0x03);
+            AZReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x01) ? ISS_ON : ISS_OFF);
+            AZReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x01) ? ISS_OFF : ISS_ON);
+            ALTReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x02) ? ISS_ON : ISS_OFF);
+            ALTReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x02) ? ISS_OFF : ISS_ON);
+            LOGF_DEBUG("GRBL axis reverse mask $3=%d.", m_ReverseFlags);
+            tcflush(PortFD, TCIOFLUSH);
+            return true;
+        }
+
+        // A late "ok" from the previous command can arrive first, so "ok" only ends the
+        // listing once settings lines have been seen.
+        if (line[0] == '$')
+            settingsSeen = true;
+        else if ((settingsSeen && strncmp(line, "ok", 2) == 0) || strncmp(line, "error", 5) == 0)
+            break;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+    LOG_WARN("Could not read the GRBL axis reverse setting ($3), assuming no axis is reversed.");
+    return false;
 }
 
 void AvalonUPAS::TimerHit()
@@ -238,9 +282,35 @@ bool AvalonUPAS::parseStatus(const char *response)
     PositionNP[POSITION_AZ].setValue(gearAZ  > 0 ? azMM  / (60 * gearAZ)  : 0);
     PositionNP[POSITION_ALT].setValue(gearALT > 0 ? altMM / (60 * gearALT) : 0);
 
-    // Determine if the device is still jogging.
+    // The state is the first field, e.g. <Idle|...>, <Jog|...>, <Hold:0|...> or <Alarm|...>.
+    char state[16] = {0};
+    const char *start = strchr(response, '<');
+    if (start != nullptr)
+        sscanf(start, "<%15[^|:>]", state);
+
+    // A held motion is paused, not finished. Alarm and Door stop GRBL until it is unlocked or reset.
     bool wasMoving = m_IsMoving;
-    m_IsMoving = (strstr(response, "Jog") != nullptr || strstr(response, "Run") != nullptr);
+    m_IsMoving = strcmp(state, "Jog") == 0 || strcmp(state, "Run") == 0 || strcmp(state, "Hold") == 0;
+    const bool fault = strcmp(state, "Alarm") == 0 || strcmp(state, "Door") == 0;
+
+    if (fault)
+    {
+        if (!m_IsFault)
+            LOGF_ERROR("UPAS reports state %s and does not move. Check the device, then power-cycle it.", state);
+        m_IsFault  = true;
+        m_IsMoving = false;
+
+        PositionNP.setState(IPS_ALERT);
+        PositionNP.apply();
+
+        if (ManualAdjustmentNP.getState() == IPS_BUSY)
+        {
+            ManualAdjustmentNP.setState(IPS_ALERT);
+            ManualAdjustmentNP.apply();
+        }
+        return true;
+    }
+    m_IsFault = false;
 
     PositionNP.setState(m_IsMoving ? IPS_BUSY : IPS_OK);
     PositionNP.apply();
@@ -444,6 +514,12 @@ bool AvalonUPAS::SetBacklashEnabled(bool enabled)
 {
     // Compensation is applied when jogging; nothing to send to GRBL.
     LOGF_INFO("Backlash compensation %s.", enabled ? "enabled" : "disabled");
+
+    // GRBL starts at 0 on every power-up and the UPAS has no limit switches, so the driver
+    // cannot keep the overshoot away from the mechanical stops.
+    if (enabled)
+        LOG_INFO("Moves against the approach direction overshoot by the backlash. "
+                 "Keep at least that margin from the mechanical stops.");
     return true;
 }
 
