@@ -390,7 +390,9 @@ bool Telescope::updateProperties()
             defineProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                defineProperty(ParkPositionNP);
+                // PARK_SIMPLE has no park position, its property is never filled.
+                if (parkDataType != PARK_SIMPLE)
+                    defineProperty(ParkPositionNP);
                 defineProperty(ParkOptionSP);
             }
         }
@@ -454,7 +456,8 @@ bool Telescope::updateProperties()
             deleteProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                deleteProperty(ParkPositionNP);
+                if (parkDataType != PARK_SIMPLE)
+                    deleteProperty(ParkPositionNP);
                 deleteProperty(ParkOptionSP);
             }
         }
