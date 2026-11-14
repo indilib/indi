@@ -77,6 +77,12 @@ class WiFi
         /** @brief Log in on the TCP command socket with the hotspot password. */
         bool login(int portFD);
 
+        /**
+         * @brief Discard pending input. tcflush() only works on a serial port, so over TCP a line end
+         *        left behind by a previous reply would otherwise start the next one.
+         */
+        static void drain(int portFD);
+
         /** @brief Port of the TCP command socket. */
         static constexpr int TCP_PORT {9999};
 

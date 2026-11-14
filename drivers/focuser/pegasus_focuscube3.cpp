@@ -321,8 +321,9 @@ bool PegasusFocusCube3::sendCommand(const char * cmd, char * res)
 
     for (int i = 0; i < 2; i++)
     {
-        tcflush(PortFD, TCIOFLUSH);
-        snprintf(command, PEGASUS_LEN, "%s\n", cmd);
+        PegasusAstro::WiFi::drain(PortFD);
+        // Over TCP, firmware 2.0 only executes a command after a carriage return.
+        snprintf(command, PEGASUS_LEN, "%s\r\n", cmd);
         if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
             continue;
 
@@ -338,6 +339,15 @@ bool PegasusFocusCube3::sendCommand(const char * cmd, char * res)
 
         tcflush(PortFD, TCIOFLUSH);
         res[nbytes_read - 1] = '\0';
+
+        // Replies end with CR LF. tcflush() does not discard the LF left behind on a TCP socket,
+        // so it starts the next reply; drop leading line ends.
+        const size_t skip = strspn(res, "\r\n");
+        if (skip > 0)
+            memmove(res, res + skip, strlen(res + skip) + 1);
+        if (res[0] == '\0')
+            continue;
+
         LOGF_DEBUG("RES <%s>", res);
         return true;
     }

@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
@@ -248,19 +249,28 @@ void WiFi::saveConfigItems(FILE *fp)
 
 bool WiFi::login(int portFD)
 {
-    // Send the hotspot password first; the device replies AUTHOK or closes the connection.
-    // A closed connection is the normal answer to a wrong password, so no read error is logged here.
+    // Send the hotspot password first. The Falcon V2 replies AUTHOK, or closes the connection on a
+    // wrong password; a closed connection is the expected answer then, so no read error is logged.
+    // The FocusCube 3 (firmware 2.0) asks for no password and answers the first line with ">>".
     m_PortFD = portFD;
     WIFI_LOG(INDI::Logger::DBG_DEBUG, "%s", "CMD <password>");
     char cmd[LEN] = {0}, res[LEN] = {0};
-    snprintf(cmd, LEN, "%s\n", PasswordTP[0].getText());
+    snprintf(cmd, LEN, "%s\r\n", PasswordTP[0].getText());
     int nbytes = 0;
     if (tty_write_string(portFD, cmd, &nbytes) == TTY_OK &&
-            tty_nread_section(portFD, res, LEN - 1, '\n', 3, &nbytes) == TTY_OK &&
-            strncmp(res, "AUTHOK", 6) == 0)
+            tty_nread_section(portFD, res, LEN - 1, '\n', 3, &nbytes) == TTY_OK)
     {
-        WIFI_LOG(INDI::Logger::DBG_DEBUG, "%s", "Logged in on the TCP command socket.");
-        return true;
+        if (strncmp(res, "AUTHOK", 6) == 0)
+        {
+            WIFI_LOG(INDI::Logger::DBG_DEBUG, "%s", "Logged in on the TCP command socket.");
+            return true;
+        }
+        if (strncmp(res, ">>", 2) == 0)
+        {
+            WIFI_LOG(INDI::Logger::DBG_WARNING, "%s",
+                     "The device accepts TCP commands without a password, so anyone on the network can control it.");
+            return true;
+        }
     }
 
     WIFI_LOG(INDI::Logger::DBG_ERROR, "%s",
@@ -270,13 +280,13 @@ bool WiFi::login(int portFD)
 
 bool WiFi::sendCommand(const char *cmd, char *res, int len, int timeout, bool secret)
 {
-    // Commands end with a newline; replies are one line.
+    // Commands end with CR LF (the FocusCube 3 needs the CR over TCP); replies are one line.
     WIFI_LOG(INDI::Logger::DBG_DEBUG, "CMD <%s>", secret ? "<password>" : cmd);
 
     char command[LEN] = {0};
-    snprintf(command, LEN, "%s\n", cmd);
+    snprintf(command, LEN, "%s\r\n", cmd);
     int nbytes = 0;
-    tcflush(m_PortFD, TCIOFLUSH);
+    drain(m_PortFD);
     int rc = tty_write_string(m_PortFD, command, &nbytes);
     if (rc == TTY_OK)
         rc = tty_nread_section(m_PortFD, res, len - 1, '\n', timeout, &nbytes);
@@ -295,6 +305,22 @@ bool WiFi::sendCommand(const char *cmd, char *res, int len, int timeout, bool se
     // AL carries the hotspot password.
     WIFI_LOG(INDI::Logger::DBG_DEBUG, "RES <%s>", strcmp(cmd, "AL") ? res : "<ssid>:<password>");
     return true;
+}
+
+void WiFi::drain(int portFD)
+{
+    tcflush(portFD, TCIOFLUSH);
+
+    char buffer[LEN];
+    while (true)
+    {
+        fd_set set;
+        FD_ZERO(&set);
+        FD_SET(portFD, &set);
+        struct timeval timeout = {0, 0};
+        if (select(portFD + 1, &set, nullptr, nullptr, &timeout) <= 0 || read(portFD, buffer, sizeof(buffer)) <= 0)
+            break;
+    }
 }
 
 bool WiFi::readHotspotStatus()
