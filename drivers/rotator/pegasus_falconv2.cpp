@@ -29,6 +29,7 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <regex>
@@ -141,7 +142,16 @@ bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double valu
         // De-rotation
         if (DerotateNP.isNameMatch(name))
         {
-            const int32_t rate = static_cast<int32_t>(values[0]);
+            // Older versions saved an "INTERVAL" in ms. Never start de-rotation from a configuration,
+            // and only accept the RATE element.
+            if (isConfigLoading() || n < 1 || strcmp(names[0], DerotateNP[0].getName()) != 0)
+            {
+                DerotateNP.apply();
+                return true;
+            }
+
+            const int32_t rate = static_cast<int32_t>(std::max(DerotateNP[0].getMin(),
+                                 std::min(DerotateNP[0].getMax(), values[0])));
             if (setDerotation(rate))
             {
                 DerotateNP[0].setValue(rate);
