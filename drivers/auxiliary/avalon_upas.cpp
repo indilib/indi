@@ -150,11 +150,25 @@ bool AvalonUPAS::Handshake()
     // Flush any GRBL boot message
     tcflush(PortFD, TCIOFLUSH);
 
-    // Send soft-reset so GRBL is in a known idle state, then discard response.
-    const char softReset[2] = {'\x18', '\n'};
+    // Send soft-reset so GRBL is in a known idle state.
+    const char softReset = '\x18';
     int nbytes = 0;
-    tty_write(PortFD, softReset, 1, &nbytes);  // 0x18 is single byte, no \n needed
-    usleep(500000);  // wait 500 ms for GRBL to boot/reset
+    tty_write(PortFD, &softReset, 1, &nbytes);
+
+    // Opening the port may also hard-reset the Arduino (DTR), and its bootloader swallows anything
+    // sent before GRBL runs. Either way GRBL prints its "Grbl x.y" banner once it is ready, so wait
+    // for that line instead of a fixed delay. Blank lines from the banner are skipped.
+    bool grblReady = false;
+    for (int i = 0; i < 10 && !grblReady; i++)
+    {
+        // Read one byte less than the buffer so the line always stays null-terminated.
+        char line[DRIVER_LEN] = {0};
+        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
+            break;
+        grblReady = strstr(line, "Grbl") != nullptr;
+    }
+    if (!grblReady)
+        LOG_WARN("No GRBL startup banner received, trying the status query anyway.");
     tcflush(PortFD, TCIOFLUSH);
 
     // Query status to confirm communication.
@@ -179,9 +193,9 @@ bool AvalonUPAS::Handshake()
         const char *tag = strstr(ver, "[VER:");
         if (tag)
         {
-            // Extract up to the closing bracket
+            // Extract up to the colon that separates the optional build info, or the closing bracket
             char version[64] = {0};
-            sscanf(tag, "[VER:%63[^]]]", version);
+            sscanf(tag, "[VER:%63[^]:]", version);
             FirmwareTP[0].setText(version);
         }
         else
@@ -284,6 +298,13 @@ IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
 
 IPState AvalonUPAS::jogWithBacklash(double azMM, double altMM)
 {
+    // Never turn a NaN or infinite value into a GRBL jog command.
+    if (!std::isfinite(azMM) || !std::isfinite(altMM))
+    {
+        LOG_ERROR("Invalid move request, ignored.");
+        return IPS_ALERT;
+    }
+
     const double azApproach  = finalApproachMM(BACKLASH_AZ, azMM);
     const double altApproach = finalApproachMM(BACKLASH_ALT, altMM);
 
