@@ -40,7 +40,7 @@ const char *STATUS_TAB = "Status";
 
 LX200NYX101::LX200NYX101()
 {
-    setVersion(2, 2);
+    setVersion(2, 3);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -63,7 +63,8 @@ bool LX200NYX101::initProperties()
 {
     LX200Generic::initProperties();
 
-    SetParkDataType(PARK_NONE);
+    // The mount stores the park position itself; PARK_SIMPLE offers TELESCOPE_PARK_OPTION to set it.
+    SetParkDataType(PARK_SIMPLE);
     timeFormat = LX200_24;
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
@@ -937,6 +938,32 @@ bool LX200NYX101::goToUnPark()
     if (response[0] != '1')
         LOG_DEBUG("Mount answered 0 to unpark, it was not parked.");
     return true;
+}
+
+bool LX200NYX101::SetCurrentPark()
+{
+    // The mount answers 1 when it stored the current position as its park position, 0 when it refused.
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":hQ#", response, -1, 1))
+    {
+        LOG_ERROR("Failed to set the park position.");
+        return false;
+    }
+
+    if (response[0] != '1')
+    {
+        LOG_ERROR("Mount refused the park position. It must be unparked and stopped, and needs time and location.");
+        return false;
+    }
+
+    LOG_INFO("Current position is stored as the mount park position.");
+    return true;
+}
+
+bool LX200NYX101::SetDefaultPark()
+{
+    LOG_WARN("The mount has no default park position. Move it to the park position and select Current.");
+    return false;
 }
 
 bool LX200NYX101::Park()

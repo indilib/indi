@@ -48,6 +48,8 @@ class LX200NYX101 : public LX200Generic
         virtual const char *getDefaultName() override;
         virtual bool Park() override;
         virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool setUTCOffset(double offset) override;
         virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
