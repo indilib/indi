@@ -79,6 +79,13 @@ bool PegasusFalconV2::initProperties()
     RotatorSpeedNP.fill(getDeviceName(), "ROTATOR_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW,
                         60, IPS_IDLE);
 
+    // Cable limit: the firmware keeps the rotation within 220 degrees and takes the long way round
+    // when the short way would cross the limit. The device stores the setting itself.
+    CableLimitSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
+    CableLimitSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
+    CableLimitSP.fill(getDeviceName(), "ROTATOR_CABLE_LIMIT", "Cable Limit", MAIN_CONTROL_TAB, IP_RW,
+                      ISR_1OFMANY, 60, IPS_IDLE);
+
     // Firmware
     FirmwareTP[0].fill("VERSION", "Version", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
@@ -96,6 +103,8 @@ bool PegasusFalconV2::updateProperties()
         // Main Control
         defineProperty(DerotateNP);
         defineProperty(RotatorSpeedNP);
+        getCableLimit();
+        defineProperty(CableLimitSP);
         defineProperty(FirmwareTP);
         defineProperty(ReloadFirmwareSP);
 
@@ -105,6 +114,7 @@ bool PegasusFalconV2::updateProperties()
         // Main Control
         deleteProperty(DerotateNP);
         deleteProperty(RotatorSpeedNP);
+        deleteProperty(CableLimitSP);
         deleteProperty(FirmwareTP);
         deleteProperty(ReloadFirmwareSP);
     }
@@ -201,6 +211,26 @@ bool PegasusFalconV2::ISNewSwitch(const char * dev, const char * name, ISState *
             LOG_INFO("Reloading firmware...");
             return true;
         }
+
+        // Cable limit
+        if (CableLimitSP.isNameMatch(name))
+        {
+            const char *onSwitch = IUFindOnSwitchName(states, names, n);
+            const bool enabled = onSwitch != nullptr && CableLimitSP[INDI_ENABLED].isNameMatch(onSwitch);
+            if (setCableLimit(enabled))
+            {
+                CableLimitSP.update(states, names, n);
+                CableLimitSP.setState(IPS_OK);
+                if (enabled)
+                    LOG_INFO("Cable limit enabled.");
+                else
+                    LOG_WARN("Cable limit disabled. The rotator can now turn without limit, watch the cables.");
+            }
+            else
+                CableLimitSP.setState(IPS_ALERT);
+            CableLimitSP.apply();
+            return true;
+        }
     }
 
     return Rotator::ISNewSwitch(dev, name, states, names, n);
@@ -217,6 +247,8 @@ IPState PegasusFalconV2::MoveRotator(double angle)
     {
         m_TargetAngle = angle;
         m_MoveStarted = std::chrono::steady_clock::now();
+        m_StartAngle = GotoRotatorNP[0].getValue();
+        m_DirectionChecked = false;
         return IPS_BUSY;
     }
 
@@ -230,9 +262,12 @@ IPState PegasusFalconV2::MoveRotator(double angle)
 bool PegasusFalconV2::AbortRotator()
 {
     char res[DRIVER_LEN] = {0};
-    if (sendCommand("FH", res))
+    if (sendCommand("FH", res) && !strcmp(res, "FH:1"))
     {
-        return (!strcmp(res, "FH:1"));
+        // The stopped rotator is not at the target; do not wait for the move to start.
+        m_MoveStarted = std::chrono::steady_clock::time_point();
+        m_DirectionChecked = true;
+        return true;
     }
 
     return false;
@@ -266,6 +301,34 @@ bool PegasusFalconV2::SyncRotator(double angle)
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
+bool PegasusFalconV2::getCableLimit()
+{
+    // "FLIM" reports the cable limit as "FLIM:1" (enabled) or "FLIM:0".
+    char res[DRIVER_LEN] = {0};
+    int enabled = 0;
+    if (!sendCommand("FLIM", res) || sscanf(res, "FLIM:%d", &enabled) != 1)
+    {
+        LOGF_WARN("Could not read the cable limit [Res=%s].", res);
+        return false;
+    }
+
+    CableLimitSP[INDI_ENABLED].setState(enabled ? ISS_ON : ISS_OFF);
+    CableLimitSP[INDI_DISABLED].setState(enabled ? ISS_OFF : ISS_ON);
+    CableLimitSP.setState(IPS_OK);
+    return true;
+}
+
+bool PegasusFalconV2::setCableLimit(bool enabled)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "FLIM:%d", enabled ? 1 : 0);
+    if (sendCommand(cmd, res) && !strcmp(res, cmd))
+        return true;
+
+    LOGF_ERROR("Unexpected cable limit response: %s", res);
+    return false;
+}
+
 bool PegasusFalconV2::reloadFirmware()
 {
     // FF reboots the device and reloads the firmware; it sends no reply.
@@ -412,6 +475,27 @@ bool PegasusFalconV2::getStatusData()
             distance = std::min(distance, 360.0 - distance);
             if (distance > TARGET_TOLERANCE && std::chrono::steady_clock::now() - m_MoveStarted < MOVE_START_TIMEOUT)
                 motionState = IPS_BUSY;
+        }
+
+        // With the cable limit enabled, the firmware takes the long way round when the short way would
+        // cross the limit. Such a move takes minutes, so explain it once it is clearly under way.
+        if (running && !m_DirectionChecked && GotoRotatorNP.getState() == IPS_BUSY)
+        {
+            // Signed angle differences in (-180, 180].
+            auto wrap = [](double d)
+            {
+                return 180.0 - std::fmod(540.0 - d, 360.0);
+            };
+            const double shortWay = wrap(m_TargetAngle - m_StartAngle);
+            const double moved    = wrap(position - m_StartAngle);
+            if (std::fabs(moved) > 1.0)
+            {
+                m_DirectionChecked = true;
+                if (std::fabs(shortWay) > 1.0 && std::fabs(shortWay) < 179.0 && moved * shortWay < 0)
+                    LOGF_WARN("Rotator takes the long way round to %.2f (%.0f instead of %.0f degrees), "
+                              "because the short way would cross the cable limit.",
+                              m_TargetAngle, 360.0 - std::fabs(shortWay), std::fabs(shortWay));
+            }
         }
 
         // Update Absolute Position property if either position changes, or status changes.

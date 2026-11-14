@@ -61,6 +61,7 @@ class PegasusFalconV2 : public INDI::Rotator
         bool getFirmware();
         bool getStatusData();
         bool getRotatorSpeed();
+        bool getCableLimit();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Device Control Functions
@@ -68,6 +69,7 @@ class PegasusFalconV2 : public INDI::Rotator
         bool reloadFirmware();
         bool setDerotation(int32_t rate);
         bool setRotatorSpeed(uint32_t speed);
+        bool setCableLimit(bool enabled);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -104,12 +106,17 @@ class PegasusFalconV2 : public INDI::Rotator
         INDI::PropertyNumber RotatorSpeedNP {1};
         /// Firmware
         INDI::PropertyText FirmwareTP {1};
+        /// Cable limit (FLIM), stored by the device itself
+        INDI::PropertySwitch CableLimitSP {2};
 
         std::vector<std::string> lastStatusData;
 
         /// Target of the last move, to tell a finished move from one that has not started yet.
         double m_TargetAngle {0};
         std::chrono::steady_clock::time_point m_MoveStarted;
+        /// Start of the last move, to notice when the rotator takes the long way round.
+        double m_StartAngle {0};
+        bool m_DirectionChecked {true};
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
