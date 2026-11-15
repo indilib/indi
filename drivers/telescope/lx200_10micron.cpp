@@ -232,7 +232,7 @@ bool LX200_10MICRON::initProperties()
         AllowedMeridianSideSP[MERIDIAN_SIDE_BOTH].fill("BOTH", "Both", ISS_ON);
         AllowedMeridianSideSP[MERIDIAN_SIDE_WEST_ONLY].fill("WEST_ONLY", "East (pointing west)", ISS_OFF);
         AllowedMeridianSideSP[MERIDIAN_SIDE_EAST_ONLY].fill("EAST_ONLY", "West (pointing east)", ISS_OFF);
-        AllowedMeridianSideSP.fill(getDeviceName(), ALLOWED_MERIDIAN_SIDE, "Meridian Side", MOTION_TAB, IP_RW,
+        AllowedMeridianSideSP.fill(getDeviceName(), ALLOWED_MERIDIAN_SIDE, "Allowed Meridian Side", MOTION_TAB, IP_RW,
                                    ISR_1OFMANY, 60, IPS_IDLE);
 
         TargetPierSideSP[TARGET_PIER_WEST].fill("PIER_WEST", "West (pointing east)", ISS_OFF);
@@ -1080,7 +1080,7 @@ bool LX200_10MICRON::getAllowedMeridianSide(LX200_10MICRON_READ_CONTEXT context)
         }
         else if (context == READ_AT_CONNECT || AllowedMeridianSideSP.getState() != IPS_ALERT)
         {
-            LOG_WARN("Failed to read the meridian side.");
+            LOG_WARN("Failed to read the allowed meridian side.");
             AllowedMeridianSideSP.setState(IPS_ALERT);
             AllowedMeridianSideSP.apply();
         }
@@ -1094,9 +1094,9 @@ bool LX200_10MICRON::getAllowedMeridianSide(LX200_10MICRON_READ_CONTEXT context)
     if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
     {
         if (context == READ_AT_CONNECT)
-            LOGF_INFO("Meridian side is %s.", AllowedMeridianSideSP[index].getLabel());
+            LOGF_INFO("Allowed meridian side is %s.", AllowedMeridianSideSP[index].getLabel());
         else
-            LOGF_INFO("Meridian side changed on the mount: %s.", AllowedMeridianSideSP[index].getLabel());
+            LOGF_INFO("Allowed meridian side changed on the mount: %s.", AllowedMeridianSideSP[index].getLabel());
         AllowedMeridianSideSP.apply();
     }
     return true;
@@ -1842,21 +1842,21 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             bool result = false;
             if (!setAllowedMeridianSide(index))
             {
-                LOGF_ERROR("The mount refused meridian side %s.", label);
+                LOGF_ERROR("The mount refused allowed meridian side %s.", label);
                 AllowedMeridianSideSP.setState(IPS_ALERT);
             }
             else if (AllowedMeridianSideSP.getState() == IPS_ALERT)
             {
-                LOG_WARN("Meridian side was written, but could not be read back.");
+                LOG_WARN("Allowed meridian side was written, but could not be read back.");
             }
             else if (AllowedMeridianSideSP.findOnSwitchIndex() != index)
             {
-                LOGF_ERROR("The mount did not take meridian side %s.", label);
+                LOGF_ERROR("The mount did not take allowed meridian side %s.", label);
                 AllowedMeridianSideSP.setState(IPS_ALERT);
             }
             else
             {
-                LOGF_INFO("Meridian side set: %s.", label);
+                LOGF_INFO("Allowed meridian side set: %s.", label);
                 result = true;
             }
             AllowedMeridianSideSP.apply();
