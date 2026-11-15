@@ -263,6 +263,8 @@ bool LX200_10MICRON::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &WoLMacTP);
     // The driver owns the mount settings: saved values are written to the mount when the config is loaded
     SlewSettleTimeNP.save(fp);
+    MeridianLimitsNP.save(fp);
+    AllowedMeridianSideSP.save(fp);
     return true;
 }
 
