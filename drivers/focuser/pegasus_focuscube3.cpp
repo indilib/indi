@@ -25,6 +25,7 @@
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <cmath>
 #include <cstring>
@@ -42,7 +43,7 @@ static std::unique_ptr<PegasusFocusCube3> focusCube(new PegasusFocusCube3());
 
 PegasusFocusCube3::PegasusFocusCube3()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -57,7 +58,12 @@ bool PegasusFocusCube3::Handshake()
 {
     int tty_rc = 0, nbytes_written = 0, nbytes_read = 0;
     char command[PEGASUS_LEN] = {0}, response[PEGASUS_LEN] = {0};
-    PortFD = serialConnection->getPortFD();
+    // Over TCP, log in with the hotspot password before any command.
+    const bool tcp = getActiveConnection() == tcpConnection;
+    PortFD = tcp ? tcpConnection->getPortFD() : serialConnection->getPortFD();
+    if (tcp && !wifi.login(PortFD))
+        return false;
+
     LOG_DEBUG("CMD <##>");
 
 
@@ -113,7 +119,7 @@ bool PegasusFocusCube3::initProperties()
     INDI::Focuser::initProperties();
 
     TemperatureNP[0].fill("TEMPERATURE", "Level", "%.0f", -40, 40, 1, 0);
-    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", FOCUS_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", FOCUS_SETTINGS_TAB, IP_RO, 60, IPS_IDLE);
 
     FirmwareVersionTP[0].fill("Version", "Version", "");
     FirmwareVersionTP.fill(getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -146,6 +152,42 @@ bool PegasusFocusCube3::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     serialConnection->setPortMatchPattern("FocusCube");
 
+    // Over WiFi the device announces itself as focuscube3.local and listens on TCP port 9999.
+    tcpConnection->setDefaultHost("focuscube3.local");
+    tcpConnection->setDefaultPort(PegasusAstro::WiFi::TCP_PORT);
+    wifi.initProperties("WiFi",
+                        [this](const char *name) { loadConfig(true, name); },
+                        [this](INDI::Property & property) { saveConfig(property); });
+
+    return true;
+}
+
+void PegasusFocusCube3::ISGetProperties(const char *dev)
+{
+    INDI::Focuser::ISGetProperties(dev);
+    wifi.ISGetProperties();
+}
+
+bool PegasusFocusCube3::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (wifi.ISNewSwitch(dev, name, states, names, n))
+        return true;
+
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool PegasusFocusCube3::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (wifi.ISNewText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::Focuser::ISNewText(dev, name, texts, names, n);
+}
+
+bool PegasusFocusCube3::saveConfigItems(FILE *fp)
+{
+    INDI::Focuser::saveConfigItems(fp);
+    wifi.saveConfigItems(fp);
     return true;
 }
 
@@ -155,20 +197,26 @@ bool PegasusFocusCube3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(TemperatureNP);
-
+        // The temperature is defined once the status shows that a sensor is connected.
         defineProperty(FirmwareVersionTP);
         std::string firmware = getFirmwareVersion();
         FirmwareVersionTP[0].setText(firmware);
         FirmwareVersionTP.setState(IPS_OK);
         FirmwareVersionTP.apply();
+
+        // Show the speed the device actually uses instead of the default.
+        int speed = 0;
+        if (getSpeed(speed))
+            SpeedNP[0].setValue(speed);
         defineProperty(SpeedNP);
 
-
+        wifi.updateProperties(true, PortFD);
     }
     else
     {
+        hasTemperatureSensor = false;
         deleteProperty(TemperatureNP);
+        wifi.updateProperties(false, -1);
         deleteProperty(FirmwareVersionTP);
         deleteProperty(SpeedNP);
     }
@@ -179,9 +227,11 @@ bool PegasusFocusCube3::updateProperties()
 
 bool PegasusFocusCube3::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()))
-    {
+    if (wifi.ISNewNumber(dev, name, values, names, n))
+        return true;
 
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
+    {
         if(SpeedNP.isNameMatch(name))
         {
             SpeedNP.update(values, names, n);
@@ -195,8 +245,8 @@ bool PegasusFocusCube3::ISNewNumber(const char * dev, const char * name, double 
             }
             SpeedNP.setState(result);
             SpeedNP.apply();
+            return true;
         }
-
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -211,6 +261,7 @@ IPState PegasusFocusCube3::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
+    moveStarted = std::chrono::steady_clock::now();
     FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
@@ -231,6 +282,8 @@ IPState PegasusFocusCube3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     if (!rc)
         return IPS_ALERT;
 
+    targetPosition = newPosition;
+    moveStarted = std::chrono::steady_clock::now();
     FocusRelPosNP[0].setValue(ticks);
     FocusRelPosNP.setState(IPS_BUSY);
 
@@ -241,10 +294,11 @@ bool PegasusFocusCube3::move(uint32_t newPosition)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
     snprintf(expectedResponse, PEGASUS_LEN, "%u", newPosition);
-    snprintf(cmd, PEGASUS_LEN, "FM:%d", newPosition);
+    snprintf(cmd, PEGASUS_LEN, "FM:%u", newPosition);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(expectedResponse, res))
+        // The reply carries the target position: "12345" on firmware 2.0, "FM:12345" in the command list.
+        if(!strstr(res, expectedResponse))
         {
             LOGF_ERROR("Error on move [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -267,8 +321,9 @@ bool PegasusFocusCube3::sendCommand(const char * cmd, char * res)
 
     for (int i = 0; i < 2; i++)
     {
-        tcflush(PortFD, TCIOFLUSH);
-        snprintf(command, PEGASUS_LEN, "%s\n", cmd);
+        PegasusAstro::WiFi::drain(PortFD);
+        // Over TCP, firmware 2.0 only executes a command after a carriage return.
+        snprintf(command, PEGASUS_LEN, "%s\r\n", cmd);
         if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
             continue;
 
@@ -284,6 +339,15 @@ bool PegasusFocusCube3::sendCommand(const char * cmd, char * res)
 
         tcflush(PortFD, TCIOFLUSH);
         res[nbytes_read - 1] = '\0';
+
+        // Replies end with CR LF. tcflush() does not discard the LF left behind on a TCP socket,
+        // so it starts the next reply; drop leading line ends.
+        const size_t skip = strspn(res, "\r\n");
+        if (skip > 0)
+            memmove(res, res + skip, strlen(res + skip) + 1);
+        if (res[0] == '\0')
+            continue;
+
         LOGF_DEBUG("RES <%s>", res);
         return true;
     }
@@ -298,23 +362,42 @@ bool PegasusFocusCube3::sendCommand(const char * cmd, char * res)
     return false;
 }
 
+bool PegasusFocusCube3::parseReply(const char *res, const char *prefix, int &value)
+{
+    // Firmware 2.0 replies with the value only (e.g. "400"), the command list shows "SP:400".
+    const size_t len = strlen(prefix);
+    const char *start = strncmp(res, prefix, len) == 0 ? res + len : res;
+    return sscanf(start, "%d", &value) == 1;
+}
+
 bool PegasusFocusCube3::setSpeed(uint16_t speed)
 {
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "SP:%u", speed);
 
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
-    snprintf(expectedResponse, PEGASUS_LEN, "%u", speed);
-    snprintf(cmd, PEGASUS_LEN, "SP:%d", speed);
-    if(sendCommand(expectedResponse, res))
+    int actual = 0;
+    if (!sendCommand(cmd, res) || !parseReply(res, "SP:", actual))
     {
-        if(!strstr(cmd, res))
-        {
-            LOGF_ERROR("Error on set speed [Cmd=%s Res=%s]", cmd, res);
-            return false;
-        }
+        LOGF_ERROR("Error on set speed [Cmd=%s Res=%s]", cmd, res);
+        return false;
     }
-    else
+
+    // The reply is the speed in use. Values above the device maximum (400 on firmware 2.0) are ignored.
+    SpeedNP[0].setValue(actual);
+    if (actual != speed)
     {
-        LOGF_ERROR("Error on set speed [Speed=%d]", speed);
+        LOGF_WARN("Device kept speed %d, %u is outside its range.", actual, speed);
+        return false;
+    }
+    return true;
+}
+
+bool PegasusFocusCube3::getSpeed(int &speed)
+{
+    char res[PEGASUS_LEN] = {0};
+    if (!sendCommand("SP", res) || !parseReply(res, "SP:", speed))
+    {
+        LOGF_WARN("Could not read the speed [Res=%s].", res);
         return false;
     }
     return true;
@@ -371,10 +454,10 @@ bool PegasusFocusCube3::SyncFocuser(uint32_t ticks)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expectedResponse[PEGASUS_LEN] = {0};
     snprintf(expectedResponse, PEGASUS_LEN, "%u", ticks);
-    snprintf(cmd, PEGASUS_LEN, "FN:%ud", ticks);
+    snprintf(cmd, PEGASUS_LEN, "FN:%u", ticks);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(expectedResponse, res))
+        if(!strstr(res, expectedResponse))
         {
             LOGF_ERROR("Error on sync  [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -399,7 +482,7 @@ bool PegasusFocusCube3::ReverseFocuser(bool enabled)
     }
     else
     {
-        LOG_ERROR("Error on sync");
+        LOG_ERROR("Error on reverse");
         return false;
     }
 
@@ -413,15 +496,15 @@ bool PegasusFocusCube3::SetFocuserBacklash(int32_t steps)
     snprintf(cmd, PEGASUS_LEN, "BL:%d", steps);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(expectedResponse, res))
+        if(!strstr(res, expectedResponse))
         {
-            LOGF_ERROR("Error on sync  [Cmd=%s Res=%s]", cmd, res);
+            LOGF_ERROR("Error on backlash [Cmd=%s Res=%s]", cmd, res);
             return false;
         }
     }
     else
     {
-        LOG_ERROR("Error on sync");
+        LOG_ERROR("Error on backlash");
         return false;
     }
 
@@ -442,7 +525,10 @@ void PegasusFocusCube3::TimerHit()
     {
         if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
         {
-            if (isMoving == false)
+            // A stopped focuser away from the target may not have started yet.
+            const bool atTarget = currentPosition == targetPosition ||
+                                  std::chrono::steady_clock::now() - moveStarted > MOVE_START_TIMEOUT;
+            if (isMoving == false && atTarget)
             {
                 FocusAbsPosNP.setState(IPS_OK);
                 FocusRelPosNP.setState(IPS_OK);
@@ -472,9 +558,12 @@ bool PegasusFocusCube3::updateFocusParams()
 
     std::vector<std::string> result = split(res, ":");
 
-    // Status
-    if(result[0] != "FC3")
+    // Status: FC3:position:running:temperature:reverse:backlash
+    if(result.size() < 6 || result[0] != "FC3")
+    {
+        LOGF_WARN("Unexpected status data: %s", res);
         return false;
+    }
 
 
     // #1 Position
@@ -489,10 +578,23 @@ bool PegasusFocusCube3::updateFocusParams()
     isMoving = (result[2] == "1");
 
 
-    // #3 Temperature
-    TemperatureNP[0].setValue(atof(result[3].c_str()));
-    TemperatureNP.setState(IPS_OK);
-    TemperatureNP.apply();
+    // #3 Temperature: -127 means that no sensor is connected, so the property is only shown with a sensor.
+    const double temperature = atof(result[3].c_str());
+    const bool sensor = temperature > -126;
+    if (sensor != hasTemperatureSensor)
+    {
+        hasTemperatureSensor = sensor;
+        if (sensor)
+            defineProperty(TemperatureNP);
+        else
+            deleteProperty(TemperatureNP);
+    }
+    if (sensor)
+    {
+        TemperatureNP[0].setValue(temperature);
+        TemperatureNP.setState(IPS_OK);
+        TemperatureNP.apply();
+    }
 
 
     // #4 Reverse Status
@@ -531,9 +633,9 @@ bool PegasusFocusCube3::updateFocusParams()
 
         if (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON)
         {
-            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
-            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-            FocusBacklashSP.setState(IPS_IDLE);
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_ON);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_OFF);
+            FocusBacklashSP.setState(IPS_OK);
             FocusBacklashSP.apply();
         }
     }

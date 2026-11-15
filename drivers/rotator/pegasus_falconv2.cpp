@@ -28,7 +28,9 @@
 #include "pegasus_falconv2.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <regex>
@@ -44,7 +46,7 @@ static std::unique_ptr<PegasusFalconV2> falconv2(new PegasusFalconV2());
 
 PegasusFalconV2::PegasusFalconV2()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     lastStatusData.reserve(7);
 }
 
@@ -68,8 +70,8 @@ bool PegasusFalconV2::initProperties()
                           IP_RW, ISR_ATMOST1,
                           60, IPS_IDLE);
 
-    // Derotate
-    DerotateNP[0].fill("INTERVAL", "Interval (ms)", "%.f", 0, 10000, 1000, 0);
+    // Derotate: rate in arcseconds per second, negative values rotate in reverse. 0 disables it.
+    DerotateNP[0].fill("RATE", "Rate (arcsec/s)", "%.f", -3600, 3600, 1, 0);
     DerotateNP.fill(getDeviceName(), "ROTATOR_DEROTATE", "Derotation", MAIN_CONTROL_TAB, IP_RW,
                     60, IPS_IDLE);
 
@@ -78,12 +80,40 @@ bool PegasusFalconV2::initProperties()
     RotatorSpeedNP.fill(getDeviceName(), "ROTATOR_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW,
                         60, IPS_IDLE);
 
+    // Cable limit: the firmware keeps the rotation within 220 degrees and takes the long way round
+    // when the short way would cross the limit. The device stores the setting itself.
+    CableLimitSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
+    CableLimitSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
+    CableLimitSP.fill(getDeviceName(), "ROTATOR_CABLE_LIMIT", "Cable Limit", MAIN_CONTROL_TAB, IP_RW,
+                      ISR_1OFMANY, 60, IPS_IDLE);
+
     // Firmware
     FirmwareTP[0].fill("VERSION", "Version", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
                     IPS_IDLE);
 
+    // Over WiFi the device announces itself as falcon2.local and listens on TCP port 9999.
+    tcpConnection->setDefaultHost("falcon2.local");
+    tcpConnection->setDefaultPort(PegasusAstro::WiFi::TCP_PORT);
+    wifi.initProperties("WiFi",
+                        [this](const char *name) { loadConfig(true, name); },
+                        [this](INDI::Property & property) { saveConfig(property); });
+
     return true;
+}
+
+void PegasusFalconV2::ISGetProperties(const char *dev)
+{
+    INDI::Rotator::ISGetProperties(dev);
+    wifi.ISGetProperties();
+}
+
+bool PegasusFalconV2::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (wifi.ISNewText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::Rotator::ISNewText(dev, name, texts, names, n);
 }
 
 bool PegasusFalconV2::updateProperties()
@@ -95,18 +125,22 @@ bool PegasusFalconV2::updateProperties()
         // Main Control
         defineProperty(DerotateNP);
         defineProperty(RotatorSpeedNP);
+        getCableLimit();
+        defineProperty(CableLimitSP);
         defineProperty(FirmwareTP);
         defineProperty(ReloadFirmwareSP);
-
     }
     else
     {
         // Main Control
         deleteProperty(DerotateNP);
         deleteProperty(RotatorSpeedNP);
+        deleteProperty(CableLimitSP);
         deleteProperty(FirmwareTP);
         deleteProperty(ReloadFirmwareSP);
     }
+
+    wifi.updateProperties(isConnected(), PortFD);
 
     return true;
 }
@@ -121,6 +155,10 @@ const char * PegasusFalconV2::getDefaultName()
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::Handshake()
 {
+    // Over TCP, log in with the hotspot password before any command.
+    if (getActiveConnection() == tcpConnection && !wifi.login(PortFD))
+        return false;
+
     if (!getFirmware())
         return false;
 
@@ -136,19 +174,31 @@ bool PegasusFalconV2::Handshake()
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (wifi.ISNewNumber(dev, name, values, names, n))
+        return true;
+
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // De-rotation
         if (DerotateNP.isNameMatch(name))
         {
-            const uint32_t ms = static_cast<uint32_t>(values[0]);
-            if (setDerotation(ms))
+            // Older versions saved an "INTERVAL" in ms. Never start de-rotation from a configuration,
+            // and only accept the RATE element.
+            if (isConfigLoading() || n < 1 || strcmp(names[0], DerotateNP[0].getName()) != 0)
             {
-                DerotateNP[0].setValue(values[0]);
-                if (values[0] > 0)
-                    LOGF_INFO("De-rotation is enabled and set to 1 step per %u milliseconds.", ms);
+                DerotateNP.apply();
+                return true;
+            }
+
+            const int32_t rate = static_cast<int32_t>(std::max(DerotateNP[0].getMin(),
+                                 std::min(DerotateNP[0].getMax(), values[0])));
+            if (setDerotation(rate))
+            {
+                DerotateNP[0].setValue(rate);
+                if (rate != 0)
+                    LOGF_INFO("De-rotation is enabled at %d arcsec/s.", rate);
                 else
-                    LOG_INFO("De-rotaiton is disabled.");
+                    LOG_INFO("De-rotation is disabled.");
                 DerotateNP.setState(IPS_OK);
             }
             else
@@ -181,6 +231,9 @@ bool PegasusFalconV2::ISNewNumber(const char *dev, const char *name, double valu
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
+    if (wifi.ISNewSwitch(dev, name, states, names, n))
+        return true;
+
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // ReloadFirmware
@@ -189,6 +242,26 @@ bool PegasusFalconV2::ISNewSwitch(const char * dev, const char * name, ISState *
             ReloadFirmwareSP.setState(reloadFirmware() ? IPS_OK : IPS_ALERT);
             ReloadFirmwareSP.apply();
             LOG_INFO("Reloading firmware...");
+            return true;
+        }
+
+        // Cable limit
+        if (CableLimitSP.isNameMatch(name))
+        {
+            const char *onSwitch = IUFindOnSwitchName(states, names, n);
+            const bool enabled = onSwitch != nullptr && CableLimitSP[INDI_ENABLED].isNameMatch(onSwitch);
+            if (setCableLimit(enabled))
+            {
+                CableLimitSP.update(states, names, n);
+                CableLimitSP.setState(IPS_OK);
+                if (enabled)
+                    LOG_INFO("Cable limit enabled.");
+                else
+                    LOG_WARN("Cable limit disabled. The rotator can now turn without limit, watch the cables.");
+            }
+            else
+                CableLimitSP.setState(IPS_ALERT);
+            CableLimitSP.apply();
             return true;
         }
     }
@@ -203,12 +276,16 @@ IPState PegasusFalconV2::MoveRotator(double angle)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "MD:%.2f", angle);
-    if (sendCommand(cmd, res))
+    if (sendCommand(cmd, res) && !strncmp(res, "MD:", 3))
     {
-        return (!strncmp(res, cmd, 8) ? IPS_BUSY : IPS_ALERT);
-        //Restrict length to 8 chars for correct compare
+        m_TargetAngle = angle;
+        m_MoveStarted = std::chrono::steady_clock::now();
+        m_StartAngle = GotoRotatorNP[0].getValue();
+        m_DirectionChecked = false;
+        return IPS_BUSY;
     }
 
+    LOGF_ERROR("Unexpected move response: %s", res);
     return IPS_ALERT;
 }
 
@@ -218,9 +295,12 @@ IPState PegasusFalconV2::MoveRotator(double angle)
 bool PegasusFalconV2::AbortRotator()
 {
     char res[DRIVER_LEN] = {0};
-    if (sendCommand("FH", res))
+    if (sendCommand("FH", res) && !strcmp(res, "FH:1"))
     {
-        return (!strcmp(res, "FH:1"));
+        // The stopped rotator is not at the target; do not wait for the move to start.
+        m_MoveStarted = std::chrono::steady_clock::time_point();
+        m_DirectionChecked = true;
+        return true;
     }
 
     return false;
@@ -246,27 +326,56 @@ bool PegasusFalconV2::ReverseRotator(bool enabled)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::SyncRotator(double angle)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "SD:%.2f", angle);
-    return sendCommand(cmd, nullptr);
+    return sendCommand(cmd, res) && !strncmp(res, "SD:", 3);
 }
 
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
+bool PegasusFalconV2::getCableLimit()
+{
+    // "FLIM" reports the cable limit as "FLIM:1" (enabled) or "FLIM:0".
+    char res[DRIVER_LEN] = {0};
+    int enabled = 0;
+    if (!sendCommand("FLIM", res) || sscanf(res, "FLIM:%d", &enabled) != 1)
+    {
+        LOGF_WARN("Could not read the cable limit [Res=%s].", res);
+        return false;
+    }
+
+    CableLimitSP[INDI_ENABLED].setState(enabled ? ISS_ON : ISS_OFF);
+    CableLimitSP[INDI_DISABLED].setState(enabled ? ISS_OFF : ISS_ON);
+    CableLimitSP.setState(IPS_OK);
+    return true;
+}
+
+bool PegasusFalconV2::setCableLimit(bool enabled)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "FLIM:%d", enabled ? 1 : 0);
+    if (sendCommand(cmd, res) && !strcmp(res, cmd))
+        return true;
+
+    LOGF_ERROR("Unexpected cable limit response: %s", res);
+    return false;
+}
+
 bool PegasusFalconV2::reloadFirmware()
 {
-    return sendCommand("FQ");
+    // FF reboots the device and reloads the firmware; it sends no reply.
+    return sendCommand("FF");
 }
 
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool PegasusFalconV2::setDerotation(uint32_t ms)
+bool PegasusFalconV2::setDerotation(int32_t rate)
 {
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "DR:%d", ms);
-    return sendCommand(cmd, nullptr);
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "DR:%d", rate);
+    return sendCommand(cmd, res) && !strncmp(res, "DR:", 3);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -326,8 +435,9 @@ bool PegasusFalconV2::setRotatorSpeed(uint32_t speed)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalconV2::saveConfigItems(FILE * fp)
 {
+    // De-rotation is not saved, so it never starts by itself on the next connection.
     INDI::Rotator::saveConfigItems(fp);
-    DerotateNP.save(fp);
+    wifi.saveConfigItems(fp);
     return true;
 }
 
@@ -372,13 +482,55 @@ bool PegasusFalconV2::getStatusData()
             return false;
         }
 
-        if (result == lastStatusData)
+        // While a move is in progress, evaluate every reply so it always gets finished.
+        if (result == lastStatusData && GotoRotatorNP.getState() != IPS_BUSY)
             return true;
 
-        // Position
-        const double position = std::stod(result[1]);
-        // Is running?
-        const IPState motionState = std::stoi(result[2]) == 1 ? IPS_BUSY : IPS_OK;
+        double position = 0;
+        bool running = false, reversed = false;
+        try
+        {
+            position = std::stod(result[1]);
+            running  = std::stoi(result[2]) == 1;
+            reversed = std::stoi(result[5]) == 1;
+        }
+        catch (const std::exception &e)
+        {
+            LOGF_WARN("Invalid status data (%s): %s", e.what(), res);
+            return false;
+        }
+
+        // A stopped rotator away from the target may not have started yet; wait for it,
+        // unless it stays put for too long (e.g. the move was rejected).
+        IPState motionState = running ? IPS_BUSY : IPS_OK;
+        if (!running && GotoRotatorNP.getState() == IPS_BUSY)
+        {
+            double distance = std::fmod(std::fabs(position - m_TargetAngle), 360.0);
+            distance = std::min(distance, 360.0 - distance);
+            if (distance > TARGET_TOLERANCE && std::chrono::steady_clock::now() - m_MoveStarted < MOVE_START_TIMEOUT)
+                motionState = IPS_BUSY;
+        }
+
+        // With the cable limit enabled, the firmware takes the long way round when the short way would
+        // cross the limit. Such a move takes minutes, so explain it once it is clearly under way.
+        if (running && !m_DirectionChecked && GotoRotatorNP.getState() == IPS_BUSY)
+        {
+            // Signed angle differences in (-180, 180].
+            auto wrap = [](double d)
+            {
+                return 180.0 - std::fmod(540.0 - d, 360.0);
+            };
+            const double shortWay = wrap(m_TargetAngle - m_StartAngle);
+            const double moved    = wrap(position - m_StartAngle);
+            if (std::fabs(moved) > 1.0)
+            {
+                m_DirectionChecked = true;
+                if (std::fabs(shortWay) > 1.0 && std::fabs(shortWay) < 179.0 && moved * shortWay < 0)
+                    LOGF_WARN("Rotator takes the long way round to %.2f (%.0f instead of %.0f degrees), "
+                              "because the short way would cross the cable limit.",
+                              m_TargetAngle, 360.0 - std::fabs(shortWay), std::fabs(shortWay));
+            }
+        }
 
         // Update Absolute Position property if either position changes, or status changes.
         if (std::abs(position - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
@@ -389,7 +541,6 @@ bool PegasusFalconV2::getStatusData()
         }
 
 
-        const bool reversed = std::stoi(result[5]) == 1;
         const bool wasReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
         if (reversed != wasReversed)
         {
@@ -462,8 +613,10 @@ bool PegasusFalconV2::sendCommand(const char * cmd, char * res, int cmd_len, int
     }
     else
     {
-        // Remove extra \r
+        // Remove the trailing \n and, if present, \r
         res[nbytes_read - 1] = 0;
+        if (nbytes_read > 1 && res[nbytes_read - 2] == '\r')
+            res[nbytes_read - 2] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 

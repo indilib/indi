@@ -239,10 +239,12 @@ install(TARGETS indi_pegasus_focuscube RUNTIME DESTINATION bin)
 
 # ############### Pegasus FocusCube3 Focuser ################
 SET(pegasusfocuscube3_SRC
-    pegasus_focuscube3.cpp)
+    pegasus_focuscube3.cpp
+    ${CMAKE_SOURCE_DIR}/drivers/auxiliary/pegasus_wifi.cpp)
 
 add_executable(indi_pegasus_focuscube3 ${pegasusfocuscube3_SRC})
 target_link_libraries(indi_pegasus_focuscube3 indidriver)
+target_include_directories(indi_pegasus_focuscube3 PRIVATE ${CMAKE_SOURCE_DIR}/drivers/auxiliary)
 install(TARGETS indi_pegasus_focuscube3 RUNTIME DESTINATION bin)
 
 # ############### Pegasus ProdigyMF Focuser ################

@@ -25,6 +25,8 @@
 #pragma once
 
 #include "indirotator.h"
+#include "pegasus_wifi.h"
+#include <chrono>
 #include <stdint.h>
 
 class PegasusFalconV2 : public INDI::Rotator
@@ -35,8 +37,10 @@ class PegasusFalconV2 : public INDI::Rotator
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
         const char *getDefaultName() override;
@@ -60,13 +64,15 @@ class PegasusFalconV2 : public INDI::Rotator
         bool getFirmware();
         bool getStatusData();
         bool getRotatorSpeed();
+        bool getCableLimit();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Device Control Functions
         ///////////////////////////////////////////////////////////////////////////////
         bool reloadFirmware();
-        bool setDerotation(uint32_t ms);
+        bool setDerotation(int32_t rate);
         bool setRotatorSpeed(uint32_t speed);
+        bool setCableLimit(bool enabled);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -103,8 +109,19 @@ class PegasusFalconV2 : public INDI::Rotator
         INDI::PropertyNumber RotatorSpeedNP {1};
         /// Firmware
         INDI::PropertyText FirmwareTP {1};
+        /// Cable limit (FLIM), stored by the device itself
+        INDI::PropertySwitch CableLimitSP {2};
+        /// WiFi settings and login on the TCP command socket
+        PegasusAstro::WiFi wifi {this};
 
         std::vector<std::string> lastStatusData;
+
+        /// Target of the last move, to tell a finished move from one that has not started yet.
+        double m_TargetAngle {0};
+        std::chrono::steady_clock::time_point m_MoveStarted;
+        /// Start of the last move, to notice when the rotator takes the long way round.
+        double m_StartAngle {0};
+        bool m_DirectionChecked {true};
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
@@ -112,4 +129,8 @@ class PegasusFalconV2 : public INDI::Rotator
         static constexpr const uint8_t DRIVER_STOP_CHAR {0xA};
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
         static constexpr const uint8_t DRIVER_LEN {128};
+        /// A move counts as finished within this distance of the target (degrees).
+        static constexpr double TARGET_TOLERANCE {0.05};
+        /// Accept a stopped rotator away from the target after this time, e.g. if it rejected the move.
+        static constexpr std::chrono::seconds MOVE_START_TIMEOUT {5};
 };

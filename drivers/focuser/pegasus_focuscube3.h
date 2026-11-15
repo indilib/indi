@@ -24,6 +24,9 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "pegasus_wifi.h"
+
+#include <chrono>
 
 class PegasusFocusCube3 : public INDI::Focuser
 {
@@ -35,9 +38,13 @@ class PegasusFocusCube3 : public INDI::Focuser
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
+        virtual bool saveConfigItems(FILE *fp) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual bool AbortFocuser() override;
@@ -59,13 +66,24 @@ class PegasusFocusCube3 : public INDI::Focuser
     private:
         bool updateFocusParams();
         bool setSpeed(uint16_t speed);
+        bool getSpeed(int &speed);
+        /** @brief Read the number of a reply that may or may not start with the command prefix. */
+        static bool parseReply(const char *res, const char *prefix, int &value);
         bool move(uint32_t newPosition);
         std::string  getFirmwareVersion();
 
         uint32_t currentPosition { 0 };
         uint32_t targetPosition { 0 };
         bool isMoving = false;
+        // The firmware reports -127 when no temperature sensor is connected.
+        bool hasTemperatureSensor = false;
+        // Start of the last move, to tell a finished move from one that has not started yet.
+        std::chrono::steady_clock::time_point moveStarted;
+        static constexpr std::chrono::seconds MOVE_START_TIMEOUT {5};
 
+
+        // WiFi settings and login on the TCP command socket
+        PegasusAstro::WiFi wifi {this};
 
         INDI::PropertyNumber TemperatureNP {1};
         INDI::PropertyText FirmwareVersionTP {1};
