@@ -858,7 +858,7 @@
         </device>
         <device label="Pegasus FlatMaster Neo" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster Neo">indi_pegasus_flatmaster_neo</driver>
-            <version>1.0</version>
+            <version>1.3</version>
         </device>
         <device label="Pegasus FlatMaster WiFi" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster WiFi">indi_pegasus_flatmaster_wifi</driver>

@@ -29,6 +29,7 @@
 #include "indidustcapinterface.h"
 #include "indiweatherinterface.h"
 
+#include <chrono>
 #include <vector>
 #include <string>
 
@@ -92,7 +93,22 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         std::vector<std::string> split(const std::string &input, const std::string &sep);
 
         int PortFD{ -1 };
-        bool sendCommand(const char *cmd, char *response, int timeout_sec = 3);
+        bool sendCommandBuffer(const char *cmd, char *response, int response_len, int timeout_sec);
+        // Reads at most N bytes into the response buffer.
+        template <int N>
+        bool sendCommand(const char *cmd, char (&response)[N], int timeout_sec = 3)
+        {
+            return sendCommandBuffer(cmd, response, N, timeout_sec);
+        }
+        // Sends a command that the device answers with an exact echo, e.g. FE:1 -> FE:1.
+        bool sendEchoCommand(const char *cmd);
+        // Replies of the WiFi/hotspot setters: "0" means failure, anything else success.
+        static bool isWifiReplyOk(const char *response);
+        static uint8_t aggressivenessLevel(double value);
+        // Turn a WS reply into "SSID (signal%)" entries, each SSID once, strongest first.
+        static std::string formatScan(const char *reply);
+        // Settings the device stores itself; a configuration loaded from an older driver version must not send them back.
+        bool ignoredWhileLoadingConfig(const char *dev, const char *name) const;
         void updateFirmwareVersion();
 
         // Firmware version
@@ -149,6 +165,11 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
 
         Connection::Serial *serialConnection{ nullptr };
 
+        // Cap position requested by ParkCap()/UnParkCap(), to tell a finished move from one not started yet.
+        int m_CapTarget{ 0 };
+        std::chrono::steady_clock::time_point m_CapMoveStarted;
+        static constexpr std::chrono::seconds CAP_START_TIMEOUT{ 5 };
+
         std::vector<std::string> lastWeatherData;
         std::vector<std::string> lastStatusData;
 
@@ -179,7 +200,9 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
 
         enum CapMotionStatus
         {
+            CAP_STATUS_UNKNOWN  = 0,
             CAP_STATUS_PARKED   = 1,
+            CAP_STATUS_MOVING   = 2,
             CAP_STATUS_UNPARKED = 3,
         };
 
