@@ -40,7 +40,7 @@ const char *STATUS_TAB = "Status";
 
 LX200NYX101::LX200NYX101()
 {
-    setVersion(2, 3);
+    setVersion(2, 4);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -468,47 +468,52 @@ bool LX200NYX101::ReadScopeStatus()
             break;
         }
     }
-    if(_DoesRefractionComp )
+    // Without a status the values above are only defaults, so leave the shown state alone.
+    if (statusRead)
     {
-        RefractSP[REFRACT_ON].setState(ISS_ON);
-        RefractSP[REFRACT_OFF].setState(ISS_OFF);
-        RefractSP.setState(IPS_OK);
-        RefractSP.apply();
-    }
-    else
-    {
-        RefractSP[REFRACT_ON].setState(ISS_OFF);
-        RefractSP[REFRACT_OFF].setState(ISS_ON);
-        RefractSP.setState(IPS_OK);
-        RefractSP.apply();
-    }
-    TrackModeSP[TRACK_SIDEREAL].setState(ISS_OFF);
-    TrackModeSP[TRACK_LUNAR].setState(ISS_OFF);
-    TrackModeSP[TRACK_SOLAR].setState(ISS_OFF);
-    TrackModeSP[TRACK_KING].setState(ISS_OFF);
-    TrackModeSP[_TrackingMode].setState(ISS_ON);
-    TrackModeSP.setState(IPS_OK);
-    TrackModeSP.apply();
+        if(_DoesRefractionComp )
+        {
+            RefractSP[REFRACT_ON].setState(ISS_ON);
+            RefractSP[REFRACT_OFF].setState(ISS_OFF);
+            RefractSP.setState(IPS_OK);
+            RefractSP.apply();
+        }
+        else
+        {
+            RefractSP[REFRACT_ON].setState(ISS_OFF);
+            RefractSP[REFRACT_OFF].setState(ISS_ON);
+            RefractSP.setState(IPS_OK);
+            RefractSP.apply();
+        }
+        TrackModeSP[TRACK_SIDEREAL].setState(ISS_OFF);
+        TrackModeSP[TRACK_LUNAR].setState(ISS_OFF);
+        TrackModeSP[TRACK_SOLAR].setState(ISS_OFF);
+        TrackModeSP[TRACK_KING].setState(ISS_OFF);
+        TrackModeSP[_TrackingMode].setState(ISS_ON);
+        TrackModeSP.setState(IPS_OK);
+        TrackModeSP.apply();
 
-    switch(_PierSide)
-    {
-        case INDI::Telescope::PIER_UNKNOWN:
-            SetPropertyText(PierNone, IPS_OK);
-            SetPropertyText(PierEast, IPS_BUSY);
-            SetPropertyText(PierWest, IPS_BUSY);
-            break;
-        case INDI::Telescope::PIER_EAST:
-            SetPropertyText(PierEast, IPS_OK);
-            SetPropertyText(PierNone, IPS_BUSY);
-            SetPropertyText(PierWest, IPS_BUSY);
-            break;
-        case INDI::Telescope::PIER_WEST:
-            SetPropertyText(PierWest, IPS_OK);
-            SetPropertyText(PierEast, IPS_BUSY);
-            SetPropertyText(PierNone, IPS_BUSY);
-            break;
-    }
+        switch(_PierSide)
+        {
+            case INDI::Telescope::PIER_UNKNOWN:
+                SetPropertyText(PierNone, IPS_OK);
+                SetPropertyText(PierEast, IPS_BUSY);
+                SetPropertyText(PierWest, IPS_BUSY);
+                break;
+            case INDI::Telescope::PIER_EAST:
+                SetPropertyText(PierEast, IPS_OK);
+                SetPropertyText(PierNone, IPS_BUSY);
+                SetPropertyText(PierWest, IPS_BUSY);
+                break;
+            case INDI::Telescope::PIER_WEST:
+                SetPropertyText(PierWest, IPS_OK);
+                SetPropertyText(PierEast, IPS_BUSY);
+                SetPropertyText(PierNone, IPS_BUSY);
+                break;
+        }
 
+
+    }
 
     if (!statusRead)
     {
@@ -516,7 +521,9 @@ bool LX200NYX101::ReadScopeStatus()
     }
     else if (TrackState == SCOPE_SLEWING)
     {
-        if (_IsSlewCompleted)
+        if (!_IsSlewCompleted)
+            m_SlewSeen = true;
+        else if (m_SlewSeen || std::chrono::steady_clock::now() - m_SlewRequested > SLEW_START_TIMEOUT)
         {
             TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
@@ -812,6 +819,16 @@ bool LX200NYX101::ISNewText(const char *dev, const char *name, char *texts[], ch
 
 }
 #endif
+
+bool LX200NYX101::Goto(double ra, double dec)
+{
+    if (!LX200Generic::Goto(ra, dec))
+        return false;
+
+    m_SlewRequested = std::chrono::steady_clock::now();
+    m_SlewSeen = false;
+    return true;
+}
 
 bool LX200NYX101::SetSlewRate(int index)
 {

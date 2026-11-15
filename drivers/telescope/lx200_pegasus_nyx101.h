@@ -45,6 +45,7 @@ class LX200NYX101 : public LX200Generic
 
     protected:
         virtual bool ReadScopeStatus() override;
+        virtual bool Goto(double ra, double dec) override;
         virtual const char *getDefaultName() override;
         virtual bool Park() override;
         virtual bool UnPark() override;
@@ -76,6 +77,11 @@ class LX200NYX101 : public LX200Generic
         // How long the mount may take to report parking ('I') or slewing after :hP#.
         static constexpr std::chrono::seconds PARK_START_TIMEOUT {10};
         std::chrono::steady_clock::time_point m_ParkRequested;
+        // The first status after :MS# can still report no slew ('N'). A GoTo is complete once the mount
+        // reported slewing, or after this time if it never did (a short slew between two polls).
+        static constexpr std::chrono::seconds SLEW_START_TIMEOUT {3};
+        std::chrono::steady_clock::time_point m_SlewRequested;
+        bool m_SlewSeen {true};
 
         enum RefractionState
         {
