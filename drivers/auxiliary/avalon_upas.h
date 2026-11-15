@@ -44,6 +44,9 @@
  * The UPAS has no limit switches and GRBL starts at 0 on every power-up, so the driver cannot
  * know the mechanical stops; near a stop the overshoot can run into it.
  *
+ * An axis whose move is below a minimum (PAC_MIN_MOVE, arcminutes) is skipped: such a move is lost
+ * in the backlash anyway, and the compensation would run the full overshoot and approach for it.
+ *
  * At connect the reverse mask ($3) is read from GRBL. Alarm and Door states are reported as errors.
  *
  * Capabilities: PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
@@ -127,6 +130,14 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
          */
         double finalApproachMM(int axis, double &mm);
 
+        /**
+         * @brief belowMinimum Check a requested move against the minimum move (PAC_MIN_MOVE).
+         * @param axis Axis name for the log.
+         * @param degrees Requested move in degrees.
+         * @return true if the move is below the minimum and is skipped (logged).
+         */
+        bool belowMinimum(const char *axis, double degrees);
+
         ///////////////////////////////////////////////////////////////////////////////
         /// Driver properties
         ///////////////////////////////////////////////////////////////////////////////
@@ -146,6 +157,9 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
             FEED_AZ,
             FEED_ALT
         };
+
+        // Moves below this many arcminutes are skipped; 0 disables the check.
+        INDI::PropertyNumber MinMoveNP {1};
 
         // Direction in which every move ends when backlash compensation is enabled.
         INDI::PropertySwitch AZApproachSP {2};

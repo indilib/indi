@@ -66,6 +66,11 @@ bool AvalonUPAS::initProperties()
     FeedRateNP[FEED_ALT].fill("FEED_ALT", "Altitude (mm/min)", "%.0f", 10, 1000, 50, 700);
     FeedRateNP.fill(getDeviceName(), "PAC_FEED_RATE", "Feed Rate", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Minimum move: smaller moves of an axis are skipped (0 disables). Clients can send tiny corrections,
+    // which are lost in the backlash anyway but would run the full backlash compensation.
+    MinMoveNP[0].fill("MIN_MOVE", "Minimum (arcmin)", "%.2f", 0, 10, 0.05, 0.1);
+    MinMoveNP.fill(getDeviceName(), "PAC_MIN_MOVE", "Min. Move", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     // Gear ratio: mm of motor travel per arcminute of polar-axis correction.
     // Defaults are the Avalon specifications (AZ 2, ALT 22), as also used by Avalon's own software.
     GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 2.0);
@@ -114,12 +119,14 @@ bool AvalonUPAS::updateProperties()
     {
         defineProperty(GearRatioNP);
         defineProperty(FeedRateNP);
+        defineProperty(MinMoveNP);
         defineProperty(FirmwareTP);
     }
     else
     {
         deleteProperty(GearRatioNP);
         deleteProperty(FeedRateNP);
+        deleteProperty(MinMoveNP);
         deleteProperty(FirmwareTP);
     }
 
@@ -145,6 +152,7 @@ bool AvalonUPAS::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     GearRatioNP.save(fp);
     FeedRateNP.save(fp);
+    MinMoveNP.save(fp);
     AZApproachSP.save(fp);
     ALTApproachSP.save(fp);
     PACI::saveConfigItems(fp);
@@ -334,8 +342,23 @@ bool AvalonUPAS::parseStatus(const char *response)
     return true;
 }
 
+bool AvalonUPAS::belowMinimum(const char *axis, double degrees)
+{
+    const double arcmin  = std::fabs(degrees) * 60;
+    const double minimum = MinMoveNP[0].getValue();
+    if (arcmin >= minimum)
+        return false;
+
+    LOGF_INFO("%s move of %.3f arcmin is below the minimum of %.2f arcmin, skipped.", axis, arcmin, minimum);
+    return true;
+}
+
 IPState AvalonUPAS::MoveAZ(double degrees)
 {
+    // A skipped move is complete at once, so the client is not left waiting.
+    if (belowMinimum("AZ", degrees))
+        return IPS_OK;
+
     // The gear ratio is in mm/arcmin, so convert the requested degrees to arcminutes first.
     const double mm       = degrees * 60 * GearRatioNP[GEAR_AZ].getValue();
     const double feedRate = feedRateFor(mm, 0);
@@ -348,6 +371,9 @@ IPState AvalonUPAS::MoveAZ(double degrees)
 
 IPState AvalonUPAS::MoveALT(double degrees)
 {
+    if (belowMinimum("ALT", degrees))
+        return IPS_OK;
+
     // The gear ratio is in mm/arcmin, so convert the requested degrees to arcminutes first.
     const double mm       = degrees * 60 * GearRatioNP[GEAR_ALT].getValue();
     const double feedRate = feedRateFor(0, mm);
@@ -360,6 +386,14 @@ IPState AvalonUPAS::MoveALT(double degrees)
 
 IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
 {
+    // Skip an axis whose move is below the minimum; with both skipped the move is complete at once.
+    if (belowMinimum("AZ", azDegrees))
+        azDegrees = 0;
+    if (belowMinimum("ALT", altDegrees))
+        altDegrees = 0;
+    if (azDegrees == 0 && altDegrees == 0)
+        return IPS_OK;
+
     // GRBL supports multi-axis jog in a single command: X (AZ) and Y (ALT) together.
     // This moves both axes simultaneously, which is more efficient and accurate than
     // two separate jog commands.
@@ -575,6 +609,14 @@ bool AvalonUPAS::ISNewNumber(const char *dev, const char *name, double values[],
             FeedRateNP.update(values, names, n);
             FeedRateNP.setState(IPS_OK);
             FeedRateNP.apply();
+            return true;
+        }
+
+        if (MinMoveNP.isNameMatch(name))
+        {
+            MinMoveNP.update(values, names, n);
+            MinMoveNP.setState(IPS_OK);
+            MinMoveNP.apply();
             return true;
         }
 
