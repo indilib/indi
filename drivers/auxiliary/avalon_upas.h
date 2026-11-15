@@ -46,8 +46,8 @@
  *
  * At connect the reverse mask ($3) is read from GRBL. Alarm and Door states are reported as errors.
  *
- * Capabilities: PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
- * Feed rate is set per axis (PAC_FEED_RATE) instead of the interface's single speed.
+ * Capabilities: PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
+ * Feed rate is set per axis (PAC_FEED_RATE). The interface's speed (PAC_SPEED, mm/min) caps both axes.
  */
 class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
 {
@@ -73,8 +73,9 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         IPState MoveALT(double degrees) override;
         IPState MoveBoth(double azDegrees, double altDegrees) override;
 
-        // PACInterface – abort and reverse
+        // PACInterface – abort, speed and reverse
         bool AbortMotion() override;
+        bool SetPACSpeed(uint16_t speed) override;
         bool ReverseAZ(bool enabled) override;
         bool ReverseALT(bool enabled) override;
 

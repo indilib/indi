@@ -39,7 +39,7 @@ AvalonUPAS::AvalonUPAS()
     : PACInterface(this)
 {
     setVersion(1, 2);
-    SetCapability(PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH);
+    SetCapability(PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH);
 }
 
 const char *AvalonUPAS::getDefaultName()
@@ -52,6 +52,14 @@ bool AvalonUPAS::initProperties()
     INDI::DefaultDevice::initProperties();
 
     PACI::initProperties(MAIN_CONTROL_TAB);
+
+    // Speed: GRBL feed rate in mm/min, range 100–1000 as before. It caps the feed rate of both axes;
+    // the default 1000 leaves Avalon's per-axis speeds below unchanged.
+    SpeedNP[0].setLabel("Max (mm/min)");
+    SpeedNP[0].setMin(100);
+    SpeedNP[0].setMax(1000);
+    SpeedNP[0].setStep(100);
+    SpeedNP[0].setValue(1000);
 
     // Feed rate per axis in mm/min (GRBL F word). Defaults are Avalon's suggested speeds (AZ 1000, ALT 700).
     FeedRateNP[FEED_AZ].fill("FEED_AZ", "Azimuth (mm/min)", "%.0f", 10, 1000, 50, 1000);
@@ -441,18 +449,30 @@ bool AvalonUPAS::sendJog(double azMM, double altMM)
 
 double AvalonUPAS::feedRateFor(double azMM, double altMM)
 {
+    // Each axis runs at most at its own feed rate, capped by the interface's speed.
+    const double maxRate = SpeedNP[0].getValue();
+    const double azRate  = std::min(maxRate, FeedRateNP[FEED_AZ].getValue());
+    const double altRate = std::min(maxRate, FeedRateNP[FEED_ALT].getValue());
+
     // GRBL applies one feed rate to the whole jog vector. Choose it so that each axis moves
-    // at most at its own feed rate; the limiting axis then moves at exactly that rate.
+    // at most at its rate; the limiting axis then moves at exactly that rate.
     const double length = std::hypot(azMM, altMM);
     if (length == 0)
-        return FeedRateNP[FEED_AZ].getValue();
+        return azRate;
 
     double feedRate = std::numeric_limits<double>::max();
     if (azMM != 0)
-        feedRate = std::min(feedRate, FeedRateNP[FEED_AZ].getValue() * length / std::fabs(azMM));
+        feedRate = std::min(feedRate, azRate * length / std::fabs(azMM));
     if (altMM != 0)
-        feedRate = std::min(feedRate, FeedRateNP[FEED_ALT].getValue() * length / std::fabs(altMM));
+        feedRate = std::min(feedRate, altRate * length / std::fabs(altMM));
     return feedRate;
+}
+
+bool AvalonUPAS::SetPACSpeed(uint16_t speed)
+{
+    // The feed rate is computed for every jog, so there is nothing to send now.
+    LOGF_INFO("UPAS speed limited to %u mm/min.", speed);
+    return true;
 }
 
 bool AvalonUPAS::AbortMotion()
