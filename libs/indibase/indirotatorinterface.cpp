@@ -253,9 +253,11 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (ReverseRotatorSP.isNameMatch(name))
         {
-            m_defaultDevice->updateProperty(ReverseRotatorSP, states, names, n, [this, names]()
+            m_defaultDevice->updateProperty(ReverseRotatorSP, states, names, n, [this, states, names, n]()
             {
-                bool enabled = ReverseRotatorSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+                // Clients may send both switches, so use the one that is On rather than names[0].
+                const char *onSwitch = IUFindOnSwitchName(states, names, n);
+                bool enabled = onSwitch != nullptr && ReverseRotatorSP[DefaultDevice::INDI_ENABLED].isNameMatch(onSwitch);
 
                 if (ReverseRotator(enabled))
                 {
@@ -274,9 +276,11 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (RotatorBacklashSP.isNameMatch(name))
         {
-            m_defaultDevice->updateProperty(RotatorBacklashSP, states, names, n, [this, names]()
+            m_defaultDevice->updateProperty(RotatorBacklashSP, states, names, n, [this, states, names, n]()
             {
-                bool enabled = RotatorBacklashSP[DefaultDevice::INDI_ENABLED].isNameMatch(names[0]) == ISS_ON;
+                // Clients may send both switches, so use the one that is On rather than names[0].
+                const char *onSwitch = IUFindOnSwitchName(states, names, n);
+                bool enabled = onSwitch != nullptr && RotatorBacklashSP[DefaultDevice::INDI_ENABLED].isNameMatch(onSwitch);
 
                 if (SetRotatorBacklashEnabled(enabled))
                 {
