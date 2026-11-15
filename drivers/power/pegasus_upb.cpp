@@ -290,7 +290,7 @@ bool PegasusUPB::Handshake()
         // V1: No LED Toggle, No Variable Output
         PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VOLTAGE_SENSOR |
                           POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT | POWER_HAS_AUTO_DEW |
-                          POWER_HAS_USB_TOGGLE | POWER_HAS_LED_TOGGLE);
+                          POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE | POWER_HAS_LED_TOGGLE);
         // 4 DC ports, 2 DEW ports, 0 Variable port, 1 Auto Dew port (global), 6 USB ports (but can only be all toggled on/off at once)
         PI::initProperties(POWER_TAB, 4, 2, 0, 1, 1);
     }
@@ -299,7 +299,7 @@ bool PegasusUPB::Handshake()
         // V2: All capabilities
         PI::SetCapability(POWER_HAS_DC_OUT | POWER_HAS_DEW_OUT | POWER_HAS_VARIABLE_OUT |
                           POWER_HAS_VOLTAGE_SENSOR | POWER_HAS_OVERALL_CURRENT | POWER_HAS_PER_PORT_CURRENT |
-                          POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW | POWER_HAS_USB_TOGGLE);
+                          POWER_HAS_LED_TOGGLE | POWER_HAS_AUTO_DEW | POWER_HAS_POWER_CYCLE | POWER_HAS_USB_TOGGLE);
         // 4 DC ports, 3 DEW ports, 1 Variable port, 3 Auto Dew ports (per-port), 6 USB ports
         PI::initProperties(POWER_TAB, 4, 3, 1, 3, 6);
 
@@ -1473,3 +1473,17 @@ bool PegasusUPB::SetAutoDewEnabled(size_t port, bool enabled)
     }
 }
 
+bool PegasusUPB::CyclePower()
+{
+    // PZ:b switches all four 12 V outputs and the dew outputs off (0) or on (1). There is no power cycle
+    // command, and PZ:0 would also switch off a computer powered by the UPB, which could not switch it on
+    // again. So this only switches all outputs on.
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PZ:1");
+    if (sendCommand(cmd, res) && !strcmp(cmd, res))
+    {
+        LOG_INFO("All power outputs switched on (PZ:1). The UPB has no power cycle command.");
+        return true;
+    }
+    return false;
+}

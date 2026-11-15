@@ -83,6 +83,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         virtual bool SetVariablePort(size_t port, bool enabled, double voltage) override;
         virtual bool SetLEDEnabled(bool enabled) override;
         virtual bool SetAutoDewEnabled(size_t port, bool enabled) override;
+        virtual bool CyclePower() override;
         virtual bool SetUSBPort(size_t port, bool enabled) override;
 
     private:
