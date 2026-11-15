@@ -268,6 +268,7 @@ bool PegasusSPB::Handshake()
     lastSensorData.clear();
     lastConsumptionData.clear();
     lastMetricsData.clear();
+    m_AutoDewShown = false;
 
     return (strstr(response, "SPB") != nullptr);
 }
@@ -680,20 +681,30 @@ bool PegasusSPB::getSensorData()
         // Port 0 maps to original Port A (physical port 1).
         // Port 1 maps to original Port B (physical port 2).
         // Update DewChannelDutyCycleNP
-        // A channel that is off reports 0; keep the duty cycle set for it then, otherwise switching
-        // the channel on would send 0 % (the duty cycle is only stored while the channel is off).
-        const double dewA = std::stod(result[PA_DEW_1]), dewB = std::stod(result[PA_DEW_2]);
-        if (dewA > 0)
-            PI::DewChannelDutyCycleNP[0].setValue(dewA / 255.0 * 100.0);
-        if (dewB > 0)
-            PI::DewChannelDutyCycleNP[1].setValue(dewB / 255.0 * 100.0);
+        // Auto dew sets the duty cycles itself, so they are shown as reported, 0 included. Without auto dew
+        // a channel that is off reports 0; the duty cycle set for it is kept then, otherwise switching the
+        // channel on would send 0 % (the duty cycle is only stored while the channel is off). When auto dew
+        // is switched off, the duty cycles set before it are shown again.
+        const bool autodew = std::stoi(result[PA_AUTO_DEW]);
+        for (size_t i = 0; i < PI::DewChannelDutyCycleNP.size() && i < 2; i++)
+        {
+            // Auto dew just started: remember the duty cycle set before it.
+            if (autodew && !m_AutoDewShown)
+                m_ManualDutyCycle[i] = PI::DewChannelDutyCycleNP[i].getValue();
+
+            const double reported = std::stod(result[i == 0 ? PA_DEW_1 : PA_DEW_2]) / 255.0 * 100.0;
+            if (autodew || reported > 0)
+                PI::DewChannelDutyCycleNP[i].setValue(reported);
+            else if (m_AutoDewShown)
+                PI::DewChannelDutyCycleNP[i].setValue(m_ManualDutyCycle[i]);
+        }
         PI::DewChannelDutyCycleNP.setState(IPS_OK);
         if (lastSensorData.size() < PA_N || lastSensorData[PA_DEW_1] != result[PA_DEW_1]
-                || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
+                || lastSensorData[PA_DEW_2] != result[PA_DEW_2] || autodew != m_AutoDewShown)
             PI::DewChannelDutyCycleNP.apply();
+        m_AutoDewShown = autodew;
 
         // Auto Dew
-        bool autodew = std::stoi(result[PA_AUTO_DEW]);
         PI::AutoDewSP[0].setState(autodew ? ISS_ON : ISS_OFF);
         PI::AutoDewSP.setState(IPS_OK);
         if (lastSensorData.size() < PA_N || lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])

@@ -143,6 +143,9 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         std::vector<std::string> lastSensorData;
         std::vector<std::string> lastConsumptionData;
         std::vector<std::string> lastMetricsData;
+        // Duty cycles set before auto dew started, shown again when it is switched off.
+        double m_ManualDutyCycle[2] {0, 0};
+        bool m_AutoDewShown { false };
         char stopChar { 0xD };
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
         static constexpr const uint8_t PEGASUS_LEN {128};
