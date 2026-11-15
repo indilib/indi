@@ -43,7 +43,7 @@ static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
 PegasusUPB::PegasusUPB() : INDI::DefaultDevice(), INDI::FocuserInterface(this), INDI::WeatherInterface(this),
     INDI::PowerInterface(this)
 {
-    setVersion(1, 7);
+    setVersion(1, 8);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -544,6 +544,8 @@ IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
     snprintf(cmd, PEGASUS_LEN, "SM:%u", targetTicks);
     if (sendCommand(cmd, res))
     {
+        m_FocusTarget    = static_cast<int32_t>(targetTicks);
+        m_FocusIdlePolls = 0;
         return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
     }
 
@@ -1272,21 +1274,34 @@ bool PegasusUPB::getStepperData()
             return false;
         }
 
-        if (result == lastStepperData)
+        // A move to the current position leaves the reply unchanged, so check a running move anyway.
+        const bool moving = FocusAbsPosNP.getState() == IPS_BUSY;
+        if (result == lastStepperData && !moving)
             return true;
 
-        FocusAbsPosNP[0].setValue(std::stoi(result[0]));
+        const int position = std::stoi(result[0]);
+        FocusAbsPosNP[0].setValue(position);
         focusMotorRunning = (std::stoi(result[1]) == 1);
 
-        if (FocusAbsPosNP.getState() == IPS_BUSY && focusMotorRunning == false)
+        // The motor may not have started yet at the first poll after SM:, so a move is complete when
+        // the motor stands at the target. If it stands elsewhere for a few polls, it stopped short.
+        if (moving && !focusMotorRunning && (position == m_FocusTarget || ++m_FocusIdlePolls >= FOCUS_IDLE_POLLS))
         {
-            FocusAbsPosNP.setState(IPS_OK);
-            FocusRelPosNP.setState(IPS_OK);
+            const IPState state = position == m_FocusTarget ? IPS_OK : IPS_ALERT;
+            if (state == IPS_ALERT)
+                LOGF_ERROR("The focuser stopped at %d instead of %d.", position, m_FocusTarget);
+            FocusAbsPosNP.setState(state);
+            FocusRelPosNP.setState(state);
             FocusAbsPosNP.apply();
             FocusRelPosNP.apply();
         }
-        else if (stepperUpdated(result, 0))
-            FocusAbsPosNP.apply();
+        else
+        {
+            if (focusMotorRunning)
+                m_FocusIdlePolls = 0;
+            if (stepperUpdated(result, 0))
+                FocusAbsPosNP.apply();
+        }
 
         FocusReverseSP[INDI_ENABLED].setState((std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF);
         FocusReverseSP[INDI_DISABLED].setState((std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON);
