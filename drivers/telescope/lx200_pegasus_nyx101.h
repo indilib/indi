@@ -24,6 +24,8 @@
 #pragma once
 
 #include "lx200generic.h"
+
+#include <chrono>
 //#define DEBUG_NYX
 
 
@@ -46,6 +48,8 @@ class LX200NYX101 : public LX200Generic
         virtual const char *getDefaultName() override;
         virtual bool Park() override;
         virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool setUTCOffset(double offset) override;
         virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
@@ -62,6 +66,16 @@ class LX200NYX101 : public LX200Generic
         static constexpr const uint8_t DRIVER_LEN {64};
         static const char DRIVER_STOP_CHAR { 0x23 };
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // Guide rates selected by :R0# to :R2#.
+        static constexpr double GUIDE_RATES[] {0.25, 0.50, 1.00};
+        // How long the mount may keep reporting parked after an unpark request.
+        static constexpr std::chrono::seconds UNPARK_TIMEOUT {10};
+
+        bool m_UnparkPending {false};
+        std::chrono::steady_clock::time_point m_UnparkRequested;
+        // How long the mount may take to report parking ('I') or slewing after :hP#.
+        static constexpr std::chrono::seconds PARK_START_TIMEOUT {10};
+        std::chrono::steady_clock::time_point m_ParkRequested;
 
         enum RefractionState
         {
@@ -89,7 +103,8 @@ class LX200NYX101 : public LX200Generic
             HORIZON
         };
 
-        INDI::PropertySwitch GuideRateSP {3};
+        // Guide rate (x sidereal) in the standard GUIDE_RATE form. The NYX has one rate for both axes.
+        INDI::PropertyNumber GuideRateNP {2};
         // INDI::PropertySwitch HomeSP {1};
         // INDI::PropertySwitch ResetHomeSP {1};
         INDI::PropertyText Report {1};
@@ -123,6 +138,8 @@ class LX200NYX101 : public LX200Generic
         bool goToPark();
         bool goToUnPark();
         bool setGuideRate(int rate);
+        static int nearestGuideRate(double rate);
+        void setGuideRateValue(int index);
         bool verboseReport = false;
         void SetPropertyText(INDI::PropertyText propertyTxt, IPState state);
 };

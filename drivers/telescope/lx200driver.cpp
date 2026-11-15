@@ -1656,6 +1656,10 @@ int SendPulseCmd(int fd, int direction, int duration_msec, bool wait_after_comma
     int nbytes_write = 0;
     char cmd[20];
 
+    // The duration has four digits; a longer pulse would produce an invalid command.
+    if (duration_msec > 9999)
+        duration_msec = 9999;
+
     // Meade Telescope Serial Command Protocol Revision 2010.10
     // :MgnDDDD#
     // :MgsDDDD#

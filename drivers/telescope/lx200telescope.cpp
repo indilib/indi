@@ -583,7 +583,7 @@ bool LX200Telescope::Abort()
         if (GuideWETID)
         {
             IERmTimer(GuideWETID);
-            GuideNSTID = 0;
+            GuideWETID = 0;
         }
 
         LOG_INFO("Guide aborted.");

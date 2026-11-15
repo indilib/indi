@@ -40,7 +40,7 @@ const char *STATUS_TAB = "Status";
 
 LX200NYX101::LX200NYX101()
 {
-    setVersion(2, 2);
+    setVersion(2, 3);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -63,7 +63,8 @@ bool LX200NYX101::initProperties()
 {
     LX200Generic::initProperties();
 
-    SetParkDataType(PARK_NONE);
+    // The mount stores the park position itself; PARK_SIMPLE offers TELESCOPE_PARK_OPTION to set it.
+    SetParkDataType(PARK_SIMPLE);
     timeFormat = LX200_24;
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
@@ -101,13 +102,10 @@ bool LX200NYX101::initProperties()
     SafetyLimitSP[CLEAR_SAFETY_LIMIT].fill("CLEAR_SAFETY_LIMIT", "Clear", ISS_OFF);
     SafetyLimitSP.fill(getDeviceName(), "SAFETY_LIMIT",
                        "Custom Limits", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    // Guide Rate
-    int guideRate = 1;
-    IUGetConfigOnSwitchIndex(getDeviceName(), "GUIDE_RATE", &guideRate);
-    GuideRateSP[0].fill("0.25", "0.25", guideRate == 0 ? ISS_ON : ISS_OFF);
-    GuideRateSP[1].fill("0.50", "0.50", guideRate == 1 ? ISS_ON : ISS_OFF);
-    GuideRateSP[2].fill("1.00", "1.00", guideRate == 2 ? ISS_ON : ISS_OFF);
-    GuideRateSP.fill(getDeviceName(), "GUIDE_RATE", "Guide Rate", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // Guide Rate: standard number property, so clients such as PHD2 can read it.
+    GuideRateNP[AXIS_RA].fill("GUIDE_RATE_WE", "W/E Rate", "%.2f", 0.25, 1.0, 0.25, 0.5);
+    GuideRateNP[AXIS_DE].fill("GUIDE_RATE_NS", "N/S Rate", "%.2f", 0.25, 1.0, 0.25, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guide Rate", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     //Go Home
     // HomeSP[0].fill("GO", "Go", ISS_OFF);
@@ -221,14 +219,9 @@ bool LX200NYX101::updateProperties()
 
         if(sendCommand(":GX90#", status))
         {
-            std::string c = status;
-
-            GuideRateSP.reset();
-            GuideRateSP[0].setState((c.find("0.25") != std::string::npos) ? ISS_ON : ISS_OFF);
-            GuideRateSP[1].setState((c.find("0.50") != std::string::npos) ? ISS_ON : ISS_OFF);
-            GuideRateSP[2].setState((c.find("1.00") != std::string::npos) ? ISS_ON : ISS_OFF);
-            GuideRateSP.setState((IPS_OK));
-            GuideRateSP.apply();
+            GuideRateNP[AXIS_RA].setValue(GUIDE_RATES[nearestGuideRate(std::strtod(status, nullptr))]);
+            GuideRateNP[AXIS_DE].setValue(GuideRateNP[AXIS_RA].getValue());
+            GuideRateNP.setState(IPS_OK);
         }
 
         if(sendCommand(":Go#", status))
@@ -249,7 +242,7 @@ bool LX200NYX101::updateProperties()
             MeridianLimitNP[0].setValue(std::stoi(c));
         }
 
-        defineProperty(GuideRateSP);
+        defineProperty(GuideRateNP);
         // defineProperty(HomeSP);
         // defineProperty(ResetHomeSP);
         defineProperty(Report);
@@ -281,7 +274,7 @@ bool LX200NYX101::updateProperties()
     }
     else
     {
-        deleteProperty(GuideRateSP);
+        deleteProperty(GuideRateNP);
         //deleteProperty(HomeSP);
         deleteProperty(MeridianLimitNP);
         deleteProperty(FlipSP);
@@ -360,7 +353,7 @@ bool LX200NYX101::ReadScopeStatus()
     bool _IsParked = false;
     SetPropertyText(IsParked, IPS_BUSY);
 
-    //bool _IsParkginInProgress = false;
+    bool _IsParkingInProgress = false;
     SetPropertyText(IsParkginInProgress, IPS_BUSY);
 
     //bool _IsAtHomePosition = false;
@@ -381,14 +374,15 @@ bool LX200NYX101::ReadScopeStatus()
     //bool _IsHomePaused = false;
     SetPropertyText(IsHomePaused, IPS_BUSY);
 
-    //bool _ParkFailed = false;
+    bool _ParkFailed = false;
     SetPropertyText(ParkFailed, IPS_BUSY);
 
     //bool _SlewingHome = false;
     SetPropertyText(SlewingHome, IPS_BUSY);
 
     char status[DRIVER_LEN] = {0};
-    if(sendCommand(":GU#", status))
+    const bool statusRead = sendCommand(":GU#", status);
+    if(statusRead)
     {
         Report[0].text = status;
         Report.apply();
@@ -414,7 +408,7 @@ bool LX200NYX101::ReadScopeStatus()
                     SetPropertyText(IsParked, IPS_OK);
                     continue;
                 case 'I':
-                    //_IsParkginInProgress = true;
+                    _IsParkingInProgress = true;
                     SetPropertyText(IsParkginInProgress, IPS_OK);
                     continue;
                 case 'H':
@@ -459,7 +453,7 @@ bool LX200NYX101::ReadScopeStatus()
                     SetPropertyText(IsHomePaused, IPS_OK);
                     continue;
                 case 'F':
-                    //_ParkFailed = true;
+                    _ParkFailed = true;
                     SetPropertyText(ParkFailed, IPS_OK);
                     continue;
                 case 'h':
@@ -516,7 +510,11 @@ bool LX200NYX101::ReadScopeStatus()
     }
 
 
-    if (TrackState == SCOPE_SLEWING)
+    if (!statusRead)
+    {
+        // Without a status the flags above are only defaults; keep the current state.
+    }
+    else if (TrackState == SCOPE_SLEWING)
     {
         if (_IsSlewCompleted)
         {
@@ -524,9 +522,48 @@ bool LX200NYX101::ReadScopeStatus()
             LOG_INFO("Slew is complete. Tracking...");
         }
     }
+    else if (m_UnparkPending)
+    {
+        // The mount may still report parked for a moment after an unpark request.
+        if (!_IsParked)
+            m_UnparkPending = false;
+        else if (std::chrono::steady_clock::now() - m_UnparkRequested > UNPARK_TIMEOUT)
+        {
+            m_UnparkPending = false;
+            LOG_WARN("Mount is still parked after the unpark request.");
+            SetParked(true);
+        }
+    }
+    else if (TrackState == SCOPE_PARKING && !_IsParked)
+    {
+        // A mount that is not operational yet (no time and location received) ignores :hP# and
+        // never reports 'P'. Report that instead of waiting forever.
+        const char *reason = nullptr;
+        if (_ParkFailed)
+            reason = "Mount reports that parking failed.";
+        else if (!_IsParkingInProgress && _IsSlewCompleted &&
+                 std::chrono::steady_clock::now() - m_ParkRequested > PARK_START_TIMEOUT)
+            reason = "Mount did not start parking. Check that it has received time and location, and has a park position.";
+
+        if (reason)
+        {
+            LOGF_ERROR("%s", reason);
+            TrackState = _IsTracking ? SCOPE_TRACKING : SCOPE_IDLE;
+            ParkSP.reset();
+            ParkSP[UNPARK].setState(ISS_ON);
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
+        }
+    }
     else if (TrackState != SCOPE_PARKED && _IsParked)
     {
         SetParked(true);
+    }
+    else if (TrackState == SCOPE_PARKED && !_IsParked)
+    {
+        // Unparked outside INDI, e.g. by the hand controller or app. Motion commands would be refused otherwise.
+        LOG_INFO("Mount reports unparked.");
+        SetParked(false);
     }
     else
     {
@@ -591,6 +628,37 @@ bool LX200NYX101::ISNewNumber(const char *dev, const char *name, double values[]
             return true;
         }
 
+        if (GuideRateNP.isNameMatch(name))
+        {
+            // One rate for both axes: take the element the client changed.
+            double requested = values[0];
+            for (int i = 0; i < n; i++)
+            {
+                auto element = GuideRateNP.findWidgetByName(names[i]);
+                if (element && std::fabs(element->getValue() - values[i]) > 1e-6)
+                {
+                    requested = values[i];
+                    break;
+                }
+            }
+
+            const int index = nearestGuideRate(requested);
+            if (isConnected() && !setGuideRate(index))
+            {
+                GuideRateNP.setState(IPS_ALERT);
+                GuideRateNP.apply();
+                return true;
+            }
+
+            if (std::fabs(GUIDE_RATES[index] - requested) > 1e-6)
+                LOGF_INFO("NYX-101 supports guide rates 0.25, 0.50 and 1.00 only, using %.2f.", GUIDE_RATES[index]);
+            if (std::fabs(GUIDE_RATES[index] - GuideRateNP[AXIS_RA].getValue()) > 1e-6)
+                LOG_WARN("RA and DEC guide rate changed.");
+
+            setGuideRateValue(index);
+            return true;
+        }
+
         if (ElevationLimitNP.isNameMatch(name))
         {
             if(ElevationLimitNP.update(values, names, n))
@@ -621,23 +689,7 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if(GuideRateSP.isNameMatch(name))
-        {
-            int previousType = GuideRateSP.findOnSwitchIndex();
-            GuideRateSP.update(states, names, n);
-            IPState state = IPS_OK;
-            if (isConnected())
-            {
-                auto targetType = GuideRateSP.findOnSwitchIndex();
-                state = setGuideRate(targetType) ? IPS_OK : IPS_ALERT;
-                if (state == IPS_OK && previousType != targetType)
-                    LOG_WARN("RA and DEC guide rate changed.");
-            }
-            GuideRateSP.setState(state);
-            GuideRateSP.apply();
-            return true;
-        }
-        else if(FlipSP.isNameMatch(name))
+        if(FlipSP.isNameMatch(name))
         {
             FlipSP.update(states, names, n);
             IPState state = IPS_OK;
@@ -814,6 +866,23 @@ bool LX200NYX101::setGuideRate(int rate)
     return sendCommand(command);
 }
 
+int LX200NYX101::nearestGuideRate(double rate)
+{
+    int index = 0;
+    for (int i = 1; i < 3; i++)
+        if (std::fabs(GUIDE_RATES[i] - rate) < std::fabs(GUIDE_RATES[index] - rate))
+            index = i;
+    return index;
+}
+
+void LX200NYX101::setGuideRateValue(int index)
+{
+    GuideRateNP[AXIS_RA].setValue(GUIDE_RATES[index]);
+    GuideRateNP[AXIS_DE].setValue(GUIDE_RATES[index]);
+    GuideRateNP.setState(IPS_OK);
+    GuideRateNP.apply();
+}
+
 bool LX200NYX101::SetTrackMode(uint8_t mode)
 {
     switch(mode)
@@ -860,14 +929,52 @@ bool LX200NYX101::goToPark()
 
 bool LX200NYX101::goToUnPark()
 {
-    return sendCommand(":hR#");
+    // The mount answers 1, or 0 if it was not parked. Read the answer, otherwise it is left in the
+    // buffer and prepended to the next reply.
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":hR#", response, -1, 1))
+        return false;
+
+    if (response[0] != '1')
+        LOG_DEBUG("Mount answered 0 to unpark, it was not parked.");
+    return true;
+}
+
+bool LX200NYX101::SetCurrentPark()
+{
+    // The mount answers 1 when it stored the current position as its park position, 0 when it refused.
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":hQ#", response, -1, 1))
+    {
+        LOG_ERROR("Failed to set the park position.");
+        return false;
+    }
+
+    if (response[0] != '1')
+    {
+        LOG_ERROR("Mount refused the park position. It must be unparked and stopped, and needs time and location.");
+        return false;
+    }
+
+    LOG_INFO("Current position is stored as the mount park position.");
+    return true;
+}
+
+bool LX200NYX101::SetDefaultPark()
+{
+    LOG_WARN("The mount has no default park position. Move it to the park position and select Current.");
+    return false;
 }
 
 bool LX200NYX101::Park()
 {
     bool rc = goToPark();
     if (rc)
+    {
+        m_UnparkPending = false;
+        m_ParkRequested = std::chrono::steady_clock::now();
         TrackState = SCOPE_PARKING;
+    }
 
     return rc;
 }
@@ -876,7 +983,12 @@ bool LX200NYX101::UnPark()
 {
     bool rc = goToUnPark();
     if(rc)
+    {
+        // ReadScopeStatus() waits for the mount to confirm, instead of parking again on a stale 'P'.
+        m_UnparkRequested = std::chrono::steady_clock::now();
+        m_UnparkPending = true;
         SetParked(false);
+    }
 
     return rc;
 }
