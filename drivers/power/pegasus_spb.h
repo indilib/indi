@@ -122,20 +122,18 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         bool setFixedPowerPortState(int portNumber, bool enabled);
         bool setPowerDewPortMode(int portNumber, int mode);
         int getPowerDewPortMode(int portNumber);
-        int getDewPortPower(int portNumber);
-        bool setDewPortPower(int portNumber, int power);
+        bool setDewPortPower(int portNumber, double power);
         bool setDewAutoState(bool enabled);
         bool setDewAggressiveness(uint8_t level);
-        int getDewAggressiveness();
+        bool getDewAggressiveness(int &level);
         bool setHumdityOffset(int level);
-        int getHumidityOffset();
+        bool getOffsets(int &temperature, int &humidity);
         bool setTemperatureOffset(int level);
-        int getTemperatureOffset();
+        void updatePortMode(INDI::PropertySwitch &property, int mode);
         bool getFirmware();
         bool getSensorData();
         bool getConsumptionData();
         bool getMetricsData();
-        void updatePropertiesPowerDewMode(int portNumber, int mode);
 
         int PortFD { -1 };
         bool setupComplete { false };
@@ -145,6 +143,9 @@ class PegasusSPB : public INDI::DefaultDevice, public INDI::WeatherInterface, pu
         std::vector<std::string> lastSensorData;
         std::vector<std::string> lastConsumptionData;
         std::vector<std::string> lastMetricsData;
+        // Duty cycles set before auto dew started, shown again when it is switched off.
+        double m_ManualDutyCycle[2] {0, 0};
+        bool m_AutoDewShown { false };
         char stopChar { 0xD };
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
         static constexpr const uint8_t PEGASUS_LEN {128};

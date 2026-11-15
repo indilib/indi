@@ -2,6 +2,9 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstring>
 #include <regex>
 #include <termios.h>
 #include <chrono>
@@ -17,7 +20,7 @@ static std::unique_ptr<PegasusSPB> spb(new PegasusSPB());
 
 PegasusSPB::PegasusSPB() : INDI::DefaultDevice(), WI(this), PI(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 3);
     lastSensorData.reserve(PA_N);
     lastConsumptionData.reserve(PS_N);
     lastMetricsData.reserve(PC_N);
@@ -148,39 +151,30 @@ bool PegasusSPB::updateProperties()
     if (isConnected())
     {
         defineProperty(DewAggressNP);
-        int aggressiveness = getDewAggressiveness();
-        DewAggressNP[0].setValue(static_cast<double>(aggressiveness));
-        DewAggressNP.setState(IPS_OK);
+        int aggressiveness = 0;
+        if (getDewAggressiveness(aggressiveness))
+        {
+            DewAggressNP[0].setValue(aggressiveness);
+            DewAggressNP.setState(IPS_OK);
+        }
+        else
+            DewAggressNP.setState(IPS_ALERT);
         DewAggressNP.apply();
 
         defineProperty(PowerDewSwitchASP);
-        int portNumber = 1;
-        int mode = getPowerDewPortMode(portNumber);
-        PowerDewSwitchASP.reset();
-        PowerDewSwitchASP[DEW].setState(mode == PegasusSPB::PORT_MODE::DEW ? ISS_ON : ISS_OFF);
-        PowerDewSwitchASP[POWER].setState(mode == PegasusSPB::PORT_MODE::POWER ? ISS_ON : ISS_OFF);
-        PowerDewSwitchASP.setState(IPS_OK);
-        PowerDewSwitchASP.apply();
-
+        updatePortMode(PowerDewSwitchASP, getPowerDewPortMode(1));
         defineProperty(PowerDewSwitchBSP);
-        portNumber = 2;
-        mode = getPowerDewPortMode(portNumber);
-        PowerDewSwitchBSP.reset();
-        PowerDewSwitchBSP[DEW].setState(mode == PegasusSPB::PORT_MODE::DEW ? ISS_ON : ISS_OFF);
-        PowerDewSwitchBSP[POWER].setState(mode == PegasusSPB::PORT_MODE::POWER ? ISS_ON : ISS_OFF);
-        PowerDewSwitchBSP.setState(IPS_OK);
-        PowerDewSwitchBSP.apply();
+        updatePortMode(PowerDewSwitchBSP, getPowerDewPortMode(2));
 
         defineProperty(HumidityOffsetNP);
-        int humidityOffset = getHumidityOffset();
-        HumidityOffsetNP[0].setValue(static_cast<double>(humidityOffset));
-        HumidityOffsetNP.setState(IPS_OK);
-        HumidityOffsetNP.apply();
-
         defineProperty(TemperatureOffsetNP);
-        int temperatureOffset = getTemperatureOffset();
-        TemperatureOffsetNP[0].setValue(static_cast<double>(temperatureOffset));
-        TemperatureOffsetNP.setState(IPS_OK);
+        int temperatureOffset = 0, humidityOffset = 0;
+        const bool offsetsRead = getOffsets(temperatureOffset, humidityOffset);
+        HumidityOffsetNP[0].setValue(humidityOffset);
+        TemperatureOffsetNP[0].setValue(temperatureOffset);
+        HumidityOffsetNP.setState(offsetsRead ? IPS_OK : IPS_ALERT);
+        TemperatureOffsetNP.setState(offsetsRead ? IPS_OK : IPS_ALERT);
+        HumidityOffsetNP.apply();
         TemperatureOffsetNP.apply();
 
         WI::updateProperties();
@@ -208,6 +202,15 @@ bool PegasusSPB::updateProperties()
     }
 
     return true;
+}
+
+void PegasusSPB::updatePortMode(INDI::PropertySwitch &property, int mode)
+{
+    property.reset();
+    property[DEW].setState(mode == DEW ? ISS_ON : ISS_OFF);
+    property[POWER].setState(mode == POWER ? ISS_ON : ISS_OFF);
+    property.setState(mode < 0 ? IPS_ALERT : IPS_OK);
+    property.apply();
 }
 
 const char * PegasusSPB::getDefaultName()
@@ -261,6 +264,11 @@ bool PegasusSPB::Handshake()
     LOGF_DEBUG("RES <%s>", response);
 
     setupComplete = false;
+    // Send the real states after a reconnection even if nothing changed on the device.
+    lastSensorData.clear();
+    lastConsumptionData.clear();
+    lastMetricsData.clear();
+    m_AutoDewShown = false;
 
     return (strstr(response, "SPB") != nullptr);
 }
@@ -273,9 +281,17 @@ void PegasusSPB::TimerHit()
         return;
     }
 
-    getSensorData();
-    getConsumptionData();
-    getMetricsData();
+    // A garbled reply must not end the driver with an uncaught std::stod exception.
+    try
+    {
+        getSensorData();
+        getConsumptionData();
+        getMetricsData();
+    }
+    catch (const std::exception &e)
+    {
+        LOGF_WARN("Failed to parse the device status: %s", e.what());
+    }
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -291,24 +307,23 @@ bool PegasusSPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         // Power-Dew SwitchA
         if(PowerDewSwitchASP.isNameMatch(name))
         {
+            if (isConfigLoading())
+                return true;
             PowerDewSwitchASP.update(states, names, n);
-            auto newState = PowerDewSwitchASP[DEW].getState() == ISS_ON ? 0 : 1;
-            auto result = setPowerDewPortMode(1, newState) ? IPS_OK : IPS_ALERT;
-            PowerDewSwitchASP.setState(result ? IPS_OK : IPS_ALERT);
+            auto newState = PowerDewSwitchASP[DEW].getState() == ISS_ON ? DEW : POWER;
+            PowerDewSwitchASP.setState(setPowerDewPortMode(1, newState) ? IPS_OK : IPS_ALERT);
             PowerDewSwitchASP.apply();
-            saveConfig(PowerDewSwitchASP);
-
             return true;
         }
         //Power-Dew SwitchB
         if(PowerDewSwitchBSP.isNameMatch(name))
         {
+            if (isConfigLoading())
+                return true;
             PowerDewSwitchBSP.update(states, names, n);
-            auto newState = PowerDewSwitchBSP[DEW].getState() == ISS_ON ? 0 : 1;
-            auto result = setPowerDewPortMode(2, newState) ? IPS_OK : IPS_ALERT;
-            PowerDewSwitchBSP.setState(result ? IPS_OK : IPS_ALERT);
+            auto newState = PowerDewSwitchBSP[DEW].getState() == ISS_ON ? DEW : POWER;
+            PowerDewSwitchBSP.setState(setPowerDewPortMode(2, newState) ? IPS_OK : IPS_ALERT);
             PowerDewSwitchBSP.apply();
-            saveConfig(PowerDewSwitchBSP);
             return true;
         }
     }
@@ -327,6 +342,9 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
         // DewAggress (custom property)
         if(DewAggressNP.isNameMatch(name))
         {
+            // Stored in the device; configurations of version 1.2 and older still contain it.
+            if (isConfigLoading())
+                return true;
             DewAggressNP.update(values, names, n);
             IPState result = IPS_OK;
             if (isConnected())
@@ -343,6 +361,9 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
         // HumidityOffset (custom property)
         if(HumidityOffsetNP.isNameMatch(name))
         {
+            // Stored in the device; configurations of version 1.2 and older still contain it.
+            if (isConfigLoading())
+                return true;
             HumidityOffsetNP.update(values, names, n);
             IPState result = IPS_OK;
             if (isConnected())
@@ -359,6 +380,9 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
         // TemperatureOffset (custom property)
         if(TemperatureOffsetNP.isNameMatch(name))
         {
+            // Stored in the device; configurations of version 1.2 and older still contain it.
+            if (isConfigLoading())
+                return true;
             TemperatureOffsetNP.update(values, names, n);
             IPState result = IPS_OK;
             if (isConnected())
@@ -387,36 +411,13 @@ bool PegasusSPB::ISNewText(const char * dev, const char * name, char * texts[], 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-int PegasusSPB::getDewPortPower(int portNumber)
+bool PegasusSPB::setDewPortPower(int portNumber, double power)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "PA");
-    int power = -1;
+    snprintf(cmd, PEGASUS_LEN, "P%d:%ld", portNumber + 2, std::lround(std::clamp(power, 0.0, 100.0) / 100.0 * 255.0));
     if(sendCommand(cmd, res))
     {
-        std::vector<std::string> result = split(res, ":");
-
-        if(portNumber == 1)
-            power =  std::stod(result[PA_DEW_1]);
-        else if(portNumber == 2)
-            power = std::stod(result[PA_DEW_2]);
-    }
-    else
-    {
-        LOGF_ERROR("Error on set power-dew port mode [Port=%d]", portNumber);
-    }
-    return power / 255.0 * 100.0;
-}
-
-
-
-bool PegasusSPB::setDewPortPower(int portNumber, int power)
-{
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "P%d:%d", portNumber + 2, static_cast<uint8_t>(power / 100.0 * 255.0));
-    if(sendCommand(cmd, res))
-    {
-        if(!strstr(cmd, res))
+        if(strcmp(cmd, res))
         {
             LOGF_ERROR("Error on set dew port power [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -437,12 +438,10 @@ int PegasusSPB::getPowerDewPortMode(int portNumber)
     if(sendCommand(cmd, res))
     {
         std::vector<std::string> result = split(res, ":");
-        return std::stod(result[1]);
+        if (result.size() == 2 && (result[1] == "0" || result[1] == "1"))
+            return std::stoi(result[1]);
     }
-    else
-    {
-        LOGF_ERROR("Error on set power-dew port mode [Port=%d]", portNumber);
-    }
+    LOGF_ERROR("Error on get power-dew port mode [Port=%d Res=%s]", portNumber, res);
     return -1;
 }
 
@@ -452,7 +451,7 @@ bool PegasusSPB::setPowerDewPortMode(int portNumber, int mode)
     snprintf(cmd, PEGASUS_LEN, "D%d:%d", portNumber + 2, mode);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(cmd, res))
+        if(strcmp(cmd, res))
         {
             LOGF_ERROR("Error on set power-dew port mode [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -472,7 +471,7 @@ bool PegasusSPB::setDewAutoState(bool enabled)
     snprintf(cmd, PEGASUS_LEN, "PD:%d", enabled ? 1 : 0);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(cmd, res))
+        if(strcmp(cmd, res))
         {
             LOGF_ERROR("Error on set dew auto state [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -488,12 +487,12 @@ bool PegasusSPB::setDewAutoState(bool enabled)
 
 bool PegasusSPB::setDewAggressiveness(uint8_t level)
 {
-    int mappedLevel = map(level, 0, 100, 10, 255);
+    int mappedLevel = std::lround(map(level, 0, 100, 10, 254));
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "PD:%d", mappedLevel);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(cmd, res))
+        if(strcmp(cmd, res))
         {
             LOGF_ERROR("Error on set dew aggresiveness [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -507,21 +506,24 @@ bool PegasusSPB::setDewAggressiveness(uint8_t level)
     return true;
 }
 
-int PegasusSPB::getDewAggressiveness()
+bool PegasusSPB::getDewAggressiveness(int &level)
 {
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "DA");
-    if(sendCommand(cmd, res))
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("DA", res))
     {
         std::vector<std::string> result = split(res, ":");
-        int value = map(std::stoi(result[1]), 10, 255, 0, 100);
-        return value;
+        try
+        {
+            if (result.size() == 2)
+            {
+                level = std::lround(map(std::stoi(result[1]), 10, 254, 0, 100));
+                return true;
+            }
+        }
+        catch (const std::exception &) {}
     }
-    else
-    {
-        LOGF_ERROR("Error on get dew aggresiveness [Cmd=%s Res=%s]", cmd, res);
-    }
-    return -1;
+    LOGF_ERROR("Error on get dew aggressiveness [Res=%s]", res);
+    return false;
 }
 
 bool PegasusSPB::setHumdityOffset(int level)
@@ -530,7 +532,7 @@ bool PegasusSPB::setHumdityOffset(int level)
     snprintf(cmd, PEGASUS_LEN, "CH:%d", level);
     if(sendCommand(cmd, res))
     {
-        if(!strstr(cmd, res))
+        if(strcmp(cmd, res))
         {
             LOGF_ERROR("Error on set humidity offset [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -544,21 +546,26 @@ bool PegasusSPB::setHumdityOffset(int level)
     return true;
 }
 
-int PegasusSPB::getHumidityOffset()
+bool PegasusSPB::getOffsets(int &temperature, int &humidity)
 {
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "CR");
-    if(sendCommand(cmd, res))
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("CR", res))
     {
         std::vector<std::string> result = split(res, ":");
-        int value = std::stoi(result[2]);
-        return value;
+        try
+        {
+            if (result.size() == 3)
+            {
+                // The device keeps the temperature offset in hundredths of a degree (CT:100 = +1 °C).
+                temperature = std::lround(std::stoi(result[1]) / 100.0);
+                humidity = std::stoi(result[2]);
+                return true;
+            }
+        }
+        catch (const std::exception &) {}
     }
-    else
-    {
-        LOGF_ERROR("Error on get humidity offset [Cmd=%s Res=%s]", cmd, res);
-    }
-    return -1;
+    LOGF_ERROR("Error on get sensor offsets [Res=%s]", res);
+    return false;
 }
 
 bool PegasusSPB::setTemperatureOffset(int level)
@@ -567,7 +574,7 @@ bool PegasusSPB::setTemperatureOffset(int level)
     snprintf(cmd, PEGASUS_LEN, "CT:%d", (level * 100));
     if(sendCommand(cmd, res))
     {
-        if(!strstr(cmd, res))
+        if(strcmp(cmd, res))
         {
             LOGF_ERROR("Error on set temperature offset [Cmd=%s Res=%s]", cmd, res);
             return false;
@@ -579,23 +586,6 @@ bool PegasusSPB::setTemperatureOffset(int level)
         return false;
     }
     return true;
-}
-
-int PegasusSPB::getTemperatureOffset()
-{
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "CR");
-    if(sendCommand(cmd, res))
-    {
-        std::vector<std::string> result = split(res, ":");
-        int value = std::stoi(result[1]);
-        return (value / 100);
-    }
-    else
-    {
-        LOGF_ERROR("Error on get temperature offset [Cmd=%s Res=%s]", cmd, res);
-    }
-    return -1;
 }
 
 bool PegasusSPB::getFirmware()
@@ -634,10 +624,10 @@ bool PegasusSPB::setFixedPowerPortState(int portNumber, bool enabled)
     // Assuming fixed power ports are P1, P2, P3, P4.
     // INDI::PowerInterface ports 0-3 map to physical ports 1-4.
     snprintf(cmd, PEGASUS_LEN, "P%d:%d", portNumber + 1, enabled ? 1 : 0);
-    if (sendCommand(cmd, res))
-    {
-        return (!strstr(cmd, res));
-    }
+    if (sendCommand(cmd, res) && !strcmp(cmd, res))
+        return true;
+
+    LOGF_ERROR("Error on set power port [Cmd=%s Res=%s]", cmd, res);
     return false;
 }
 
@@ -663,7 +653,8 @@ bool PegasusSPB::getSensorData()
         double oldPower = PI::PowerSensorsNP[PI::SENSOR_POWER].getValue();
 
         PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
-        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
+        // The current sensor can report a negative offset (e.g. -39) after the device booted.
+        PI::PowerSensorsNP[PI::SENSOR_CURRENT].setValue(std::max(0.0, std::stod(result[PA_CURRENT]) / 65.0));
         PI::PowerSensorsNP[PI::SENSOR_POWER].setValue(PI::PowerSensorsNP[PI::SENSOR_VOLTAGE].getValue() *
                 PI::PowerSensorsNP[PI::SENSOR_CURRENT].getValue());
         PI::PowerSensorsNP.setState(IPS_OK);
@@ -690,36 +681,51 @@ bool PegasusSPB::getSensorData()
         // Port 0 maps to original Port A (physical port 1).
         // Port 1 maps to original Port B (physical port 2).
         // Update DewChannelDutyCycleNP
-        PI::DewChannelDutyCycleNP[0].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
-        PI::DewChannelDutyCycleNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
+        // Auto dew sets the duty cycles itself, so they are shown as reported, 0 included. Without auto dew
+        // a channel that is off reports 0; the duty cycle set for it is kept then, otherwise switching the
+        // channel on would send 0 % (the duty cycle is only stored while the channel is off). When auto dew
+        // is switched off, the duty cycles set before it are shown again.
+        const bool autodew = std::stoi(result[PA_AUTO_DEW]);
+        for (size_t i = 0; i < PI::DewChannelDutyCycleNP.size() && i < 2; i++)
+        {
+            // Auto dew just started: remember the duty cycle set before it.
+            if (autodew && !m_AutoDewShown)
+                m_ManualDutyCycle[i] = PI::DewChannelDutyCycleNP[i].getValue();
+
+            const double reported = std::stod(result[i == 0 ? PA_DEW_1 : PA_DEW_2]) / 255.0 * 100.0;
+            if (autodew || reported > 0)
+                PI::DewChannelDutyCycleNP[i].setValue(reported);
+            else if (m_AutoDewShown)
+                PI::DewChannelDutyCycleNP[i].setValue(m_ManualDutyCycle[i]);
+        }
         PI::DewChannelDutyCycleNP.setState(IPS_OK);
         if (lastSensorData.size() < PA_N || lastSensorData[PA_DEW_1] != result[PA_DEW_1]
-                || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
+                || lastSensorData[PA_DEW_2] != result[PA_DEW_2] || autodew != m_AutoDewShown)
             PI::DewChannelDutyCycleNP.apply();
+        m_AutoDewShown = autodew;
 
         // Auto Dew
-        bool autodew = std::stoi(result[PA_AUTO_DEW]);
         PI::AutoDewSP[0].setState(autodew ? ISS_ON : ISS_OFF);
         PI::AutoDewSP.setState(IPS_OK);
         if (lastSensorData.size() < PA_N || lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             PI::AutoDewSP.apply();
 
-        // ensure that dew heater channels are on, since the PPBA auto dew control handles both ports automatically
-        if (autodew)
+        // With auto dew the device drives both ports, so show the channels on. Without it, a channel is on
+        // when the device reports a duty cycle; otherwise switching it on again would send nothing.
+        bool changed = false;
+        for (size_t i = 0; i < DewChannelsSP.size() && i < 2; i++)
         {
-            bool changed = false;
-            for (size_t i = 0; i < DewChannelsSP.size(); i++)
+            const bool on = autodew || std::stod(result[i == 0 ? PA_DEW_1 : PA_DEW_2]) > 0;
+            if ((DewChannelsSP[i].getState() == ISS_ON) != on)
             {
-                if (DewChannelsSP[i].getState() == ISS_OFF)
-                {
-                    DewChannelsSP[i].setState(ISS_ON);
+                DewChannelsSP[i].setState(on ? ISS_ON : ISS_OFF);
+                if (autodew)
                     LOGF_INFO("Auto dew on, enabling channel %s", (i == 0 ? "A" : "B"));
-                    changed = true;
-                }
+                changed = true;
             }
-            if (changed)
-                DewChannelsSP.apply();
         }
+        if (changed)
+            DewChannelsSP.apply();
 
         // Environment Sensors (remain as is, handled by WeatherInterface)
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
@@ -793,14 +799,14 @@ bool PegasusSPB::getMetricsData()
             return true;
 
         // Power Sensors
-        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::stod(result[PC_TOTAL_CURRENT]));
+        PowerStatisticsNP[STATS_TOTAL_CURRENT].setValue(std::max(0.0, std::stod(result[PC_TOTAL_CURRENT])));
         if (lastMetricsData.size() < PC_N || lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT])
             PowerStatisticsNP.apply();
 
         // Power Sensors (Per-port current monitoring)
         if (PI::PowerChannelCurrentNP.size() > 0)
         {
-            PI::PowerChannelCurrentNP[0].setValue(std::stod(result[PC_12V_CURRENT]));
+            PI::PowerChannelCurrentNP[0].setValue(std::max(0.0, std::stod(result[PC_12V_CURRENT])));
             if (lastMetricsData.size() < PC_N || lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT])
             {
                 PI::PowerChannelCurrentNP.setState(IPS_OK);
@@ -891,11 +897,7 @@ bool PegasusSPB::saveConfigItems(FILE *fp)
     PI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
 
-    DewAggressNP.save(fp);
-    HumidityOffsetNP.save(fp);
-    TemperatureOffsetNP.save(fp);
-    PowerDewSwitchASP.save(fp);
-    PowerDewSwitchBSP.save(fp);
+    // Dew aggressiveness, sensor offsets and the port modes are stored in the device itself.
 
     return true;
 }
@@ -910,24 +912,14 @@ bool PegasusSPB::SetPowerPort(size_t port, bool enabled)
 
 bool PegasusSPB::SetDewPort(size_t port, bool enabled, double dutyCycle)
 {
-    // INDI::PowerInterface ports 0-1 map to the 2 switchable Dew ports.
-    // Port 0 maps to original Port A (physical port 1).
-    // Port 1 maps to original Port B (physical port 2).
-    int originalPortNumber = port + 1; // Map 0-based INDI port to 1-based original port
+    // INDI dew ports 0 and 1 are the device ports A and B (P3 and P4).
+    int originalPortNumber = port + 1;
 
-    if (getPowerDewPortMode(originalPortNumber) == PegasusSPB::PORT_MODE::DEW)
-    {
-        return setDewPortPower(originalPortNumber, enabled ? dutyCycle : 0);
-    }
-    else // If the port is in POWER mode, control it as a fixed power port
-    {
-        // INDI::PowerInterface dew port 0 (original port 1) maps to fixed power port 3 (P3)
-        // INDI::PowerInterface dew port 1 (original port 2) maps to fixed power port 4 (P4)
-        // setFixedPowerPortState expects 0-indexed ports for P1-P4, so P3 is port 2, P4 is port 3.
-        // originalPortNumber is 1-indexed (1 or 2).
-        // So, originalPortNumber + 1 will map 1->2 (P3) and 2->3 (P4).
-        return setFixedPowerPortState(originalPortNumber + 1, enabled);
-    }
+    // In power mode P3/P4 still take a PWM value (P3:1 reads back as 1); 255 is fully on either way.
+    if (getPowerDewPortMode(originalPortNumber) == PegasusSPB::PORT_MODE::POWER)
+        dutyCycle = 100;
+
+    return setDewPortPower(originalPortNumber, enabled ? dutyCycle : 0);
 }
 
 bool PegasusSPB::SetVariablePort(size_t port, bool enabled, double voltage)
