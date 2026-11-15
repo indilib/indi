@@ -119,7 +119,10 @@ bool ScopeSim::initProperties()
 
     const char *pacDevice = PACDeviceTP[0].getText();
     if (pacDevice && strlen(pacDevice) > 0)
+    {
         IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
+        IDSnoopDevice(pacDevice, "CORRECTION_GAIN");
+    }
 
 #endif
 
@@ -271,7 +274,10 @@ bool ScopeSim::updateProperties()
 #ifdef USE_SIM_TAB
         const char *pacDevice = PACDeviceTP[0].getText();
         if (pacDevice && strlen(pacDevice) > 0)
+        {
             IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
+            IDSnoopDevice(pacDevice, "CORRECTION_GAIN");
+        }
 #endif
 
         defineProperty(EqPENP);
@@ -427,14 +433,7 @@ bool ScopeSim::ReadScopeStatus()
     axisPrimary.update();
     axisSecondary.update();
 
-    // True pointing: apply Wallace error injection to get where the scope physically points.
-    // Published as EQUATORIAL_PE so the CCD simulator generates star fields at this position.
-    Angle trueRa, trueDec;
-    alignment.mountToApparentRaDec(axisPrimary.position, axisSecondary.position, &trueRa, &trueDec);
-    EqPENP[PE_RA].setValue(trueRa.Hours());
-    EqPENP[PE_DEC].setValue(trueDec.Degrees());
-    EqPENP.setState(IPS_OK);
-    EqPENP.apply();
+    publishTruePointing();
 
     // Raw encoder position: what the mount "reports" without knowing its own errors.
     // This is what EQUATORIAL_EOD_COORD carries and what the INDI alignment module uses.
@@ -530,8 +529,8 @@ bool ScopeSim::ReadScopeStatus()
         mountAxisNP[PRIMARY].setValue(PrimaryAngle);
         mountAxisNP[SECONDARY].setValue(SecondaryAngle);
 
-        LOGF_EXTRA1("new %s: %f, ra %f", axisPrimary.axisName, PrimaryAngle, trueRa.Hours());
-        LOGF_EXTRA1("new %s: %f, dec %f", axisSecondary.axisName, SecondaryAngle, trueDec.Degrees());
+        LOGF_EXTRA1("new %s: %f, ra %f", axisPrimary.axisName, PrimaryAngle, EqPENP[PE_RA].getValue());
+        LOGF_EXTRA1("new %s: %f, dec %f", axisSecondary.axisName, SecondaryAngle, EqPENP[PE_DEC].getValue());
 
         mountAxisNP.apply();
     }
@@ -862,9 +861,16 @@ bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char 
             PACDeviceTP.update(texts, names, n);
             PACDeviceTP.apply();
 
+            // A PAC without CORRECTION_GAIN makes the full move
+            m_snoopedGain = 1.0;
+            m_PACMoveActive = false;
+
             const char *pacDevice = PACDeviceTP[0].getText();
             if (pacDevice && strlen(pacDevice) > 0)
+            {
                 IDSnoopDevice(pacDevice, "PAC_MANUAL_ADJUSTMENT");
+                IDSnoopDevice(pacDevice, "CORRECTION_GAIN");
+            }
 
             saveConfig(PACDeviceTP);
             return true;
@@ -873,6 +879,52 @@ bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char 
 #endif
     ProcessAlignmentTextProperties(this, name, texts, names, n);
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
+}
+
+#ifdef USE_SIM_TAB
+void ScopeSim::applyPACCorrection()
+{
+    // Clients such as Ekos send the measured polar alignment error as the step: a positive azimuth step means
+    // the polar axis is east of the pole (MM_MA < 0), a positive altitude step that it is too high (MM_ME < 0).
+    // Adding the step to MM_MA/MM_ME therefore moves the axis back to the pole.
+    // The azimuth step is in degrees of azimuth. Near the pole a degree of azimuth spans cos(latitude) degrees
+    // on the sky, which is what MM_MA measures. The gain simulates a PAC that moves less than requested.
+    const double cosLat = std::cos(alignment.latitude.radians());
+    const double oldMA = mountModelNP[MM_MA].getValue();
+    const double oldME = mountModelNP[MM_ME].getValue();
+    const double newMA = oldMA + m_snoopedAzError * 60.0 * cosLat * m_snoopedGain;
+    const double newME = oldME + m_snoopedAltError * 60.0 * m_snoopedGain;
+
+    mountModelNP[MM_MA].setValue(newMA);
+    mountModelNP[MM_ME].setValue(newME);
+    alignment.setCorrections(mountModelNP[MM_IH].getValue() / 60.0, mountModelNP[MM_ID].getValue() / 60.0,
+                             mountModelNP[MM_CH].getValue() / 60.0, mountModelNP[MM_NP].getValue() / 60.0,
+                             mountModelNP[MM_MA].getValue() / 60.0, mountModelNP[MM_ME].getValue() / 60.0);
+
+    mountModelNP.setState(IPS_OK);
+    mountModelNP.apply();
+
+    LOGF_INFO("Applied PAC correction: MA %.4f -> %.4f, ME %.4f -> %.4f (arcmin, gain %.0f%%)",
+              oldMA, newMA, oldME, newME, m_snoopedGain * 100);
+
+    // Publish the new true pointing right away instead of at the next ReadScopeStatus,
+    // so the CCD simulator has it long before the PAC reports the move complete.
+    publishTruePointing();
+    updateCurrentCoordsFromAxes();
+    NewRaDec(m_currentRA, m_currentDEC);
+}
+#endif
+
+void ScopeSim::publishTruePointing()
+{
+    // True pointing: apply Wallace error injection to get where the scope physically points.
+    // Published as EQUATORIAL_PE so the CCD simulator generates star fields at this position.
+    Angle trueRa, trueDec;
+    alignment.mountToApparentRaDec(axisPrimary.position, axisSecondary.position, &trueRa, &trueDec);
+    EqPENP[PE_RA].setValue(trueRa.Hours());
+    EqPENP[PE_DEC].setValue(trueDec.Degrees());
+    EqPENP.setState(IPS_OK);
+    EqPENP.apply();
 }
 
 bool ScopeSim::ISSnoopDevice(XMLEle *root)
@@ -899,36 +951,24 @@ bool ScopeSim::ISSnoopDevice(XMLEle *root)
                     m_snoopedAltError = atof(pcdataXMLEle(ep));
             }
 
-            // Only update the mount model once the physical move has completed (state = Ok).
+            // Apply each move once, when the PAC starts it (state = Busy). A client takes its next frame as
+            // soon as it sees the move complete (state = Ok), and the CCD simulator renders a frame when the
+            // exposure starts. Applying the move on Ok raced with that frame, which then showed the old position.
+            // A move the driver completes at once (e.g. 0/0) reports Ok without Busy and moves nothing.
             const char *stateStr = findXMLAttValu(root, "state");
-            if (!strcmp(stateStr, "Ok"))
+            const bool busy = stateStr && !strcmp(stateStr, "Busy");
+            if (busy && !m_PACMoveActive)
+                applyPACCorrection();
+            m_PACMoveActive = busy;
+            return true;
+        }
+
+        if (!strcmp(propName, "CORRECTION_GAIN"))
+        {
+            for (XMLEle *ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             {
-                // The PAA's azStep and MM_MA use opposite sign conventions:
-                //   azStep > 0 (correction East) ↔ MM_MA decreases in the model
-                // Adding m_snoopedAzError to the current MM_MA correctly simulates
-                // the physical delta correction applied to the mount.
-                double oldMA = mountModelNP[MM_MA].getValue();
-                double oldME = mountModelNP[MM_ME].getValue();
-                double newMA = oldMA + m_snoopedAzError * 60.0;
-                double newME = oldME + m_snoopedAltError * 60.0;
-
-                mountModelNP[MM_MA].setValue(newMA);
-                mountModelNP[MM_ME].setValue(newME);
-                alignment.setCorrections(mountModelNP[MM_IH].getValue() / 60.0, mountModelNP[MM_ID].getValue() / 60.0,
-                                         mountModelNP[MM_CH].getValue() / 60.0, mountModelNP[MM_NP].getValue() / 60.0,
-                                         mountModelNP[MM_MA].getValue() / 60.0, mountModelNP[MM_ME].getValue() / 60.0);
-
-                mountModelNP.setState(IPS_OK);
-                mountModelNP.apply();
-
-                LOGF_INFO("Applied PAC correction: MA %.4f -> %.4f, ME %.4f -> %.4f (arcmin)",
-                          oldMA, newMA, oldME, newME);
-
-                // Force an immediate coordinate update so that the next CCD capture
-                // uses the corrected pointing rather than waiting up to one full
-                // polling cycle (default 500 ms) for ReadScopeStatus to run.
-                updateCurrentCoordsFromAxes();
-                NewRaDec(m_currentRA, m_currentDEC);
+                if (!strcmp(findXMLAttValu(ep, "name"), "GAIN"))
+                    m_snoopedGain = atof(pcdataXMLEle(ep)) / 100.0;
             }
             return true;
         }

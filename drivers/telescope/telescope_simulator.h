@@ -206,8 +206,18 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         INDI::PropertyText PACDeviceTP {1};
         double m_snoopedAzError { 0 };
         double m_snoopedAltError { 0 };
+        // Fraction of each requested move the PAC really makes (CORRECTION_GAIN of the PAC simulator)
+        double m_snoopedGain { 1.0 };
+        // True while the PAC reports a move in progress, so each move is applied once
+        bool m_PACMoveActive { false };
+
+        /** @brief Move the polar axis (MM_MA, MM_ME) by the PAC move that has just started. */
+        void applyPACCorrection();
 
 #endif
+
+        /** @brief Publish the true pointing (EQUATORIAL_PE) for the current axis positions. */
+        void publishTruePointing();
 
         // True pointing position (Wallace errors applied) published as EQUATORIAL_PE so the
         // CCD simulator can generate star fields at the physically-correct sky position while

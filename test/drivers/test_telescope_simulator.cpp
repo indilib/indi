@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "indilogger.h"
+#include "lilxml.h"
 #include "drivers/telescope/telescope_simulator.h"
 
 char _me[] = "MockScopeSimDriver";
@@ -71,6 +72,42 @@ class MockScopeSimDriver : public ScopeSim
         size_t syncPoints()
         {
             return GetAlignmentDatabase().size();
+        }
+
+        // Deliver a property update from another driver, as indiserver does for snooped properties.
+        void snoop(const std::string &xml)
+        {
+            LilXML *lp = newLilXML();
+            char errmsg[MAXRBUF] = {0};
+            std::string buffer = xml;
+            XMLEle **nodes = parseXMLChunk(lp, buffer.data(), static_cast<int>(buffer.size()), errmsg);
+            ASSERT_NE(nodes, nullptr) << errmsg;
+            for (int i = 0; nodes[i] != nullptr; i++)
+            {
+                ISSnoopDevice(nodes[i]);
+                delXMLEle(nodes[i]);
+            }
+            free(nodes);
+            delLilXML(lp);
+        }
+
+        void setActivePAC(const char *device)
+        {
+            char *texts[] = { const_cast<char *>(device) };
+            char *names[] = { const_cast<char *>("PAC_DEVICE") };
+            ASSERT_TRUE(ISNewText(getDeviceName(), "ACTIVE_PAC", texts, names, 1));
+        }
+
+        void setPolarError(double ma, double me)
+        {
+            double values[] = { ma, me };
+            char *names[] = { const_cast<char *>("MM_MA"), const_cast<char *>("MM_ME") };
+            ASSERT_TRUE(ISNewNumber(getDeviceName(), "MOUNT_MODEL", values, names, 2));
+        }
+
+        double mountModel(const char *element)
+        {
+            return getNumber("MOUNT_MODEL").findWidgetByName(element)->getValue();
         }
 };
 
@@ -133,6 +170,94 @@ TEST(TelescopeSimulatorTest, resyncReplacesOlderSyncPointEquatorial)
 // No ALTAZ variant here: a freshly constructed simulator points at the zenith, and the math plugin's
 // SanitizePolarEntries() deliberately rewrites sync points above 88 deg altitude, so a zenith sync point
 // cannot be compared directly. The ALTAZ path shares the replacement logic in ScopeSim::Sync().
+
+// ---------------------------------------------------------------------------------------------------------
+// Polar alignment corrector (PAC): the simulator snoops PAC_MANUAL_ADJUSTMENT and moves its polar axis.
+// ---------------------------------------------------------------------------------------------------------
+
+namespace
+{
+const char *PAC = "Alignment Correction Simulator";
+
+std::string manualAdjustment(const char *state, double azStep, double altStep)
+{
+    return std::string("<setNumberVector device='") + PAC + "' name='PAC_MANUAL_ADJUSTMENT' state='" + state + "'>"
+           "<oneNumber name='MANUAL_AZ_STEP'>" + std::to_string(azStep) + "</oneNumber>"
+           "<oneNumber name='MANUAL_ALT_STEP'>" + std::to_string(altStep) + "</oneNumber>"
+           "</setNumberVector>";
+}
+
+std::string correctionGain(double percent)
+{
+    return std::string("<setNumberVector device='") + PAC + "' name='CORRECTION_GAIN' state='Ok'>"
+           "<oneNumber name='GAIN'>" + std::to_string(percent) + "</oneNumber></setNumberVector>";
+}
+
+constexpr double LATITUDE = 51.4683;
+}
+
+// The PAA reports the azimuth error in degrees of azimuth. Near the pole that is 1/cos(latitude) of the
+// angle on the sky that MM_MA measures, so a full correction of the reported error removes MM_MA exactly.
+TEST(TelescopeSimulatorTest, pacMoveCorrectsThePolarAxis)
+{
+    MockScopeSimDriver sim;
+    sim.setLocation(LATITUDE, 0);
+    sim.setActivePAC(PAC);
+    sim.setPolarError(30, -20);
+
+    // MM_MA = 30' (axis west) reads as -30'/cos(lat) of azimuth, MM_ME = -20' (axis high) as +20' of
+    // altitude; Ekos sends the error as the step. The XML carries 6 decimals, about 4e-6 arcmin.
+    const double azStep = -30.0 / std::cos(LATITUDE * M_PI / 180) / 60.0;
+    sim.snoop(manualAdjustment("Busy", azStep, 20.0 / 60));
+    EXPECT_NEAR(sim.mountModel("MM_MA"), 0, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 0, 1e-4);
+}
+
+// The move takes effect when the PAC starts it, once. Clients take the next frame as soon as the PAC reports
+// Ok, so applying the move on Ok left that frame at the old position.
+TEST(TelescopeSimulatorTest, pacMoveIsAppliedOnceWhenItStarts)
+{
+    MockScopeSimDriver sim;
+    sim.setLocation(LATITUDE, 0);
+    sim.setActivePAC(PAC);
+    sim.setPolarError(0, 0);
+
+    sim.snoop(manualAdjustment("Busy", 0, 0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 30, 1e-4);
+
+    // Further updates of the same move, and its completion, do not move the axis again
+    sim.snoop(manualAdjustment("Busy", 0, 0.5));
+    sim.snoop(manualAdjustment("Ok", 0, 0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 30, 1e-4);
+
+    // A move the driver completes at once (Ok without Busy, e.g. 0/0) moves nothing
+    sim.snoop(manualAdjustment("Ok", 0, 0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 30, 1e-4);
+
+    // The next move is applied again
+    sim.snoop(manualAdjustment("Busy", 0, -0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 0, 1e-4);
+}
+
+// The PAC simulator's gain simulates a corrector that moves less than requested.
+TEST(TelescopeSimulatorTest, pacMoveFollowsTheCorrectionGain)
+{
+    MockScopeSimDriver sim;
+    sim.setLocation(LATITUDE, 0);
+    sim.setActivePAC(PAC);
+    sim.setPolarError(0, 0);
+
+    sim.snoop(correctionGain(50));
+    sim.snoop(manualAdjustment("Busy", 0, 0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 15, 1e-4);
+    sim.snoop(manualAdjustment("Ok", 0, 0.5));
+
+    // Selecting another PAC resets the gain to a full move
+    sim.setActivePAC("Other PAC");
+    sim.setActivePAC(PAC);
+    sim.snoop(manualAdjustment("Busy", 0, 0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), 45, 1e-4);
+}
 
 int main(int argc, char **argv)
 {
