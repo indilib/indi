@@ -228,6 +228,10 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
         std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastDewAggData;
         bool focusMotorRunning { false };
+        // Target of the running focuser move, and polls in which the motor stood still away from it.
+        int32_t m_FocusTarget { 0 };
+        uint8_t m_FocusIdlePolls { 0 };
+        static constexpr uint8_t FOCUS_IDLE_POLLS { 3 };
         char stopChar { 0xD };
         uint8_t version { UPB_V1 };
 
