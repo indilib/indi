@@ -1,9 +1,8 @@
 %global forgeurl https://github.com/indilib/indi.git
-%define __cmake_in_source_build %{_vpath_builddir}
 
 Name: indi
 Version: 2.2.5.git
-Release: %(date -u +%%Y%%m%%d%%H%%M%%S)%{?dist}
+Release: %(T=%{_topdir}; mkdir -p $T 2>/dev/null; [ -f $T/.release-stamp-%{name} ] || date -u +%%Y%%m%%d%%H%%M%%S > $T/.release-stamp-%{name} 2>/dev/null; cat $T/.release-stamp-%{name} 2>/dev/null || date -u +%%Y%%m%%d%%H%%M%%S)%{?dist}
 Summary: Instrument Neutral Distributed Interface
 
 License: LGPLv2+ and GPLv2+
@@ -15,7 +14,8 @@ URL: http://www.indilib.org
 Source0: https://github.com/indilib/%{name}/archive/master.tar.gz
 
 BuildRequires: cmake
-BuildRequires: libfli-devel
+BuildRequires: gcc
+BuildRequires: gcc-c++
 BuildRequires: libnova-devel
 BuildRequires: qt5-qtbase-devel
 BuildRequires: systemd
@@ -85,11 +85,11 @@ chmod -x drivers/telescope/pmc8driver.cpp
 # TODO: fix pre-existing GCC -Wstringop-truncation warnings in
 # libs/indibase/webcam/v4l2_base.cpp (strncpy bound == destination size),
 # then remove -DFIX_WARNINGS=OFF to build with -Werror like CI does.
-%cmake . -DFIX_WARNINGS=OFF
-make VERBOSE=1 %{?_smp_mflags}
+%cmake -DFIX_WARNINGS=OFF
+%cmake_build
 
 %install
-make install DESTDIR=%{buildroot}
+%cmake_install
 
 %ldconfig_scriptlets libs
 
