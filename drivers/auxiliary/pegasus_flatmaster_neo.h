@@ -28,6 +28,7 @@
 #include "defaultdevice.h"
 #include "indidustcapinterface.h"
 #include "indiweatherinterface.h"
+#include "pegasus_wifi.h"
 
 #include <chrono>
 #include <vector>
@@ -70,11 +71,7 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         bool getWeatherOffsets();
         bool getUptime();
         bool getThreshold();
-        bool getWifiChannel();
         bool getAutoClose();
-        bool getHotspotStatus();
-        bool getHotspot();
-        bool getCurrentWifi();
         bool setTemperatureOffset(double value);
         bool setHumidityOffset(double value);
         bool setDewHeater(uint8_t value);
@@ -84,11 +81,6 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         bool setThreshold(uint8_t value);
         bool setCapAngle(uint16_t angle);
         bool setAutoClose(bool enable);
-        bool setHotspotStatus(bool enable);
-        bool setHotspot(const char *ssid, const char *password);
-        bool connectToWifi(const char *ssid, const char *password);
-        bool scanWifiNetworks();
-        bool setWifiChannel(uint8_t channel);
         bool wifiFactoryReset();
         std::vector<std::string> split(const std::string &input, const std::string &sep);
 
@@ -102,11 +94,7 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         }
         // Sends a command that the device answers with an exact echo, e.g. FE:1 -> FE:1.
         bool sendEchoCommand(const char *cmd);
-        // Replies of the WiFi/hotspot setters: "0" means failure, anything else success.
-        static bool isWifiReplyOk(const char *response);
         static uint8_t aggressivenessLevel(double value);
-        // Turn a WS reply into "SSID (signal%)" entries, each SSID once, strongest first.
-        static std::string formatScan(const char *reply);
         // Settings the device stores itself; a configuration loaded from an older driver version must not send them back.
         bool ignoredWhileLoadingConfig(const char *dev, const char *name) const;
         void updateFirmwareVersion();
@@ -140,30 +128,15 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         // Reboot (FQ command)
         INDI::PropertySwitch RebootSP {1};
 
-        // WiFi channel (AC command)
-        INDI::PropertyNumber WifiChannelNP {1};
-
-        // Hotspot control (A? / AE commands)
-        INDI::PropertySwitch HotspotStatusSP {2};
-
-        // Hotspot credentials (AL / AN / AP commands)
-        INDI::PropertyText HotspotCredentialsTP {2};
-
-        // Current WiFi connection (WI command)
-        INDI::PropertyText CurrentWifiTP {1};
-
-        // WiFi scan (WS command)
-        INDI::PropertySwitch WifiScanSP {1};
-        INDI::PropertyText WifiScanTP {1};
-
-        // WiFi connect (WN / WP commands)
-        INDI::PropertyText WifiConnectTP {2};
-        INDI::PropertySwitch WifiConnectSP {1};
-
         // WiFi factory reset (WZ command)
         INDI::PropertySwitch WifiFactoryResetSP {1};
 
         Connection::Serial *serialConnection{ nullptr };
+        Connection::TCP *tcpConnection{ nullptr };
+
+        // Hotspot, WiFi client and the login on the TCP command socket, shared with other Pegasus devices.
+        PegasusAstro::WiFi wifi {this};
+        bool m_IsTCP{ false };
 
         // Cap position requested by ParkCap()/UnParkCap(), to tell a finished move from one not started yet.
         int m_CapTarget{ 0 };

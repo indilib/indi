@@ -83,6 +83,9 @@ class WiFi
          */
         static void drain(int portFD);
 
+        /** @brief Read the current WiFi connection again, e.g. on every poll. Does nothing while not connected. */
+        void updateConnection();
+
         /** @brief Port of the TCP command socket. */
         static constexpr int TCP_PORT {9999};
 
@@ -119,7 +122,7 @@ class WiFi
         INDI::PropertyText PasswordTP {1};
 
         static constexpr int LEN {128};
-        static constexpr int SCAN_LEN {1024};
+        static constexpr int SCAN_LEN {4096};
         /** WS scans for up to 15 seconds. */
         static constexpr int SCAN_TIMEOUT {16};
         static constexpr int SCAN_RETRIES {4};

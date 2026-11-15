@@ -139,7 +139,9 @@ bool WiFi::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         const bool enable = onSwitch != nullptr && HotspotSP[0].isNameMatch(onSwitch);
         char cmd[LEN] = {0}, res[LEN] = {0};
         snprintf(cmd, LEN, "AE:%d", enable ? 1 : 0);
-        if (sendCommand(cmd, res, LEN) && strcmp(res, "1") == 0)
+        // The FocusCube 3 and Falcon V2 answer 1; the FlatMaster Neo answer is not documented. Only 0 is
+        // a failure, and the state is read back below either way.
+        if (sendCommand(cmd, res, LEN) && strcmp(res, "0") != 0)
         {
             readHotspotStatus();
             if (enable && strcmp(HotspotTP[1].getText(), DEFAULT_PASSWORD) == 0)
@@ -233,7 +235,8 @@ bool WiFi::ISNewNumber(const char *dev, const char *name, double values[], char 
         const int channel = static_cast<int>(ChannelNP[0].getValue());
         char cmd[LEN] = {0}, res[LEN] = {0};
         snprintf(cmd, LEN, "AC:%d", channel);
-        if (!sendCommand(cmd, res, LEN) || atoi(res) != channel)
+        // The FocusCube 3 and Falcon V2 answer with the channel, the FlatMaster Neo with 1; 0 is a failure.
+        if (!sendCommand(cmd, res, LEN) || strcmp(res, "0") == 0)
             WIFI_LOG(INDI::Logger::DBG_ERROR, "Setting the WiFi channel failed: %s", res);
         readChannel();
         return true;
@@ -321,6 +324,12 @@ void WiFi::drain(int portFD)
         if (select(portFD + 1, &set, nullptr, nullptr, &timeout) <= 0 || read(portFD, buffer, sizeof(buffer)) <= 0)
             break;
     }
+}
+
+void WiFi::updateConnection()
+{
+    if (m_PortFD >= 0)
+        readConnection();
 }
 
 bool WiFi::readHotspotStatus()

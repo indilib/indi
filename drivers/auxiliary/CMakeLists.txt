@@ -365,7 +365,8 @@ install(TARGETS indi_pegasus_flatmaster RUNTIME DESTINATION bin)
 
 # ########## Pegasus Flatmaster Neo ###############
 SET(pegasus_flatmaster_neo_SRC
-    pegasus_flatmaster_neo.cpp)
+    pegasus_flatmaster_neo.cpp
+    pegasus_wifi.cpp)
 
 add_executable(indi_pegasus_flatmaster_neo ${pegasus_flatmaster_neo_SRC})
 target_link_libraries(indi_pegasus_flatmaster_neo indidriver)
