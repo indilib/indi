@@ -305,8 +305,8 @@ bool WiFi::sendCommand(const char *cmd, char *res, int len, int timeout, bool se
     while (nbytes > 0 && (res[nbytes - 1] == '\n' || res[nbytes - 1] == '\r'))
         res[--nbytes] = '\0';
 
-    // AL carries the hotspot password.
-    WIFI_LOG(INDI::Logger::DBG_DEBUG, "RES <%s>", strcmp(cmd, "AL") ? res : "<ssid>:<password>");
+    // AL carries the hotspot password, and the FlatMaster Neo echoes WP:<password> (maybe also AP:).
+    WIFI_LOG(INDI::Logger::DBG_DEBUG, "RES <%s>", strcmp(cmd, "AL") == 0 ? "<ssid>:<password>" : secret ? "<hidden>" : res);
     return true;
 }
 
@@ -403,9 +403,13 @@ bool WiFi::readConnection()
                    reply.substr(signal + 1, security - signal - 1) + "%";
     }
 
-    ConnectionTP[0].setText(text.c_str());
-    ConnectionTP.setState(IPS_OK);
-    ConnectionTP.apply();
+    // This runs on every poll, so tell the clients only about a change.
+    if (text != ConnectionTP[0].getText() || ConnectionTP.getState() != IPS_OK)
+    {
+        ConnectionTP[0].setText(text.c_str());
+        ConnectionTP.setState(IPS_OK);
+        ConnectionTP.apply();
+    }
     return true;
 }
 
@@ -496,18 +500,20 @@ bool WiFi::setHotspotCredentials(const char *ssid, const char *password)
         return false;
     }
 
+    // The FocusCube 3 and Falcon V2 answer 1, the FlatMaster Neo echoes the command; only 0 is a failure.
     char cmd[LEN] = {0}, res[LEN] = {0};
     snprintf(cmd, LEN, "AN:%s", ssid);
-    if (!sendCommand(cmd, res, LEN) || strcmp(res, "1") != 0)
+    if (!sendCommand(cmd, res, LEN) || strcmp(res, "0") == 0)
     {
         WIFI_LOG(INDI::Logger::DBG_ERROR, "Setting the hotspot SSID failed: %s", res);
         return false;
     }
 
+    // The reply may echo the password, so it is not logged.
     snprintf(cmd, LEN, "AP:%s", password);
-    if (!sendCommand(cmd, res, LEN, 3, true) || strcmp(res, "1") != 0)
+    if (!sendCommand(cmd, res, LEN, 3, true) || strcmp(res, "0") == 0)
     {
-        WIFI_LOG(INDI::Logger::DBG_ERROR, "Setting the hotspot password failed: %s", res);
+        WIFI_LOG(INDI::Logger::DBG_ERROR, "%s", "Setting the hotspot password failed.");
         return false;
     }
 
@@ -516,9 +522,12 @@ bool WiFi::setHotspotCredentials(const char *ssid, const char *password)
 
 bool WiFi::connectToNetwork(const char *ssid, const char *password)
 {
-    if (!validText(ssid, 32) || !validText(password, 63) || strlen(password) < 8)
+    // An open network has no password; where allowed, the device gets a placeholder instead.
+    const bool open = m_AllowOpenNetworks && password != nullptr && password[0] == '\0';
+    if (!validText(ssid, 32) || (!open && (!validText(password, 63) || strlen(password) < 8)))
     {
-        WIFI_LOG(INDI::Logger::DBG_ERROR, "%s",
+        WIFI_LOG(INDI::Logger::DBG_ERROR, "%s", m_AllowOpenNetworks ?
+                 "Enter the WiFi SSID (1 to 32 characters) and password (8 to 63 characters, empty for an open network) first." :
                  "Enter the WiFi SSID (1 to 32 characters) and password (8 to 63 characters) first.");
         return false;
     }
@@ -531,10 +540,11 @@ bool WiFi::connectToNetwork(const char *ssid, const char *password)
         return false;
     }
 
-    snprintf(cmd, LEN, "WP:%s", password);
+    // The FlatMaster Neo echoes WP:<password>, so the reply is not logged.
+    snprintf(cmd, LEN, "WP:%s", open ? OPEN_NETWORK_PASSWORD : password);
     if (!sendCommand(cmd, res, LEN, 3, true) || strcmp(res, "0") == 0)
     {
-        WIFI_LOG(INDI::Logger::DBG_ERROR, "Setting the WiFi password failed: %s", res);
+        WIFI_LOG(INDI::Logger::DBG_ERROR, "%s", "Setting the WiFi password failed.");
         return false;
     }
 

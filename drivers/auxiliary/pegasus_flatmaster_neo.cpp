@@ -138,6 +138,8 @@ bool PegasusFlatMasterNeo::initProperties()
     wifi.initProperties(NETWORK_TAB,
                         [this](const char *name) { loadConfig(true, name); },
                         [this](INDI::Property & property) { saveConfig(property); });
+    // The Neo joins open networks with the placeholder password "PASSWORD", as before.
+    wifi.allowOpenNetworks(true);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
@@ -404,10 +406,11 @@ bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double
 
 bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (wifi.ISNewText(dev, name, texts, names, n))
+    // Before the WiFi helper, so old configurations do not send hotspot credentials to the device.
+    if (ignoredWhileLoadingConfig(dev, name))
         return true;
 
-    if (ignoredWhileLoadingConfig(dev, name))
+    if (wifi.ISNewText(dev, name, texts, names, n))
         return true;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -423,10 +426,11 @@ bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *te
 
 bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (wifi.ISNewSwitch(dev, name, states, names, n))
+    // Before the WiFi helper, so old configurations do not switch the hotspot.
+    if (ignoredWhileLoadingConfig(dev, name))
         return true;
 
-    if (ignoredWhileLoadingConfig(dev, name))
+    if (wifi.ISNewSwitch(dev, name, states, names, n))
         return true;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -457,7 +461,7 @@ bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISStat
             // FQ restarts the device at once and sends no reply; its USB port goes away for a moment,
             // so disconnect instead of polling a dead port.
             int nbytes_written = 0;
-            tty_write(PortFD, "FQ\n", 3, &nbytes_written);
+            tty_write_string(PortFD, m_IsTCP ? "FQ\r\n" : "FQ\n", &nbytes_written);
             RebootSP.setState(IPS_OK);
             RebootSP.apply();
             LOG_INFO("Device restarts. Connect again in a few seconds.");
@@ -1030,9 +1034,10 @@ bool PegasusFlatMasterNeo::setAutoClose(bool enable)
 
 bool PegasusFlatMasterNeo::wifiFactoryReset()
 {
-    // WZ sends without waiting for a response (Channel.Write behavior)
+    // WZ sends without waiting for a response (Channel.Write behavior). Over TCP the firmware only
+    // executes a command after a carriage return.
     int nbytes_written = 0;
-    return tty_write(PortFD, "WZ\n", 3, &nbytes_written) == TTY_OK;
+    return tty_write_string(PortFD, m_IsTCP ? "WZ\r\n" : "WZ\n", &nbytes_written) == TTY_OK;
 }
 
 std::vector<std::string> PegasusFlatMasterNeo::split(const std::string &input, const std::string &sep)
