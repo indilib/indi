@@ -2600,7 +2600,9 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
                 std::unique_lock<std::mutex> guard(ccdBufferLock);
                 std::memcpy(image.imageData(), targetChip->getFrameBuffer(), image.imageDataSize());
+#ifdef HAVE_XISF_ASTROMETRIC_SOLUTION
                 image.convertWCSToAstrometricSolution();
+#endif
                 xisfWriter.writeImage(image);
 
                 LibXISF::ByteArray xisfFile;

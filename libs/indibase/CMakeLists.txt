@@ -53,6 +53,27 @@ if(LibXISF_FOUND)
     list(APPEND ${PROJECT_NAME}_LIBS ${LibXISF_LIBRARY})
     include_directories(${LibXISF_INCLUDE_DIR})
     add_definitions(-DHAVE_XISF)
+
+    # Image::convertWCSToAstrometricSolution() is new in libXISF 0.2.14. libXISF has no
+    # version macro, so test for the method itself. Compile only: linking a static libXISF
+    # would need its own dependencies and give a false negative.
+    include(CheckCXXSourceCompiles)
+    include(CMakePushCheckState)
+    cmake_push_check_state(RESET)
+    set(CMAKE_REQUIRED_INCLUDES ${LibXISF_INCLUDE_DIR})
+    set(_indi_saved_try_compile_type ${CMAKE_TRY_COMPILE_TARGET_TYPE})
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    check_cxx_source_compiles("
+        #include <libxisf.h>
+        void f(LibXISF::Image &image) { image.convertWCSToAstrometricSolution(); }
+    " HAVE_XISF_ASTROMETRIC_SOLUTION)
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE ${_indi_saved_try_compile_type})
+    cmake_pop_check_state()
+    if(HAVE_XISF_ASTROMETRIC_SOLUTION)
+        add_definitions(-DHAVE_XISF_ASTROMETRIC_SOLUTION)
+    else()
+        message(STATUS "libXISF older than 0.2.14: XISF images will not include AstrometricSolution properties")
+    endif()
 endif()
 
 # Add OggTheora, StreamManager, v4l2
