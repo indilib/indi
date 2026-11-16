@@ -584,6 +584,7 @@ bool LX200_10MICRON::ReadScopeStatus()
             // (Ginfo field 8) "will return a slewing status for the time duration set in" :Sstm, while
             // "the :Gstat# command is not affected by this setting". Gstat is already 0 then, so only the
             // slew flag tells that the mount is still settling. Clients must not start exposures before that.
+            // On a GM2000HPS the settle time starts when Gstat leaves 6, not when the motors stop.
             TrackState = (Ginfo.SlewStatus == 1) ? SCOPE_SLEWING : SCOPE_TRACKING;
             break;
         case GSTAT_STOPPED:
@@ -607,7 +608,9 @@ bool LX200_10MICRON::ReadScopeStatus()
             TrackState = SCOPE_SLEWING;
             break;
         case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
-            TrackState = SCOPE_IDLE;
+            // A slew that ends without tracking (e.g. :MaX#, slew to axis positions and stop) settles in Gstat 7:
+            // the slew flag stays 1 for the settle time here too.
+            TrackState = (Ginfo.SlewStatus == 1) ? SCOPE_SLEWING : SCOPE_IDLE;
             break;
         case GSTAT_MOTORS_TOO_COLD:
             TrackState = SCOPE_IDLE;
