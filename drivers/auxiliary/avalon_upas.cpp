@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <termios.h>
 #include <regex>
@@ -37,8 +38,8 @@ static std::unique_ptr<AvalonUPAS> upas(new AvalonUPAS());
 AvalonUPAS::AvalonUPAS()
     : PACInterface(this)
 {
-    setVersion(1, 1);
-    SetCapability(PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION);
+    setVersion(1, 2);
+    SetCapability(PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH);
 }
 
 const char *AvalonUPAS::getDefaultName()
@@ -52,18 +53,44 @@ bool AvalonUPAS::initProperties()
 
     PACI::initProperties(MAIN_CONTROL_TAB);
 
-    // Speed: map directly to GRBL feed rate (mm/min), range 100–1000 step 100 default 500.
+    // Speed: GRBL feed rate in mm/min, range 100–1000 as before. It caps the feed rate of both axes;
+    // the default 1000 leaves Avalon's per-axis speeds below unchanged.
+    SpeedNP[0].setLabel("Max (mm/min)");
     SpeedNP[0].setMin(100);
     SpeedNP[0].setMax(1000);
     SpeedNP[0].setStep(100);
-    SpeedNP[0].setValue(500);
+    SpeedNP[0].setValue(1000);
 
-    // Gear ratio: mm of motor travel per degree of polar-axis correction.
-    // Default 1.0 mm/deg; user should calibrate for their specific hardware.
-    // Avalon Default is 1.0 mm/arcmin 
-    GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 1.0);
-    GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 1.0);
+    // Feed rate per axis in mm/min (GRBL F word). Defaults are Avalon's suggested speeds (AZ 1000, ALT 700).
+    FeedRateNP[FEED_AZ].fill("FEED_AZ", "Azimuth (mm/min)", "%.0f", 10, 1000, 50, 1000);
+    FeedRateNP[FEED_ALT].fill("FEED_ALT", "Altitude (mm/min)", "%.0f", 10, 1000, 50, 700);
+    FeedRateNP.fill(getDeviceName(), "PAC_FEED_RATE", "Feed Rate", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Minimum move: smaller moves of an axis are skipped (0 disables). Clients can send tiny corrections,
+    // which are lost in the backlash anyway but would run the full backlash compensation.
+    MinMoveNP[0].fill("MIN_MOVE", "Minimum (arcmin)", "%.2f", 0, 10, 0.05, 0.1);
+    MinMoveNP.fill(getDeviceName(), "PAC_MIN_MOVE", "Min. Move", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Gear ratio: mm of motor travel per arcminute of polar-axis correction.
+    // Defaults are the Avalon specifications (AZ 2, ALT 22), as also used by Avalon's own software.
+    GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 2.0);
+    GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 22.0);
     GearRatioNP.fill(getDeviceName(), "PAC_GEAR_RATIO", "Gear Ratio", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Backlash: compensated in software, so use arcminutes instead of the interface's motor steps.
+    BacklashNP[BACKLASH_AZ].fill("BACKLASH_AZ", "Azimuth (arcmin)", "%.2f", 0, 60, 0.1, 0);
+    BacklashNP[BACKLASH_ALT].fill("BACKLASH_ALT", "Altitude (arcmin)", "%.2f", 0, 60, 0.1, 0);
+    BacklashNP.setLabel("Backlash");
+
+    // Final approach direction per axis. ALT usually works best when the last move lifts against gravity.
+    AZApproachSP[APPROACH_POSITIVE].fill("APPROACH_POSITIVE", "+", ISS_ON);
+    AZApproachSP[APPROACH_NEGATIVE].fill("APPROACH_NEGATIVE", "-", ISS_OFF);
+    AZApproachSP.fill(getDeviceName(), "PAC_AZ_APPROACH", "Azimuth Approach", MAIN_CONTROL_TAB, IP_RW,
+                      ISR_1OFMANY, 60, IPS_IDLE);
+    ALTApproachSP[APPROACH_POSITIVE].fill("APPROACH_POSITIVE", "+", ISS_ON);
+    ALTApproachSP[APPROACH_NEGATIVE].fill("APPROACH_NEGATIVE", "-", ISS_OFF);
+    ALTApproachSP.fill(getDeviceName(), "PAC_ALT_APPROACH", "Altitude Approach", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Firmware (read-only, populated in Handshake)
     FirmwareTP[0].fill("VERSION", "Version", "Unknown");
@@ -91,15 +118,32 @@ bool AvalonUPAS::updateProperties()
     if (isConnected())
     {
         defineProperty(GearRatioNP);
+        defineProperty(FeedRateNP);
+        defineProperty(MinMoveNP);
         defineProperty(FirmwareTP);
     }
     else
     {
         deleteProperty(GearRatioNP);
+        deleteProperty(FeedRateNP);
+        deleteProperty(MinMoveNP);
         deleteProperty(FirmwareTP);
     }
 
     PACI::updateProperties();
+
+    // Define after the PAC properties so the approach switches follow the backlash controls.
+    if (isConnected())
+    {
+        defineProperty(AZApproachSP);
+        defineProperty(ALTApproachSP);
+    }
+    else
+    {
+        deleteProperty(AZApproachSP);
+        deleteProperty(ALTApproachSP);
+    }
+
     return true;
 }
 
@@ -107,6 +151,10 @@ bool AvalonUPAS::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     GearRatioNP.save(fp);
+    FeedRateNP.save(fp);
+    MinMoveNP.save(fp);
+    AZApproachSP.save(fp);
+    ALTApproachSP.save(fp);
     PACI::saveConfigItems(fp);
     return true;
 }
@@ -118,11 +166,25 @@ bool AvalonUPAS::Handshake()
     // Flush any GRBL boot message
     tcflush(PortFD, TCIOFLUSH);
 
-    // Send soft-reset so GRBL is in a known idle state, then discard response.
-    const char softReset[2] = {'\x18', '\n'};
+    // Send soft-reset so GRBL is in a known idle state.
+    const char softReset = '\x18';
     int nbytes = 0;
-    tty_write(PortFD, softReset, 1, &nbytes);  // 0x18 is single byte, no \n needed
-    usleep(500000);  // wait 500 ms for GRBL to boot/reset
+    tty_write(PortFD, &softReset, 1, &nbytes);
+
+    // Opening the port may also hard-reset the Arduino (DTR), and its bootloader swallows anything
+    // sent before GRBL runs. Either way GRBL prints its "Grbl x.y" banner once it is ready, so wait
+    // for that line instead of a fixed delay. Blank lines from the banner are skipped.
+    bool grblReady = false;
+    for (int i = 0; i < 10 && !grblReady; i++)
+    {
+        // Read one byte less than the buffer so the line always stays null-terminated.
+        char line[DRIVER_LEN] = {0};
+        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
+            break;
+        grblReady = strstr(line, "Grbl") != nullptr;
+    }
+    if (!grblReady)
+        LOG_WARN("No GRBL startup banner received, trying the status query anyway.");
     tcflush(PortFD, TCIOFLUSH);
 
     // Query status to confirm communication.
@@ -147,9 +209,9 @@ bool AvalonUPAS::Handshake()
         const char *tag = strstr(ver, "[VER:");
         if (tag)
         {
-            // Extract up to the closing bracket
+            // Extract up to the colon that separates the optional build info, or the closing bracket
             char version[64] = {0};
-            sscanf(tag, "[VER:%63[^]]]", version);
+            sscanf(tag, "[VER:%63[^]:]", version);
             FirmwareTP[0].setText(version);
         }
         else
@@ -158,8 +220,52 @@ bool AvalonUPAS::Handshake()
         }
     }
 
+    readReverseFlags();
+
     LOG_INFO("UPAS connected and ready.");
     return true;
+}
+
+bool AvalonUPAS::readReverseFlags()
+{
+    // "$$" lists every GRBL setting as one "$n=value" line, followed by "ok". The lines arrive
+    // as a burst, so read them directly; sendCommand() would flush the rest after the first line.
+    tcflush(PortFD, TCIOFLUSH);
+    int nbytes = 0;
+    if (tty_write_string(PortFD, "$$\n", &nbytes) != TTY_OK)
+        return false;
+
+    bool settingsSeen = false;
+    for (int i = 0; i < 64; i++)
+    {
+        char line[DRIVER_LEN] = {0};
+        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
+            break;
+
+        int mask = 0;
+        if (sscanf(line, "$3=%d", &mask) == 1)
+        {
+            m_ReverseFlags = static_cast<uint8_t>(mask & 0x03);
+            AZReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x01) ? ISS_ON : ISS_OFF);
+            AZReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x01) ? ISS_OFF : ISS_ON);
+            ALTReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x02) ? ISS_ON : ISS_OFF);
+            ALTReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x02) ? ISS_OFF : ISS_ON);
+            LOGF_DEBUG("GRBL axis reverse mask $3=%d.", m_ReverseFlags);
+            tcflush(PortFD, TCIOFLUSH);
+            return true;
+        }
+
+        // A late "ok" from the previous command can arrive first, so "ok" only ends the
+        // listing once settings lines have been seen.
+        if (line[0] == '$')
+            settingsSeen = true;
+        else if ((settingsSeen && strncmp(line, "ok", 2) == 0) || strncmp(line, "error", 5) == 0)
+            break;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+    LOG_WARN("Could not read the GRBL axis reverse setting ($3), assuming no axis is reversed.");
+    return false;
 }
 
 void AvalonUPAS::TimerHit()
@@ -192,9 +298,35 @@ bool AvalonUPAS::parseStatus(const char *response)
     PositionNP[POSITION_AZ].setValue(gearAZ  > 0 ? azMM  / (60 * gearAZ)  : 0);
     PositionNP[POSITION_ALT].setValue(gearALT > 0 ? altMM / (60 * gearALT) : 0);
 
-    // Determine if the device is still jogging.
+    // The state is the first field, e.g. <Idle|...>, <Jog|...>, <Hold:0|...> or <Alarm|...>.
+    char state[16] = {0};
+    const char *start = strchr(response, '<');
+    if (start != nullptr)
+        sscanf(start, "<%15[^|:>]", state);
+
+    // A held motion is paused, not finished. Alarm and Door stop GRBL until it is unlocked or reset.
     bool wasMoving = m_IsMoving;
-    m_IsMoving = (strstr(response, "Jog") != nullptr || strstr(response, "Run") != nullptr);
+    m_IsMoving = strcmp(state, "Jog") == 0 || strcmp(state, "Run") == 0 || strcmp(state, "Hold") == 0;
+    const bool fault = strcmp(state, "Alarm") == 0 || strcmp(state, "Door") == 0;
+
+    if (fault)
+    {
+        if (!m_IsFault)
+            LOGF_ERROR("UPAS reports state %s and does not move. Check the device, then power-cycle it.", state);
+        m_IsFault  = true;
+        m_IsMoving = false;
+
+        PositionNP.setState(IPS_ALERT);
+        PositionNP.apply();
+
+        if (ManualAdjustmentNP.getState() == IPS_BUSY)
+        {
+            ManualAdjustmentNP.setState(IPS_ALERT);
+            ManualAdjustmentNP.apply();
+        }
+        return true;
+    }
+    m_IsFault = false;
 
     PositionNP.setState(m_IsMoving ? IPS_BUSY : IPS_OK);
     PositionNP.apply();
@@ -210,81 +342,171 @@ bool AvalonUPAS::parseStatus(const char *response)
     return true;
 }
 
+bool AvalonUPAS::belowMinimum(const char *axis, double degrees)
+{
+    const double arcmin  = std::fabs(degrees) * 60;
+    const double minimum = MinMoveNP[0].getValue();
+    if (arcmin >= minimum)
+        return false;
+
+    LOGF_INFO("%s move of %.3f arcmin is below the minimum of %.2f arcmin, skipped.", axis, arcmin, minimum);
+    return true;
+}
+
 IPState AvalonUPAS::MoveAZ(double degrees)
 {
-    // incluce conversion from arcminutes to degrees in the gear ratio, so users can calibrate in more intuitive mm/arcmin instead of mm/degree.
+    // A skipped move is complete at once, so the client is not left waiting.
+    if (belowMinimum("AZ", degrees))
+        return IPS_OK;
+
+    // The gear ratio is in mm/arcmin, so convert the requested degrees to arcminutes first.
     const double mm       = degrees * 60 * GearRatioNP[GEAR_AZ].getValue();
-    const double feedRate = SpeedNP[0].getValue();
+    const double feedRate = feedRateFor(mm, 0);
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4f F%.0f", mm, feedRate);
-
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res))
-        return IPS_ALERT;
-
-    // GRBL acknowledges jog commands with "ok"
-    if (strncmp(res, "ok", 2) != 0)
-    {
-        LOGF_ERROR("Unexpected AZ jog response: %s", res);
-        return IPS_ALERT;
-    }
-
-    m_IsMoving = true;
-    LOGF_INFO("AZ jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
-    return IPS_BUSY;
+    IPState state = jogWithBacklash(mm, 0);
+    if (state == IPS_BUSY)
+        LOGF_INFO("AZ jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
+    return state;
 }
 
 IPState AvalonUPAS::MoveALT(double degrees)
 {
-    // incluce conversion from arcminutes to degrees in the gear ratio, so users can calibrate in more intuitive mm/arcmin instead of mm/degree.
-    const double mm       = degrees * 60 *GearRatioNP[GEAR_ALT].getValue();
-    const double feedRate = SpeedNP[0].getValue();
+    if (belowMinimum("ALT", degrees))
+        return IPS_OK;
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "$J=G91G21Y%.4f F%.0f", mm, feedRate);
+    // The gear ratio is in mm/arcmin, so convert the requested degrees to arcminutes first.
+    const double mm       = degrees * 60 * GearRatioNP[GEAR_ALT].getValue();
+    const double feedRate = feedRateFor(0, mm);
 
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res))
-        return IPS_ALERT;
-
-    if (strncmp(res, "ok", 2) != 0)
-    {
-        LOGF_ERROR("Unexpected ALT jog response: %s", res);
-        return IPS_ALERT;
-    }
-
-    m_IsMoving = true;
-    LOGF_INFO("ALT jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
-    return IPS_BUSY;
+    IPState state = jogWithBacklash(0, mm);
+    if (state == IPS_BUSY)
+        LOGF_INFO("ALT jog: %.4f deg → %.4f mm @ %.0f mm/min.", degrees, mm, feedRate);
+    return state;
 }
 
 IPState AvalonUPAS::MoveBoth(double azDegrees, double altDegrees)
 {
+    // Skip an axis whose move is below the minimum; with both skipped the move is complete at once.
+    if (belowMinimum("AZ", azDegrees))
+        azDegrees = 0;
+    if (belowMinimum("ALT", altDegrees))
+        altDegrees = 0;
+    if (azDegrees == 0 && altDegrees == 0)
+        return IPS_OK;
+
     // GRBL supports multi-axis jog in a single command: X (AZ) and Y (ALT) together.
     // This moves both axes simultaneously, which is more efficient and accurate than
     // two separate jog commands.
     const double mmAZ    = azDegrees  * 60 * GearRatioNP[GEAR_AZ].getValue();
     const double mmALT   = altDegrees * 60 * GearRatioNP[GEAR_ALT].getValue();
-    const double feedRate = SpeedNP[0].getValue();
+    const double feedRate = feedRateFor(mmAZ, mmALT);
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "$J=G91G21X%.4fY%.4f F%.0f", mmAZ, mmALT, feedRate);
+    IPState state = jogWithBacklash(mmAZ, mmALT);
+    if (state == IPS_BUSY)
+        LOGF_INFO("MoveBoth: AZ %.4f° (%.4f mm), ALT %.4f° (%.4f mm) @ %.0f mm/min.",
+                  azDegrees, mmAZ, altDegrees, mmALT, feedRate);
+    return state;
+}
 
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res))
-        return IPS_ALERT;
-
-    if (strncmp(res, "ok", 2) != 0)
+IPState AvalonUPAS::jogWithBacklash(double azMM, double altMM)
+{
+    // Never turn a NaN or infinite value into a GRBL jog command.
+    if (!std::isfinite(azMM) || !std::isfinite(altMM))
     {
-        LOGF_ERROR("MoveBoth GRBL response: %s", res);
+        LOG_ERROR("Invalid move request, ignored.");
         return IPS_ALERT;
     }
 
+    const double azApproach  = finalApproachMM(BACKLASH_AZ, azMM);
+    const double altApproach = finalApproachMM(BACKLASH_ALT, altMM);
+
+    if (!sendJog(azMM, altMM))
+        return IPS_ALERT;
+
+    // GRBL queues jogs in its planner, so the final approach runs right after the main jog.
+    if (azApproach != 0 || altApproach != 0)
+    {
+        if (!sendJog(azApproach, altApproach))
+        {
+            AbortMotion();
+            return IPS_ALERT;
+        }
+
+        LOGF_INFO("Backlash: overshoot and final approach AZ %.4f mm, ALT %.4f mm.", azApproach, altApproach);
+    }
+
     m_IsMoving = true;
-    LOGF_INFO("MoveBoth: AZ %.4f° (%.4f mm), ALT %.4f° (%.4f mm) @ %.0f mm/min.",
-              azDegrees, mmAZ, altDegrees, mmALT, feedRate);
     return IPS_BUSY;
+}
+
+double AvalonUPAS::finalApproachMM(int axis, double &mm)
+{
+    if (BacklashSP[DefaultDevice::INDI_ENABLED].getState() != ISS_ON)
+        return 0;
+
+    // BACKLASH_AZ/ALT and GEAR_AZ/ALT share the same indices.
+    const double backlashMM = BacklashNP[axis].getValue() * GearRatioNP[axis].getValue();
+    const auto &approachSP  = (axis == BACKLASH_AZ) ? AZApproachSP : ALTApproachSP;
+    const double direction  = approachSP[APPROACH_NEGATIVE].getState() == ISS_ON ? -1 : 1;
+
+    // Moves that already end in the approach direction need no compensation.
+    if (backlashMM <= 0 || mm * direction >= 0)
+        return 0;
+
+    mm -= direction * backlashMM;
+    return direction * backlashMM;
+}
+
+bool AvalonUPAS::sendJog(double azMM, double altMM)
+{
+    char cmd[DRIVER_LEN] = {0};
+    int len = snprintf(cmd, DRIVER_LEN, "$J=G91G21");
+    if (azMM != 0)
+        len += snprintf(cmd + len, DRIVER_LEN - len, "X%.4f", azMM);
+    if (altMM != 0)
+        len += snprintf(cmd + len, DRIVER_LEN - len, "Y%.4f", altMM);
+    snprintf(cmd + len, DRIVER_LEN - len, " F%.0f", feedRateFor(azMM, altMM));
+
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand(cmd, res))
+        return false;
+
+    // GRBL acknowledges jog commands with "ok"
+    if (strncmp(res, "ok", 2) != 0)
+    {
+        LOGF_ERROR("Unexpected jog response to %s: %s", cmd, res);
+        return false;
+    }
+
+    return true;
+}
+
+double AvalonUPAS::feedRateFor(double azMM, double altMM)
+{
+    // Each axis runs at most at its own feed rate, capped by the interface's speed.
+    const double maxRate = SpeedNP[0].getValue();
+    const double azRate  = std::min(maxRate, FeedRateNP[FEED_AZ].getValue());
+    const double altRate = std::min(maxRate, FeedRateNP[FEED_ALT].getValue());
+
+    // GRBL applies one feed rate to the whole jog vector. Choose it so that each axis moves
+    // at most at its rate; the limiting axis then moves at exactly that rate.
+    const double length = std::hypot(azMM, altMM);
+    if (length == 0)
+        return azRate;
+
+    double feedRate = std::numeric_limits<double>::max();
+    if (azMM != 0)
+        feedRate = std::min(feedRate, azRate * length / std::fabs(azMM));
+    if (altMM != 0)
+        feedRate = std::min(feedRate, altRate * length / std::fabs(altMM));
+    return feedRate;
+}
+
+bool AvalonUPAS::SetPACSpeed(uint16_t speed)
+{
+    // The feed rate is computed for every jog, so there is nothing to send now.
+    LOGF_INFO("UPAS speed limited to %u mm/min.", speed);
+    return true;
 }
 
 bool AvalonUPAS::AbortMotion()
@@ -303,14 +525,6 @@ bool AvalonUPAS::AbortMotion()
 
     m_IsMoving = false;
     LOG_INFO("UPAS motion aborted.");
-    return true;
-}
-
-bool AvalonUPAS::SetPACSpeed(uint16_t speed)
-{
-    // Speed is stored in SpeedNP and used in the next jog command; nothing is
-    // sent to the hardware here since GRBL feed rate is per-command.
-    LOGF_INFO("UPAS speed set to %u mm/min.", speed);
     return true;
 }
 
@@ -350,6 +564,34 @@ bool AvalonUPAS::ReverseALT(bool enabled)
     return (strncmp(res, "ok", 2) == 0);
 }
 
+bool AvalonUPAS::SetBacklashEnabled(bool enabled)
+{
+    // Compensation is applied when jogging; nothing to send to GRBL.
+    LOGF_INFO("Backlash compensation %s.", enabled ? "enabled" : "disabled");
+
+    // GRBL starts at 0 on every power-up and the UPAS has no limit switches, so the driver
+    // cannot keep the overshoot away from the mechanical stops.
+    if (enabled)
+        LOG_INFO("Moves against the approach direction overshoot by the backlash. "
+                 "Keep at least that margin from the mechanical stops.");
+    return true;
+}
+
+bool AvalonUPAS::SetBacklashAZ(int32_t steps)
+{
+    // The interface passes whole steps; use the arcminute value from the property instead.
+    INDI_UNUSED(steps);
+    LOGF_INFO("AZ backlash set to %.2f arcmin.", BacklashNP[BACKLASH_AZ].getValue());
+    return true;
+}
+
+bool AvalonUPAS::SetBacklashALT(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    LOGF_INFO("ALT backlash set to %.2f arcmin.", BacklashNP[BACKLASH_ALT].getValue());
+    return true;
+}
+
 bool AvalonUPAS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -359,6 +601,22 @@ bool AvalonUPAS::ISNewNumber(const char *dev, const char *name, double values[],
             GearRatioNP.update(values, names, n);
             GearRatioNP.setState(IPS_OK);
             GearRatioNP.apply();
+            return true;
+        }
+
+        if (FeedRateNP.isNameMatch(name))
+        {
+            FeedRateNP.update(values, names, n);
+            FeedRateNP.setState(IPS_OK);
+            FeedRateNP.apply();
+            return true;
+        }
+
+        if (MinMoveNP.isNameMatch(name))
+        {
+            MinMoveNP.update(values, names, n);
+            MinMoveNP.setState(IPS_OK);
+            MinMoveNP.apply();
             return true;
         }
 
@@ -373,6 +631,16 @@ bool AvalonUPAS::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (AZApproachSP.isNameMatch(name) || ALTApproachSP.isNameMatch(name))
+        {
+            auto &approachSP = AZApproachSP.isNameMatch(name) ? AZApproachSP : ALTApproachSP;
+            approachSP.update(states, names, n);
+            approachSP.setState(IPS_OK);
+            approachSP.apply();
+            saveConfig(approachSP);
+            return true;
+        }
+
         if (PACI::processSwitch(dev, name, states, names, n))
             return true;
     }

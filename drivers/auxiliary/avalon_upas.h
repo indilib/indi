@@ -32,12 +32,25 @@
  *
  * Protocol summary:
  *   - Relative jog:  $J=G91G21{X|Y}{mm} F{feed_rate}\n
- *     (X = azimuth axis, Y = altitude axis; mm = degrees × gear_ratio)
+ *     (X = azimuth axis, Y = altitude axis; mm = degrees × 60 × gear_ratio [mm/arcmin])
  *   - Position query: ?  →  <State|MPos:az_mm,alt_mm|...>\n
  *   - Abort (jog cancel): 0x85 byte
  *   - Axis reverse:  $3={mask}\n  (bit 0 = AZ, bit 1 = ALT)
  *
- * Capabilities: PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION
+ * Backlash compensation is done in software, since GRBL has none: when enabled,
+ * every move ends in the configured approach direction. A move against that
+ * direction overshoots by the backlash and is followed by a second jog back
+ * (GRBL queues both jogs in its planner). Backlash is set in arcminutes.
+ * The UPAS has no limit switches and GRBL starts at 0 on every power-up, so the driver cannot
+ * know the mechanical stops; near a stop the overshoot can run into it.
+ *
+ * An axis whose move is below a minimum (PAC_MIN_MOVE, arcminutes) is skipped: such a move is lost
+ * in the backlash anyway, and the compensation would run the full overshoot and approach for it.
+ *
+ * At connect the reverse mask ($3) is read from GRBL. Alarm and Door states are reported as errors.
+ *
+ * Capabilities: PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
+ * Feed rate is set per axis (PAC_FEED_RATE). The interface's speed (PAC_SPEED, mm/min) caps both axes.
  */
 class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
 {
@@ -69,6 +82,11 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         bool ReverseAZ(bool enabled) override;
         bool ReverseALT(bool enabled) override;
 
+        // PACInterface – backlash (applied in software, see class description)
+        bool SetBacklashEnabled(bool enabled) override;
+        bool SetBacklashAZ(int32_t steps) override;
+        bool SetBacklashALT(int32_t steps) override;
+
     private:
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication
@@ -87,18 +105,69 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         /** @brief Parse a GRBL status response (from '?') and update internal state. */
         bool parseStatus(const char *response);
 
+        /** @brief Read the axis reverse mask ($3) from GRBL so the reverse switches match the device. */
+        bool readReverseFlags();
+
         void hexDump(char *buf, const char *data, int size);
+
+        /** @brief GRBL feed rate for a jog, so that no axis exceeds its own feed rate. */
+        double feedRateFor(double azMM, double altMM);
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Motion
+        ///////////////////////////////////////////////////////////////////////////////
+        /** @brief Send one relative jog. An axis with 0 mm is left out of the command. */
+        bool sendJog(double azMM, double altMM);
+
+        /** @brief Jog both axes, adding a final-approach jog when backlash compensation needs one. */
+        IPState jogWithBacklash(double azMM, double altMM);
+
+        /**
+         * @brief finalApproachMM Split a move so that it ends in the configured approach direction.
+         * @param axis BACKLASH_AZ or BACKLASH_ALT.
+         * @param mm   Requested move; extended by the backlash if it runs against the approach direction.
+         * @return The final-approach move in mm, or 0 if none is needed.
+         */
+        double finalApproachMM(int axis, double &mm);
+
+        /**
+         * @brief belowMinimum Check a requested move against the minimum move (PAC_MIN_MOVE).
+         * @param axis Axis name for the log.
+         * @param degrees Requested move in degrees.
+         * @return true if the move is below the minimum and is skipped (logged).
+         */
+        bool belowMinimum(const char *axis, double degrees);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Driver properties
         ///////////////////////////////////////////////////////////////////////////////
 
-        // Gear ratio (mm per degree) for each axis; converts PAC interface degrees to GRBL mm.
+        // Gear ratio (mm per arcminute) for each axis; converts PAC interface degrees to GRBL mm.
         INDI::PropertyNumber GearRatioNP {2};
         enum
         {
             GEAR_AZ,
             GEAR_ALT
+        };
+
+        // GRBL feed rate (mm/min) for each axis.
+        INDI::PropertyNumber FeedRateNP {2};
+        enum
+        {
+            FEED_AZ,
+            FEED_ALT
+        };
+
+        // Moves below this many arcminutes are skipped; 0 disables the check.
+        INDI::PropertyNumber MinMoveNP {1};
+
+        // Direction in which every move ends when backlash compensation is enabled.
+        INDI::PropertySwitch AZApproachSP {2};
+        INDI::PropertySwitch ALTApproachSP {2};
+        enum
+        {
+            APPROACH_POSITIVE,
+            APPROACH_NEGATIVE
         };
 
         // Read-only firmware version string returned at connect.
@@ -108,6 +177,7 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         /// Internal state
         ///////////////////////////////////////////////////////////////////////////////
         bool    m_IsMoving      {false};    ///< True while at least one axis is jogging.
+        bool    m_IsFault       {false};    ///< True while GRBL reports Alarm or Door.
         uint8_t m_ReverseFlags  {0};        ///< Bitmask: bit 0 = AZ reversed, bit 1 = ALT reversed.
 
         int     PortFD          {-1};
