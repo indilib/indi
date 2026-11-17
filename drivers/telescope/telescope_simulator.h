@@ -214,6 +214,9 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface,
         /** @brief Move the polar axis (MM_MA, MM_ME) by the PAC move that has just started. */
         void applyPACCorrection();
 
+        // Simulation settings are loaded from the config on the first getProperties only.
+        bool m_simConfigLoaded { false };
+
 #endif
 
         /** @brief Publish the true pointing (EQUATORIAL_PE) for the current axis positions. */

@@ -171,25 +171,38 @@ void ScopeSim::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
 #ifdef USE_SIM_TAB
+    // Every new client sends getProperties. Load the config only the first time, otherwise
+    // runtime changes such as PAC corrections to the mount model are reset for all clients.
+    const bool loadConfig = !m_simConfigLoaded;
+    m_simConfigLoaded = true;
+
     // Load mount type settings and apply immediately so axis track rates and
     // alignment.mountType are correct before the first ReadScopeStatus tick.
-    MountTypeSP.load();
+    if (loadConfig)
+        MountTypeSP.load();
     MountTypeSP.apply();
     defineProperty(simPierSideSP);
-    simPierSideSP.load();
+    if (loadConfig)
+        simPierSideSP.load();
     updateMountAndPierSide();
     defineProperty(mountModelNP);
-    mountModelNP.load();
-    alignment.setCorrections(mountModelNP[MM_IH].getValue() / 60.0, mountModelNP[MM_ID].getValue() / 60.0,
-                             mountModelNP[MM_CH].getValue() / 60.0, mountModelNP[MM_NP].getValue() / 60.0,
-                             mountModelNP[MM_MA].getValue() / 60.0, mountModelNP[MM_ME].getValue() / 60.0);
+    if (loadConfig)
+    {
+        mountModelNP.load();
+        alignment.setCorrections(mountModelNP[MM_IH].getValue() / 60.0, mountModelNP[MM_ID].getValue() / 60.0,
+                                 mountModelNP[MM_CH].getValue() / 60.0, mountModelNP[MM_NP].getValue() / 60.0,
+                                 mountModelNP[MM_MA].getValue() / 60.0, mountModelNP[MM_ME].getValue() / 60.0);
+    }
     defineProperty(mountAxisNP);
     defineProperty(flipHourAngleNP);
-    flipHourAngleNP.load();
+    if (loadConfig)
+        flipHourAngleNP.load();
     defineProperty(guideErrorsNP);
-    guideErrorsNP.load();
+    if (loadConfig)
+        guideErrorsNP.load();
     defineProperty(PACDeviceTP);
-    PACDeviceTP.load();
+    if (loadConfig)
+        PACDeviceTP.load();
 #endif
     m_currentAz  = axisPrimary.position.Degrees();
     m_currentAlt = axisSecondary.position.Degrees();
