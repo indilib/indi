@@ -193,16 +193,27 @@ bool WiFi::ISNewText(const char *dev, const char *name, char *texts[], char *nam
     if (HotspotTP.isNameMatch(name))
     {
         HotspotTP.update(texts, names, n);
-        if (setHotspotCredentials(HotspotTP[0].getText(), HotspotTP[1].getText()))
-        {
-            // The hotspot password is also the login of the TCP socket and the web dashboard.
-            PasswordTP[0].setText(HotspotTP[1].getText());
-            PasswordTP.apply();
-            m_SaveConfig(PasswordTP);
+        const std::string ssid = HotspotTP[0].getText(), password = HotspotTP[1].getText();
+        const bool set = setHotspotCredentials(ssid.c_str(), password.c_str());
+        // Only 0 counts as a failure of AN:/AP:, so the device may not have taken the change.
+        // Read back what it stores before saving the password as the TCP login.
+        if (!readHotspotCredentials() || !set)
+            return true;
+
+        // The hotspot password is also the login of the TCP socket and the web dashboard.
+        PasswordTP[0].setText(HotspotTP[1].getText());
+        PasswordTP.apply();
+        m_SaveConfig(PasswordTP);
+        if (ssid == HotspotTP[0].getText() && password == HotspotTP[1].getText())
             WIFI_LOG(INDI::Logger::DBG_SESSION, "%s",
                      "Hotspot credentials set. The password is also the login for TCP and the web dashboard.");
+        else
+        {
+            HotspotTP.setState(IPS_ALERT);
+            HotspotTP.apply();
+            WIFI_LOG(INDI::Logger::DBG_WARNING, "%s",
+                     "The device did not take the new hotspot credentials. The TCP password is set to the password it reports.");
         }
-        readHotspotCredentials();
         return true;
     }
 
@@ -305,7 +316,7 @@ bool WiFi::sendCommand(const char *cmd, char *res, int len, int timeout, bool se
     while (nbytes > 0 && (res[nbytes - 1] == '\n' || res[nbytes - 1] == '\r'))
         res[--nbytes] = '\0';
 
-    // AL carries the hotspot password, and the FlatMaster Neo echoes WP:<password> (maybe also AP:).
+    // AL carries the hotspot password, and the FlatMaster Neo echoes WP:<password>.
     WIFI_LOG(INDI::Logger::DBG_DEBUG, "RES <%s>", strcmp(cmd, "AL") == 0 ? "<ssid>:<password>" : secret ? "<hidden>" : res);
     return true;
 }
@@ -500,7 +511,8 @@ bool WiFi::setHotspotCredentials(const char *ssid, const char *password)
         return false;
     }
 
-    // The FocusCube 3 and Falcon V2 answer 1, the FlatMaster Neo echoes the command; only 0 is a failure.
+    // The FlatMaster Neo, FocusCube 3 and Falcon V2 answer 1; only 0 is a failure. The caller reads
+    // the credentials back, since a device may not have taken them.
     char cmd[LEN] = {0}, res[LEN] = {0};
     snprintf(cmd, LEN, "AN:%s", ssid);
     if (!sendCommand(cmd, res, LEN) || strcmp(res, "0") == 0)
@@ -509,7 +521,7 @@ bool WiFi::setHotspotCredentials(const char *ssid, const char *password)
         return false;
     }
 
-    // The reply may echo the password, so it is not logged.
+    // The devices answer 1, but a firmware that echoes the password as for WP: must not log it.
     snprintf(cmd, LEN, "AP:%s", password);
     if (!sendCommand(cmd, res, LEN, 3, true) || strcmp(res, "0") == 0)
     {

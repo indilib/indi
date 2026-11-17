@@ -45,11 +45,11 @@ namespace PegasusAstro
  *        hotspot channel, WiFi client and network scan. It also logs in on the TCP command
  *        socket, which accepts the same commands as USB after the hotspot password.
  *
- * Replies seen on Falcon V2 firmware 1.8 and FocusCube 3 firmware 2.0:
- *   A? -> 0|1, AE:x -> 1, AL -> ssid:password, AN:/AP: -> 1, AC -> n, AC:n -> n,
- *   WA -> 0 while not connected, WS -> 0 when no network is found, WN:/WP: -> 0 on error.
- * The FlatMaster Neo (firmware 1.4) echoes WN:/WP: and probably AN:/AP:, so for these
- * commands, AE:x and AC:n only 0 counts as a failure.
+ * Replies seen on Falcon V2 firmware 1.8, FocusCube 3 firmware 2.0 and FlatMaster Neo firmware 1.4:
+ *   A? -> 0|1, AE:x -> 1, AL -> ssid:password, AN:/AP: -> 1, AC -> n, AC:n -> n (Neo: 1),
+ *   WA -> 0 while not connected, WS -> 0 when no network is found, WN: -> the command echoed,
+ *   WN:/WP: -> 0 on error. The FlatMaster Neo also echoes WP:<password>.
+ * Since the replies differ, for AN:/AP:, WN:/WP:, AE:x and AC:n only 0 counts as a failure.
  */
 class WiFi
 {
