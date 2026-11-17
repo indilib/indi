@@ -61,7 +61,10 @@ bool AvalonUPAS::initProperties()
     SpeedNP[0].setStep(100);
     SpeedNP[0].setValue(1000);
 
-    // Feed rate per axis in mm/min (GRBL F word). Defaults are Avalon's suggested speeds (AZ 1000, ALT 700).
+    // Feed rate per axis in mm/min (GRBL F word). Defaults are the "Az/Alt suggested Speed" values (1000, 700)
+    // from the specifications on Avalon's product page:
+    // https://www.avalon-instruments.it/product/universal-polar-alignment-system/
+    // PolarAlignment.exe itself starts with 500/500 when it has no saved configuration.
     FeedRateNP[FEED_AZ].fill("FEED_AZ", "Azimuth (mm/min)", "%.0f", 10, 1000, 50, 1000);
     FeedRateNP[FEED_ALT].fill("FEED_ALT", "Altitude (mm/min)", "%.0f", 10, 1000, 50, 700);
     FeedRateNP.fill(getDeviceName(), "PAC_FEED_RATE", "Feed Rate", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -72,7 +75,8 @@ bool AvalonUPAS::initProperties()
     MinMoveNP.fill(getDeviceName(), "PAC_MIN_MOVE", "Min. Move", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Gear ratio: mm of motor travel per arcminute of polar-axis correction.
-    // Defaults are the Avalon specifications (AZ 2, ALT 22), as also used by Avalon's own software.
+    // Defaults are the "Az/Alt Gear Ratio" values (2, 22) from the specifications on Avalon's product page
+    // (link above); the page gives no unit. PolarAlignment.exe starts with 1/1 without a saved configuration.
     GearRatioNP[GEAR_AZ].fill("GEAR_AZ", "Azimuth (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 2.0);
     GearRatioNP[GEAR_ALT].fill("GEAR_ALT", "Altitude (mm/arcmin)", "%.4f", 0.001, 1000, 0.1, 22.0);
     GearRatioNP.fill(getDeviceName(), "PAC_GEAR_RATIO", "Gear Ratio", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
