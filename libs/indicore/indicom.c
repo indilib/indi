@@ -681,7 +681,7 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
             return err;
         bytesRead = read(fd, readBuffer, 255);
 
-        if (bytesRead < 0)
+        if (bytesRead <= 0)
             return TTY_READ_ERROR;
 
         int *intSizedBuffer = (int *)readBuffer;
@@ -709,7 +709,7 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
             return err;
         }
         bytesRead = read(fd, readBuffer, 255);
-        if (bytesRead < 0)
+        if (bytesRead <= 0)
             return TTY_READ_ERROR;
         for (int index = 0; index < bytesRead; index++)
         {
@@ -732,7 +732,7 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
             read_char = (uint8_t*)(buf + *nbytes_read);
             bytesRead = read(fd, read_char, 1);
 
-            if (bytesRead < 0)
+            if (bytesRead <= 0)
                 return TTY_READ_ERROR;
 
             if (tty_debug)
@@ -791,7 +791,7 @@ int tty_nread_section_expanded(int fd, char *buf, int nsize, char stop_char, lon
         read_char = (uint8_t*)(buf + *nbytes_read);
         bytesRead = read(fd, read_char, 1);
 
-        if (bytesRead < 0)
+        if (bytesRead <= 0)
             return TTY_READ_ERROR;
 
         if (tty_debug)

@@ -12,6 +12,20 @@ TARGET_LINK_LIBRARIES(test_base64
 )
 ADD_TEST(test_base64 test_base64)
 
+SET (test_tty_eof_SRCS
+    test_tty_eof.cpp
+)
+ADD_EXECUTABLE(test_tty_eof
+    ${test_tty_eof_SRCS}
+)
+TARGET_LINK_LIBRARIES(test_tty_eof
+    indiclient
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_tty_eof test_tty_eof)
+
 SET (test_property_class_SRCS
     test_property_class.cpp
 )
