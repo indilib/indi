@@ -34,9 +34,16 @@
  * The interface exposes manual step controls via the PAC_MANUAL_ADJUSTMENT number property.
  * A client (e.g. Ekos) can nudge the mount by a signed number of degrees on either axis:
  *
- * \b Sign convention for manual adjustments:
- *   - Azimuth  (MANUAL_AZ_STEP):  positive value → East,  negative value → West
- *   - Altitude (MANUAL_ALT_STEP): positive value → North, negative value → South
+ * \b Sign convention for manual adjustments: the step is a move of the polar axis, as seen facing the pole.
+ *   - Azimuth  (MANUAL_AZ_STEP):  positive value → right (East in the northern hemisphere), negative → left
+ *   - Altitude (MANUAL_ALT_STEP): positive value → up (increase altitude), negative → down
+ *
+ * To correct a polar alignment error, a client sends the negative of the measured error: an axis that is
+ * east of (right of) the pole moves West, an axis that is too high moves down. Ekos does this since KStars 3.8.6,
+ * matching the vendor software of the Avalon UPAS and the MLAstro RPA.
+ *
+ * A driver may complete a move at once and return IPS_OK instead of IPS_BUSY, e.g. when the move is below
+ * its minimum. Clients must accept IPS_OK without a preceding IPS_BUSY.
  *
  * The ManualAdjustmentNP property state reflects the overall motion status:
  *   - IPS_BUSY  – either axis is still moving

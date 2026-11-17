@@ -205,10 +205,11 @@ TEST(TelescopeSimulatorTest, pacMoveCorrectsThePolarAxis)
     sim.setActivePAC(PAC);
     sim.setPolarError(30, -20);
 
-    // MM_MA = 30' (axis west) reads as -30'/cos(lat) of azimuth, MM_ME = -20' (axis high) as +20' of
-    // altitude; Ekos sends the error as the step. The XML carries 6 decimals, about 4e-6 arcmin.
-    const double azStep = -30.0 / std::cos(LATITUDE * M_PI / 180) / 60.0;
-    sim.snoop(manualAdjustment("Busy", azStep, 20.0 / 60));
+    // MM_MA = 30' (axis west) reads as an azimuth error of -30'/cos(lat), MM_ME = -20' (axis high) as an
+    // altitude error of +20'. The client sends the correction, the negative of the error: move East and down.
+    // The XML carries 6 decimals, about 4e-6 arcmin.
+    const double azStep = 30.0 / std::cos(LATITUDE * M_PI / 180) / 60.0;
+    sim.snoop(manualAdjustment("Busy", azStep, -20.0 / 60));
     EXPECT_NEAR(sim.mountModel("MM_MA"), 0, 1e-4);
     EXPECT_NEAR(sim.mountModel("MM_ME"), 0, 1e-4);
 }
@@ -222,17 +223,18 @@ TEST(TelescopeSimulatorTest, pacMoveIsAppliedOnceWhenItStarts)
     sim.setActivePAC(PAC);
     sim.setPolarError(0, 0);
 
+    // Moving the axis up by 30' leaves it 30' high (MM_ME = -30')
     sim.snoop(manualAdjustment("Busy", 0, 0.5));
-    EXPECT_NEAR(sim.mountModel("MM_ME"), 30, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -30, 1e-4);
 
     // Further updates of the same move, and its completion, do not move the axis again
     sim.snoop(manualAdjustment("Busy", 0, 0.5));
     sim.snoop(manualAdjustment("Ok", 0, 0.5));
-    EXPECT_NEAR(sim.mountModel("MM_ME"), 30, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -30, 1e-4);
 
     // A move the driver completes at once (Ok without Busy, e.g. 0/0) moves nothing
     sim.snoop(manualAdjustment("Ok", 0, 0.5));
-    EXPECT_NEAR(sim.mountModel("MM_ME"), 30, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -30, 1e-4);
 
     // The next move is applied again
     sim.snoop(manualAdjustment("Busy", 0, -0.5));
@@ -249,14 +251,14 @@ TEST(TelescopeSimulatorTest, pacMoveFollowsTheCorrectionGain)
 
     sim.snoop(correctionGain(50));
     sim.snoop(manualAdjustment("Busy", 0, 0.5));
-    EXPECT_NEAR(sim.mountModel("MM_ME"), 15, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -15, 1e-4);
     sim.snoop(manualAdjustment("Ok", 0, 0.5));
 
     // Selecting another PAC resets the gain to a full move
     sim.setActivePAC("Other PAC");
     sim.setActivePAC(PAC);
     sim.snoop(manualAdjustment("Busy", 0, 0.5));
-    EXPECT_NEAR(sim.mountModel("MM_ME"), 45, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -45, 1e-4);
 }
 
 int main(int argc, char **argv)

@@ -884,16 +884,16 @@ bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char 
 #ifdef USE_SIM_TAB
 void ScopeSim::applyPACCorrection()
 {
-    // Clients such as Ekos send the measured polar alignment error as the step: a positive azimuth step means
-    // the polar axis is east of the pole (MM_MA < 0), a positive altitude step that it is too high (MM_ME < 0).
-    // Adding the step to MM_MA/MM_ME therefore moves the axis back to the pole.
+    // The steps move the polar axis like a real PAC: a positive azimuth step moves it East, a positive altitude
+    // step raises it. MM_MA > 0 means the axis is west of the pole and MM_ME > 0 that it is too low, so a move
+    // East or up reduces them. Clients send the correction, i.e. the negative of the measured error.
     // The azimuth step is in degrees of azimuth. Near the pole a degree of azimuth spans cos(latitude) degrees
     // on the sky, which is what MM_MA measures. The gain simulates a PAC that moves less than requested.
     const double cosLat = std::cos(alignment.latitude.radians());
     const double oldMA = mountModelNP[MM_MA].getValue();
     const double oldME = mountModelNP[MM_ME].getValue();
-    const double newMA = oldMA + m_snoopedAzError * 60.0 * cosLat * m_snoopedGain;
-    const double newME = oldME + m_snoopedAltError * 60.0 * m_snoopedGain;
+    const double newMA = oldMA - m_snoopedAzError * 60.0 * cosLat * m_snoopedGain;
+    const double newME = oldME - m_snoopedAltError * 60.0 * m_snoopedGain;
 
     mountModelNP[MM_MA].setValue(newMA);
     mountModelNP[MM_ME].setValue(newME);
