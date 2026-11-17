@@ -3503,9 +3503,14 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
             return false;
         }
 
-        // The base class does not send a track mode selected while tracking was off, so apply it now
+        // The base class does not send a track mode selected while tracking was off. Apply Custom now; for the other
+        // modes only clear the rate offsets Custom may have left, so a rate set outside INDI (King, :ST#) is kept.
         if (OnStepMountVersion == OSV_OnStepX)
-            return SetTrackMode(TrackModeSP.findOnSwitchIndex());
+        {
+            if (TrackModeSP.findOnSwitchIndex() == TRACK_CUSTOM)
+                return SetTrackMode(TRACK_CUSTOM);
+            return setTrackRateOffsets(0, 0);
+        }
     }
     else
     {
