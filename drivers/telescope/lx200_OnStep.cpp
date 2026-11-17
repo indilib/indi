@@ -29,6 +29,7 @@
 #include "lx200_OnStep.h"
 
 
+#include <cmath>
 #include <mutex>
 
 #define LIBRARY_TAB  "Library"
@@ -51,7 +52,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 31);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 32);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -2720,8 +2721,9 @@ bool LX200_OnStep::ReadScopeStatus()
             // ============= Error Code: read with the telescope status above
 
             // Refresh current Slew Rate
+            // OnStepX reports the custom rate of :RA#/:RE# as 10 (':'), which is not one of the slew rates
             int idx = OSStat[strlen(OSStat) - 2] - '0';
-            if (SlewRateSP.findOnSwitchIndex() != idx)
+            if (idx >= 0 && idx < static_cast<int>(SlewRateSP.count()) && SlewRateSP.findOnSwitchIndex() != idx)
             {
                 SlewRateSP.reset();
                 SlewRateSP[idx].setState(ISS_ON);
@@ -3500,6 +3502,10 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
             LOGF_ERROR("===CMD==> Track On %s", response);
             return false;
         }
+
+        // The base class does not send a track mode selected while tracking was off, so apply it now
+        if (OnStepMountVersion == OSV_OnStepX)
+            return SetTrackMode(TrackModeSP.findOnSwitchIndex());
     }
     else
     {
@@ -5009,22 +5015,73 @@ bool LX200_OnStep::OSGetOutputState(int output)
     return false;
 }
 
+bool LX200_OnStep::SetTrackMode(uint8_t mode)
+{
+    if (isSimulation())
+        return true;
+
+    if (OnStepMountVersion != OSV_OnStepX)
+    {
+        if (mode == TRACK_CUSTOM)
+        {
+            LOG_ERROR("Custom tracking rates need OnStepX.");
+            return false;
+        }
+        return LX200Generic::SetTrackMode(mode);
+    }
+
+    // Custom tracking is sidereal tracking plus the RA and Dec rate offsets
+    if (mode == TRACK_CUSTOM)
+        return LX200Generic::SetTrackMode(TRACK_SIDEREAL) &&
+               SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
+
+    return setTrackRateOffsets(0, 0) && LX200Generic::SetTrackMode(mode);
+}
+
 bool LX200_OnStep::SetTrackRate(double raRate, double deRate)
 {
-    char read_buffer[RB_MAX_LEN];
-    snprintf(read_buffer, sizeof(read_buffer), ":RA%04f#", raRate);
-    LOGF_INFO("Setting: Custom RA Rate to %04f", raRate);
-    if (!sendOnStepCommand(read_buffer))
+    if (isSimulation())
+        return true;
+
+    if (OnStepMountVersion != OSV_OnStepX)
     {
+        LOG_ERROR("Custom tracking rates need OnStepX.");
         return false;
     }
-    snprintf(read_buffer, sizeof(read_buffer), ":RE%04f#", deRate);
-    LOGF_INFO("Setting: Custom DE Rate to %04f", deRate);
-    if (!sendOnStepCommand(read_buffer))
+
+    // INDI rates are in arcsec per SI second, with TRACKRATE_SIDEREAL on RA tracking the stars. OnStepX offsets are
+    // in arcsec per sidereal second (15 is the sidereal rate); a positive RA offset makes RA increase.
+    const double toSiderealSecond = 15.0 / TRACKRATE_SIDEREAL;
+    return setTrackRateOffsets((TRACKRATE_SIDEREAL - raRate) * toSiderealSecond, deRate * toSiderealSecond);
+}
+
+bool LX200_OnStep::setTrackRateOffsets(double raOffset, double decOffset)
+{
+    // OnStepX limits the offsets to +/-1800 arcsec per sidereal second
+    if (std::fabs(raOffset) > 1800 || std::fabs(decOffset) > 1800)
     {
+        LOG_ERROR("Custom tracking rates must be within 1800 arcsec/s of sidereal tracking.");
         return false;
     }
-    LOG_INFO("Custom RA and DE Rates successfully set");
+
+    char cmd[CMD_MAX_LEN] = {0};
+    char response[RB_MAX_LEN] = {0};
+
+    snprintf(cmd, sizeof(cmd), ":SXTR,%.6f#", raOffset);
+    if (getCommandSingleCharResponse(PortFD, response, cmd) < 0 || response[0] != '1')
+    {
+        LOGF_ERROR("Failed to set the RA tracking rate offset (%s).", response);
+        return false;
+    }
+
+    snprintf(cmd, sizeof(cmd), ":SXTD,%.6f#", decOffset);
+    if (getCommandSingleCharResponse(PortFD, response, cmd) < 0 || response[0] != '1')
+    {
+        LOGF_ERROR("Failed to set the Dec tracking rate offset (%s).", response);
+        return false;
+    }
+
+    LOGF_DEBUG("Tracking rate offsets RA %.6f, Dec %.6f arcsec per sidereal second.", raOffset, decOffset);
     return true;
 }
 

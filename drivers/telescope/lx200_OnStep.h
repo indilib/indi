@@ -24,6 +24,7 @@
 
     ===========================================
 
+    Version 1.32: Custom track mode with the OnStepX tracking rate offsets (:SXTR#, :SXTD#).
     Version 1.26: Fix issues due to migration to new INDI properties.
     Version 1.25: Refactor driver to use INDI new properties.
     Version 1.24: During manual slew, only send back RA & DE.
@@ -195,6 +196,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual bool SetCurrentPark() override;
         virtual bool SetDefaultPark() override;
         virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
         virtual bool ReadScopeStatus() override;
@@ -457,4 +459,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
     private:
         int currentCatalog;
         int currentSubCatalog;
+
+        // OnStepX tracking rate offsets in arcsec per sidereal second, applied on top of sidereal tracking
+        bool setTrackRateOffsets(double raOffset, double decOffset);
 };
