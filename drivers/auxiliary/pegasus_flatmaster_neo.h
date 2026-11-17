@@ -138,6 +138,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         PegasusAstro::WiFi wifi {this};
         bool m_IsTCP{ false };
 
+        // Polls in a row without a status reply; after MAX_FAILED_POLLS the driver disconnects.
+        int m_FailedPolls{ 0 };
+        static constexpr int MAX_FAILED_POLLS{ 3 };
+
         // Cap position requested by ParkCap()/UnParkCap(), to tell a finished move from one not started yet.
         int m_CapTarget{ 0 };
         std::chrono::steady_clock::time_point m_CapMoveStarted;
