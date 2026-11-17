@@ -67,6 +67,9 @@
 #define TRACKING_END "TRACKING_END"
 #define ALLOWED_MERIDIAN_SIDE "ALLOWED_MERIDIAN_SIDE"
 #define TARGET_PIER_SIDE "TARGET_PIER_SIDE"
+#define SLEW_SETTLE_TIME "SLEW_SETTLE_TIME"
+// The protocol allows 0 to 99999 s; writes above this are refused, values above it set elsewhere are shown
+#define SLEW_SETTLE_TIME_MAX_IN_S 60
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
@@ -88,7 +91,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 5); // don't forget to update drivers.xml
+    setVersion(1, 6); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -219,7 +222,8 @@ bool LX200_10MICRON::initProperties()
                 "%.0f", 2, 30, 1, 2);
         MeridianLimitsNP.fill(getDeviceName(), MERIDIAN_LIMITS, "Meridian Limits", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s)", "%.0f", 0, 999999, 0, 0);
+        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s), estimate in whole minutes", "%.0f", 0, 999999, 0,
+                              0);
         TrackingEndNP.fill(getDeviceName(), TRACKING_END, "Tracking End", MOTION_TAB, IP_RO, 60, IPS_IDLE);
 
         // Labels (TELESCOPE_PIER_SIDE style): the pier side the mount is allowed to use.
@@ -228,7 +232,7 @@ bool LX200_10MICRON::initProperties()
         AllowedMeridianSideSP[MERIDIAN_SIDE_BOTH].fill("BOTH", "Both", ISS_ON);
         AllowedMeridianSideSP[MERIDIAN_SIDE_WEST_ONLY].fill("WEST_ONLY", "East (pointing west)", ISS_OFF);
         AllowedMeridianSideSP[MERIDIAN_SIDE_EAST_ONLY].fill("EAST_ONLY", "West (pointing east)", ISS_OFF);
-        AllowedMeridianSideSP.fill(getDeviceName(), ALLOWED_MERIDIAN_SIDE, "Meridian Side", MOTION_TAB, IP_RW,
+        AllowedMeridianSideSP.fill(getDeviceName(), ALLOWED_MERIDIAN_SIDE, "Allowed Meridian Side", MOTION_TAB, IP_RW,
                                    ISR_1OFMANY, 60, IPS_IDLE);
 
         TargetPierSideSP[TARGET_PIER_WEST].fill("PIER_WEST", "West (pointing east)", ISS_OFF);
@@ -236,6 +240,10 @@ bool LX200_10MICRON::initProperties()
         TargetPierSideSP[TARGET_PIER_NONE].fill("NONE", "None (no target or unreachable)", ISS_ON);
         TargetPierSideSP.fill(getDeviceName(), TARGET_PIER_SIDE, "Target Pier Side", MOTION_TAB, IP_RO, ISR_1OFMANY, 60,
                               IPS_IDLE);
+
+        // Slew settle time, a mount setting that only the protocol manual describes, see getSlewSettleTime
+        SlewSettleTimeNP[0].fill("SETTLE_TIME_IN_S", "Slew settle time (s)", "%.3f", 0, SLEW_SETTLE_TIME_MAX_IN_S, 1, 0);
+        SlewSettleTimeNP.fill(getDeviceName(), SLEW_SETTLE_TIME, "Slew Settle Time", MOTION_TAB, IP_RW, 60, IPS_IDLE);
     }
     return result;
 }
@@ -253,6 +261,10 @@ bool LX200_10MICRON::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &UnattendedFlipSP);
     IUSaveConfigText(fp, &WoLMacTP);
+    // The driver owns the mount settings: saved values are written to the mount when the config is loaded
+    SlewSettleTimeNP.save(fp);
+    MeridianLimitsNP.save(fp);
+    AllowedMeridianSideSP.save(fp);
     return true;
 }
 
@@ -284,6 +296,7 @@ bool LX200_10MICRON::updateProperties()
         // Read the values before defining the properties: clients such as KStars fill their edit fields
         // (sliders) from the definition, so pressing Set without changes then writes the mount's own values.
         updateMeridianValues(true);
+        defineProperty(SlewSettleTimeNP);
         defineProperty(MeridianLimitsNP);
         defineProperty(TrackingEndNP);
         defineProperty(AllowedMeridianSideSP);
@@ -343,6 +356,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(TrackingEndNP);
         deleteProperty(AllowedMeridianSideSP);
         deleteProperty(TargetPierSideSP);
+        deleteProperty(SlewSettleTimeNP);
     }
 
     return result;
@@ -539,7 +553,7 @@ bool LX200_10MICRON::ReadScopeStatus()
             LOGF_INFO("Gstat initialized at %d", Ginfo.Gstat);
         }
     }
-    // The mount can be unparked by another client, such as MountWizzard4 or the hand pad.
+    // The mount can be unparked by another client or the hand pad.
     // Clear our parked state only when Gstat clearly says the mount is not parked, and leave it
     // alone for conditions that say nothing about the position (motors too cold, user OK
     // needed, unknown, error). Done before the switch below, as SetParked(false) also resets TrackState.
@@ -566,7 +580,12 @@ bool LX200_10MICRON::ReadScopeStatus()
     switch (Ginfo.Gstat)
     {
         case GSTAT_TRACKING:
-            TrackState = SCOPE_TRACKING;
+            // Settling is the last part of a slew. The protocol manual says that after a slew the :D# command
+            // (Ginfo field 8) "will return a slewing status for the time duration set in" :Sstm, while
+            // "the :Gstat# command is not affected by this setting". Gstat is already 0 then, so only the
+            // slew flag tells that the mount is still settling. Clients must not start exposures before that.
+            // On a GM2000HPS the settle time starts when Gstat leaves 6, not when the motors stop.
+            TrackState = (Ginfo.SlewStatus == 1) ? SCOPE_SLEWING : SCOPE_TRACKING;
             break;
         case GSTAT_STOPPED:
             TrackState = SCOPE_IDLE;
@@ -589,7 +608,9 @@ bool LX200_10MICRON::ReadScopeStatus()
             TrackState = SCOPE_SLEWING;
             break;
         case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
-            TrackState = SCOPE_IDLE;
+            // A slew that ends without tracking (e.g. :MaX#, slew to axis positions and stop) settles in Gstat 7:
+            // the slew flag stays 1 for the settle time here too.
+            TrackState = (Ginfo.SlewStatus == 1) ? SCOPE_SLEWING : SCOPE_IDLE;
             break;
         case GSTAT_MOTORS_TOO_COLD:
             TrackState = SCOPE_IDLE;
@@ -616,6 +637,13 @@ bool LX200_10MICRON::ReadScopeStatus()
 
     OldGstat = Ginfo.Gstat;
     NewRaDec(Ginfo.RA_JNOW, Ginfo.DEC_JNOW);
+
+    const bool slewing = (TrackState == SCOPE_SLEWING);
+    if (slewing != MountSlewing)
+    {
+        MountSlewing = slewing;
+        updateSlewDependentValues();
+    }
 
     // Update alignment Mini new alignment point Read-Only fields
     char LocalSiderealTimeS[80];
@@ -818,18 +846,58 @@ bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
     return false;
 }
 
+// Called by ReadScopeStatus when the mount starts or stops slewing (settling included).
+// The time to tracking end and the target pier side depend on the position and the target.
+// While the mount slews they are Busy: the last values belong to the previous position.
+// When the slew has ended they are read again and become Ok, also when the value did not change,
+// so clients get an event telling them the values now belong to the new position.
+// Slews started outside INDI (keypad, other clients) are handled the same way, as this follows the mount state.
+void LX200_10MICRON::updateSlewDependentValues()
+{
+    if (isSimulation())
+        return;
+
+    if (MountSlewing)
+    {
+        TrackingEndNP.setState(IPS_BUSY);
+        TrackingEndNP.apply();
+        TargetPierSideSP.setState(IPS_BUSY);
+        TargetPierSideSP.apply();
+    }
+    else
+    {
+        // Whether the slew completed or was aborted is not known here, hence the neutral wording
+        LOG_INFO("Slew ended, mount settled.");
+        getTimeToTrackingEnd();
+        getTargetPierSide();
+        lastMeridianFastPoll = std::chrono::steady_clock::now();
+    }
+}
+
 // Called at connect with all=true, and by ReadScopeStatus with all=false.
-// The time to tracking end and the target pier side change while the mount tracks, so they are read
-// every 10 seconds. The limits, meridian side and unattended flip only change when someone changes them,
-// here or elsewhere, or (unattended flip) when the mount powers up, so they are read every 60 seconds.
+
+// The time to tracking end and the target pier side change while the mount
+// tracks, so they are read every 10 seconds (not while slewing, see
+// updateSlewDependentValues).
+// The unattended flip setting is read every 60 seconds because the mount
+// resets it when it powers up.
+// The meridian limits, meridian side and slew settle time are read every 60
+// seconds only to show changes made outside this driver. That is not the
+// intended mode of operation: this driver owns these mount settings and writes
+// the saved ones when the config is loaded.
+
 // Properties are only sent when they change.
 void LX200_10MICRON::updateMeridianValues(bool all)
 {
     if (isSimulation())
         return;
 
+    if (all)
+        MountSlewing = false;
+
     const auto now = std::chrono::steady_clock::now();
-    if (all || now - lastMeridianFastPoll >= std::chrono::seconds(10))
+    // While slewing the slew dependent values stay Busy, see updateSlewDependentValues
+    if (all || (!MountSlewing && now - lastMeridianFastPoll >= std::chrono::seconds(10)))
     {
         getTimeToTrackingEnd();
         getTargetPierSide();
@@ -840,6 +908,7 @@ void LX200_10MICRON::updateMeridianValues(bool all)
         const LX200_10MICRON_READ_CONTEXT context = all ? READ_AT_CONNECT : READ_PERIODIC;
         getMeridianLimits(context);
         getAllowedMeridianSide(context);
+        getSlewSettleTime(context);
         // At connect this is already done by getBasicData
         if (!all)
             updateUnattendedFlipSetting(READ_PERIODIC);
@@ -1014,7 +1083,7 @@ bool LX200_10MICRON::getAllowedMeridianSide(LX200_10MICRON_READ_CONTEXT context)
         }
         else if (context == READ_AT_CONNECT || AllowedMeridianSideSP.getState() != IPS_ALERT)
         {
-            LOG_WARN("Failed to read the meridian side.");
+            LOG_WARN("Failed to read the allowed meridian side.");
             AllowedMeridianSideSP.setState(IPS_ALERT);
             AllowedMeridianSideSP.apply();
         }
@@ -1028,9 +1097,9 @@ bool LX200_10MICRON::getAllowedMeridianSide(LX200_10MICRON_READ_CONTEXT context)
     if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
     {
         if (context == READ_AT_CONNECT)
-            LOGF_INFO("Meridian side is %s.", AllowedMeridianSideSP[index].getLabel());
+            LOGF_INFO("Allowed meridian side is %s.", AllowedMeridianSideSP[index].getLabel());
         else
-            LOGF_INFO("Meridian side changed on the mount: %s.", AllowedMeridianSideSP[index].getLabel());
+            LOGF_INFO("Allowed meridian side changed on the mount: %s.", AllowedMeridianSideSP[index].getLabel());
         AllowedMeridianSideSP.apply();
     }
     return true;
@@ -1114,6 +1183,81 @@ bool LX200_10MICRON::getTargetPierSide()
         TargetPierSideSP.apply();
     }
     return true;
+}
+
+bool LX200_10MICRON::getSlewSettleTime(LX200_10MICRON_READ_CONTEXT context)
+{
+    // #:Gstm#
+    // Returns the slew settle time. After a slew has been completed, the :D# and :GDW#
+    // commands will return a slewing status for the time duration set in this command.
+    // Note: the :Gstat# command is not affected by this setting.
+    // Returns: NNNNN.NNN#
+    // The mount settle time in seconds.
+    // Available from version 2.9.14.
+    // The user manual (firmware 3.1.4) has no such setting. The driver treats settling as part of the slew, see
+    // ReadScopeStatus. The panel range is 0 to SLEW_SETTLE_TIME_MAX_IN_S; a larger value set outside INDI is
+    // still shown as it is, by raising the maximum.
+    // What is logged and sent to clients depends on the context, as in getMeridianLimits.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char settleTimeString[80] = {0};
+    double seconds = 0;
+    if (getCommandString(PortFD, settleTimeString, "#:Gstm#") != 0 || sscanf(settleTimeString, "%lf", &seconds) != 1)
+    {
+        if (context == READ_AFTER_WRITE)
+        {
+            SlewSettleTimeNP.setState(IPS_ALERT);
+        }
+        else if (context == READ_AT_CONNECT || SlewSettleTimeNP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the slew settle time.");
+            SlewSettleTimeNP.setState(IPS_ALERT);
+            SlewSettleTimeNP.apply();
+        }
+        return false;
+    }
+    const bool changed = SlewSettleTimeNP[0].getValue() != seconds || SlewSettleTimeNP.getState() != IPS_OK;
+    const double max = std::max(static_cast<double>(SLEW_SETTLE_TIME_MAX_IN_S), seconds);
+    const bool maxChanged = SlewSettleTimeNP[0].getMax() != max;
+    SlewSettleTimeNP[0].setMax(max);
+    SlewSettleTimeNP[0].setValue(seconds);
+    SlewSettleTimeNP.setState(IPS_OK);
+    if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+    {
+        const char *range = (seconds > SLEW_SETTLE_TIME_MAX_IN_S) ? "above the usual range" : "range";
+        if (context == READ_AT_CONNECT)
+            LOGF_INFO("Slew settle time is %.3f s, %s 0-%d s.", seconds, range, SLEW_SETTLE_TIME_MAX_IN_S);
+        else
+            LOGF_INFO("Slew settle time changed on the mount: %.3f s, %s 0-%d s.", seconds, range,
+                      SLEW_SETTLE_TIME_MAX_IN_S);
+    }
+    // A changed maximum must reach the clients (KStars refreshes its edit field from it); that update also carries
+    // the value. At connect the definition carries both. After a write the caller sends the update.
+    if (maxChanged && context == READ_PERIODIC)
+        SlewSettleTimeNP.updateMinMax();
+    else if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+        SlewSettleTimeNP.apply();
+    return true;
+}
+
+bool LX200_10MICRON::setSlewSettleTime(double seconds)
+{
+    // #:SstmNNNNN.NNN#
+    // Sets the slew settle time to NNNNN.NNN seconds (from 0 to 99999 s). After a slew of
+    // the mount has been completed, the :D# and :GDW# commands will return a slewing
+    // status for the time duration set in this command.
+    // Note: the :Gstat# command is not affected by this setting.
+    // Returns:
+    // 0 invalid
+    // 1 valid
+    // Available from version 2.9.14.
+    // The reply is a bare digit without '#'. The caller checks the range 0 to SLEW_SETTLE_TIME_MAX_IN_S.
+    // Afterwards the settle time is read back, so clients see what the mount actually uses.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char data[64];
+    snprintf(data, sizeof(data), "#:Sstm%09.3f#", seconds);
+    const bool result = (0 == setStandardProcedureAndExpectChar(fd, data, "1"));
+    getSlewSettleTime(READ_AFTER_WRITE);
+    return result;
 }
 
 bool LX200_10MICRON::Flip(double ra, double dec)
@@ -1528,6 +1672,41 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             MeridianLimitsNP.apply();
             return result;
         }
+        if (SlewSettleTimeNP.isNameMatch(name))
+        {
+            double seconds = SlewSettleTimeNP[0].getValue();
+            for (int i = 0; i < n; i++)
+            {
+                if (SlewSettleTimeNP[0].isNameMatch(names[i]))
+                    seconds = values[i];
+            }
+            if (seconds < 0 || seconds > SLEW_SETTLE_TIME_MAX_IN_S)
+            {
+                LOGF_ERROR("Slew settle time %.3f s is outside the range 0-%d s, nothing written to the mount.", seconds,
+                           SLEW_SETTLE_TIME_MAX_IN_S);
+                SlewSettleTimeNP.setState(IPS_ALERT);
+                SlewSettleTimeNP.apply();
+                return false;
+            }
+            // One log line and one property update, showing what the mount reports after the write
+            bool result = false;
+            if (!setSlewSettleTime(seconds))
+            {
+                LOGF_ERROR("The mount refused slew settle time %.3f s.", seconds);
+                SlewSettleTimeNP.setState(IPS_ALERT);
+            }
+            else if (SlewSettleTimeNP.getState() == IPS_ALERT)
+            {
+                LOG_WARN("Slew settle time was written, but could not be read back.");
+            }
+            else
+            {
+                LOGF_INFO("Slew settle time set: %.3f s.", SlewSettleTimeNP[0].getValue());
+                result = true;
+            }
+            SlewSettleTimeNP.updateMinMax();
+            return result;
+        }
         if (strcmp(name, REFRACTION_MODEL_TEMPERATURE) == 0)
         {
             IUUpdateNumber(&RefractionModelTemperatureNP, values, names, n);
@@ -1666,21 +1845,21 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             bool result = false;
             if (!setAllowedMeridianSide(index))
             {
-                LOGF_ERROR("The mount refused meridian side %s.", label);
+                LOGF_ERROR("The mount refused allowed meridian side %s.", label);
                 AllowedMeridianSideSP.setState(IPS_ALERT);
             }
             else if (AllowedMeridianSideSP.getState() == IPS_ALERT)
             {
-                LOG_WARN("Meridian side was written, but could not be read back.");
+                LOG_WARN("Allowed meridian side was written, but could not be read back.");
             }
             else if (AllowedMeridianSideSP.findOnSwitchIndex() != index)
             {
-                LOGF_ERROR("The mount did not take meridian side %s.", label);
+                LOGF_ERROR("The mount did not take allowed meridian side %s.", label);
                 AllowedMeridianSideSP.setState(IPS_ALERT);
             }
             else
             {
-                LOGF_INFO("Meridian side set: %s.", label);
+                LOGF_INFO("Allowed meridian side set: %s.", label);
                 result = true;
             }
             AllowedMeridianSideSP.apply();

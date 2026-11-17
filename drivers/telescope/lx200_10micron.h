@@ -161,6 +161,8 @@ class LX200_10MICRON : public LX200Generic
         bool getAllowedMeridianSide(LX200_10MICRON_READ_CONTEXT context);
         bool setAllowedMeridianSide(int side);
         bool getTargetPierSide();
+        bool getSlewSettleTime(LX200_10MICRON_READ_CONTEXT context);
+        bool setSlewSettleTime(double seconds);
         bool SyncConfigBehaviour(bool cmcfg);
         bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
         bool SetTLEtoFollow(const char *tle);
@@ -235,6 +237,7 @@ class LX200_10MICRON : public LX200Generic
         INDI::PropertyNumber TrackingEndNP {1};
         INDI::PropertySwitch AllowedMeridianSideSP {MERIDIAN_SIDE_COUNT};
         INDI::PropertySwitch TargetPierSideSP {TARGET_PIER_COUNT};
+        INDI::PropertyNumber SlewSettleTimeNP {1};
 
     private:
         int fd = -1; // short notation for PortFD/sockfd
@@ -248,6 +251,9 @@ class LX200_10MICRON : public LX200Generic
         void updateMeridianValues(bool all);
         std::chrono::steady_clock::time_point lastMeridianFastPoll;
         std::chrono::steady_clock::time_point lastMeridianSlowPoll;
+        // Slewing including settling, as last seen by ReadScopeStatus
+        bool MountSlewing { false };
+        void updateSlewDependentValues();
 
         int OldGstat = GSTAT_UNSET;
         struct _Ginfo
