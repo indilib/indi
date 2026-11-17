@@ -38,7 +38,7 @@ static std::unique_ptr<AvalonUPAS> upas(new AvalonUPAS());
 AvalonUPAS::AvalonUPAS()
     : PACInterface(this)
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     SetCapability(PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH);
 }
 
@@ -92,6 +92,10 @@ bool AvalonUPAS::initProperties()
     ALTApproachSP.fill(getDeviceName(), "PAC_ALT_APPROACH", "Altitude Approach", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Unlock: clears a GRBL alarm ($X) without a power cycle.
+    UnlockSP[0].fill("UNLOCK", "Unlock", ISS_OFF);
+    UnlockSP.fill(getDeviceName(), "PAC_UNLOCK", "Alarm", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // Firmware (read-only, populated in Handshake)
     FirmwareTP[0].fill("VERSION", "Version", "Unknown");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
@@ -120,6 +124,7 @@ bool AvalonUPAS::updateProperties()
         defineProperty(GearRatioNP);
         defineProperty(FeedRateNP);
         defineProperty(MinMoveNP);
+        defineProperty(UnlockSP);
         defineProperty(FirmwareTP);
     }
     else
@@ -127,6 +132,7 @@ bool AvalonUPAS::updateProperties()
         deleteProperty(GearRatioNP);
         deleteProperty(FeedRateNP);
         deleteProperty(MinMoveNP);
+        deleteProperty(UnlockSP);
         deleteProperty(FirmwareTP);
     }
 
@@ -173,17 +179,8 @@ bool AvalonUPAS::Handshake()
 
     // Opening the port may also hard-reset the Arduino (DTR), and its bootloader swallows anything
     // sent before GRBL runs. Either way GRBL prints its "Grbl x.y" banner once it is ready, so wait
-    // for that line instead of a fixed delay. Blank lines from the banner are skipped.
-    bool grblReady = false;
-    for (int i = 0; i < 10 && !grblReady; i++)
-    {
-        // Read one byte less than the buffer so the line always stays null-terminated.
-        char line[DRIVER_LEN] = {0};
-        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
-            break;
-        grblReady = strstr(line, "Grbl") != nullptr;
-    }
-    if (!grblReady)
+    // for that line instead of a fixed delay.
+    if (!waitForBanner())
         LOG_WARN("No GRBL startup banner received, trying the status query anyway.");
     tcflush(PortFD, TCIOFLUSH);
 
@@ -201,24 +198,14 @@ bool AvalonUPAS::Handshake()
     // Parse position and state from the response.
     parseStatus(res);
 
-    // Try to read GRBL version via $I command.
-    char ver[DRIVER_LEN] = {0};
-    if (sendCommand("$I", ver))
+    // Read the GRBL version with $I. It answers with "[VER:1.1f.20170801:]", "[OPT:...]" and "ok".
+    sendLineCommand("$I", [this](const char *line)
     {
-        // GRBL version is typically on a line like "[VER:1.1f.20170801:]"
-        const char *tag = strstr(ver, "[VER:");
-        if (tag)
-        {
-            // Extract up to the colon that separates the optional build info, or the closing bracket
-            char version[64] = {0};
-            sscanf(tag, "[VER:%63[^]:]", version);
+        // Extract up to the colon that separates the optional build info, or the closing bracket
+        char version[64] = {0};
+        if (sscanf(line, "[VER:%63[^]:]", version) == 1)
             FirmwareTP[0].setText(version);
-        }
-        else
-        {
-            FirmwareTP[0].setText(ver);
-        }
-    }
+    });
 
     readReverseFlags();
 
@@ -226,46 +213,63 @@ bool AvalonUPAS::Handshake()
     return true;
 }
 
+bool AvalonUPAS::waitForBanner()
+{
+    // Blank lines around the banner are skipped.
+    for (int i = 0; i < 10; i++)
+    {
+        // Read one byte less than the buffer so the line always stays null-terminated.
+        char line[DRIVER_LEN] = {0};
+        int nbytes = 0;
+        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
+            return false;
+        if (strstr(line, "Grbl") != nullptr)
+            return true;
+    }
+    return false;
+}
+
 bool AvalonUPAS::readReverseFlags()
 {
-    // "$$" lists every GRBL setting as one "$n=value" line, followed by "ok". The lines arrive
-    // as a burst, so read them directly; sendCommand() would flush the rest after the first line.
-    tcflush(PortFD, TCIOFLUSH);
-    int nbytes = 0;
-    if (tty_write_string(PortFD, "$$\n", &nbytes) != TTY_OK)
-        return false;
-
-    bool settingsSeen = false;
-    for (int i = 0; i < 64; i++)
+    // "$$" lists every GRBL setting as one "$n=value" line, followed by "ok". Read the listing to
+    // its end, so none of its lines is left over as the reply to the next command.
+    int mask = -1;
+    const bool ok = sendLineCommand("$$", [&mask](const char *line)
     {
-        char line[DRIVER_LEN] = {0};
-        if (tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes) != TTY_OK)
-            break;
+        sscanf(line, "$3=%d", &mask);
+    });
 
-        int mask = 0;
-        if (sscanf(line, "$3=%d", &mask) == 1)
-        {
-            m_ReverseFlags = static_cast<uint8_t>(mask & 0x03);
-            AZReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x01) ? ISS_ON : ISS_OFF);
-            AZReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x01) ? ISS_OFF : ISS_ON);
-            ALTReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x02) ? ISS_ON : ISS_OFF);
-            ALTReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x02) ? ISS_OFF : ISS_ON);
-            LOGF_DEBUG("GRBL axis reverse mask $3=%d.", m_ReverseFlags);
-            tcflush(PortFD, TCIOFLUSH);
-            return true;
-        }
-
-        // A late "ok" from the previous command can arrive first, so "ok" only ends the
-        // listing once settings lines have been seen.
-        if (line[0] == '$')
-            settingsSeen = true;
-        else if ((settingsSeen && strncmp(line, "ok", 2) == 0) || strncmp(line, "error", 5) == 0)
-            break;
+    if (!ok || mask < 0)
+    {
+        LOG_WARN("Could not read the GRBL axis reverse setting ($3), assuming no axis is reversed.");
+        return false;
     }
 
-    tcflush(PortFD, TCIOFLUSH);
-    LOG_WARN("Could not read the GRBL axis reverse setting ($3), assuming no axis is reversed.");
-    return false;
+    m_ReverseFlags = static_cast<uint8_t>(mask & 0x03);
+    AZReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x01) ? ISS_ON : ISS_OFF);
+    AZReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x01) ? ISS_OFF : ISS_ON);
+    ALTReverseSP[INDI_ENABLED].setState((m_ReverseFlags & 0x02) ? ISS_ON : ISS_OFF);
+    ALTReverseSP[INDI_DISABLED].setState((m_ReverseFlags & 0x02) ? ISS_OFF : ISS_ON);
+    LOGF_DEBUG("GRBL axis reverse mask $3=%d.", m_ReverseFlags);
+    return true;
+}
+
+bool AvalonUPAS::unlock()
+{
+    // GRBL answers "[MSG:Caution: Unlocked]" and "ok", or an error if it cannot unlock (e.g. Door).
+    if (!sendLineCommand("$X"))
+    {
+        LOG_ERROR("UPAS could not be unlocked. Check the device, then power-cycle it.");
+        return false;
+    }
+
+    LOG_INFO("UPAS unlocked. A move interrupted by the alarm may have shifted the position.");
+
+    // Show the new state right away instead of at the next poll.
+    char res[DRIVER_LEN] = {0};
+    if (sendCommand("?", res))
+        parseStatus(res);
+    return true;
 }
 
 void AvalonUPAS::TimerHit()
@@ -304,17 +308,25 @@ bool AvalonUPAS::parseStatus(const char *response)
     if (start != nullptr)
         sscanf(start, "<%15[^|:>]", state);
 
-    // A held motion is paused, not finished. Alarm and Door stop GRBL until it is unlocked or reset.
+    // Alarm and Door stop GRBL until it is unlocked or reset. A feed hold pauses the move until GRBL
+    // gets a cycle start, which the driver never sends, so it ends the move instead of keeping it busy.
     bool wasMoving = m_IsMoving;
-    m_IsMoving = strcmp(state, "Jog") == 0 || strcmp(state, "Run") == 0 || strcmp(state, "Hold") == 0;
-    const bool fault = strcmp(state, "Alarm") == 0 || strcmp(state, "Door") == 0;
+    m_IsMoving = strcmp(state, "Jog") == 0 || strcmp(state, "Run") == 0;
+    const bool alarm = strcmp(state, "Alarm") == 0;
+    const bool door  = strcmp(state, "Door") == 0;
+    const bool held  = strcmp(state, "Hold") == 0;
 
-    if (fault)
+    if (alarm || door || held)
     {
-        if (!m_IsFault)
-            LOGF_ERROR("UPAS reports state %s and does not move. Check the device, then power-cycle it.", state);
-        m_IsFault  = true;
-        m_IsMoving = false;
+        if (alarm && !m_IsFault)
+            LOG_ERROR("UPAS reports an alarm and does not move. Check the device, then press Unlock.");
+        else if (door && !m_IsFault)
+            LOG_ERROR("UPAS reports state Door and does not move. Check the device, then power-cycle it.");
+        else if (held && !m_IsHeld)
+            LOG_WARN("UPAS motion is on feed hold. Abort discards the held move.");
+
+        m_IsFault = alarm || door;
+        m_IsHeld  = held;
 
         PositionNP.setState(IPS_ALERT);
         PositionNP.apply();
@@ -327,6 +339,7 @@ bool AvalonUPAS::parseStatus(const char *response)
         return true;
     }
     m_IsFault = false;
+    m_IsHeld  = false;
 
     PositionNP.setState(m_IsMoving ? IPS_BUSY : IPS_OK);
     PositionNP.apply();
@@ -511,8 +524,10 @@ bool AvalonUPAS::SetPACSpeed(uint16_t speed)
 
 bool AvalonUPAS::AbortMotion()
 {
-    // GRBL real-time jog cancel command (single byte 0x85, no newline needed).
-    const char cancel = '\x85';
+    // GRBL real-time jog cancel command (single byte 0x85, no newline needed). GRBL ignores it
+    // during a feed hold; a soft reset (0x18) then discards the held move and keeps the position.
+    const bool held = m_IsHeld;
+    const char cancel = held ? '\x18' : '\x85';
     int nbytes = 0;
     int rc = tty_write(PortFD, &cancel, 1, &nbytes);
     if (rc != TTY_OK)
@@ -523,8 +538,16 @@ bool AvalonUPAS::AbortMotion()
         return false;
     }
 
+    // After a soft reset GRBL prints its banner; read it so it is not taken as a reply.
+    if (held)
+    {
+        waitForBanner();
+        tcflush(PortFD, TCIOFLUSH);
+    }
+
     m_IsMoving = false;
-    LOG_INFO("UPAS motion aborted.");
+    m_IsHeld   = false;
+    LOG_INFO(held ? "UPAS held motion discarded." : "UPAS motion aborted.");
     return true;
 }
 
@@ -641,6 +664,14 @@ bool AvalonUPAS::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        if (UnlockSP.isNameMatch(name))
+        {
+            UnlockSP.reset();
+            UnlockSP.setState(unlock() ? IPS_OK : IPS_ALERT);
+            UnlockSP.apply();
+            return true;
+        }
+
         if (PACI::processSwitch(dev, name, states, names, n))
             return true;
     }
@@ -667,10 +698,11 @@ bool AvalonUPAS::sendCommand(const char *cmd, char *res, int cmd_len, int res_le
     }
     else
     {
-        // String command: append newline
+        // String command: append newline. The status query '?' is a real-time command and is sent
+        // alone: GRBL would read a newline after it as an empty line and answer it with an extra "ok".
         LOGF_DEBUG("CMD <%s>", cmd);
         char formatted[DRIVER_LEN] = {0};
-        snprintf(formatted, DRIVER_LEN, "%s\n", cmd);
+        snprintf(formatted, DRIVER_LEN, strcmp(cmd, "?") == 0 ? "%s" : "%s\n", cmd);
         rc = tty_write_string(PortFD, formatted, &nbytes_written);
     }
 
@@ -708,6 +740,58 @@ bool AvalonUPAS::sendCommand(const char *cmd, char *res, int cmd_len, int res_le
 
     tcflush(PortFD, TCIOFLUSH);
     return true;
+}
+
+bool AvalonUPAS::sendLineCommand(const char *cmd, const std::function<void(const char *line)> &onLine)
+{
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+    char formatted[DRIVER_LEN] = {0};
+    snprintf(formatted, DRIVER_LEN, "%s\n", cmd);
+    int nbytes = 0;
+    int rc = tty_write_string(PortFD, formatted, &nbytes);
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s.", errstr);
+        return false;
+    }
+
+    // "$$" sends about 35 lines; the limit only guards against a device that never ends its reply.
+    for (int i = 0; i < 100; i++)
+    {
+        // Read one byte less than the buffer so the line always stays null-terminated.
+        char line[DRIVER_LEN] = {0};
+        rc = tty_nread_section(PortFD, line, DRIVER_LEN - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes);
+        if (rc != TTY_OK)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Serial read error after %s: %s.", cmd, errstr);
+            return false;
+        }
+
+        line[strcspn(line, "\r\n")] = '\0';
+        if (line[0] == '\0')
+            continue;
+        LOGF_DEBUG("RES <%s>", line);
+
+        if (strcmp(line, "ok") == 0)
+            return true;
+        if (strncmp(line, "error", 5) == 0)
+        {
+            LOGF_ERROR("UPAS rejected %s: %s", cmd, line);
+            return false;
+        }
+        if (onLine)
+            onLine(line);
+    }
+
+    LOGF_ERROR("No end of the reply to %s.", cmd);
+    tcflush(PortFD, TCIOFLUSH);
+    return false;
 }
 
 void AvalonUPAS::hexDump(char *buf, const char *data, int size)

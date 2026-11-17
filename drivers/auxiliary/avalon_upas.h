@@ -26,6 +26,8 @@
 #include "indipacinterface.h"
 #include "connectionplugins/connectionserial.h"
 
+#include <functional>
+
 /**
  * @brief The AvalonUPAS class drives the Avalon Instruments Universal Polar
  *        Alignment System (UPAS) via its GRBL-based serial protocol.
@@ -47,7 +49,9 @@
  * An axis whose move is below a minimum (PAC_MIN_MOVE, arcminutes) is skipped: such a move is lost
  * in the backlash anyway, and the compensation would run the full overshoot and approach for it.
  *
- * At connect the reverse mask ($3) is read from GRBL. Alarm and Door states are reported as errors.
+ * At connect the reverse mask ($3) is read from GRBL. Alarm and Door states are reported as errors;
+ * an alarm can be cleared with PAC_UNLOCK ($X). A feed hold ends the move with an alert; Abort
+ * discards the held move with a soft reset, which keeps the position.
  *
  * Capabilities: PAC_HAS_SPEED | PAC_CAN_REVERSE | PAC_HAS_POSITION | PAC_HAS_BACKLASH
  * Feed rate is set per axis (PAC_FEED_RATE). The interface's speed (PAC_SPEED, mm/min) caps both axes.
@@ -102,11 +106,26 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
          */
         bool sendCommand(const char *cmd, char *res = nullptr, int cmd_len = -1, int res_len = -1);
 
+        /**
+         * @brief sendLineCommand Send a GRBL line command and read its whole reply up to the final
+         *        "ok" or "error:n", so no line of it is left for the next command.
+         * @param cmd    Command without newline, e.g. "$$".
+         * @param onLine Called for every reply line before the final one; may be empty.
+         * @return true if GRBL answered "ok".
+         */
+        bool sendLineCommand(const char *cmd, const std::function<void(const char *line)> &onLine = {});
+
+        /** @brief Wait for the "Grbl x.y" banner that GRBL prints after a reset. */
+        bool waitForBanner();
+
         /** @brief Parse a GRBL status response (from '?') and update internal state. */
         bool parseStatus(const char *response);
 
         /** @brief Read the axis reverse mask ($3) from GRBL so the reverse switches match the device. */
         bool readReverseFlags();
+
+        /** @brief Clear a GRBL alarm with $X. */
+        bool unlock();
 
         void hexDump(char *buf, const char *data, int size);
 
@@ -170,6 +189,9 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
             APPROACH_NEGATIVE
         };
 
+        // Clears a GRBL alarm ($X).
+        INDI::PropertySwitch UnlockSP {1};
+
         // Read-only firmware version string returned at connect.
         INDI::PropertyText FirmwareTP {1};
 
@@ -178,6 +200,7 @@ class AvalonUPAS : public INDI::DefaultDevice, public INDI::PACInterface
         ///////////////////////////////////////////////////////////////////////////////
         bool    m_IsMoving      {false};    ///< True while at least one axis is jogging.
         bool    m_IsFault       {false};    ///< True while GRBL reports Alarm or Door.
+        bool    m_IsHeld        {false};    ///< True while GRBL reports Hold (feed hold).
         uint8_t m_ReverseFlags  {0};        ///< Bitmask: bit 0 = AZ reversed, bit 1 = ALT reversed.
 
         int     PortFD          {-1};
