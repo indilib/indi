@@ -45,9 +45,11 @@ namespace PegasusAstro
  *        hotspot channel, WiFi client and network scan. It also logs in on the TCP command
  *        socket, which accepts the same commands as USB after the hotspot password.
  *
- * Replies seen on Falcon V2 firmware 1.8 and FocusCube 3 firmware 2.0:
- *   A? -> 0|1, AE:x -> 1, AL -> ssid:password, AN:/AP: -> 1, AC -> n, AC:n -> n,
- *   WA -> 0 while not connected, WS -> 0 when no network is found, WN:/WP: -> 0 on error.
+ * Replies seen on Falcon V2 firmware 1.8, FocusCube 3 firmware 2.0 and FlatMaster Neo firmware 1.4:
+ *   A? -> 0|1, AE:x -> 1, AL -> ssid:password, AN:/AP: -> 1, AC -> n, AC:n -> n (Neo: 1),
+ *   WA -> 0 while not connected, WS -> 0 when no network is found, WN: -> the command echoed,
+ *   WN:/WP: -> 0 on error. The FlatMaster Neo also echoes WP:<password>.
+ * Since the replies differ, for AN:/AP:, WN:/WP:, AE:x and AC:n only 0 counts as a failure.
  */
 class WiFi
 {
@@ -83,11 +85,23 @@ class WiFi
          */
         static void drain(int portFD);
 
+        /** @brief Read the current WiFi connection again, e.g. on every poll. Does nothing while not connected. */
+        void updateConnection();
+
+        /**
+         * @brief Allow joining an open network with an empty password. The device then gets the
+         *        placeholder password "PASSWORD", as Pegasus' software sends to the FlatMaster Neo.
+         */
+        void allowOpenNetworks(bool allow)
+        {
+            m_AllowOpenNetworks = allow;
+        }
+
         /** @brief Port of the TCP command socket. */
         static constexpr int TCP_PORT {9999};
 
     private:
-        /** @brief Send one command and read the one-line reply. @a secret hides the command in the log. */
+        /** @brief Send one command and read the one-line reply. @a secret hides command and reply in the log. */
         bool sendCommand(const char *cmd, char *res, int len, int timeout = 3, bool secret = false);
         bool readHotspotStatus();
         bool readHotspotCredentials();
@@ -107,6 +121,7 @@ class WiFi
         int m_PortFD {-1};
         bool m_PasswordLoaded {false};
         bool m_Connected {false};
+        bool m_AllowOpenNetworks {false};
 
         INDI::PropertySwitch HotspotSP {2};
         INDI::PropertyText HotspotTP {2};
@@ -119,7 +134,7 @@ class WiFi
         INDI::PropertyText PasswordTP {1};
 
         static constexpr int LEN {128};
-        static constexpr int SCAN_LEN {1024};
+        static constexpr int SCAN_LEN {4096};
         /** WS scans for up to 15 seconds. */
         static constexpr int SCAN_TIMEOUT {16};
         static constexpr int SCAN_RETRIES {4};
@@ -127,6 +142,7 @@ class WiFi
         static constexpr int CONNECT_CHECK_MS {10000};
         static constexpr useconds_t SCAN_RETRY_DELAY_US {3000000};
         static constexpr const char *DEFAULT_PASSWORD {"12345678"};
+        static constexpr const char *OPEN_NETWORK_PASSWORD {"PASSWORD"};
 };
 
 }

@@ -26,6 +26,7 @@
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -46,7 +47,7 @@ static std::unique_ptr<PegasusFlatMasterNeo> flatmaster(new PegasusFlatMasterNeo
 
 PegasusFlatMasterNeo::PegasusFlatMasterNeo() : LightBoxInterface(this), DustCapInterface(this), WeatherInterface(this)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 }
 
 bool PegasusFlatMasterNeo::initProperties()
@@ -117,8 +118,6 @@ bool PegasusFlatMasterNeo::initProperties()
     ThresholdNP.fill(getDeviceName(), "DEW_THRESHOLD", "Dew Threshold", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // WiFi channel — AC (read) / AC:<channel> (write), valid 1..11
-    WifiChannelNP[0].fill("WIFI_CHANNEL_VALUE", "Channel (1-11)", "%.0f", 1, 11, 1, 6);
-    WifiChannelNP.fill(getDeviceName(), "WIFI_CHANNEL", "WiFi Channel", NETWORK_TAB, IP_RW, 60, IPS_IDLE);
 
     // Save dew levels (DSTR)
     SaveDewSP[0].fill("SAVE_DEW_LEVELS", "Save", ISS_OFF);
@@ -130,37 +129,17 @@ bool PegasusFlatMasterNeo::initProperties()
     AutoCloseSP.fill(getDeviceName(), "AUTO_CLOSE", "Auto Close", DUSTCAP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Hotspot status (A? / AE:0 / AE:1)
-    HotspotStatusSP[0].fill("HOTSPOT_ENABLE",  "Enable",  ISS_OFF);
-    HotspotStatusSP[1].fill("HOTSPOT_DISABLE", "Disable", ISS_ON);
-    HotspotStatusSP.fill(getDeviceName(), "HOTSPOT_STATUS", "Hotspot", NETWORK_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    // Hotspot credentials (AL / AN:<ssid> / AP:<password>)
-    HotspotCredentialsTP[0].fill("HOTSPOT_SSID",     "SSID",     nullptr);
-    HotspotCredentialsTP[1].fill("HOTSPOT_PASSWORD", "Password", nullptr);
-    HotspotCredentialsTP.fill(getDeviceName(), "HOTSPOT_CREDENTIALS", "Hotspot Credentials", NETWORK_TAB, IP_RW, 60, IPS_IDLE);
-
-    // Current WiFi connection (WI)
-    CurrentWifiTP[0].fill("CURRENT_WIFI", "Connection", nullptr);
-    CurrentWifiTP.fill(getDeviceName(), "CURRENT_WIFI", "Current WiFi", NETWORK_TAB, IP_RO, 60, IPS_IDLE);
-
-    // WiFi network scan (WS — 15 s timeout)
-    WifiScanSP[0].fill("WIFI_SCAN", "Scan", ISS_OFF);
-    WifiScanSP.fill(getDeviceName(), "WIFI_SCAN", "Scan Networks", NETWORK_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    WifiScanTP[0].fill("WIFI_SCAN_RESULTS", "Networks", nullptr);
-    WifiScanTP.fill(getDeviceName(), "WIFI_SCAN_RESULTS", "Scan Results", NETWORK_TAB, IP_RO, 60, IPS_IDLE);
-
-    // WiFi connect (WN:<ssid> / WP:<password>)
-    WifiConnectTP[0].fill("WIFI_SSID",     "SSID",     nullptr);
-    WifiConnectTP[1].fill("WIFI_PASSWORD", "Password", nullptr);
-    WifiConnectTP.fill(getDeviceName(), "WIFI_CONNECT_CREDS", "WiFi Credentials", NETWORK_TAB, IP_RW, 60, IPS_IDLE);
-    WifiConnectSP[0].fill("WIFI_CONNECT", "Connect", ISS_OFF);
-    WifiConnectSP.fill(getDeviceName(), "WIFI_CONNECT", "Connect to WiFi", NETWORK_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
     // WiFi factory reset (WZ)
     WifiFactoryResetSP[0].fill("WIFI_FACTORY_RESET", "Reset", ISS_OFF);
     WifiFactoryResetSP.fill(getDeviceName(), "WIFI_FACTORY_RESET", "WiFi Factory Reset", NETWORK_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     addAuxControls();
+
+    wifi.initProperties(NETWORK_TAB,
+                        [this](const char *name) { loadConfig(true, name); },
+                        [this](INDI::Property & property) { saveConfig(property); });
+    // The Neo joins open networks with the placeholder password "PASSWORD", as before.
+    wifi.allowOpenNetworks(true);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
@@ -169,9 +148,17 @@ bool PegasusFlatMasterNeo::initProperties()
     {
         return Ack();
     });
-
-
     registerConnection(serialConnection);
+
+    // Over WiFi the device announces itself as fmneo.local and takes the same commands on TCP port 9999.
+    tcpConnection = new Connection::TCP(this);
+    tcpConnection->setDefaultHost("fmneo.local");
+    tcpConnection->setDefaultPort(PegasusAstro::WiFi::TCP_PORT);
+    tcpConnection->registerHandshake([&]()
+    {
+        return Ack();
+    });
+    registerConnection(tcpConnection);
     return true;
 }
 
@@ -181,6 +168,7 @@ void PegasusFlatMasterNeo::ISGetProperties(const char *dev)
 
     // Get Light box properties
     LI::ISGetProperties(dev);
+    wifi.ISGetProperties();
     
 }
 
@@ -202,22 +190,11 @@ bool PegasusFlatMasterNeo::updateProperties()
         defineProperty(DeviceStatusNP);
         defineProperty(UptimeNP);
         defineProperty(RebootSP);
-        defineProperty(WifiChannelNP);
-        defineProperty(HotspotStatusSP);
-        defineProperty(HotspotCredentialsTP);
-        defineProperty(CurrentWifiTP);
-        defineProperty(WifiScanSP);
-        defineProperty(WifiScanTP);
-        defineProperty(WifiConnectTP);
-        defineProperty(WifiConnectSP);
         defineProperty(WifiFactoryResetSP);
+        wifi.updateProperties(true, PortFD);
         getWeatherOffsets();
         getThreshold();
         getAutoClose();
-        getWifiChannel();
-        getHotspotStatus();
-        getHotspot();
-        getCurrentWifi();
     }
     else
     {
@@ -233,15 +210,8 @@ bool PegasusFlatMasterNeo::updateProperties()
         deleteProperty(DeviceStatusNP);
         deleteProperty(UptimeNP);
         deleteProperty(RebootSP);
-        deleteProperty(WifiChannelNP);
-        deleteProperty(HotspotStatusSP);
-        deleteProperty(HotspotCredentialsTP);
-        deleteProperty(CurrentWifiTP);
-        deleteProperty(WifiScanSP);
-        deleteProperty(WifiScanTP);
-        deleteProperty(WifiConnectTP);
-        deleteProperty(WifiConnectSP);
         deleteProperty(WifiFactoryResetSP);
+        wifi.updateProperties(false, -1);
     }
 
     LI::updateProperties();
@@ -280,7 +250,11 @@ void PegasusFlatMasterNeo::updateFirmwareVersion()
 
 bool PegasusFlatMasterNeo::Ack()
 {
-    PortFD = serialConnection->getPortFD();
+    // Over TCP, log in with the hotspot password before any command.
+    m_IsTCP = getActiveConnection() == tcpConnection;
+    PortFD = m_IsTCP ? tcpConnection->getPortFD() : serialConnection->getPortFD();
+    if (m_IsTCP && !wifi.login(PortFD))
+        return false;
 
     // The reply "FMNEO_<id>_A\r\n" is 16 bytes, more than a 16-byte buffer holds with its terminating zero.
     char response[NEO_LEN] = {0};
@@ -336,6 +310,9 @@ bool PegasusFlatMasterNeo::ignoredWhileLoadingConfig(const char *dev, const char
 bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (ignoredWhileLoadingConfig(dev, name))
+        return true;
+
+    if (wifi.ISNewNumber(dev, name, values, names, n))
         return true;
 
     if (LI::processNumber(dev, name, values, names, n))
@@ -422,18 +399,6 @@ bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double
             return true;
         }
 
-        if (WifiChannelNP.isNameMatch(name))
-        {
-            if (setWifiChannel(static_cast<uint8_t>(values[0])))
-            {
-                WifiChannelNP.update(values, names, n);
-                WifiChannelNP.setState(IPS_OK);
-            }
-            else
-                WifiChannelNP.setState(IPS_ALERT);
-            WifiChannelNP.apply();
-            return true;
-        }
     }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -441,7 +406,11 @@ bool PegasusFlatMasterNeo::ISNewNumber(const char *dev, const char *name, double
 
 bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
+    // Before the WiFi helper, so old configurations do not send hotspot credentials to the device.
     if (ignoredWhileLoadingConfig(dev, name))
+        return true;
+
+    if (wifi.ISNewText(dev, name, texts, names, n))
         return true;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -449,26 +418,7 @@ bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *te
         if (LI::processText(dev, name, texts, names, n))
             return true;
 
-        if (HotspotCredentialsTP.isNameMatch(name))
-        {
-            HotspotCredentialsTP.update(texts, names, n);
-            const char *ssid = HotspotCredentialsTP[0].getText();
-            const char *pwd  = HotspotCredentialsTP[1].getText();
-            if (ssid && pwd && setHotspot(ssid, pwd))
-                HotspotCredentialsTP.setState(IPS_OK);
-            else
-                HotspotCredentialsTP.setState(IPS_ALERT);
-            HotspotCredentialsTP.apply();
-            return true;
-        }
 
-        if (WifiConnectTP.isNameMatch(name))
-        {
-            WifiConnectTP.update(texts, names, n);
-            WifiConnectTP.setState(IPS_OK);
-            WifiConnectTP.apply();
-            return true;
-        }
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -476,7 +426,11 @@ bool PegasusFlatMasterNeo::ISNewText(const char *dev, const char *name, char *te
 
 bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    // Before the WiFi helper, so old configurations do not switch the hotspot.
     if (ignoredWhileLoadingConfig(dev, name))
+        return true;
+
+    if (wifi.ISNewSwitch(dev, name, states, names, n))
         return true;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -507,7 +461,7 @@ bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISStat
             // FQ restarts the device at once and sends no reply; its USB port goes away for a moment,
             // so disconnect instead of polling a dead port.
             int nbytes_written = 0;
-            tty_write(PortFD, "FQ\n", 3, &nbytes_written);
+            tty_write_string(PortFD, m_IsTCP ? "FQ\r\n" : "FQ\n", &nbytes_written);
             RebootSP.setState(IPS_OK);
             RebootSP.apply();
             LOG_INFO("Device restarts. Connect again in a few seconds.");
@@ -539,42 +493,8 @@ bool PegasusFlatMasterNeo::ISNewSwitch(const char *dev, const char *name, ISStat
             return true;
         }
 
-        if (HotspotStatusSP.isNameMatch(name))
-        {
-            HotspotStatusSP.update(states, names, n);
-            bool enable = HotspotStatusSP[0].getState() == ISS_ON;
-            if (setHotspotStatus(enable))
-                HotspotStatusSP.setState(IPS_OK);
-            else
-                HotspotStatusSP.setState(IPS_ALERT);
-            HotspotStatusSP.apply();
-            return true;
-        }
 
-        if (WifiScanSP.isNameMatch(name))
-        {
-            if (scanWifiNetworks())
-                WifiScanSP.setState(IPS_OK);
-            else
-                WifiScanSP.setState(IPS_ALERT);
-            WifiScanSP.apply();
-            return true;
-        }
 
-        if (WifiConnectSP.isNameMatch(name))
-        {
-            const char *ssid = WifiConnectTP[0].getText();
-            const char *pwd  = WifiConnectTP[1].getText();
-            if (ssid && connectToWifi(ssid, pwd))
-            {
-                WifiConnectSP.setState(IPS_OK);
-                getCurrentWifi();
-            }
-            else
-                WifiConnectSP.setState(IPS_ALERT);
-            WifiConnectSP.apply();
-            return true;
-        }
 
         if (WifiFactoryResetSP.isNameMatch(name))
         {
@@ -601,6 +521,7 @@ bool PegasusFlatMasterNeo::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
     LI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
+    wifi.saveConfigItems(fp);
     // Dew, cap, offset and WiFi settings are stored in the device and read from it on
     // connection. Saving them here would send old values back every time the config loads.
     return true;
@@ -613,13 +534,15 @@ bool PegasusFlatMasterNeo::sendCommandBuffer(const char *command, char *res, int
 
     // Room for WN:/WP: with a 63-character password; a smaller buffer cut long passwords silently.
     char cmd[128] = {0};
-    snprintf(cmd, sizeof(cmd), "%s\n", command);
+    // Over TCP the firmware only executes a command after a carriage return.
+    snprintf(cmd, sizeof(cmd), m_IsTCP ? "%s\r\n" : "%s\n", command);
 
     // Do not write WiFi and hotspot passwords to the log.
     const bool secret = strncmp(command, "AP:", 3) == 0 || strncmp(command, "WP:", 3) == 0;
     LOGF_DEBUG("CMD <%s>", secret ? "<password>" : command);
 
-    tcflush(PortFD, TCIOFLUSH);
+    // tcflush() does not discard data on a TCP socket.
+    PegasusAstro::WiFi::drain(PortFD);
 
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -674,11 +597,6 @@ bool PegasusFlatMasterNeo::sendEchoCommand(const char *cmd)
     }
 
     return true;
-}
-
-bool PegasusFlatMasterNeo::isWifiReplyOk(const char *response)
-{
-    return response[0] != 0 && strcmp(response, "0") != 0;
 }
 
 // FA reports the aggressiveness either as level 0..10 or as the byte 9..255 sent with PD.
@@ -765,7 +683,7 @@ void PegasusFlatMasterNeo::TimerHit()
     getStatusData();
     getWeatherData();
     getUptime();
-    getCurrentWifi();
+    wifi.updateConnection();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -1093,32 +1011,6 @@ bool PegasusFlatMasterNeo::saveDewLevels()
     return true;
 }
 
-bool PegasusFlatMasterNeo::getWifiChannel()
-{
-    char response[16] = {0};
-    if (!sendCommand("AC", response))
-        return false;
-
-    int channel = atoi(response);
-    if (channel < 1 || channel > 11)
-        return false;
-
-    WifiChannelNP[0].setValue(channel);
-    WifiChannelNP.setState(IPS_OK);
-    WifiChannelNP.apply();
-    return true;
-}
-
-bool PegasusFlatMasterNeo::setWifiChannel(uint8_t channel)
-{
-    char cmd[16] = {0};
-    char response[16] = {0};
-    snprintf(cmd, sizeof(cmd), "AC:%d", channel);
-    if (sendCommand(cmd, response))
-        return isWifiReplyOk(response);
-    return false;
-}
-
 bool PegasusFlatMasterNeo::getAutoClose()
 {
     char response[16] = {0};
@@ -1140,219 +1032,12 @@ bool PegasusFlatMasterNeo::setAutoClose(bool enable)
     return sendEchoCommand(cmd);
 }
 
-bool PegasusFlatMasterNeo::getHotspotStatus()
-{
-    char response[16] = {0};
-    if (!sendCommand("A?", response))
-        return false;
-
-    const bool on = (response[0] == '1');
-    HotspotStatusSP.reset();
-    HotspotStatusSP[on ? 0 : 1].setState(ISS_ON);
-    HotspotStatusSP.setState(IPS_OK);
-    HotspotStatusSP.apply();
-    return true;
-}
-
-bool PegasusFlatMasterNeo::setHotspotStatus(bool enable)
-{
-    char cmd[16] = {0};
-    char response[16] = {0};
-    snprintf(cmd, sizeof(cmd), "AE:%d", enable ? 1 : 0);
-    sendCommand(cmd, response);
-    return getHotspotStatus();
-}
-
-bool PegasusFlatMasterNeo::getHotspot()
-{
-    char response[NEO_LEN] = {0};
-    if (!sendCommand("AL", response))
-        return false;
-
-    // Response: <ssid>:<password>
-    std::vector<std::string> parts = split(response, ":");
-    if (parts.size() < 2)
-        return false;
-
-    HotspotCredentialsTP[0].setText(parts[0].c_str());
-    HotspotCredentialsTP[1].setText(parts[1].c_str());
-    HotspotCredentialsTP.setState(IPS_OK);
-    HotspotCredentialsTP.apply();
-    return true;
-}
-
-bool PegasusFlatMasterNeo::setHotspot(const char *ssid, const char *password)
-{
-    if (strlen(ssid) == 0 || strlen(ssid) > 32 || strlen(password) < 8 || strlen(password) > 63 ||
-            strpbrk(ssid, "\r\n") || strpbrk(password, "\r\n"))
-    {
-        LOG_ERROR("Hotspot SSID must have 1 to 32 characters and the password 8 to 63 characters.");
-        return false;
-    }
-
-    // The reply may echo the SSID or password, so it needs the same room as the command.
-    char cmd[128] = {0};
-    char response[128] = {0};
-
-    snprintf(cmd, sizeof(cmd), "AN:%s", ssid);
-    if (!sendCommand(cmd, response) || !isWifiReplyOk(response))
-    {
-        LOGF_ERROR("Setting the hotspot SSID failed: '%s'", response);
-        return false;
-    }
-
-    snprintf(cmd, sizeof(cmd), "AP:%s", password);
-    if (!sendCommand(cmd, response) || !isWifiReplyOk(response))
-    {
-        LOGF_ERROR("Setting the hotspot password failed: '%s'", response);
-        return false;
-    }
-
-    return true;
-}
-
-bool PegasusFlatMasterNeo::getCurrentWifi()
-{
-    char response[NEO_LEN] = {0};
-    if (!sendCommand("WI", response))
-        return false;
-
-    // Reply: 0, or <ssid>,<signal %>,<security>,<ip address>. The SSID may contain commas,
-    // so take the other fields from the end.
-    std::string text = "Disconnected";
-    if (strcmp(response, "0") != 0)
-    {
-        const std::string reply(response);
-        const size_t address  = reply.rfind(',');
-        const size_t security = address == std::string::npos || address == 0 ? std::string::npos : reply.rfind(',', address - 1);
-        const size_t signal   = security == std::string::npos || security == 0 ? std::string::npos : reply.rfind(',', security - 1);
-        if (signal != std::string::npos && signal > 0)
-            text = reply.substr(0, signal) + " (" + reply.substr(address + 1) + "), signal " +
-                   reply.substr(signal + 1, security - signal - 1) + "%";
-        else
-            text = reply;
-    }
-
-    // Polled with the status; only send changes to the clients.
-    if (text != CurrentWifiTP[0].getText() || CurrentWifiTP.getState() != IPS_OK)
-    {
-        CurrentWifiTP[0].setText(text.c_str());
-        CurrentWifiTP.setState(IPS_OK);
-        CurrentWifiTP.apply();
-    }
-    return true;
-}
-
-bool PegasusFlatMasterNeo::scanWifiNetworks()
-{
-    LOG_INFO("Scanning for WiFi networks...");
-    char response[2048] = {0};
-    // WS has up to 15 second scan timeout. Right after the radio changes state the first scans can
-    // come back empty ("0"), so ask a few times.
-    for (int i = 0; i < 4; i++)
-    {
-        if (!sendCommand("WS", response, 16))
-            return false;
-        if (strcmp(response, "0") != 0)
-            break;
-        if (i < 3)
-            usleep(3000000);
-    }
-
-    WifiScanTP[0].setText(strcmp(response, "0") == 0 ? "No networks found" : formatScan(response).c_str());
-    WifiScanTP.setState(IPS_OK);
-    WifiScanTP.apply();
-    return true;
-}
-
-std::string PegasusFlatMasterNeo::formatScan(const char *reply)
-{
-    // Reply: <ssid>,<signal %>,<security>: per access point. List each SSID once with its best signal.
-    std::vector<std::pair<std::string, int>> networks;
-    const std::string entries(reply);
-    size_t start = 0;
-    while (start < entries.size())
-    {
-        size_t end = entries.find(':', start);
-        if (end == std::string::npos)
-            end = entries.size();
-        const std::string entry = entries.substr(start, end - start);
-        start = end + 1;
-
-        // The SSID may contain commas, so take signal and security from the end.
-        const size_t security = entry.rfind(',');
-        const size_t signal = security == std::string::npos || security == 0 ? std::string::npos : entry.rfind(',', security - 1);
-        if (signal == std::string::npos || signal == 0)
-            continue;
-
-        const std::string ssid = entry.substr(0, signal);
-        const int quality = atoi(entry.substr(signal + 1, security - signal - 1).c_str());
-        auto known = std::find_if(networks.begin(), networks.end(), [&](const auto & network)
-        {
-            return network.first == ssid;
-        });
-        if (known == networks.end())
-            networks.emplace_back(ssid, quality);
-        else
-            known->second = std::max(known->second, quality);
-    }
-
-    std::stable_sort(networks.begin(), networks.end(), [](const auto & a, const auto & b)
-    {
-        return a.second > b.second;
-    });
-
-    std::string text;
-    for (const auto &network : networks)
-        text += (text.empty() ? "" : ", ") + network.first + " (" + std::to_string(network.second) + "%)";
-    return text.empty() ? std::string(reply) : text;
-}
-
-bool PegasusFlatMasterNeo::connectToWifi(const char *ssid, const char *password)
-{
-    if (!ssid || ssid[0] == '\0')
-    {
-        LOG_ERROR("WiFi SSID cannot be empty.");
-        return false;
-    }
-
-    // Firmware 1.4 echoes WN:<ssid> and WP:<password>, so the reply needs the same room as the command.
-    char cmd[128]  = {0};
-    char response[128]  = {0};
-
-    // Empty password: send "PASSWORD" placeholder; otherwise 8 to 63 characters
-    if (strlen(ssid) > 32 || strpbrk(ssid, "\r\n") ||
-            (password && password[0] != '\0' && (strlen(password) < 8 || strlen(password) > 63 || strpbrk(password, "\r\n"))))
-    {
-        LOG_ERROR("WiFi SSID must have at most 32 characters and the password 8 to 63 characters.");
-        return false;
-    }
-
-    snprintf(cmd, sizeof(cmd), "WN:%s", ssid);
-    if (!sendCommand(cmd, response) || !isWifiReplyOk(response))
-    {
-        LOGF_ERROR("Setting the WiFi SSID failed: '%s'", response);
-        return false;
-    }
-
-    if (!password || password[0] == '\0')
-        snprintf(cmd, sizeof(cmd), "WP:PASSWORD");
-    else
-        snprintf(cmd, sizeof(cmd), "WP:%s", password);
-    if (!sendCommand(cmd, response) || !isWifiReplyOk(response))
-    {
-        LOG_ERROR("Setting the WiFi password failed.");
-        return false;
-    }
-
-    return true;
-}
-
 bool PegasusFlatMasterNeo::wifiFactoryReset()
 {
-    // WZ sends without waiting for a response (Channel.Write behavior)
+    // WZ sends without waiting for a response (Channel.Write behavior). Over TCP the firmware only
+    // executes a command after a carriage return.
     int nbytes_written = 0;
-    return tty_write(PortFD, "WZ\n", 3, &nbytes_written) == TTY_OK;
+    return tty_write_string(PortFD, m_IsTCP ? "WZ\r\n" : "WZ\n", &nbytes_written) == TTY_OK;
 }
 
 std::vector<std::string> PegasusFlatMasterNeo::split(const std::string &input, const std::string &sep)
