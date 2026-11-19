@@ -1,9 +1,9 @@
 /*
     10micron INDI driver
     GM1000HPS GM2000QCI GM2000HPS GM3000HPS GM4000QCI GM4000HPS AZ2000
-    Mount Command Protocol 2.14.11
+    Mount Command Protocol 3.1.16, needs firmware 2.14.9 or newer (:Ginfo#)
 
-    Copyright (C) 2017-2025 Hans Lambermont
+    Copyright (C) 2017-2026 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -210,20 +210,20 @@ bool LX200_10MICRON::initProperties()
                            ISR_ATMOST1, 60, IPS_IDLE);
 
         MountShutdownSP[0].fill("SHUTDOWN", "Shutdown Mount", ISS_OFF);
-        MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+        MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                             IPS_IDLE);
 
         // Meridian. The limits and allowed side are mount settings,
         // the time to tracking end and target pier side are computed by the mount and read-only.
         // Ranges from the manual (firmware 3.1.4) 6.3.11 Flip Slew Tol. and 6.3.12 Flip Guide Tol.
-        MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].fill("SLEW_LIMIT_IN_DEG", "Slew limit (deg), Flip Slew Tolerance", "%.0f", 0, 30, 1,
-                0);
+        MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].fill("SLEW_LIMIT_IN_DEG", "Slew limit (deg), Flip Slew Tolerance",
+                "%.0f", 0, 30, 1, 0);
         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].fill("TRACK_LIMIT_IN_DEG",
-                "Tracking limit (deg), Flip Guide Tolerance, >= slew limit",
-                "%.0f", 2, 30, 1, 2);
+                "Tracking limit (deg), Flip Guide Tolerance, >= slew limit", "%.0f", 2, 30, 1, 2);
         MeridianLimitsNP.fill(getDeviceName(), MERIDIAN_LIMITS, "Meridian Limits", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s), estimate in whole minutes", "%.0f", 0, 999999, 0,
-                              0);
+        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s), estimate in whole minutes",
+                              "%.0f", 0, 999999, 0, 0);
         TrackingEndNP.fill(getDeviceName(), TRACKING_END, "Tracking End", MOTION_TAB, IP_RO, 60, IPS_IDLE);
 
         // Labels (TELESCOPE_PIER_SIDE style): the pier side the mount is allowed to use.
@@ -306,7 +306,8 @@ bool LX200_10MICRON::updateProperties()
         int readit = 0;
         for (int i = 0; readit == 0 && i < UnattendedFlipSP.nsp; i++)
         {
-            readit = IUGetConfigSwitch(getDeviceName(), UnattendedFlipSP.name, UnattendedFlipS[i].name, &(UnattendedFlipS[i].s));
+            readit = IUGetConfigSwitch(getDeviceName(), UnattendedFlipSP.name, UnattendedFlipS[i].name,
+                                       &(UnattendedFlipS[i].s));
         }
         if (readit == 0)
         {
@@ -333,7 +334,8 @@ bool LX200_10MICRON::updateProperties()
         }
         else
         {
-            LOG_INFO("Did not find an Unattended Flip setting in the config file. Specify desired behaviour in Motion Control tab and save config in Options tab.");
+            LOG_INFO("Did not find an Unattended Flip setting in the config file. "
+                     "Specify desired behaviour in Motion Control tab and save config in Options tab.");
         }
     }
     else
@@ -367,7 +369,8 @@ void LX200_10MICRON::getBasicData()
 {
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# (and getSiteName :GM#) are not implemented on 10Micron
+    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# (and getSiteName :GM#) are not implemented
+    // on 10Micron
     if (!isSimulation())
     {
         getMountInfo();
@@ -470,7 +473,8 @@ bool LX200_10MICRON::getMountInfo()
     return true;
 }
 
-// INDI::Telescope calls ReadScopeStatus() every POLLMS to check the link to the telescope and update its state and position.
+// INDI::Telescope calls ReadScopeStatus() every POLLMS to check the link to the telescope and update its state and
+// position.
 // The child class should call newRaDec() whenever a new value is read from the telescope.
 bool LX200_10MICRON::ReadScopeStatus()
 {
@@ -810,7 +814,8 @@ bool LX200_10MICRON::confirmUnattendedFlipSetting(int wanted)
     }
     else if (UnattendedFlip != wanted)
     {
-        LOGF_ERROR("The mount did not take Unattended Flip %s.", (wanted == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
+        LOGF_ERROR("The mount did not take Unattended Flip %s.",
+                   (wanted == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
         UnattendedFlipSP.s = IPS_ALERT;
     }
     else
@@ -965,7 +970,8 @@ bool LX200_10MICRON::getMeridianLimits(LX200_10MICRON_READ_CONTEXT context)
         return false;
     }
     const bool changed = MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].getValue() != slewLimit ||
-                         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue() != trackLimit || MeridianLimitsNP.getState() != IPS_OK;
+                         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue() != trackLimit ||
+                         MeridianLimitsNP.getState() != IPS_OK;
     MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].setValue(slewLimit);
     MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].setValue(trackLimit);
     MeridianLimitsNP.setState(IPS_OK);
@@ -1467,9 +1473,11 @@ bool LX200_10MICRON::flip()
 {
     // #:FLIP#
     // This command acts in different ways on the AZ2000 and german equatorial (GM1000 – GM4000) mounts.
-    // On an AZ2000 mount: When observing an object near the lowest culmination, requests to make a 360° turn of the azimuth axis and point the object again.
-    // On a german equatorial mount: When observing an object near the meridian, requests to make a 180° turn of the RA axis and move the declination axis in order to
-    // point the object with the telescope on the other side of the mount.
+    // On an AZ2000 mount: When observing an object near the lowest culmination, requests to make a 360° turn of the
+    // azimuth axis and point the object again.
+    // On a german equatorial mount: When observing an object near the meridian, requests to make a 180° turn of the RA
+    // axis and move the declination axis in order to point the object with the telescope on the other side of the
+    // mount.
     // Returns:
     // 1 if successful
     // 0 if the movement cannot be done

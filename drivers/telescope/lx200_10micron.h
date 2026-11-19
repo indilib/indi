@@ -1,7 +1,7 @@
 /*
     10micron INDI driver
 
-    Copyright (C) 2017 Hans Lambermont
+    Copyright (C) 2017-2026 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
