@@ -189,9 +189,10 @@ bool LX200_10MICRON::initProperties()
         IUFillNumberVector(&NewAlignmentPointsNP, NewAlignmentPointsN, 1, getDeviceName(),
                            NEW_ALIGNMENT_POINTS, "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-        IUFillText(&NewModelNameT[0], "NAME", "Model Name", "newmodel");
+        // Set saves the current model in the mount under this name, see saveModel
+        IUFillText(&NewModelNameT[0], "NAME", "Model name, at most 15 characters", "newmodel");
         IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(),
-                         NEW_MODEL_NAME, "New Name", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+                         NEW_MODEL_NAME, "Save Model As", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
         IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
@@ -389,32 +390,67 @@ void LX200_10MICRON::getBasicData()
             IDSetNumber(&TrackFreqNP, nullptr);
         }
 
-        char RefractionModelTemperature[80];
-        getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#");
-        float rmtemp;
-        sscanf(RefractionModelTemperature, "%f#", &rmtemp);
+        // A failed read shows 0 with the property in Alert, instead of whatever was in memory
+        char RefractionModelTemperature[80] = {0};
+        float rmtemp = 0;
+        if (getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#") == 0
+                && sscanf(RefractionModelTemperature, "%f", &rmtemp) == 1)
+        {
+            RefractionModelTemperatureNP.s = IPS_IDLE;
+            LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", rmtemp);
+        }
+        else
+        {
+            RefractionModelTemperatureNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the refraction model temperature.");
+        }
         RefractionModelTemperatureN[0].value = rmtemp;
-        LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
         IDSetNumber(&RefractionModelTemperatureNP, nullptr);
 
-        char RefractionModelPressure[80];
-        getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#");
-        float rmpres;
-        sscanf(RefractionModelPressure, "%f#", &rmpres);
+        char RefractionModelPressure[80] = {0};
+        float rmpres = 0;
+        if (getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#") == 0
+                && sscanf(RefractionModelPressure, "%f", &rmpres) == 1)
+        {
+            RefractionModelPressureNP.s = IPS_IDLE;
+            LOGF_INFO("RefractionModelPressure is %06.1f hPa", rmpres);
+        }
+        else
+        {
+            RefractionModelPressureNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the refraction model pressure.");
+        }
         RefractionModelPressureN[0].value = rmpres;
-        LOGF_INFO("RefractionModelPressure is %06.1f hPa", RefractionModelPressureN[0].value);
         IDSetNumber(&RefractionModelPressureNP, nullptr);
 
-        int ModelCount;
-        getCommandInt(PortFD, &ModelCount, "#:modelcnt#");
-        ModelCountN[0].value = (double) ModelCount;
-        LOGF_INFO("%d Alignment Models", static_cast<int>(ModelCountN[0].value));
+        int ModelCount = 0;
+        if (getCommandInt(PortFD, &ModelCount, "#:modelcnt#") == 0)
+        {
+            ModelCountNP.s = IPS_IDLE;
+            LOGF_INFO("%d Alignment Models", ModelCount);
+        }
+        else
+        {
+            ModelCount = 0;
+            ModelCountNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the number of alignment models.");
+        }
+        ModelCountN[0].value = ModelCount;
         IDSetNumber(&ModelCountNP, nullptr);
 
-        int AlignmentPoints;
-        getCommandInt(PortFD, &AlignmentPoints, "#:getalst#");
+        int AlignmentPoints = 0;
+        if (getCommandInt(PortFD, &AlignmentPoints, "#:getalst#") == 0)
+        {
+            AlignmentPointsNP.s = IPS_IDLE;
+            LOGF_INFO("%d Alignment Stars in active model", AlignmentPoints);
+        }
+        else
+        {
+            AlignmentPoints = 0;
+            AlignmentPointsNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the number of alignment stars in the active model.");
+        }
         AlignmentPointsN[0].value = AlignmentPoints;
-        LOGF_INFO("%d Alignment Stars in active model", static_cast<int>(AlignmentPointsN[0].value));
         IDSetNumber(&AlignmentPointsNP, nullptr);
 
         updateUnattendedFlipSetting(READ_AT_CONNECT);
@@ -443,21 +479,25 @@ void LX200_10MICRON::getBasicData()
 // Called by our getBasicData
 bool LX200_10MICRON::getMountInfo()
 {
-    char ProductName[80];
+    // A failed read leaves the text empty, a date that does not parse is shown as the mount sent it
+    char ProductName[80] = {0};
     getCommandString(PortFD, ProductName, "#:GVP#");
-    char ControlBox[80];
+    char ControlBox[80] = {0};
     getCommandString(PortFD, ControlBox, "#:GVZ#");
-    char FirmwareVersion[80];
+    char FirmwareVersion[80] = {0};
     getCommandString(PortFD, FirmwareVersion, "#:GVN#");
-    char FirmwareDate1[80];
+    char FirmwareDate1[80] = {0};
     getCommandString(PortFD, FirmwareDate1, "#:GVD#");
-    char FirmwareDate2[80];
-    char mon[4];
-    int dd, yyyy;
-    sscanf(FirmwareDate1, "%s %02d %04d", mon, &dd, &yyyy);
+    char FirmwareDate2[80] = {0};
     getCommandString(PortFD, FirmwareDate2, "#:GVT#");
-    char FirmwareDate[80];
-    snprintf(FirmwareDate, 80, "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
+    // :GVD# returns e.g. "Jun 10 2026", :GVT# "17:10:10"
+    char mon[4] = {0};
+    int dd = 0, yyyy = 0;
+    char FirmwareDate[80] = {0};
+    if (sscanf(FirmwareDate1, "%3s %2d %4d", mon, &dd, &yyyy) == 3 && monthToNumber(mon) > 0)
+        snprintf(FirmwareDate, sizeof(FirmwareDate), "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
+    else
+        snprintf(FirmwareDate, sizeof(FirmwareDate), "%s %s", FirmwareDate1, FirmwareDate2);
 
     LOGF_INFO("Product:%s Control box:%s Firmware:%s of %s", ProductName, ControlBox, FirmwareVersion, FirmwareDate);
 
