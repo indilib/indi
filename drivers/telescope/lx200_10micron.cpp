@@ -91,7 +91,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 6); // don't forget to update drivers.xml
+    setVersion(1, 7); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -594,7 +594,8 @@ bool LX200_10MICRON::ReadScopeStatus()
             TrackState = SCOPE_PARKING;
             break;
         case GSTAT_UNPARKING:
-            TrackState = SCOPE_TRACKING;
+            // "The mount is unparking": not tracking yet. Not seen on a GM2000HPS, where unparking goes from Gstat 5 to 0.
+            TrackState = SCOPE_IDLE;
             break;
         case GSTAT_SLEWING_TO_HOME:
             TrackState = SCOPE_SLEWING;
@@ -881,10 +882,10 @@ void LX200_10MICRON::updateSlewDependentValues()
 // updateSlewDependentValues).
 // The unattended flip setting is read every 60 seconds because the mount
 // resets it when it powers up.
-// The meridian limits, meridian side and slew settle time are read every 60
-// seconds only to show changes made outside this driver. That is not the
-// intended mode of operation: this driver owns these mount settings and writes
-// the saved ones when the config is loaded.
+// The meridian limits, meridian side, slew settle time and track mode are read
+// every 60 seconds only to show changes made outside this driver. That is not
+// the intended mode of operation: this driver owns these mount settings and
+// writes the saved ones when the config is loaded.
 
 // Properties are only sent when they change.
 void LX200_10MICRON::updateMeridianValues(bool all)
@@ -909,6 +910,7 @@ void LX200_10MICRON::updateMeridianValues(bool all)
         getMeridianLimits(context);
         getAllowedMeridianSide(context);
         getSlewSettleTime(context);
+        getTrackMode(context);
         // At connect this is already done by getBasicData
         if (!all)
             updateUnattendedFlipSetting(READ_PERIODIC);
@@ -1258,6 +1260,200 @@ bool LX200_10MICRON::setSlewSettleTime(double seconds)
     const bool result = (0 == setStandardProcedureAndExpectChar(fd, data, "1"));
     getSlewSettleTime(READ_AFTER_WRITE);
     return result;
+}
+
+bool LX200_10MICRON::SetTrackMode(uint8_t mode)
+{
+    // #:TQ#     Set default (sidereal) tracking rate
+    // #:TSOLAR# Set solar tracking rate
+    // #:TL#     Set lunar tracking rate
+    // #:TM#     Set custom tracking rate
+    // Returns: nothing
+    // The shared LX200 code sends :TS# for solar, which no 10Micron manual lists. It comes from the Meade
+    // Telescope Serial Command Protocol 2010.10: "Select Solar tracking rate. [LS Only]", i.e. only Meade's
+    // LightSwitch telescopes. The Meade 2002 LX200 command set has no solar command at all.
+    // The mount takes these in any state, also parked or not tracking.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    if (isSimulation())
+        return true;
+    const char *cmd = nullptr;
+    switch (mode)
+    {
+        case TRACK_SIDEREAL:
+            cmd = "#:TQ#";
+            break;
+        case TRACK_SOLAR:
+            cmd = "#:TSOLAR#";
+            break;
+        case TRACK_LUNAR:
+            cmd = "#:TL#";
+            break;
+        case TRACK_CUSTOM:
+            cmd = "#:TM#";
+            break;
+        default:
+            return false;
+    }
+    return setStandardProcedureWithoutRead(fd, cmd) == 0;
+}
+
+bool LX200_10MICRON::getTrackMode(LX200_10MICRON_READ_CONTEXT context)
+{
+    // #:GT#
+    // Get tracking rate.
+    // Returns: TT.T#
+    // This value is computed in order to emulate the corresponding LX200 command. This corresponds to the
+    // equivalent frequency expressed in hertz assuming a synchronous motor design where a 60.0 Hz motor clock
+    // would produce 1 revolution of the mount in 24 hours. So, in order to obtain the tracking rate in arcseconds
+    // per second of time, this value should be divided by four.
+    // Why four: 1 revolution in 24 hours is 360 * 3600 arcseconds in 86400 seconds, 15 arcseconds per second,
+    // so 60.0 Hz stands for 15 arcseconds per second. Sidereal (15.041) gives 60.2, solar (15.000) 60.0 and
+    // lunar (about 14.49) about 58.0.
+    // The values do not follow that formula: a GM2000HPS with firmware 3.1.16 returns 60.2 for sidereal, 60.3 for
+    // solar and 62.4 for lunar, so a slower rate gives a higher value (MountWizzard4 uses the same three values).
+    // They still tell the modes apart. Any other value is a custom rate. A custom rate equal to one of the three
+    // cannot be told apart, so Custom stays selected then.
+    // What is logged and sent to clients depends on the context, as in getAllowedMeridianSide.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    if (isSimulation())
+    {
+        TrackModeSP.setState(IPS_OK);
+        return true;
+    }
+    char rateString[80] = {0};
+    double value = 0;
+    if (getCommandString(PortFD, rateString, "#:GT#") != 0 || sscanf(rateString, "%lf", &value) != 1)
+    {
+        if (context == READ_AFTER_WRITE)
+        {
+            TrackModeSP.setState(IPS_ALERT);
+        }
+        else if (context == READ_AT_CONNECT || TrackModeSP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the track mode.");
+            TrackModeSP.setState(IPS_ALERT);
+            TrackModeSP.apply();
+        }
+        return false;
+    }
+    int index = TRACK_CUSTOM;
+    if (std::fabs(value - 60.2) < 0.05)
+        index = TRACK_SIDEREAL;
+    else if (std::fabs(value - 60.3) < 0.05)
+        index = TRACK_SOLAR;
+    else if (std::fabs(value - 62.4) < 0.05)
+        index = TRACK_LUNAR;
+    if (TrackModeSP.findOnSwitchIndex() == TRACK_CUSTOM)
+        index = TRACK_CUSTOM;
+    const bool changed = TrackModeSP.findOnSwitchIndex() != index || TrackModeSP.getState() != IPS_OK;
+    TrackModeSP.reset();
+    TrackModeSP[index].setState(ISS_ON);
+    TrackModeSP.setState(IPS_OK);
+    // TRACK_FREQ shows the same reading
+    if (TrackFreqN[0].value != value)
+    {
+        TrackFreqN[0].value = value;
+        IDSetNumber(&TrackFreqNP, nullptr);
+    }
+    if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+    {
+        if (context == READ_AT_CONNECT)
+            LOGF_INFO("Track mode is %s.", TrackModeSP[index].getLabel());
+        else
+            LOGF_INFO("Track mode changed on the mount: %s.", TrackModeSP[index].getLabel());
+        TrackModeSP.apply();
+    }
+    return true;
+}
+
+// Model names are escaped: '$' as "$$", '#' as "$23", ',' as "$2C", and any character below 0x20 or above 0x7E
+// as '$' with its two-digit hexadecimal code (protocol manual 3.1.16, section "Escaped strings", page 78).
+static std::string escapeMountString(const std::string &text)
+{
+    std::string escaped;
+    for (unsigned char c : text)
+    {
+        if (c == '$')
+            escaped += "$$";
+        else if (c == '#' || c == ',' || c < 0x20 || c > 0x7E)
+        {
+            char hex[4];
+            snprintf(hex, sizeof(hex), "$%02X", c);
+            escaped += hex;
+        }
+        else
+            escaped += static_cast<char>(c);
+    }
+    return escaped;
+}
+
+bool LX200_10MICRON::saveModel(const char *name)
+{
+    // #:modelsv0NAME#
+    // Saves in the mount the current model with the given NAME.
+    // The model names are escaped as explained at page 77. Model names are case-sensitive
+    // and have a maximum length of 15 characters. Spaces at the end are ignored.
+    // Returns:
+    // the string "1#" if the model has been saved correctly;
+    // the string "0#" if there was an error.
+    // Available from version 2.13.3.
+    // (Text of the protocol manual 3.1.16; its section "Escaped strings" is on page 78, see escapeMountString.)
+    // A GM2000HPS (firmware 3.1.16) refuses an existing name ("0#"), so a model is never overwritten.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    std::string modelName(name);
+    while (!modelName.empty() && modelName.back() == ' ')
+        modelName.pop_back();
+    if (modelName.empty())
+    {
+        LOG_ERROR("Model not saved: the name is empty.");
+        return false;
+    }
+    if (modelName.size() > 15)
+    {
+        LOGF_ERROR("Model not saved: the name %s is longer than 15 characters.", modelName.c_str());
+        return false;
+    }
+    const std::string escaped = escapeMountString(modelName);
+    const std::string cmd = "#:modelsv0" + escaped + "#";
+    char reply[80] = {0};
+    if (getCommandString(PortFD, reply, cmd.c_str()) != 0)
+    {
+        LOGF_ERROR("Model %s: no reply from the mount to the save command.", modelName.c_str());
+        return false;
+    }
+    if (reply[0] == '1')
+    {
+        LOGF_INFO("Model saved as %s.", modelName.c_str());
+    }
+    else
+    {
+        // Find out why: the only documented reason is a name that already exists
+        bool exists = false;
+        int count = 0;
+        if (getCommandInt(PortFD, &count, "#:modelcnt#") == 0)
+        {
+            for (int i = 1; i <= count && !exists; i++)
+            {
+                char listCmd[32];
+                char listName[80] = {0};
+                snprintf(listCmd, sizeof(listCmd), "#:modelnam%d#", i);
+                exists = getCommandString(PortFD, listName, listCmd) == 0 && escaped == listName;
+            }
+        }
+        if (exists)
+            LOGF_ERROR("Model not saved: the mount already has a model named %s.", modelName.c_str());
+        else
+            LOGF_ERROR("The mount could not save the model as %s.", modelName.c_str());
+        return false;
+    }
+    // The number of models changed
+    int count = 0;
+    if (getCommandInt(PortFD, &count, "#:modelcnt#") == 0)
+    {
+        ModelCountN[0].value = count;
+        IDSetNumber(&ModelCountNP, nullptr);
+    }
+    return true;
 }
 
 bool LX200_10MICRON::Flip(double ra, double dec)
@@ -1865,6 +2061,53 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             AllowedMeridianSideSP.apply();
             return result;
         }
+        // Handled here instead of in INDI::Telescope, which sends nothing while the mount is not tracking and
+        // refuses while it is parked. The mount takes the track mode in any state.
+        if (TrackModeSP.isNameMatch(name))
+        {
+            const int previousIndex = TrackModeSP.findOnSwitchIndex();
+            TrackModeSP.update(states, names, n);
+            const int index = TrackModeSP.findOnSwitchIndex();
+            if (index < 0)
+            {
+                TrackModeSP.setState(IPS_ALERT);
+                TrackModeSP.apply();
+                return false;
+            }
+            // Nothing to send when the mount already uses this mode, e.g. when the config is loaded at connect.
+            // Read it again first, it may have been changed elsewhere since the last read.
+            if (index == previousIndex && getTrackMode(READ_AFTER_WRITE) && TrackModeSP.findOnSwitchIndex() == index)
+            {
+                TrackModeSP.apply();
+                return true;
+            }
+            TrackModeSP.reset();
+            TrackModeSP[index].setState(ISS_ON);
+            // One log line and one property update, showing what the mount reports after the write
+            const char *label = TrackModeSP[index].getLabel();
+            bool result = false;
+            if (!SetTrackMode(index))
+            {
+                LOGF_ERROR("Failed to send track mode %s.", label);
+                TrackModeSP.setState(IPS_ALERT);
+            }
+            else if (!getTrackMode(READ_AFTER_WRITE))
+            {
+                LOG_WARN("Track mode was written, but could not be read back.");
+            }
+            else if (TrackModeSP.findOnSwitchIndex() != index)
+            {
+                LOGF_ERROR("The mount did not take track mode %s.", label);
+                TrackModeSP.setState(IPS_ALERT);
+            }
+            else
+            {
+                LOGF_INFO("Track mode set: %s.", label);
+                result = true;
+            }
+            TrackModeSP.apply();
+            return result;
+        }
         if (strcmp(AlignmentStateSP.name, name) == 0)
         {
             IUUpdateSwitch(&AlignmentStateSP, states, names, n);
@@ -2066,10 +2309,10 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, NEW_MODEL_NAME) == 0)
         {
             IUUpdateText(&NewModelNameTP, texts, names, n);
-            NewModelNameTP.s = IPS_OK;
+            const bool result = saveModel(NewModelNameT[0].text);
+            NewModelNameTP.s = result ? IPS_OK : IPS_ALERT;
             IDSetText(&NewModelNameTP, nullptr);
-            LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
-            return true;
+            return result;
         }
         if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {

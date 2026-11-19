@@ -163,6 +163,9 @@ class LX200_10MICRON : public LX200Generic
         bool getTargetPierSide();
         bool getSlewSettleTime(LX200_10MICRON_READ_CONTEXT context);
         bool setSlewSettleTime(double seconds);
+        bool SetTrackMode(uint8_t mode) override;
+        bool getTrackMode(LX200_10MICRON_READ_CONTEXT context);
+        bool saveModel(const char *name);
         bool SyncConfigBehaviour(bool cmcfg);
         bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
         bool SetTLEtoFollow(const char *tle);
