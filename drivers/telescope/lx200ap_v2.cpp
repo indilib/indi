@@ -79,7 +79,7 @@ LX200AstroPhysicsV2::LX200AstroPhysicsV2() : LX200Generic()
 
     majorVersion = 0;
     minorVersion = 0;
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 const char *LX200AstroPhysicsV2::getDefaultName()
@@ -448,7 +448,7 @@ bool LX200AstroPhysicsV2::getPECState(const char *statusString)
 }
 
 // The version string should be formatted as VCP4-$MAJOR-$MINOR.
-// Could be VCP5 as well. For instance: VCP4-P02-12
+// Could be VCP5 or VCP6 as well. For instance: VCP4-P02-12
 void LX200AstroPhysicsV2::setMajorMinorVersions(char *version)
 {
     majorVersion = 0;
@@ -499,10 +499,17 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
         setMajorMinorVersions(versionString);
     }
     else if (strstr(versionString, "VCP5"))
-
     {
         firmwareVersion = MCV_V;
         servoType = GTOCP5;
+        setMajorMinorVersions(versionString);
+        success = true;
+    }
+    else if (strstr(versionString, "VCP6"))
+    {
+        // GTOCP6 uses the same command set as the GTOCP5.
+        firmwareVersion = MCV_V;
+        servoType = GTOCP6;
         setMajorMinorVersions(versionString);
         success = true;
     }
