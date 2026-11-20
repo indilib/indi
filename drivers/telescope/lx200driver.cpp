@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indicom.h"
 #include "indilogger.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <unistd.h>
 
@@ -1257,16 +1258,20 @@ int setSiteLatitude(int fd, double Lat, bool addSpace)
     {
         case LX200_GEO_SHORT_FORMAT: // d m
             getSexComponents(Lat, &d, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %+03d*%02d#" : ":St%+03d*%02d#", d, m);
+            // Take the sign from Lat, d is 0 for latitudes between -1 and 0 degrees
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d#" : ":St%c%02d*%02d#",
+                     Lat < 0 ? '-' : '+', std::abs(d), m);
             break;
         case LX200_GEO_LONG_FORMAT: // d m s
             getSexComponents(Lat, &d, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %+03d*%02d:%02d#" : ":St%+03d*%02d:%02d#", d, m, s);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d:%02d#" : ":St%c%02d*%02d:%02d#",
+                     Lat < 0 ? '-' : '+', std::abs(d), m, s);
             break;
         case LX200_GEO_LONGER_FORMAT: // d m s.f with f being tenths
             double s_f;
             getSexComponentsIID(Lat, &d, &m, &s_f);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %+03d*%02d:%04.01lf#" : ":St%+03d*%02d:%04.01lf#", d, m, s_f);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d:%04.01lf#" : ":St%c%02d*%02d:%04.01lf#",
+                     Lat < 0 ? '-' : '+', std::abs(d), m, s_f);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown geographic format <%d>", geo_format);
@@ -1315,7 +1320,8 @@ int setObjAlt(int fd, double alt)
     // Returns:
     // 1 Object within slew range
     // 0 Object out of slew range
-    snprintf(read_buffer, sizeof(read_buffer), ":Sa%+02d*%02d#", d, m);
+    // Take the sign from alt, d is 0 for altitudes between -1 and 0 degrees
+    snprintf(read_buffer, sizeof(read_buffer), ":Sa%c%d*%02d#", alt < 0 ? '-' : '+', std::abs(d), m);
 
     return (setStandardProcedure(fd, read_buffer));
 }
