@@ -1,9 +1,9 @@
 /*
     10micron INDI driver
     GM1000HPS GM2000QCI GM2000HPS GM3000HPS GM4000QCI GM4000HPS AZ2000
-    Mount Command Protocol 2.14.11
+    Mount Command Protocol 3.1.16, needs firmware 2.14.9 or newer (:Ginfo#)
 
-    Copyright (C) 2017-2025 Hans Lambermont
+    Copyright (C) 2017-2026 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -91,7 +91,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 6); // don't forget to update drivers.xml
+    setVersion(1, 7); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -189,9 +189,10 @@ bool LX200_10MICRON::initProperties()
         IUFillNumberVector(&NewAlignmentPointsNP, NewAlignmentPointsN, 1, getDeviceName(),
                            NEW_ALIGNMENT_POINTS, "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-        IUFillText(&NewModelNameT[0], "NAME", "Model Name", "newmodel");
+        // Set saves the current model in the mount under this name, see saveModel
+        IUFillText(&NewModelNameT[0], "NAME", "Model name, at most 15 characters", "newmodel");
         IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(),
-                         NEW_MODEL_NAME, "New Name", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+                         NEW_MODEL_NAME, "Save Model As", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
         IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
@@ -210,20 +211,20 @@ bool LX200_10MICRON::initProperties()
                            ISR_ATMOST1, 60, IPS_IDLE);
 
         MountShutdownSP[0].fill("SHUTDOWN", "Shutdown Mount", ISS_OFF);
-        MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+        MountShutdownSP.fill(getDeviceName(), MOUNT_SHUTDOWN, "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                             IPS_IDLE);
 
         // Meridian. The limits and allowed side are mount settings,
         // the time to tracking end and target pier side are computed by the mount and read-only.
         // Ranges from the manual (firmware 3.1.4) 6.3.11 Flip Slew Tol. and 6.3.12 Flip Guide Tol.
-        MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].fill("SLEW_LIMIT_IN_DEG", "Slew limit (deg), Flip Slew Tolerance", "%.0f", 0, 30, 1,
-                0);
+        MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].fill("SLEW_LIMIT_IN_DEG", "Slew limit (deg), Flip Slew Tolerance",
+                "%.0f", 0, 30, 1, 0);
         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].fill("TRACK_LIMIT_IN_DEG",
-                "Tracking limit (deg), Flip Guide Tolerance, >= slew limit",
-                "%.0f", 2, 30, 1, 2);
+                "Tracking limit (deg), Flip Guide Tolerance, >= slew limit", "%.0f", 2, 30, 1, 2);
         MeridianLimitsNP.fill(getDeviceName(), MERIDIAN_LIMITS, "Meridian Limits", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s), estimate in whole minutes", "%.0f", 0, 999999, 0,
-                              0);
+        TrackingEndNP[0].fill("TIME_TO_END_IN_S", "Time to tracking end (s), estimate in whole minutes",
+                              "%.0f", 0, 999999, 0, 0);
         TrackingEndNP.fill(getDeviceName(), TRACKING_END, "Tracking End", MOTION_TAB, IP_RO, 60, IPS_IDLE);
 
         // Labels (TELESCOPE_PIER_SIDE style): the pier side the mount is allowed to use.
@@ -306,7 +307,8 @@ bool LX200_10MICRON::updateProperties()
         int readit = 0;
         for (int i = 0; readit == 0 && i < UnattendedFlipSP.nsp; i++)
         {
-            readit = IUGetConfigSwitch(getDeviceName(), UnattendedFlipSP.name, UnattendedFlipS[i].name, &(UnattendedFlipS[i].s));
+            readit = IUGetConfigSwitch(getDeviceName(), UnattendedFlipSP.name, UnattendedFlipS[i].name,
+                                       &(UnattendedFlipS[i].s));
         }
         if (readit == 0)
         {
@@ -333,7 +335,8 @@ bool LX200_10MICRON::updateProperties()
         }
         else
         {
-            LOG_INFO("Did not find an Unattended Flip setting in the config file. Specify desired behaviour in Motion Control tab and save config in Options tab.");
+            LOG_INFO("Did not find an Unattended Flip setting in the config file. "
+                     "Specify desired behaviour in Motion Control tab and save config in Options tab.");
         }
     }
     else
@@ -367,7 +370,8 @@ void LX200_10MICRON::getBasicData()
 {
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# (and getSiteName :GM#) are not implemented on 10Micron
+    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# (and getSiteName :GM#) are not implemented
+    // on 10Micron
     if (!isSimulation())
     {
         getMountInfo();
@@ -386,32 +390,67 @@ void LX200_10MICRON::getBasicData()
             IDSetNumber(&TrackFreqNP, nullptr);
         }
 
-        char RefractionModelTemperature[80];
-        getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#");
-        float rmtemp;
-        sscanf(RefractionModelTemperature, "%f#", &rmtemp);
+        // A failed read shows 0 with the property in Alert, instead of whatever was in memory
+        char RefractionModelTemperature[80] = {0};
+        float rmtemp = 0;
+        if (getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#") == 0
+                && sscanf(RefractionModelTemperature, "%f", &rmtemp) == 1)
+        {
+            RefractionModelTemperatureNP.s = IPS_IDLE;
+            LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", rmtemp);
+        }
+        else
+        {
+            RefractionModelTemperatureNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the refraction model temperature.");
+        }
         RefractionModelTemperatureN[0].value = rmtemp;
-        LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
         IDSetNumber(&RefractionModelTemperatureNP, nullptr);
 
-        char RefractionModelPressure[80];
-        getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#");
-        float rmpres;
-        sscanf(RefractionModelPressure, "%f#", &rmpres);
+        char RefractionModelPressure[80] = {0};
+        float rmpres = 0;
+        if (getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#") == 0
+                && sscanf(RefractionModelPressure, "%f", &rmpres) == 1)
+        {
+            RefractionModelPressureNP.s = IPS_IDLE;
+            LOGF_INFO("RefractionModelPressure is %06.1f hPa", rmpres);
+        }
+        else
+        {
+            RefractionModelPressureNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the refraction model pressure.");
+        }
         RefractionModelPressureN[0].value = rmpres;
-        LOGF_INFO("RefractionModelPressure is %06.1f hPa", RefractionModelPressureN[0].value);
         IDSetNumber(&RefractionModelPressureNP, nullptr);
 
-        int ModelCount;
-        getCommandInt(PortFD, &ModelCount, "#:modelcnt#");
-        ModelCountN[0].value = (double) ModelCount;
-        LOGF_INFO("%d Alignment Models", static_cast<int>(ModelCountN[0].value));
+        int ModelCount = 0;
+        if (getCommandInt(PortFD, &ModelCount, "#:modelcnt#") == 0)
+        {
+            ModelCountNP.s = IPS_IDLE;
+            LOGF_INFO("%d Alignment Models", ModelCount);
+        }
+        else
+        {
+            ModelCount = 0;
+            ModelCountNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the number of alignment models.");
+        }
+        ModelCountN[0].value = ModelCount;
         IDSetNumber(&ModelCountNP, nullptr);
 
-        int AlignmentPoints;
-        getCommandInt(PortFD, &AlignmentPoints, "#:getalst#");
+        int AlignmentPoints = 0;
+        if (getCommandInt(PortFD, &AlignmentPoints, "#:getalst#") == 0)
+        {
+            AlignmentPointsNP.s = IPS_IDLE;
+            LOGF_INFO("%d Alignment Stars in active model", AlignmentPoints);
+        }
+        else
+        {
+            AlignmentPoints = 0;
+            AlignmentPointsNP.s = IPS_ALERT;
+            LOG_WARN("Failed to read the number of alignment stars in the active model.");
+        }
         AlignmentPointsN[0].value = AlignmentPoints;
-        LOGF_INFO("%d Alignment Stars in active model", static_cast<int>(AlignmentPointsN[0].value));
         IDSetNumber(&AlignmentPointsNP, nullptr);
 
         updateUnattendedFlipSetting(READ_AT_CONNECT);
@@ -440,21 +479,25 @@ void LX200_10MICRON::getBasicData()
 // Called by our getBasicData
 bool LX200_10MICRON::getMountInfo()
 {
-    char ProductName[80];
+    // A failed read leaves the text empty, a date that does not parse is shown as the mount sent it
+    char ProductName[80] = {0};
     getCommandString(PortFD, ProductName, "#:GVP#");
-    char ControlBox[80];
+    char ControlBox[80] = {0};
     getCommandString(PortFD, ControlBox, "#:GVZ#");
-    char FirmwareVersion[80];
+    char FirmwareVersion[80] = {0};
     getCommandString(PortFD, FirmwareVersion, "#:GVN#");
-    char FirmwareDate1[80];
+    char FirmwareDate1[80] = {0};
     getCommandString(PortFD, FirmwareDate1, "#:GVD#");
-    char FirmwareDate2[80];
-    char mon[4];
-    int dd, yyyy;
-    sscanf(FirmwareDate1, "%s %02d %04d", mon, &dd, &yyyy);
+    char FirmwareDate2[80] = {0};
     getCommandString(PortFD, FirmwareDate2, "#:GVT#");
-    char FirmwareDate[80];
-    snprintf(FirmwareDate, 80, "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
+    // :GVD# returns e.g. "Jun 10 2026", :GVT# "17:10:10"
+    char mon[4] = {0};
+    int dd = 0, yyyy = 0;
+    char FirmwareDate[80] = {0};
+    if (sscanf(FirmwareDate1, "%3s %2d %4d", mon, &dd, &yyyy) == 3 && monthToNumber(mon) > 0)
+        snprintf(FirmwareDate, sizeof(FirmwareDate), "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
+    else
+        snprintf(FirmwareDate, sizeof(FirmwareDate), "%s %s", FirmwareDate1, FirmwareDate2);
 
     LOGF_INFO("Product:%s Control box:%s Firmware:%s of %s", ProductName, ControlBox, FirmwareVersion, FirmwareDate);
 
@@ -470,7 +513,8 @@ bool LX200_10MICRON::getMountInfo()
     return true;
 }
 
-// INDI::Telescope calls ReadScopeStatus() every POLLMS to check the link to the telescope and update its state and position.
+// INDI::Telescope calls ReadScopeStatus() every POLLMS to check the link to the telescope and update its state and
+// position.
 // The child class should call newRaDec() whenever a new value is read from the telescope.
 bool LX200_10MICRON::ReadScopeStatus()
 {
@@ -594,7 +638,8 @@ bool LX200_10MICRON::ReadScopeStatus()
             TrackState = SCOPE_PARKING;
             break;
         case GSTAT_UNPARKING:
-            TrackState = SCOPE_TRACKING;
+            // "The mount is unparking": not tracking yet. Not seen on a GM2000HPS, where unparking goes from Gstat 5 to 0.
+            TrackState = SCOPE_IDLE;
             break;
         case GSTAT_SLEWING_TO_HOME:
             TrackState = SCOPE_SLEWING;
@@ -809,7 +854,8 @@ bool LX200_10MICRON::confirmUnattendedFlipSetting(int wanted)
     }
     else if (UnattendedFlip != wanted)
     {
-        LOGF_ERROR("The mount did not take Unattended Flip %s.", (wanted == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
+        LOGF_ERROR("The mount did not take Unattended Flip %s.",
+                   (wanted == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
         UnattendedFlipSP.s = IPS_ALERT;
     }
     else
@@ -881,10 +927,10 @@ void LX200_10MICRON::updateSlewDependentValues()
 // updateSlewDependentValues).
 // The unattended flip setting is read every 60 seconds because the mount
 // resets it when it powers up.
-// The meridian limits, meridian side and slew settle time are read every 60
-// seconds only to show changes made outside this driver. That is not the
-// intended mode of operation: this driver owns these mount settings and writes
-// the saved ones when the config is loaded.
+// The meridian limits, meridian side, slew settle time and track mode are read
+// every 60 seconds only to show changes made outside this driver. That is not
+// the intended mode of operation: this driver owns these mount settings and
+// writes the saved ones when the config is loaded.
 
 // Properties are only sent when they change.
 void LX200_10MICRON::updateMeridianValues(bool all)
@@ -909,6 +955,7 @@ void LX200_10MICRON::updateMeridianValues(bool all)
         getMeridianLimits(context);
         getAllowedMeridianSide(context);
         getSlewSettleTime(context);
+        getTrackMode(context);
         // At connect this is already done by getBasicData
         if (!all)
             updateUnattendedFlipSetting(READ_PERIODIC);
@@ -963,7 +1010,8 @@ bool LX200_10MICRON::getMeridianLimits(LX200_10MICRON_READ_CONTEXT context)
         return false;
     }
     const bool changed = MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].getValue() != slewLimit ||
-                         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue() != trackLimit || MeridianLimitsNP.getState() != IPS_OK;
+                         MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].getValue() != trackLimit ||
+                         MeridianLimitsNP.getState() != IPS_OK;
     MeridianLimitsNP[MERIDIAN_LIMIT_SLEW].setValue(slewLimit);
     MeridianLimitsNP[MERIDIAN_LIMIT_TRACK].setValue(trackLimit);
     MeridianLimitsNP.setState(IPS_OK);
@@ -1260,6 +1308,200 @@ bool LX200_10MICRON::setSlewSettleTime(double seconds)
     return result;
 }
 
+bool LX200_10MICRON::SetTrackMode(uint8_t mode)
+{
+    // #:TQ#     Set default (sidereal) tracking rate
+    // #:TSOLAR# Set solar tracking rate
+    // #:TL#     Set lunar tracking rate
+    // #:TM#     Set custom tracking rate
+    // Returns: nothing
+    // The shared LX200 code sends :TS# for solar, which no 10Micron manual lists. It comes from the Meade
+    // Telescope Serial Command Protocol 2010.10: "Select Solar tracking rate. [LS Only]", i.e. only Meade's
+    // LightSwitch telescopes. The Meade 2002 LX200 command set has no solar command at all.
+    // The mount takes these in any state, also parked or not tracking.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    if (isSimulation())
+        return true;
+    const char *cmd = nullptr;
+    switch (mode)
+    {
+        case TRACK_SIDEREAL:
+            cmd = "#:TQ#";
+            break;
+        case TRACK_SOLAR:
+            cmd = "#:TSOLAR#";
+            break;
+        case TRACK_LUNAR:
+            cmd = "#:TL#";
+            break;
+        case TRACK_CUSTOM:
+            cmd = "#:TM#";
+            break;
+        default:
+            return false;
+    }
+    return setStandardProcedureWithoutRead(fd, cmd) == 0;
+}
+
+bool LX200_10MICRON::getTrackMode(LX200_10MICRON_READ_CONTEXT context)
+{
+    // #:GT#
+    // Get tracking rate.
+    // Returns: TT.T#
+    // This value is computed in order to emulate the corresponding LX200 command. This corresponds to the
+    // equivalent frequency expressed in hertz assuming a synchronous motor design where a 60.0 Hz motor clock
+    // would produce 1 revolution of the mount in 24 hours. So, in order to obtain the tracking rate in arcseconds
+    // per second of time, this value should be divided by four.
+    // Why four: 1 revolution in 24 hours is 360 * 3600 arcseconds in 86400 seconds, 15 arcseconds per second,
+    // so 60.0 Hz stands for 15 arcseconds per second. Sidereal (15.041) gives 60.2, solar (15.000) 60.0 and
+    // lunar (about 14.49) about 58.0.
+    // The values do not follow that formula: a GM2000HPS with firmware 3.1.16 returns 60.2 for sidereal, 60.3 for
+    // solar and 62.4 for lunar, so a slower rate gives a higher value (MountWizzard4 uses the same three values).
+    // They still tell the modes apart. Any other value is a custom rate. A custom rate equal to one of the three
+    // cannot be told apart, so Custom stays selected then.
+    // What is logged and sent to clients depends on the context, as in getAllowedMeridianSide.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    if (isSimulation())
+    {
+        TrackModeSP.setState(IPS_OK);
+        return true;
+    }
+    char rateString[80] = {0};
+    double value = 0;
+    if (getCommandString(PortFD, rateString, "#:GT#") != 0 || sscanf(rateString, "%lf", &value) != 1)
+    {
+        if (context == READ_AFTER_WRITE)
+        {
+            TrackModeSP.setState(IPS_ALERT);
+        }
+        else if (context == READ_AT_CONNECT || TrackModeSP.getState() != IPS_ALERT)
+        {
+            LOG_WARN("Failed to read the track mode.");
+            TrackModeSP.setState(IPS_ALERT);
+            TrackModeSP.apply();
+        }
+        return false;
+    }
+    int index = TRACK_CUSTOM;
+    if (std::fabs(value - 60.2) < 0.05)
+        index = TRACK_SIDEREAL;
+    else if (std::fabs(value - 60.3) < 0.05)
+        index = TRACK_SOLAR;
+    else if (std::fabs(value - 62.4) < 0.05)
+        index = TRACK_LUNAR;
+    if (TrackModeSP.findOnSwitchIndex() == TRACK_CUSTOM)
+        index = TRACK_CUSTOM;
+    const bool changed = TrackModeSP.findOnSwitchIndex() != index || TrackModeSP.getState() != IPS_OK;
+    TrackModeSP.reset();
+    TrackModeSP[index].setState(ISS_ON);
+    TrackModeSP.setState(IPS_OK);
+    // TRACK_FREQ shows the same reading
+    if (TrackFreqN[0].value != value)
+    {
+        TrackFreqN[0].value = value;
+        IDSetNumber(&TrackFreqNP, nullptr);
+    }
+    if (context == READ_AT_CONNECT || (context == READ_PERIODIC && changed))
+    {
+        if (context == READ_AT_CONNECT)
+            LOGF_INFO("Track mode is %s.", TrackModeSP[index].getLabel());
+        else
+            LOGF_INFO("Track mode changed on the mount: %s.", TrackModeSP[index].getLabel());
+        TrackModeSP.apply();
+    }
+    return true;
+}
+
+// Model names are escaped: '$' as "$$", '#' as "$23", ',' as "$2C", and any character below 0x20 or above 0x7E
+// as '$' with its two-digit hexadecimal code (protocol manual 3.1.16, section "Escaped strings", page 78).
+static std::string escapeMountString(const std::string &text)
+{
+    std::string escaped;
+    for (unsigned char c : text)
+    {
+        if (c == '$')
+            escaped += "$$";
+        else if (c == '#' || c == ',' || c < 0x20 || c > 0x7E)
+        {
+            char hex[4];
+            snprintf(hex, sizeof(hex), "$%02X", c);
+            escaped += hex;
+        }
+        else
+            escaped += static_cast<char>(c);
+    }
+    return escaped;
+}
+
+bool LX200_10MICRON::saveModel(const char *name)
+{
+    // #:modelsv0NAME#
+    // Saves in the mount the current model with the given NAME.
+    // The model names are escaped as explained at page 77. Model names are case-sensitive
+    // and have a maximum length of 15 characters. Spaces at the end are ignored.
+    // Returns:
+    // the string "1#" if the model has been saved correctly;
+    // the string "0#" if there was an error.
+    // Available from version 2.13.3.
+    // (Text of the protocol manual 3.1.16; its section "Escaped strings" is on page 78, see escapeMountString.)
+    // A GM2000HPS (firmware 3.1.16) refuses an existing name ("0#"), so a model is never overwritten.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    std::string modelName(name);
+    while (!modelName.empty() && modelName.back() == ' ')
+        modelName.pop_back();
+    if (modelName.empty())
+    {
+        LOG_ERROR("Model not saved: the name is empty.");
+        return false;
+    }
+    if (modelName.size() > 15)
+    {
+        LOGF_ERROR("Model not saved: the name %s is longer than 15 characters.", modelName.c_str());
+        return false;
+    }
+    const std::string escaped = escapeMountString(modelName);
+    const std::string cmd = "#:modelsv0" + escaped + "#";
+    char reply[80] = {0};
+    if (getCommandString(PortFD, reply, cmd.c_str()) != 0)
+    {
+        LOGF_ERROR("Model %s: no reply from the mount to the save command.", modelName.c_str());
+        return false;
+    }
+    if (reply[0] == '1')
+    {
+        LOGF_INFO("Model saved as %s.", modelName.c_str());
+    }
+    else
+    {
+        // Find out why: the only documented reason is a name that already exists
+        bool exists = false;
+        int count = 0;
+        if (getCommandInt(PortFD, &count, "#:modelcnt#") == 0)
+        {
+            for (int i = 1; i <= count && !exists; i++)
+            {
+                char listCmd[32];
+                char listName[80] = {0};
+                snprintf(listCmd, sizeof(listCmd), "#:modelnam%d#", i);
+                exists = getCommandString(PortFD, listName, listCmd) == 0 && escaped == listName;
+            }
+        }
+        if (exists)
+            LOGF_ERROR("Model not saved: the mount already has a model named %s.", modelName.c_str());
+        else
+            LOGF_ERROR("The mount could not save the model as %s.", modelName.c_str());
+        return false;
+    }
+    // The number of models changed
+    int count = 0;
+    if (getCommandInt(PortFD, &count, "#:modelcnt#") == 0)
+    {
+        ModelCountN[0].value = count;
+        IDSetNumber(&ModelCountNP, nullptr);
+    }
+    return true;
+}
+
 bool LX200_10MICRON::Flip(double ra, double dec)
 {
     INDI_UNUSED(ra);
@@ -1271,9 +1513,11 @@ bool LX200_10MICRON::flip()
 {
     // #:FLIP#
     // This command acts in different ways on the AZ2000 and german equatorial (GM1000 – GM4000) mounts.
-    // On an AZ2000 mount: When observing an object near the lowest culmination, requests to make a 360° turn of the azimuth axis and point the object again.
-    // On a german equatorial mount: When observing an object near the meridian, requests to make a 180° turn of the RA axis and move the declination axis in order to
-    // point the object with the telescope on the other side of the mount.
+    // On an AZ2000 mount: When observing an object near the lowest culmination, requests to make a 360° turn of the
+    // azimuth axis and point the object again.
+    // On a german equatorial mount: When observing an object near the meridian, requests to make a 180° turn of the RA
+    // axis and move the declination axis in order to point the object with the telescope on the other side of the
+    // mount.
     // Returns:
     // 1 if successful
     // 0 if the movement cannot be done
@@ -1865,6 +2109,53 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             AllowedMeridianSideSP.apply();
             return result;
         }
+        // Handled here instead of in INDI::Telescope, which sends nothing while the mount is not tracking and
+        // refuses while it is parked. The mount takes the track mode in any state.
+        if (TrackModeSP.isNameMatch(name))
+        {
+            const int previousIndex = TrackModeSP.findOnSwitchIndex();
+            TrackModeSP.update(states, names, n);
+            const int index = TrackModeSP.findOnSwitchIndex();
+            if (index < 0)
+            {
+                TrackModeSP.setState(IPS_ALERT);
+                TrackModeSP.apply();
+                return false;
+            }
+            // Nothing to send when the mount already uses this mode, e.g. when the config is loaded at connect.
+            // Read it again first, it may have been changed elsewhere since the last read.
+            if (index == previousIndex && getTrackMode(READ_AFTER_WRITE) && TrackModeSP.findOnSwitchIndex() == index)
+            {
+                TrackModeSP.apply();
+                return true;
+            }
+            TrackModeSP.reset();
+            TrackModeSP[index].setState(ISS_ON);
+            // One log line and one property update, showing what the mount reports after the write
+            const char *label = TrackModeSP[index].getLabel();
+            bool result = false;
+            if (!SetTrackMode(index))
+            {
+                LOGF_ERROR("Failed to send track mode %s.", label);
+                TrackModeSP.setState(IPS_ALERT);
+            }
+            else if (!getTrackMode(READ_AFTER_WRITE))
+            {
+                LOG_WARN("Track mode was written, but could not be read back.");
+            }
+            else if (TrackModeSP.findOnSwitchIndex() != index)
+            {
+                LOGF_ERROR("The mount did not take track mode %s.", label);
+                TrackModeSP.setState(IPS_ALERT);
+            }
+            else
+            {
+                LOGF_INFO("Track mode set: %s.", label);
+                result = true;
+            }
+            TrackModeSP.apply();
+            return result;
+        }
         if (strcmp(AlignmentStateSP.name, name) == 0)
         {
             IUUpdateSwitch(&AlignmentStateSP, states, names, n);
@@ -2066,10 +2357,10 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, NEW_MODEL_NAME) == 0)
         {
             IUUpdateText(&NewModelNameTP, texts, names, n);
-            NewModelNameTP.s = IPS_OK;
+            const bool result = saveModel(NewModelNameT[0].text);
+            NewModelNameTP.s = result ? IPS_OK : IPS_ALERT;
             IDSetText(&NewModelNameTP, nullptr);
-            LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
-            return true;
+            return result;
         }
         if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {
