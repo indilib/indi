@@ -299,3 +299,6 @@ add_executable(indi_mxhd_telescope
 target_link_libraries(indi_mxhd_telescope indidriver)
 
 install(TARGETS indi_mxhd_telescope RUNTIME DESTINATION bin)
+
+# ########## OnStep X ##########
+add_subdirectory(onstepx)
