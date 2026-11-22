@@ -265,7 +265,8 @@ files to the human and say plainly that it is still owed.
   libraries excepted). The options are in README.md ("Code Style"). Check your changes before reporting:
   `scripts/check-codestyle.sh <file>` for uncommitted changes, or `scripts/check-codestyle.sh <file> upstream/master`
   for everything on your branch. The check looks at whole functions, so format the functions you touch and
-  nothing else.
+  nothing else. The astyle version is pinned in `.astyle-version`; the script refuses another version, and a
+  format made with another version may fail in CI.
 - **Match the surrounding code**: naming, comment density, logging (`LOG_INFO`, `LOGF_DEBUG`, …) and idioms.
 - **New code uses the property classes** (`INDI::PropertyNumber`, `INDI::PropertySwitch`, `INDI::PropertyText`,
   …), not the legacy `IUFill*` functions and raw property structs.

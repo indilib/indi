@@ -17,10 +17,16 @@ jobs:
           # HEAD is the merge of the pull request into its base, so HEAD^1 is the base.
           fetch-depth: 2
 
+      - name: Install the astyle version pinned in .astyle-version
+        run: |
+          version=$(tr -d '[:space:]' < .astyle-version)
+          pipx install "astyle==${version}" || python3 -m pip install --user --break-system-packages "astyle==${version}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        shell: bash
+
       - name: Check codestyle of the changed lines in files with suffix cpp,cxx,c,h
         run: |
-          sudo apt-get update
-          sudo apt-get -qq -y install astyle
+          astyle --version
           rc=0
           # Bundled third-party libraries keep their own style.
           while IFS= read -r file; do
