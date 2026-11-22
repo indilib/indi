@@ -41,6 +41,21 @@
 namespace PrimalucaLabs
 {
 
+// The motor is still moving if BUSY=1 or MST is not yet "stop". The firmware can
+// report BUSY=0 while MST is still "dec", e.g. the Esatto braking at the end of a move.
+static bool isMotorBusy(const json &status)
+{
+    if (!status.is_object())
+        return false;
+
+    std::string mst;
+    if (status.contains("MST") && status["MST"].is_string())
+        status["MST"].get_to(mst);
+
+    const bool busy = status.contains("BUSY") && status["BUSY"] == 1;
+    return busy || (!mst.empty() && mst != "stop");
+}
+
 std::vector<std::string> split(const std::string &input, const std::string &regex)
 {
     // passing -1 as the submatch index parameter performs splitting
@@ -357,9 +372,7 @@ bool Focuser::isBusy()
 {
     json status;
     if (m_Communication->get(MOT_1, "STATUS", status))
-    {
-        return status["BUSY"] == 1;
-    }
+        return isMotorBusy(status);
     return false;
 }
 
@@ -588,18 +601,10 @@ bool SestoSenso3::goAbsolutePosition(uint32_t position)
 bool SestoSenso3::isBusy()
 {
     json status;
+    // The SS3 can transiently assert BUSY=0 while MST is still
+    // "CstSpeed" or "dec" during encoder-feedback transitions.
     if (m_Communication->get(MOT_1, "STATUS", status))
-    {
-        bool busy = (status["BUSY"] == 1);
-        std::string mst;
-        if (status.contains("MST"))
-            status["MST"].get_to(mst);
-        // Motor is still moving if BUSY=1, or if MST is not yet "stop".
-        // The SS3 can transiently assert BUSY=0 while MST is still
-        // "CstSpeed" or "dec" during encoder-feedback transitions.
-        bool motorStopped = mst.empty() || (mst == "stop");
-        return busy || !motorStopped;
-    }
+        return isMotorBusy(status);
     return false;
 }
 
@@ -901,9 +906,7 @@ bool Arco::isBusy()
 {
     json status;
     if (m_Communication->get(MOT_2, "STATUS", status))
-    {
-        return status["BUSY"] == 1;
-    }
+        return isMotorBusy(status);
     return false;
 }
 
