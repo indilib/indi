@@ -85,6 +85,21 @@ TARGET_LINK_LIBRARIES(test_lx200_onstep
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_lx200_onstep test_lx200_onstep)
+
+ADD_EXECUTABLE(test_lx200_coordinates
+    ${LX200GENERIC_SOURCES}
+    test_lx200_coordinates.cpp
+)
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_lx200_coordinates PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_lx200_coordinates
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_lx200_coordinates test_lx200_coordinates)
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_planewave_efa
