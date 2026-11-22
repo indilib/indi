@@ -121,6 +121,8 @@ class EFA : public INDI::Focuser
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
         void getStartupValues();
+        // Recalculate the position in microns from the encoder position; send it to clients if it changed.
+        void updateMicronPosition(bool notify = true);
         double calculateTemperature(uint8_t byte2, uint8_t byte3);
         bool validateLengths(const uint8_t *cmd, uint32_t len);
         uint8_t calculateCheckSum(const uint8_t *cmd, uint32_t len);
@@ -202,6 +204,12 @@ class EFA : public INDI::Focuser
             TEMPERATURE_AMBIENT
         };
 
+        // Encoder steps per micron of focuser travel. It differs per focuser model and the EFA cannot report it.
+        INDI::PropertyNumber StepsPerMicronNP {1};
+
+        // Read Only position in microns (encoder position / steps per micron)
+        INDI::PropertyNumber MicronPositionNP {1};
+
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
@@ -223,6 +231,8 @@ class EFA : public INDI::Focuser
         static constexpr const uint8_t DRIVER_LEN {9};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // PlaneWave EFA protocol: 115134.42 encoder counts = 1 mm of focuser travel (Hedrick focuser)
+        static constexpr double DEFAULT_STEPS_PER_MICRON { 115.134 };
         // Fan Control
         static constexpr const char *FAN_TAB = "Fan";
 };
