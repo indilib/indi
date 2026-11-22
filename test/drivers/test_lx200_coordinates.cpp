@@ -13,6 +13,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <string>
 #include <unistd.h>
@@ -24,6 +25,7 @@
 #include "drivers/telescope/lx200_OnStep.h"
 #include "drivers/telescope/lx200ss2000pc.h"
 #include "drivers/telescope/lx200pulsar2.h"
+#include "drivers/telescope/eq500x.h"
 
 extern int eq_format;
 extern int geo_format;
@@ -381,6 +383,44 @@ TEST_F(Pulsar2Commands, OtherLatitudesAreUnchanged)
     EXPECT_EQ(location(-30.5, 10), (std::vector<std::string> {":Sl 350:00#", ":St -30:30#"}));
     EXPECT_EQ(location(45.5, 350), (std::vector<std::string> {":Sl 010:00#", ":St 045:30#"}));
     EXPECT_EQ(location(0.5, 10), (std::vector<std::string> {":Sl 350:00#", ":St 000:30#"}));
+}
+
+// EQ500X sends the mechanical declination as sDD:MM:SS (see test/lx200drivers/test_eq500xdriver.cpp)
+TEST(EQ500XCommands, DeclinationKeepsTheSignBetweenMinusOneAndZero)
+{
+    const EQ500X::MechanicalPoint::PointingState sides[] = {EQ500X::MechanicalPoint::POINTING_NORMAL,
+                                                            EQ500X::MechanicalPoint::POINTING_BEYOND_POLE
+                                                           };
+    for (auto side : sides)
+    {
+        for (int m = 0; m < 60; m++)
+        {
+            for (int s = (m == 0 ? 1 : 0); s < 60; s++)
+            {
+                EQ500X::MechanicalPoint p;
+                char b[64] = {0}, c[64] = {0};
+                p.setPointingState(side);
+
+                snprintf(b, sizeof(b), "-00:%02d:%02d", m, s);
+                ASSERT_FALSE(p.parseStringDEC(b, sizeof(b)));
+                ASSERT_STREQ(b, p.toStringDEC(c, sizeof(c)));
+                ASSERT_STREQ(b, p.toStringDEC_Sim(c, sizeof(c)));
+            }
+        }
+    }
+}
+
+TEST(EQ500XCommands, OtherDeclinationsAreUnchanged)
+{
+    const char *declinations[] = {"+00:00:00", "+00:30:00", "+00:59:59", "-01:00:00", "-10:30:15", "+89:59:59", "-89:00:01"};
+    for (const char *dec : declinations)
+    {
+        EQ500X::MechanicalPoint p;
+        char c[64] = {0};
+        ASSERT_FALSE(p.parseStringDEC(dec, strlen(dec)));
+        EXPECT_STREQ(dec, p.toStringDEC(c, sizeof(c)));
+        EXPECT_STREQ(dec, p.toStringDEC_Sim(c, sizeof(c)));
+    }
 }
 
 }
