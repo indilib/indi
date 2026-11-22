@@ -395,9 +395,29 @@ bool EsattoArco::isFocusMoveFinished()
 bool EsattoArco::isRotatorMoveFinished()
 {
     if (m_Arco->isBusy())
+    {
+        m_RotatorStopped = false;
+        return false;
+    }
+
+    if (RotatorAbsPosNP[0].getValue() == m_RotatorMoveStart && m_RotatorMoveTimer.elapsed() < MOVE_START_GRACE_MS)
         return false;
 
-    return RotatorAbsPosNP[0].getValue() != m_RotatorMoveStart || m_RotatorMoveTimer.elapsed() >= MOVE_START_GRACE_MS;
+    if (!m_RotatorStopped)
+    {
+        m_RotatorStopped = true;
+        m_RotatorStopTimer.start();
+    }
+
+    const double error = std::abs(range180(GotoRotatorNP[0].getValue() - m_RotatorTarget));
+    if (error <= ROTATOR_TARGET_TOLERANCE)
+        return true;
+
+    if (m_RotatorStopTimer.elapsed() < ROTATOR_SETTLE_MS)
+        return false;
+
+    LOGF_WARN("Arco stopped %.2f degrees from the target angle %.2f.", error, m_RotatorTarget);
+    return true;
 }
 
 /************************************************************************************************************
@@ -493,6 +513,7 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if(m_Arco->calibrate())
             {
                 LOG_INFO("Calibrating Arco. Please wait.");
+                m_RotatorMoveTimer.start();
                 RotatorAbsPosNP.setState(IPS_BUSY);
                 GotoRotatorNP.setState(IPS_BUSY);
                 RotatorCalibrationSP.setState(IPS_BUSY);
@@ -603,8 +624,26 @@ void EsattoArco::TimerHit()
         if (FocusAbsPosNP.getState() == IPS_BUSY)
             updateSpeed();
 
+        const bool focusFinished = FocusAbsPosNP.getState() == IPS_BUSY && isFocusMoveFinished();
+
+        const bool rotatorMoved = std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0;
+        bool rotatorFinished = false;
+        if (GotoRotatorNP.getState() == IPS_BUSY)
+        {
+            // The position stays 0 during the whole calibration, CAL_STATUS tells when it is done
+            if (RotatorCalibrationSP.getState() == IPS_BUSY)
+                rotatorFinished = m_RotatorMoveTimer.elapsed() >= MOVE_START_GRACE_MS && !m_Arco->isCalibrating()
+                                  && !m_Arco->isBusy();
+            else
+                rotatorFinished = isRotatorMoveFinished();
+        }
+
+        // The positions were read while the motor was still braking, report the final ones
+        if (focusFinished || rotatorFinished)
+            updatePosition();
+
         // Focuser State Machine
-        if (FocusAbsPosNP.getState() == IPS_BUSY && isFocusMoveFinished())
+        if (focusFinished)
         {
             FocusAbsPosNP.setState(IPS_OK);
             FocusRelPosNP.setState(IPS_OK);
@@ -615,17 +654,6 @@ void EsattoArco::TimerHit()
             FocusAbsPosNP.apply();
 
         // Rotator State Machine
-        const bool rotatorMoved = std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0;
-        bool rotatorFinished = false;
-        if (GotoRotatorNP.getState() == IPS_BUSY)
-        {
-            // The calibration pauses between its phases, only trust the end of a movement
-            if (RotatorCalibrationSP.getState() == IPS_BUSY)
-                rotatorFinished = rotatorMoved && m_Arco->isBusy() == false;
-            else
-                rotatorFinished = isRotatorMoveFinished();
-        }
-
         if (rotatorMoved || rotatorFinished)
         {
             // Rotator was busy and now stopped?
@@ -831,6 +859,8 @@ IPState EsattoArco::MoveRotator(double angle)
     {
         m_RotatorMoveStart = RotatorAbsPosNP[0].getValue();
         m_RotatorMoveTimer.start();
+        m_RotatorTarget = range360(angle);
+        m_RotatorStopped = false;
         return IPS_BUSY;
     }
     return IPS_ALERT;
