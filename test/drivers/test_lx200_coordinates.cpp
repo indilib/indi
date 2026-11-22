@@ -23,6 +23,7 @@
 #include "drivers/telescope/lx200driver.h"
 #include "drivers/telescope/lx200_OnStep.h"
 #include "drivers/telescope/lx200ss2000pc.h"
+#include "drivers/telescope/lx200pulsar2.h"
 
 extern int eq_format;
 extern int geo_format;
@@ -336,6 +337,50 @@ TEST_F(SS2000PCCommands, OtherLatitudesAreUnchanged)
     EXPECT_EQ(location(45.5, 350), (std::vector<std::string> {":St +045*30#", ":Sg 010*00#"}));
     EXPECT_EQ(location(0.5, 10), (std::vector<std::string> {":St +000*30#", ":Sg 350*00#"}));
     EXPECT_EQ(location(-0.5, 10), (std::vector<std::string> {":St -000*30#", ":Sg 350*00#"}));
+}
+
+// LX200Pulsar2 with the site update reachable; it sends the longitude, then the latitude.
+class TestPulsar2 : public LX200Pulsar2
+{
+    public:
+        void setPort(int fd)
+        {
+            PortFD = fd;
+        }
+
+        using LX200Pulsar2::updateLocation;
+};
+
+class Pulsar2Commands : public ::testing::Test
+{
+    protected:
+        void SetUp() override
+        {
+            m_Pulsar.setPort(m_Device.driverFD());
+        }
+
+        // longitude is an INDI longitude, 0 to 360 degrees East
+        std::vector<std::string> location(double latitude, double longitude)
+        {
+            m_Device.clear();
+            EXPECT_TRUE(m_Pulsar.updateLocation(latitude, longitude, 0));
+            return m_Device.commands();
+        }
+
+        FakeSerialDevice m_Device {accept};
+        TestPulsar2 m_Pulsar;
+};
+
+TEST_F(Pulsar2Commands, LatitudeKeepsTheSignBetweenMinusOneAndZero)
+{
+    EXPECT_EQ(location(-0.5, 10), (std::vector<std::string> {":Sl 350:00#", ":St -00:30#"}));
+}
+
+TEST_F(Pulsar2Commands, OtherLatitudesAreUnchanged)
+{
+    EXPECT_EQ(location(-30.5, 10), (std::vector<std::string> {":Sl 350:00#", ":St -30:30#"}));
+    EXPECT_EQ(location(45.5, 350), (std::vector<std::string> {":Sl 010:00#", ":St 045:30#"}));
+    EXPECT_EQ(location(0.5, 10), (std::vector<std::string> {":Sl 350:00#", ":St 000:30#"}));
 }
 
 }
