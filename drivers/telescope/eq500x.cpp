@@ -101,7 +101,7 @@ const adjustments[] =
 ***************************************************************************************/
 EQ500X::EQ500X(): LX200Generic()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Sanitize constants: epsilon of a slew rate must be smaller than distance of its smaller sibling
     for (size_t i = 0; i < sizeof(adjustments) / sizeof(adjustments[0]) - 1; i++)

@@ -38,7 +38,7 @@ const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
 LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 

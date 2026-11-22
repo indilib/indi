@@ -12,7 +12,7 @@
 
 ToupSH20::ToupSH20()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 

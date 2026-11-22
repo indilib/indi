@@ -33,7 +33,7 @@ static std::unique_ptr<Rainbow> scope(new Rainbow());
 
 Rainbow::Rainbow() : INDI::Telescope (), GI(this)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     SetTelescopeCapability(TELESCOPE_CAN_GOTO |
                            TELESCOPE_CAN_SYNC |

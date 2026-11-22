@@ -46,7 +46,7 @@ static std::unique_ptr<LX200Basic> telescope(new LX200Basic());
 ***************************************************************************************/
 LX200Basic::LX200Basic()
 {
-    setVersion(2, 1);
+    setVersion(2, 2);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 

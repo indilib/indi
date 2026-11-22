@@ -1282,7 +1282,7 @@ bool isParking(const int fd)
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 LX200Pulsar2::LX200Pulsar2() : LX200Generic(), just_started_slewing(false)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
     //setLX200Capability(0);
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 

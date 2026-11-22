@@ -36,7 +36,7 @@ static std::unique_ptr<TitanTCS> titanTCS(new TitanTCS());
 
 TitanTCS::TitanTCS() : GI(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     SetTelescopeCapability(
         TELESCOPE_CAN_GOTO |
