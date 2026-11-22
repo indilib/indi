@@ -67,6 +67,16 @@ class LX200DriverCommands : public ::testing::Test
             });
         }
 
+        // value is a cartographic longitude (East positive); the mount gets East as negative.
+        std::string longitude(int format, double value, bool addSpace = false)
+        {
+            geo_format = format;
+            return sent([&](int fd)
+            {
+                return setSiteLongitude(fd, value, addSpace);
+            });
+        }
+
         std::string altitude(double value)
         {
             return sent([&](int fd)
@@ -104,6 +114,32 @@ TEST_F(LX200DriverCommands, SiteLatitudeIsUnchangedOutsideMinusOneToZero)
     EXPECT_EQ(latitude(LX200_GEO_LONG_FORMAT, -33.865), ":St-33*51:54#");
     EXPECT_EQ(latitude(LX200_GEO_LONGER_FORMAT, -33.865), ":St-33*51:54.0#");
     EXPECT_EQ(latitude(LX200_GEO_LONGER_FORMAT, 89.5, true), ":St +89*30:00.0#");
+}
+
+TEST_F(LX200DriverCommands, SiteLongitudeKeepsTheSignBetweenZeroAndOneDegreeEast)
+{
+    // 0.5 degrees East, and 0 deg 7' 12" East (Cambridge, UK)
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, 0.5), ":Sg-00*30#");
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, 0.5, true), ":Sg -00*30#");
+    EXPECT_EQ(longitude(LX200_GEO_LONG_FORMAT, 0.12), ":Sg-00*07:12#");
+    EXPECT_EQ(longitude(LX200_GEO_LONG_FORMAT, 0.12, true), ":Sg -00*07:12#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, 0.12), ":Sg-00*07:12.0#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, 0.12, true), ":Sg -00*07:12.0#");
+}
+
+TEST_F(LX200DriverCommands, SiteLongitudeIsUnchangedOutsideZeroToOneDegreeEast)
+{
+    // West longitudes have three digits, East ones a minus sign and at least two digits
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, -0.5), ":Sg000*30#");
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, 0.0), ":Sg000*00#");
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, -71.5), ":Sg071*30#");
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, -120.25, true), ":Sg 120*15#");
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, 5.5), ":Sg-05*30#");
+    EXPECT_EQ(longitude(LX200_GEO_SHORT_FORMAT, 151.2), ":Sg-151*12#");
+    EXPECT_EQ(longitude(LX200_GEO_LONG_FORMAT, 2.35), ":Sg-02*21:00#");
+    EXPECT_EQ(longitude(LX200_GEO_LONG_FORMAT, -71.5), ":Sg071*30:00#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, 151.25), ":Sg-151*15:00.0#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, -0.5, true), ":Sg 000*30:00.0#");
 }
 
 TEST_F(LX200DriverCommands, TargetAltitudeKeepsTheSignBetweenMinusOneAndZero)
