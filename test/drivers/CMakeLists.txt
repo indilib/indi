@@ -100,6 +100,25 @@ TARGET_LINK_LIBRARIES(test_lx200_coordinates
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_lx200_coordinates test_lx200_coordinates)
+
+# Mount drivers outside indi_lx200generic
+SET(MOUNT_COORDINATES_SOURCES
+    rainbow.cpp lx200driver.cpp)
+LIST(TRANSFORM MOUNT_COORDINATES_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/")
+ADD_EXECUTABLE(test_mount_coordinates
+    ${MOUNT_COORDINATES_SOURCES}
+    test_mount_coordinates.cpp
+)
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
+    TARGET_COMPILE_DEFINITIONS(test_mount_coordinates PRIVATE _XOPEN_SOURCE=700)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_mount_coordinates
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_mount_coordinates test_mount_coordinates)
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_planewave_efa

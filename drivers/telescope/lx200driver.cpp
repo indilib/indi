@@ -955,16 +955,20 @@ int setObjectRA(int fd, double ra, bool addSpace)
         case LX200_EQ_SHORT_FORMAT:
             int frac_m;
             getSexComponents(ra, &h, &m, &s);
+            // The rounding of the seconds may carry up to 24 hours, which is 0 hours
+            h %= 24;
             frac_m = (s / 60.0) * 10.;
             snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d.%01d#", cmd, h, m, frac_m);
             break;
         case LX200_EQ_LONG_FORMAT:
             getSexComponents(ra, &h, &m, &s);
+            h %= 24;
             snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d:%02d#", cmd, h, m, s);
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
-            getSexComponentsIID(ra, &h, &m, &d_s);
+            getSexComponentsIIDRounded(ra, &h, &m, &d_s, 2);
+            h %= 24;
             snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d:%05.02f#", cmd, h, m, d_s);
             break;
         default:
@@ -1032,7 +1036,7 @@ int setObjectDEC(int fd, double dec, bool addSpace)
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
-            getSexComponentsIID(dec, &d, &m, &d_s);
+            getSexComponentsIIDRounded(dec, &d, &m, &d_s, 1);
             /* case with negative zero */
             if (!d && dec < 0)
                 snprintf(read_buffer, sizeof(read_buffer), ":%s-%02d*%02d:%04.1f#", cmd, d, m, d_s);
@@ -1233,7 +1237,7 @@ int setSiteLongitude(int fd, double CartographicLongitude, bool addSpace)
             break;
         case LX200_GEO_LONGER_FORMAT: // d m s.f with f being tenths
             double s_f;
-            getSexComponentsIID(LX200Longitude, &d, &m, &s_f);
+            getSexComponentsIIDRounded(LX200Longitude, &d, &m, &s_f, 1);
             formatLongitudeDegrees(degrees, sizeof(degrees), LX200Longitude, d);
             snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %s*%02d:%04.01lf#" : ":Sg%s*%02d:%04.01lf#", degrees, m,
                      s_f);
@@ -1285,7 +1289,7 @@ int setSiteLatitude(int fd, double Lat, bool addSpace)
             break;
         case LX200_GEO_LONGER_FORMAT: // d m s.f with f being tenths
             double s_f;
-            getSexComponentsIID(Lat, &d, &m, &s_f);
+            getSexComponentsIIDRounded(Lat, &d, &m, &s_f, 1);
             snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d:%04.01lf#" : ":St%c%02d*%02d:%04.01lf#",
                      Lat < 0 ? '-' : '+', std::abs(d), m, s_f);
             break;

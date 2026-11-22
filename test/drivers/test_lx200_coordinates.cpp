@@ -20,6 +20,7 @@
 #include "fake_serial_device.h"
 #include "indilogger.h"
 #include "drivers/telescope/lx200driver.h"
+#include "drivers/telescope/lx200_OnStep.h"
 
 extern int eq_format;
 extern int geo_format;
@@ -85,6 +86,24 @@ class LX200DriverCommands : public ::testing::Test
             });
         }
 
+        std::string ra(int format, double value)
+        {
+            eq_format = format;
+            return sent([&](int fd)
+            {
+                return setObjectRA(fd, value);
+            });
+        }
+
+        std::string dec(int format, double value)
+        {
+            eq_format = format;
+            return sent([&](int fd)
+            {
+                return setObjectDEC(fd, value);
+            });
+        }
+
         FakeSerialDevice m_Device {accept};
 
     private:
@@ -142,6 +161,39 @@ TEST_F(LX200DriverCommands, SiteLongitudeIsUnchangedOutsideZeroToOneDegreeEast)
     EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, -0.5, true), ":Sg 000*30:00.0#");
 }
 
+TEST_F(LX200DriverCommands, LongerFormatsNeverSendSixtySeconds)
+{
+    // 0 59' 59.964" is 1 00' 00.0" with tenths of arcseconds, not 0 59' 60.0"
+    EXPECT_EQ(latitude(LX200_GEO_LONGER_FORMAT, -0.99999), ":St-01*00:00.0#");
+    EXPECT_EQ(latitude(LX200_GEO_LONGER_FORMAT, 45.99999), ":St+46*00:00.0#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, 151.2), ":Sg-151*12:00.0#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, -71.99999), ":Sg072*00:00.0#");
+    EXPECT_EQ(dec(LX200_EQ_LONGER_FORMAT, -0.99999), ":Sd-01*00:00.0#");
+    EXPECT_EQ(dec(LX200_EQ_LONGER_FORMAT, 45.99999), ":Sd+46*00:00.0#");
+    // 5h 59m 59.9964s is 6h 00m 00.00s with hundredths of seconds
+    EXPECT_EQ(ra(LX200_EQ_LONGER_FORMAT, 5.999999), ":Sr06:00:00.00#");
+}
+
+TEST_F(LX200DriverCommands, LongerFormatsAreUnchangedAwayFromSixtySeconds)
+{
+    EXPECT_EQ(latitude(LX200_GEO_LONGER_FORMAT, 12.3456789), ":St+12*20:44.4#");
+    EXPECT_EQ(longitude(LX200_GEO_LONGER_FORMAT, -12.3456789), ":Sg012*20:44.4#");
+    EXPECT_EQ(dec(LX200_EQ_LONGER_FORMAT, -12.3456789), ":Sd-12*20:44.4#");
+    EXPECT_EQ(dec(LX200_EQ_LONGER_FORMAT, -0.5), ":Sd-00*30:00.0#");
+    EXPECT_EQ(dec(LX200_EQ_LONGER_FORMAT, 89.5), ":Sd+89*30:00.0#");
+    EXPECT_EQ(ra(LX200_EQ_LONGER_FORMAT, 1.2345678), ":Sr01:14:04.44#");
+    EXPECT_EQ(ra(LX200_EQ_LONGER_FORMAT, 12.5), ":Sr12:30:00.00#");
+}
+
+TEST_F(LX200DriverCommands, RightAscensionRoundedUpToTwentyFourHoursIsZero)
+{
+    EXPECT_EQ(ra(LX200_EQ_LONGER_FORMAT, 23.9999999), ":Sr00:00:00.00#");
+    EXPECT_EQ(ra(LX200_EQ_LONG_FORMAT, 23.99999), ":Sr00:00:00#");
+    EXPECT_EQ(ra(LX200_EQ_LONG_FORMAT, 23.5), ":Sr23:30:00#");
+    EXPECT_EQ(ra(LX200_EQ_SHORT_FORMAT, 23.99999), ":Sr00:00.0#");
+    EXPECT_EQ(ra(LX200_EQ_SHORT_FORMAT, 23.5), ":Sr23:30.0#");
+}
+
 TEST_F(LX200DriverCommands, TargetAltitudeKeepsTheSignBetweenMinusOneAndZero)
 {
     EXPECT_EQ(altitude(-0.5), ":Sa-0*30#");
@@ -155,6 +207,71 @@ TEST_F(LX200DriverCommands, TargetAltitudeIsUnchangedOutsideMinusOneToZero)
     EXPECT_EQ(altitude(0.5), ":Sa+0*30#");
     EXPECT_EQ(altitude(-10.25), ":Sa-10*15#");
     EXPECT_EQ(altitude(-5.5), ":Sa-5*30#");
+}
+
+// LX200_OnStep with the functions under test made reachable.
+class TestOnStep : public LX200_OnStep
+{
+    public:
+        using LX200_OnStep::setSiteLatitude;
+        using LX200_OnStep::setSiteLongitude;
+
+        void setHighPrecision(bool enabled)
+        {
+            OSHighPrecision = enabled;
+        }
+};
+
+class OnStepCommands : public ::testing::Test
+{
+    protected:
+        std::string latitude(bool highPrecision, double value)
+        {
+            m_OnStep.setHighPrecision(highPrecision);
+            return sent([&](int fd)
+            {
+                return m_OnStep.setSiteLatitude(fd, value);
+            });
+        }
+
+        // value is an OnStep longitude, 0 to 360 degrees West
+        std::string longitude(bool highPrecision, double value)
+        {
+            m_OnStep.setHighPrecision(highPrecision);
+            return sent([&](int fd)
+            {
+                return m_OnStep.setSiteLongitude(fd, value);
+            });
+        }
+
+        std::string sent(const std::function<int(int)> &command)
+        {
+            m_Device.clear();
+            EXPECT_EQ(command(m_Device.driverFD()), 0);
+            auto commands = m_Device.commands();
+            EXPECT_EQ(commands.size(), 1u);
+            return commands.empty() ? std::string() : commands.back();
+        }
+
+        TestOnStep m_OnStep;
+        FakeSerialDevice m_Device {accept};
+};
+
+TEST_F(OnStepCommands, HighPrecisionNeverSendsSixtySeconds)
+{
+    // 45 59' 59.9996" is 46 00' 00.00" with hundredths of arcseconds, not 45 59' 60.00"
+    EXPECT_EQ(latitude(true, 45.9999999), ":St+46:00:0.00#");
+    EXPECT_EQ(longitude(true, 100.9999999), ":Sg101:00:0.00#");
+}
+
+TEST_F(OnStepCommands, HighPrecisionIsUnchangedAwayFromSixtySeconds)
+{
+    EXPECT_EQ(latitude(true, 12.3456789), ":St+12:20:44.44#");
+    EXPECT_EQ(latitude(true, -33.865), ":St-33:51:54.00#");
+    EXPECT_EQ(longitude(true, 12.3456789), ":Sg012:20:44.44#");
+    EXPECT_EQ(longitude(true, 288.5), ":Sg288:30:0.00#");
+    EXPECT_EQ(latitude(false, -33.865), ":St-33:51#");
+    EXPECT_EQ(longitude(false, 288.5), ":Sg288:30#");
 }
 
 }

@@ -877,7 +877,9 @@ bool Rainbow::setRA(double ra)
     int degrees, minutes;
     double seconds;
 
-    getSexComponentsIID(ra, &degrees, &minutes, &seconds);
+    getSexComponentsIIDRounded(ra, &degrees, &minutes, &seconds, 1);
+    // The rounding of the seconds may carry up to 24 hours, which is 0 hours
+    degrees %= 24;
 
     snprintf(cmd, DRIVER_LEN, ":Sr%02d:%02d:%04.1f#", degrees, minutes, seconds);
 
@@ -897,7 +899,7 @@ bool Rainbow::setDE(double de)
     int degrees, minutes;
     double seconds;
 
-    getSexComponentsIID(de, &degrees, &minutes, &seconds);
+    getSexComponentsIIDRounded(de, &degrees, &minutes, &seconds, 1);
 
     snprintf(cmd, DRIVER_LEN, ":Sd%c%02d*%02d:%04.1f#", de >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
 
@@ -963,7 +965,9 @@ bool Rainbow::setAZ(double azimuth)
     int degrees, minutes;
     double seconds;
 
-    getSexComponentsIID(azimuth, &degrees, &minutes, &seconds);
+    getSexComponentsIIDRounded(azimuth, &degrees, &minutes, &seconds, 1);
+    // The rounding of the seconds may carry up to 360 degrees, which is 0 degrees
+    degrees %= 360;
 
     snprintf(cmd, DRIVER_LEN, ":Sz%03d*%02d:%04.1f#", degrees, minutes, seconds);
 
@@ -979,7 +983,7 @@ bool Rainbow::setAL(double altitude)
     int degrees, minutes;
     double seconds;
 
-    getSexComponentsIID(altitude, &degrees, &minutes, &seconds);
+    getSexComponentsIIDRounded(altitude, &degrees, &minutes, &seconds, 1);
 
     snprintf(cmd, DRIVER_LEN, ":Sa%c%02d*%02d:%04.1f#", degrees >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
 

@@ -3849,7 +3849,7 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
     double s;
     char read_buffer[32];
 
-    getSexComponentsIID(Long, &d, &m, &s);
+    getSexComponentsIIDRounded(Long, &d, &m, &s, 2);
     if (OSHighPrecision)
     {
         snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m, s);
@@ -3874,7 +3874,7 @@ int LX200_OnStep::setSiteLatitude(int fd, double Long)
     double s;
     char read_buffer[32];
 
-    getSexComponentsIID(Long, &d, &m, &s);
+    getSexComponentsIIDRounded(Long, &d, &m, &s, 2);
 
     if(OSHighPrecision)
     {

@@ -94,3 +94,13 @@ TARGET_LINK_LIBRARIES(test_frame_tracker
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_frame_tracker test_frame_tracker)
+
+ADD_EXECUTABLE(test_indicom_sexagesimal
+    test_indicom_sexagesimal.cpp
+)
+TARGET_LINK_LIBRARIES(test_indicom_sexagesimal
+    indiclient
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_indicom_sexagesimal test_indicom_sexagesimal)
