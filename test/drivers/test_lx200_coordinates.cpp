@@ -257,6 +257,23 @@ class OnStepCommands : public ::testing::Test
         FakeSerialDevice m_Device {accept};
 };
 
+TEST_F(OnStepCommands, LatitudeKeepsTheSignBetweenMinusOneAndZero)
+{
+    EXPECT_EQ(latitude(true, -0.5), ":St-00:30:0.00#");
+    EXPECT_EQ(latitude(true, -0.18), ":St-00:10:48.00#");
+    EXPECT_EQ(latitude(false, -0.5), ":St-00:30#");
+}
+
+TEST_F(OnStepCommands, LatitudeIsUnchangedOutsideMinusOneToZero)
+{
+    EXPECT_EQ(latitude(true, 0.5), ":St+00:30:0.00#");
+    EXPECT_EQ(latitude(true, 0.0), ":St+00:00:0.00#");
+    EXPECT_EQ(latitude(true, 5.25), ":St+05:15:0.00#");
+    EXPECT_EQ(latitude(true, -5.25), ":St-05:15:0.00#");
+    EXPECT_EQ(latitude(false, 5.25), ":St+05:15#");
+    EXPECT_EQ(latitude(false, -45.5), ":St-45:30#");
+}
+
 TEST_F(OnStepCommands, HighPrecisionNeverSendsSixtySeconds)
 {
     // 45 59' 59.9996" is 46 00' 00.00" with hundredths of arcseconds, not 45 59' 60.00"
