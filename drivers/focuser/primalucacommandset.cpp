@@ -56,6 +56,13 @@ static bool isMotorBusy(const json &status)
     return busy || (!mst.empty() && mst != "stop");
 }
 
+// CAL_STATUS is "stop" when idle. While calibrating the Arco reports "exec", the Esatto
+// the name of the running phase, e.g. "ManageCalibInMinPosWithSensorAct".
+static bool isCalibrationRunning(const std::string &status)
+{
+    return !status.empty() && status != "stop";
+}
+
 std::vector<std::string> split(const std::string &input, const std::string &regex)
 {
     // passing -1 as the submatch index parameter performs splitting
@@ -806,6 +813,19 @@ bool Esatto::getModel(std::string &model)
     return m_Communication->get(GENERIC_NODE, "MODNAME", model);
 }
 
+bool Esatto::calibrate()
+{
+    return m_Communication->set(MOT_1, {{"CAL_STATUS", "ManageCalibInMinPosWithSensorAct"}});
+}
+
+bool Esatto::isCalibrating()
+{
+    std::string value;
+    if (m_Communication->get(MOT_1, "CAL_STATUS", value))
+        return isCalibrationRunning(value);
+    return false;
+}
+
 /******************************************************************************************************
  * Arco
 *******************************************************************************************************/
@@ -941,9 +961,7 @@ bool Arco::isCalibrating()
 {
     std::string value;
     if (m_Communication->get(MOT_2, "CAL_STATUS", value))
-    {
-        return value == "exec";
-    }
+        return isCalibrationRunning(value);
     return false;
 }
 

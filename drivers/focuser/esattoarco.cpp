@@ -106,6 +106,9 @@ bool EsattoArco::initProperties()
                                MAIN_CONTROL_TAB,
                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    FocusCalibrationSP[0].fill("CALIBRATION_START", "Start", ISS_OFF);
+    FocusCalibrationSP.fill(getDeviceName(), "FOCUS_CALIBRATION", "Calibrate", OPTIONS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // Override the default Max. Position to make it Read-Only
     FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
@@ -182,6 +185,7 @@ bool EsattoArco::updateProperties()
         defineProperty(SpeedNP);
         defineProperty(BacklashMessageTP);
         defineProperty(BacklashMeasurementSP);
+        defineProperty(FocusCalibrationSP);
         defineProperty(FirmwareTP);
 
         if (updateTemperature())
@@ -212,6 +216,7 @@ bool EsattoArco::updateProperties()
         deleteProperty(VoltageNP.getName());
         deleteProperty(BacklashMessageTP);
         deleteProperty(BacklashMeasurementSP);
+        deleteProperty(FocusCalibrationSP);
         deleteProperty(SpeedNP);
 
         // Rotator
@@ -386,6 +391,10 @@ bool EsattoArco::isFocusMoveFinished()
     if (m_Esatto->isBusy())
         return false;
 
+    // The position stays put during the calibration, CAL_STATUS tells when it is done
+    if (FocusCalibrationSP.getState() == IPS_BUSY)
+        return m_FocusMoveTimer.elapsed() >= MOVE_START_GRACE_MS && !m_Esatto->isCalibrating();
+
     return FocusAbsPosNP[0].getValue() != m_FocusMoveStart || m_FocusMoveTimer.elapsed() >= MOVE_START_GRACE_MS;
 }
 
@@ -506,6 +515,46 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             }
             return true;
         }
+        // Focuser Calibration
+        else if (FocusCalibrationSP.isNameMatch(name))
+        {
+            FocusCalibrationSP.reset();
+
+            // Starting it again while it runs leaves the zero position off
+            if (FocusCalibrationSP.getState() == IPS_BUSY)
+            {
+                LOG_ERROR("The focuser is calibrating. Wait until it is done.");
+                FocusCalibrationSP.apply();
+                return true;
+            }
+
+            // The web interface only calibrates with the focuser fully in, where its sensor is active
+            bool atSensor = false;
+            if (FocusAbsPosNP.getState() == IPS_BUSY)
+            {
+                LOG_ERROR("Wait until the focuser stopped, then calibrate.");
+                FocusCalibrationSP.setState(IPS_ALERT);
+            }
+            else if (!m_Esatto->isHallSensorDetected(atSensor) || !atSensor)
+            {
+                LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
+                FocusCalibrationSP.setState(IPS_ALERT);
+            }
+            else if (m_Esatto->calibrate())
+            {
+                LOG_INFO("Calibrating the focuser. Please wait.");
+                m_FocusMoveStart = FocusAbsPosNP[0].getValue();
+                m_FocusMoveTimer.start();
+                FocusCalibrationSP.setState(IPS_BUSY);
+                FocusAbsPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply();
+            }
+            else
+                FocusCalibrationSP.setState(IPS_ALERT);
+
+            FocusCalibrationSP.apply();
+            return true;
+        }
         // Rotator Calibration
         else if (RotatorCalibrationSP.isNameMatch(name))
         {
@@ -577,6 +626,13 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
 *************************************************************************************************************/
 IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
+    // A move during the calibration leaves the zero position off
+    if (FocusCalibrationSP.getState() == IPS_BUSY)
+    {
+        LOG_ERROR("The focuser is calibrating. Wait until it is done.");
+        return IPS_ALERT;
+    }
+
     if (m_Esatto->goAbsolutePosition(targetTicks))
     {
         m_FocusMoveStart = FocusAbsPosNP[0].getValue();
@@ -603,6 +659,12 @@ IPState EsattoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 *************************************************************************************************************/
 bool EsattoArco::AbortFocuser()
 {
+    if (FocusCalibrationSP.getState() == IPS_BUSY)
+    {
+        FocusCalibrationSP.setState(IPS_IDLE);
+        FocusCalibrationSP.apply();
+    }
+
     return m_Esatto->stop();
 }
 
@@ -624,7 +686,8 @@ void EsattoArco::TimerHit()
         if (FocusAbsPosNP.getState() == IPS_BUSY)
             updateSpeed();
 
-        const bool focusFinished = FocusAbsPosNP.getState() == IPS_BUSY && isFocusMoveFinished();
+        const bool focusFinished = (FocusAbsPosNP.getState() == IPS_BUSY || FocusCalibrationSP.getState() == IPS_BUSY)
+                                   && isFocusMoveFinished();
 
         const bool rotatorMoved = std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0;
         bool rotatorFinished = false;
@@ -649,6 +712,13 @@ void EsattoArco::TimerHit()
             FocusRelPosNP.setState(IPS_OK);
             FocusAbsPosNP.apply();
             FocusRelPosNP.apply();
+
+            if (FocusCalibrationSP.getState() == IPS_BUSY)
+            {
+                FocusCalibrationSP.setState(IPS_OK);
+                FocusCalibrationSP.apply();
+                LOG_INFO("Focuser calibration complete.");
+            }
         }
         else if (std::abs(currentFocusPosition - FocusAbsPosNP[0].getValue()) > 0)
             FocusAbsPosNP.apply();

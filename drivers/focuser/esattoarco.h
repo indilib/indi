@@ -147,6 +147,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         typedef enum { RotCalIdle, RotCalComplete } RotCalibrationStage;
         RotCalibrationStage rcStage { RotCalIdle };
 
+        INDI::PropertySwitch FocusCalibrationSP {1};
         INDI::PropertySwitch RotatorCalibrationSP {1};
         // ISwitchVectorProperty RotatorCalibrationSP;
         enum

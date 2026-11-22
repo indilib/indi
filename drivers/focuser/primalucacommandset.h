@@ -267,6 +267,10 @@ class Esatto : public Focuser
         // Sensors
         bool getVoltageUSB(double &value);
         bool getModel(std::string &model); // Added to Esatto
+
+        // Calibration as the ESATTO web interface starts it, with the focuser fully in on its sensor
+        bool calibrate();
+        bool isCalibrating();
 };
 
 /*****************************************************************************************

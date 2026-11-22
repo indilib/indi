@@ -34,6 +34,7 @@ class Esatto : public INDI::Focuser
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         virtual bool Handshake() override;
@@ -67,6 +68,8 @@ class Esatto : public INDI::Focuser
         static constexpr int MOVE_START_GRACE_MS {2000};
         double m_LastTemperature[2] = {-1, -1};
         double m_LastVoltage[2] = {-1, -1};
+
+        INDI::PropertySwitch CalibrationSP {1};
 
         INDI::PropertyNumber TemperatureNP {2};
         enum
