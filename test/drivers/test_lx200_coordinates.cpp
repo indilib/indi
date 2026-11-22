@@ -16,11 +16,13 @@
 #include <functional>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 #include "fake_serial_device.h"
 #include "indilogger.h"
 #include "drivers/telescope/lx200driver.h"
 #include "drivers/telescope/lx200_OnStep.h"
+#include "drivers/telescope/lx200ss2000pc.h"
 
 extern int eq_format;
 extern int geo_format;
@@ -289,6 +291,51 @@ TEST_F(OnStepCommands, HighPrecisionIsUnchangedAwayFromSixtySeconds)
     EXPECT_EQ(longitude(true, 288.5), ":Sg288:30:0.00#");
     EXPECT_EQ(latitude(false, -33.865), ":St-33:51#");
     EXPECT_EQ(longitude(false, 288.5), ":Sg288:30#");
+}
+
+// LX200SS2000PC with the site update reachable; it sends the latitude, then the longitude.
+class TestSS2000PC : public LX200SS2000PC
+{
+    public:
+        void setPort(int fd)
+        {
+            PortFD = fd;
+        }
+
+        using LX200SS2000PC::updateLocation;
+};
+
+class SS2000PCCommands : public ::testing::Test
+{
+    protected:
+        void SetUp() override
+        {
+            m_SkySensor.setPort(m_Device.driverFD());
+        }
+
+        // longitude is an INDI longitude, 0 to 360 degrees East
+        std::vector<std::string> location(double latitude, double longitude)
+        {
+            m_Device.clear();
+            EXPECT_TRUE(m_SkySensor.updateLocation(latitude, longitude, 0));
+            return m_Device.commands();
+        }
+
+        FakeSerialDevice m_Device {accept};
+        TestSS2000PC m_SkySensor;
+};
+
+TEST_F(SS2000PCCommands, SouthernLatitudesHaveOneSign)
+{
+    EXPECT_EQ(location(-30.5, 10), (std::vector<std::string> {":St -030*30#", ":Sg 350*00#"}));
+    EXPECT_EQ(location(-1.25, 10), (std::vector<std::string> {":St -001*15#", ":Sg 350*00#"}));
+}
+
+TEST_F(SS2000PCCommands, OtherLatitudesAreUnchanged)
+{
+    EXPECT_EQ(location(45.5, 350), (std::vector<std::string> {":St +045*30#", ":Sg 010*00#"}));
+    EXPECT_EQ(location(0.5, 10), (std::vector<std::string> {":St +000*30#", ":Sg 350*00#"}));
+    EXPECT_EQ(location(-0.5, 10), (std::vector<std::string> {":St -000*30#", ":Sg 350*00#"}));
 }
 
 }

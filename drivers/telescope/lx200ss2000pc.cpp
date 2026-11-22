@@ -296,7 +296,8 @@ int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d#", sign, d, m);
+    // The sign is printed separately, d is negative for southern latitudes
+    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d#", sign, std::abs(d), m);
 
     return setStandardProcedure(fd, temp_string);
 }
