@@ -15,10 +15,12 @@
 #include <functional>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 #include "fake_serial_device.h"
 #include "indilogger.h"
 #include "drivers/telescope/rainbow.h"
+#include "drivers/telescope/crux_mount.h"
 
 namespace
 {
@@ -118,6 +120,51 @@ TEST_F(RainbowCommands, IsUnchangedAwayFromSixtySeconds)
     EXPECT_EQ(azimuth(12.3456789), ":Sz012*20:44.4#");
     EXPECT_EQ(altitude(12.3456789), ":Sa+12*20:44.4#");
     EXPECT_EQ(altitude(-12.3456789), ":Sa-12*20:44.4#");
+}
+
+// CRUX Titan TCS with the site update reachable; it sends the latitude, then the longitude.
+class TestTitanTCS : public TitanTCS
+{
+    public:
+        void setPort(int fd)
+        {
+            PortFD = fd;
+        }
+
+        using TitanTCS::updateLocation;
+};
+
+class TitanTCSCommands : public ::testing::Test
+{
+    protected:
+        void SetUp() override
+        {
+            m_Titan.setPort(m_Device.driverFD());
+        }
+
+        // longitude is an INDI longitude, 0 to 360 degrees East; the mount gets it as negative.
+        std::vector<std::string> location(double latitude, double longitude)
+        {
+            m_Device.clear();
+            EXPECT_TRUE(m_Titan.updateLocation(latitude, longitude, 0));
+            return m_Device.commands();
+        }
+
+        FakeSerialDevice m_Device {accept};
+        TestTitanTCS m_Titan;
+};
+
+TEST_F(TitanTCSCommands, SiteKeepsTheSignBetweenMinusOneAndZero)
+{
+    EXPECT_EQ(location(-0.5, 10), (std::vector<std::string> {":St -00:30:00#", ":Sg -10:00:00#"}));
+    EXPECT_EQ(location(45.5, 0.5), (std::vector<std::string> {":St 045:30:00#", ":Sg -00:30:00#"}));
+}
+
+TEST_F(TitanTCSCommands, OtherSitesAreUnchanged)
+{
+    EXPECT_EQ(location(-30.5, 350), (std::vector<std::string> {":St -30:30:00#", ":Sg -350:00:00#"}));
+    EXPECT_EQ(location(0.5, 10), (std::vector<std::string> {":St 000:30:00#", ":Sg -10:00:00#"}));
+    EXPECT_EQ(location(51.4775, 0), (std::vector<std::string> {":St 051:28:39#", ":Sg 000:00:00#"}));
 }
 
 }

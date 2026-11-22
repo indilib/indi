@@ -103,7 +103,7 @@ ADD_TEST(test_lx200_coordinates test_lx200_coordinates)
 
 # Mount drivers outside indi_lx200generic
 SET(MOUNT_COORDINATES_SOURCES
-    rainbow.cpp lx200driver.cpp)
+    rainbow.cpp lx200driver.cpp crux_mount.cpp)
 LIST(TRANSFORM MOUNT_COORDINATES_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/")
 ADD_EXECUTABLE(test_mount_coordinates
     ${MOUNT_COORDINATES_SOURCES}

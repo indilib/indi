@@ -449,6 +449,17 @@ static bool HMS2Hour(const char* pStr, double* hr)
     return rtnCode >= 3;
 }
 
+// Degrees of a site latitude or longitude as updateLocation() sends them: three digits for a positive value, a
+// minus sign and at least two digits for a negative one. The sign is taken from the value, since
+// getSexComponents() gives 0 degrees for values between -1 and 0.
+static void formatSiteDegrees(char *pStr, size_t size, double value, int degrees)
+{
+    if (value < 0)
+        snprintf(pStr, size, "-%02d", std::abs(degrees));
+    else
+        snprintf(pStr, size, "%03d", degrees);
+}
+
 static void formatRA(long secRa, char* pStr)
 {
     int sign = 1;
@@ -1431,16 +1442,19 @@ bool TitanTCS::updateLocation(double latitude, double longitude, double elevatio
 
     int d = 0, m = 0, s = 0;
     char szCommand[128];
+    char szDegrees[8];
     char rtnCode = 0;
 
     getSexComponents(latitude, &d, &m, &s);
-    sprintf(szCommand, "#:St %03d:%02d:%02d#", d, m, s);
+    formatSiteDegrees(szDegrees, sizeof(szDegrees), latitude, d);
+    sprintf(szCommand, "#:St %s:%02d:%02d#", szDegrees, m, s);
     LOGF_INFO("Set latitude '%s'", szCommand);
     if(!CommandResponseChar(szCommand, NULL, &rtnCode))
         return false;
 
     getSexComponents(-longitude, &d, &m, &s);
-    sprintf(szCommand, "#:Sg %03d:%02d:%02d#", d, m, s);
+    formatSiteDegrees(szDegrees, sizeof(szDegrees), -longitude, d);
+    sprintf(szCommand, "#:Sg %s:%02d:%02d#", szDegrees, m, s);
     LOGF_INFO("Set longitude '%s'", szCommand);
     return CommandResponseChar(szCommand, NULL, &rtnCode);
 }
