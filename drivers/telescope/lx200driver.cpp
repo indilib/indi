@@ -61,22 +61,6 @@ void setLX200Debug(const char *deviceName, unsigned int debug_level)
     DBG_SCOPE = debug_level;
 }
 
-// True if at least 3 more characters (not counting '#', CR and LF) arrive within 100 ms after the answer to ACK.
-static bool lx200_more_data_follows(int fd)
-{
-    int extra = 0;
-    for (int n = 0; n < 32 && extra < 3; n++)
-    {
-        char c = 0;
-        int nbytes_read = 0;
-        if (tty_read_expanded(fd, &c, 1, 0, 100000, &nbytes_read) != TTY_OK || nbytes_read != 1)
-            break;
-        if (c != '#' && c != '\r' && c != '\n')
-            extra++;
-    }
-    return extra >= 3;
-}
-
 int check_lx200_connection(int in_fd)
 {
     const struct timespec timeout = {0, 50000000L};
@@ -109,19 +93,16 @@ int check_lx200_connection(int in_fd)
         if (write(in_fd, ack, 1) < 0)
             return -1;
         tty_read(in_fd, MountAlign, 1, LX200_TIMEOUT, &nbytes_read);
-        if (nbytes_read == 1)
+        // G (German equatorial) is sent by several LX200-compatible firmwares. A '#' some of them add is left in
+        // the input and flushed by the next command.
+        if (nbytes_read == 1 && strchr("ADLPG", MountAlign[0]) != nullptr)
         {
-            // A mount answers ACK with a single character. A device that keeps sending data on its own (e.g. when an
-            // auto search probes the port of another device) also delivers a first byte, followed by more.
-            if (lx200_more_data_follows(in_fd))
-            {
-                DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG,
-                            "Failure. The device keeps sending data, this is not an LX200 answer to ACK.");
-                return -1;
-            }
-            DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing successful!");
+            DEBUGFDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing successful! ACK reply: %c", MountAlign[0]);
             return 0;
         }
+        if (nbytes_read == 1)
+            DEBUGFDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Unexpected ACK reply 0x%02X.",
+                         static_cast<unsigned char>(MountAlign[0]));
         nanosleep(&timeout, nullptr);
     }
 

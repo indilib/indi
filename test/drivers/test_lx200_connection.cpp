@@ -2,10 +2,11 @@
     Regression tests for the LX200 connection check (check_lx200_connection, used by the handshake of the generic
     LX200 drivers, Autostar, Classic, SS2000PC, OnStep, ...).
 
-    The check sends ACK (0x06) and accepted any single byte as the mount's answer. A device that sends data on its own
-    (e.g. a Wanderer ETA M54, which streams a status line every 2 s) therefore passed as a telescope when an auto search
-    probed its port. A mount answers ACK with one character (Meade: A, D, L, P; some firmwares add '#'), so the check
-    now also rejects a port where more characters keep coming.
+    The check sends ACK (0x06) and accepted any single byte as the mount's answer. A stale byte, a device that sends
+    data on its own (e.g. a Wanderer ETA M54, which streams a status line every 2 s) or any device answering with one
+    byte therefore passed as a telescope when an auto search probed its port. A mount answers ACK with its alignment
+    mode (Meade: A, D, L, P; OnStepX: P or A; G for German equatorial; some firmwares add '#'), so the check now
+    accepts only these.
 
     The check talks to fake devices on pseudo terminals.
 
@@ -223,6 +224,18 @@ TEST(LX200ConnectionCheckTest, staleInputIsNotTheAnswer)
     int rc = check_lx200_connection(fd);
     tty_disconnect(fd);
     EXPECT_EQ(rc, -1) << "A stale byte was taken as the answer to ACK";
+}
+
+TEST(LX200ConnectionCheckTest, otherReplyIsRejected)
+{
+    // Any device that answers a single byte (e.g. an ack '1' or '#') is not an LX200 mount.
+    const char *replies[] = {"1", "#", "0", "W"};
+    for (const char *reply : replies)
+    {
+        FakeSerialDevice other(answerAck(reply));
+        ASSERT_FALSE(other.port().empty());
+        EXPECT_EQ(checkPort(other.port()), -1) << "reply " << reply;
+    }
 }
 
 TEST(LX200ConnectionCheckTest, silentPortIsRejected)
