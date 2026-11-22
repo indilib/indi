@@ -2,9 +2,6 @@ name: Check Codestyle
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 'master'
   pull_request:
     branches:
       - 'master'
@@ -15,20 +12,22 @@ jobs:
 
     steps:
       - name: Get INDI Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # HEAD is the merge of the pull request into its base, so HEAD^1 is the base.
+          fetch-depth: 2
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v46
-
-      - name: Check codestyle of all changed files with suffix cpp,cxx,c,h
+      - name: Check codestyle of the changed lines in files with suffix cpp,cxx,c,h
         run: |
           sudo apt-get update
           sudo apt-get -qq -y install astyle
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "changed file $file";
-            scripts/check-codestyle.sh "$file";
-          done
+          rc=0
+          # Bundled third-party libraries keep their own style.
+          while IFS= read -r file; do
+            echo "changed file $file"
+            scripts/check-codestyle.sh "$file" HEAD^1 || rc=1
+          done < <(git diff --name-only --diff-filter=AM HEAD^1 HEAD -- . \
+                     ':(exclude)libs/fpack' ':(exclude)libs/hid' ':(exclude)libs/httplib' \
+                     ':(exclude)libs/modbus' ':(exclude)libs/inicpp.h')
+          exit $rc
         shell: bash

@@ -261,8 +261,11 @@ files to the human and say plainly that it is still owed.
 
 ## 8. Code style and conventions
 
-- **Formatting is checked in CI** with astyle on every changed file. The options are in README.md ("Code
-  Style"); check your changes with `scripts/check-codestyle.sh <file>` and don't reformat code you didn't touch.
+- **Formatting is checked in CI** with astyle on the lines each pull request changes (bundled third-party
+  libraries excepted). The options are in README.md ("Code Style"). Check your changes before reporting:
+  `scripts/check-codestyle.sh <file>` for uncommitted changes, or `scripts/check-codestyle.sh <file> upstream/master`
+  for everything on your branch. The check looks at whole functions, so format the functions you touch and
+  nothing else.
 - **Match the surrounding code**: naming, comment density, logging (`LOG_INFO`, `LOGF_DEBUG`, …) and idioms.
 - **New code uses the property classes** (`INDI::PropertyNumber`, `INDI::PropertySwitch`, `INDI::PropertyText`,
   …), not the legacy `IUFill*` functions and raw property structs.
