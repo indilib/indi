@@ -94,3 +94,39 @@ TARGET_LINK_LIBRARIES(test_frame_tracker
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_frame_tracker test_frame_tracker)
+
+# Regression test for oneBLOB enclen handling in the lilxml BLOB fast path
+# (GHSA-j235-2w8x-gp3x, Finding 1). Links indiclient for the lilxml parser.
+SET (test_lilxml_enclen_SRCS
+    test_lilxml_enclen.cpp
+)
+ADD_EXECUTABLE(test_lilxml_enclen ${test_lilxml_enclen_SRCS})
+TARGET_LINK_LIBRARIES(test_lilxml_enclen
+    indiclient
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_lilxml_enclen test_lilxml_enclen)
+
+# Regression test for oneBLOB enclen handling in driver dispatch()
+# (GHSA-j235-2w8x-gp3x, Finding 2). dispatch()/IDDefBLOB/driverio are driver-side,
+# so build them from source here; indidriver provides its own main(), so it is
+# NOT linked - gtest's main() must win. indiclient supplies the indicore symbols.
+SET (test_indidriver_blob_SRCS
+    test_indidriver_blob.cpp
+    ${CMAKE_SOURCE_DIR}/libs/indibase/indidriver.c
+    ${CMAKE_SOURCE_DIR}/libs/indibase/indidriverio.c
+)
+ADD_EXECUTABLE(test_indidriver_blob ${test_indidriver_blob_SRCS})
+TARGET_INCLUDE_DIRECTORIES(test_indidriver_blob PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/indibase
+    ${CMAKE_SOURCE_DIR}/libs/indicore
+)
+TARGET_LINK_LIBRARIES(test_indidriver_blob
+    indiclient
+    ${GTEST_BOTH_LIBRARIES}
+    ${GMOCK_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_indidriver_blob test_indidriver_blob)
