@@ -122,6 +122,20 @@ TEST_F(RainbowCommands, IsUnchangedAwayFromSixtySeconds)
     EXPECT_EQ(altitude(-12.3456789), ":Sa-12*20:44.4#");
 }
 
+TEST_F(RainbowCommands, AltitudeKeepsTheSignBetweenMinusOneAndZero)
+{
+    EXPECT_EQ(altitude(-0.5), ":Sa-00*30:00.0#");
+    EXPECT_EQ(altitude(-0.18), ":Sa-00*10:48.0#");
+}
+
+TEST_F(RainbowCommands, OtherAltitudesAreUnchanged)
+{
+    EXPECT_EQ(altitude(0.5), ":Sa+00*30:00.0#");
+    EXPECT_EQ(altitude(0.0), ":Sa+00*00:00.0#");
+    EXPECT_EQ(altitude(-1.5), ":Sa-01*30:00.0#");
+    EXPECT_EQ(altitude(-0.99999), ":Sa-01*00:00.0#");
+}
+
 // CRUX Titan TCS with the site update reachable; it sends the latitude, then the longitude.
 class TestTitanTCS : public TitanTCS
 {

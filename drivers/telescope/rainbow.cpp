@@ -985,7 +985,8 @@ bool Rainbow::setAL(double altitude)
 
     getSexComponentsIIDRounded(altitude, &degrees, &minutes, &seconds, 1);
 
-    snprintf(cmd, DRIVER_LEN, ":Sa%c%02d*%02d:%04.1f#", degrees >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
+    // Take the sign from the altitude, degrees is 0 for altitudes between -1 and 0
+    snprintf(cmd, DRIVER_LEN, ":Sa%c%02d*%02d:%04.1f#", altitude >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
 
     return sendCommand(cmd);
 }
