@@ -140,6 +140,28 @@ class FakeNyx
             return commands;
         }
 
+        // Waits (at most 2 s) until nothing is left on the line, in the receive buffer or in progress. The pending bytes
+        // are counted under the same lock as receive() reads and stores them, so bytes taken off the line but not yet
+        // stored are never missed.
+        void waitUntilIdle()
+        {
+            for (int i = 0; i < 400; i++)
+            {
+                {
+                    // select() rather than FIONREAD: on macOS FIONREAD on a pty master reports the other queue.
+                    std::lock_guard<std::mutex> lock(m_RxMutex);
+                    fd_set readSet;
+                    FD_ZERO(&readSet);
+                    FD_SET(m_Master, &readSet);
+                    struct timeval timeout = {0, 0};
+                    const bool pending = select(m_Master + 1, &readSet, nullptr, nullptr, &timeout) > 0;
+                    if (!pending && m_Rx.empty() && !m_Busy)
+                        return;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+        }
+
     private:
         static void makeRaw(int fd)
         {
@@ -147,22 +169,6 @@ class FakeNyx
             tcgetattr(fd, &tio);
             cfmakeraw(&tio);
             tcsetattr(fd, TCSANOW, &tio);
-        }
-
-        // Waits (at most 2 s) until nothing is left on the line, in the receive buffer or in progress.
-        void waitUntilIdle()
-        {
-            for (int i = 0; i < 400; i++)
-            {
-                int pending = 0;
-                ioctl(m_Master, FIONREAD, &pending);
-                {
-                    std::lock_guard<std::mutex> lock(m_RxMutex);
-                    if (pending == 0 && m_Rx.empty() && !m_Busy)
-                        return;
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            }
         }
 
         void send(const std::string &reply)
@@ -184,12 +190,13 @@ class FakeNyx
                 if (select(m_Master + 1, &readSet, nullptr, nullptr, &timeout) <= 0)
                     continue;
 
-                char chunk[256];
-                ssize_t n = read(m_Master, chunk, sizeof(chunk));
-                if (n <= 0)
-                    continue;
                 {
+                    // Read and store under one lock, see waitUntilIdle().
                     std::lock_guard<std::mutex> lock(m_RxMutex);
+                    char chunk[256];
+                    ssize_t n = read(m_Master, chunk, sizeof(chunk));
+                    if (n <= 0)
+                        continue;
                     m_Rx.append(chunk, n);
                 }
                 m_Received.notify_all();
@@ -709,6 +716,8 @@ TEST(PegasusNYX101Test, failedParkIsReported)
 
     Published published;
     bool requested = driver.requestPark();
+    // :hP# has no reply; let the mount take it off the line before the poll's flush could discard it.
+    mount.waitUntilIdle();
     mount.setStatus(STATUS_PARK_FAILED);
     bool polled = driver.poll();
     std::vector<std::string> parkStates = published.states("setSwitchVector", "TELESCOPE_PARK");
