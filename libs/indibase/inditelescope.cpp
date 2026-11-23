@@ -311,6 +311,9 @@ bool Telescope::initProperties()
 
 void Telescope::ISGetProperties(const char *dev)
 {
+    // Read the config for the first client only, so another client connecting does not revert the dome policy.
+    const bool firstClient = !isInitializationComplete();
+
     DefaultDevice::ISGetProperties(dev);
 
     if (CanGOTO())
@@ -318,7 +321,8 @@ void Telescope::ISGetProperties(const char *dev)
         defineProperty(ActiveDeviceTP);
 
         ISState isDomeIgnored = ISS_OFF;
-        if (IUGetConfigSwitch(getDeviceName(), DomePolicySP.getName(), DomePolicySP[DOME_IGNORED].getName(), &isDomeIgnored) == 0)
+        if (firstClient &&
+                IUGetConfigSwitch(getDeviceName(), DomePolicySP.getName(), DomePolicySP[DOME_IGNORED].getName(), &isDomeIgnored) == 0)
         {
             DomePolicySP[DOME_IGNORED].setState(isDomeIgnored);
             DomePolicySP[DOME_LOCKS].setState((isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON);

@@ -109,6 +109,26 @@ class MockScopeSimDriver : public ScopeSim
         {
             return getNumber("MOUNT_MODEL").findWidgetByName(element)->getValue();
         }
+
+        void saveAllConfig()
+        {
+            ASSERT_TRUE(saveConfig());
+        }
+
+        void setDomePolicy(const char *policy)
+        {
+            ISState states[] = { strcmp(policy, "DOME_IGNORED") == 0 ? ISS_ON : ISS_OFF,
+                                 strcmp(policy, "DOME_LOCKS") == 0 ? ISS_ON : ISS_OFF
+                               };
+            char *names[] = { const_cast<char *>("DOME_IGNORED"), const_cast<char *>("DOME_LOCKS") };
+            ASSERT_TRUE(ISNewSwitch(getDeviceName(), "DOME_POLICY", states, names, 2));
+        }
+
+        std::string domePolicy()
+        {
+            auto on = getSwitch("DOME_POLICY").findOnSwitch();
+            return on ? on->getName() : "";
+        }
 };
 
 TEST(TelescopeSimulatorTest, switchingBetweenAltAzAndEquatorialClearsSyncPoints)
@@ -259,6 +279,22 @@ TEST(TelescopeSimulatorTest, pacMoveFollowsTheCorrectionGain)
     sim.setActivePAC(PAC);
     sim.snoop(manualAdjustment("Busy", 0, 0.5));
     EXPECT_NEAR(sim.mountModel("MM_ME"), -45, 1e-4);
+}
+
+// INDI::Telescope: the dome policy is not saved when it changes. Another client connecting must not revert
+// it to the saved value: "Dome ignored" would let the mount unpark while the dome is parked.
+TEST(TelescopeSimulatorTest, newClientKeepsTheDomePolicy)
+{
+    MockScopeSimDriver sim;
+    sim.setDomePolicy("DOME_IGNORED");
+    sim.saveAllConfig();
+
+    sim.setDomePolicy("DOME_LOCKS");
+    ASSERT_EQ(sim.domePolicy(), "DOME_LOCKS");
+
+    // Another client connects
+    sim.ISGetProperties(sim.getDeviceName());
+    EXPECT_EQ(sim.domePolicy(), "DOME_LOCKS");
 }
 
 int main(int argc, char **argv)
