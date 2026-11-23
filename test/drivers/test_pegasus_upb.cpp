@@ -93,6 +93,14 @@ class FakeUPB
             return m_PortName;
         }
 
+        // tty_connect() puts the port in exclusive mode (TIOCEXCL) and tty_disconnect() does not clear it. A real
+        // serial port is closed completely after a disconnection, which clears it; here the fake keeps its own end
+        // open, so on Linux a second connection would be refused with EBUSY. Clear it as a closed port would be.
+        void releasePort()
+        {
+            ioctl(m_Slave, TIOCNXCL);
+        }
+
         // Focuser position and motor state as reported by SA. A move (SM:n) only sets the target; the test moves the
         // motor between polls.
         void setStepper(int position, bool running)
@@ -891,6 +899,7 @@ TEST_F(PegasusUPBTest, reconnectionPublishesRealPortStates)
     const bool connected = driver.connectTo(device.portName());
     driver.poll();
     const bool disconnected = driver.disconnectNow();
+    device.releasePort();
     const bool reconnected = driver.connectTo(device.portName());
     published.take();
     driver.poll();
