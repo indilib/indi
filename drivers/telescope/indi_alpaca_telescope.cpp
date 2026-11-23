@@ -340,7 +340,12 @@ bool alpacaTelescopeDriver::Handshake()
     TrackModeSP.resize(0);
     if (sendAlpacaGET("/trackingrates", response) && response.contains("Value") && response["Value"].is_array())
     {
-        static const struct { int rate; const char *name; const char *label; } alpacaRates[] =
+        static const struct
+        {
+            int rate;
+            const char *name;
+            const char *label;
+        } alpacaRates[] =
         {
             {0, "TRACK_SIDEREAL", "Sidereal"},
             {1, "TRACK_LUNAR", "Lunar"},
