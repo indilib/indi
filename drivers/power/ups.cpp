@@ -40,16 +40,19 @@ std::unique_ptr<UPS> ups(new UPS());
 
 UPS::UPS()
 {
-    setVersion(1, 0);
-    
+    setVersion(1, 1);
+
     // Create TCP Connection
     tcpConnection = new Connection::TCP(this);
     // Set default values for TCP connection
     tcpConnection->setDefaultHost("localhost");
     tcpConnection->setDefaultPort(3493); // Default NUT port
     // Register the handshake function
-    tcpConnection->registerHandshake([&]() { return Handshake(); });
-    
+    tcpConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
+
     // Register connection
     registerConnection(tcpConnection);
 }
@@ -99,14 +102,18 @@ bool UPS::initProperties()
 
 void UPS::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::DefaultDevice::ISGetProperties(dev);
 
     // Define UPS name property
     defineProperty(UPSNameTP);
     defineProperty(ConnectionSettingsNP);
     defineProperty(BatteryThresholdsNP);
-    
-    loadConfig(true);
+
+    if (firstClient)
+        loadConfig(true);
 }
 
 bool UPS::Handshake()

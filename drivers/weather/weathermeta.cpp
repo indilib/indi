@@ -32,7 +32,7 @@ std::unique_ptr<WeatherMeta> weatherMeta(new WeatherMeta());
 
 WeatherMeta::WeatherMeta()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     updatePeriods[0] = updatePeriods[1] = updatePeriods[2] = updatePeriods[3] = -1;
 }
@@ -85,11 +85,15 @@ bool WeatherMeta::initProperties()
 
 void WeatherMeta::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineProperty(ActiveDeviceTP);
 
-    loadConfig(true, "ACTIVE_DEVICES");
+    if (firstClient)
+        loadConfig(true, "ACTIVE_DEVICES");
 }
 
 bool WeatherMeta::updateProperties()

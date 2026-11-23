@@ -37,6 +37,7 @@ std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
 STAR2000::STAR2000() : GI(this)
 {
+    setVersion(1, 1);
 
 }
 
@@ -117,9 +118,13 @@ bool STAR2000::updateProperties()
 
 void STAR2000::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::DefaultDevice::ISGetProperties(dev);
     defineProperty(&PortTP);
-    loadConfig(true, INDI::SP::DEVICE_PORT);
+    if (firstClient)
+        loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
 bool STAR2000::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)

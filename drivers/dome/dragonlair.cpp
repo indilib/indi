@@ -38,6 +38,8 @@ std::unique_ptr<DragonLAIR> dragonlair(new DragonLAIR());
 
 DragonLAIR::DragonLAIR()
 {
+    setVersion(1, 1);
+
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
 }
 
@@ -83,12 +85,16 @@ bool DragonLAIR::initProperties()
 
 void DragonLAIR::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Dome::ISGetProperties(dev);
 
     defineProperty(IPAddressTP);
     defineProperty(DiscoverSwitchSP);
 
-    loadConfig(IPAddressTP);
+    if (firstClient)
+        loadConfig(IPAddressTP);
 }
 
 bool DragonLAIR::ISSnoopDevice(XMLEle *root)

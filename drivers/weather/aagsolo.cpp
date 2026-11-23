@@ -42,7 +42,7 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
 
 AAGSolo::AAGSolo()
 {
-    setVersion(0, 1);
+    setVersion(0, 2);
     setWeatherConnection(CONNECTION_NONE);
 }
 
@@ -203,6 +203,9 @@ bool AAGSolo::initProperties()
     INDI::Weather::initProperties(); // FIXME: parameters shoudl be statusGroup and paramsGroup
     addDebugControl();
 
+    soloHostTP[0].fill("HOSTNAME", "HOSTNAME", nullptr);
+    soloHostTP.fill(getDeviceName(), "SOLO_HOST", "Solo", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
     // Critical Parameters --------------------------------------------------------------------
     criticalSP[0].fill("CRITICAL_1", "Rain", ISS_ON);
     criticalSP[1].fill("CRITICAL_2", "Temperature", ISS_OFF);
@@ -251,12 +254,14 @@ bool AAGSolo::updateProperties()
 // get properties from configuation
 void AAGSolo::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Weather::ISGetProperties(dev);
 
-    soloHostTP[0].fill("HOSTNAME", "HOSTNAME", nullptr);
-    soloHostTP.fill(getDeviceName(), "SOLO_HOST", "Solo", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     defineProperty(soloHostTP);
-    loadConfig(true, "SOLO_HOST");
+    if (firstClient)
+        loadConfig(true, "SOLO_HOST");
 }
 
 bool AAGSolo::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
