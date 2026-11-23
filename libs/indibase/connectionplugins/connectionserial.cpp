@@ -61,10 +61,40 @@ SerialState &state(const Serial *serial)
     std::lock_guard<std::mutex> lock(stateMutex);
     return states[serial];
 }
+
+// True if port is one of the system ports, which are listed under their stable names, or the kernel device node
+// of one of them. A custom name (e.g. a udev symlink) is not a system port.
+bool isSystemPort(const std::vector<std::string> &systemPorts, const std::string &port)
+{
+    return std::any_of(systemPorts.begin(), systemPorts.end(), [&port](const std::string & onePort)
+    {
+        return onePort == port || (SerialPorts::isKernelNode(port) && SerialPorts::sameDevice(onePort, port));
+    });
+}
+
+// Replace a port name that can change after a reboot (e.g. /dev/ttyUSB0) by a stable one.
+void useStablePortName(INDI::PropertyText &portTP, const char *deviceName)
+{
+    const std::string current = portTP[0].getText();
+    const std::string stable = SerialPorts::nameToSave(current);
+    if (stable == current)
+        return;
+
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_SESSION, "Using %s for %s, this name stays the same after a reboot.",
+                 stable.c_str(), current.c_str());
+    portTP[0].setText(stable);
+    portTP.apply();
+}
 }
 
 Serial::Serial(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION_SERIAL), m_Permission(permission)
 {
+    // State of a connection that used the same address before.
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        states.erase(this);
+    }
+
     char configPort[256] = {0};
     // Try to load the port from the config file. If that fails, use default port.
     if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, 256) == 0)
@@ -118,11 +148,7 @@ Serial::Serial(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONN
     }
 }
 
-Serial::~Serial()
-{
-    std::lock_guard<std::mutex> lock(stateMutex);
-    states.erase(this);
-}
+Serial::~Serial() = default;
 
 bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
@@ -138,7 +164,8 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             // Auto search only makes sense when the user is not using a custom (non-system) port.
             // Only act (and report it) when auto search is currently enabled, so that no redundant
             // message is sent and no property update is pushed when it is already disabled.
-            if (!isSystemPort(PortTP[0].getText()) && AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
+            if (!isSystemPort(m_SystemPorts, PortTP[0].getText())
+                    && AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
             {
                 LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortTP[0].getText());
                 AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].setState(ISS_OFF);
@@ -277,7 +304,7 @@ bool Serial::Connect()
                 // configuration), so the device is found again if it is moved to another USB socket.
                 if (m_Permission != IP_RO)
                 {
-                    useStablePortName();
+                    useStablePortName(PortTP, m_Device->getDeviceName());
                     if (m_ConfigPort != PortTP[0].getText())
                     {
                         m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
@@ -289,7 +316,8 @@ bool Serial::Connect()
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
-                if (m_Permission != IP_RO && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText()) != m_SystemPorts.end())
+                if (m_Permission != IP_RO
+                        && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText()) != m_SystemPorts.end())
                     m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #endif
 
@@ -328,7 +356,7 @@ bool Serial::processHandshake()
         // The configured port answered (during an auto search Connect() handles the port it found): store it
         // under a name that survives a reboot.
         if (m_Permission != IP_RO && connection.openedPort == PortTP[0].getText())
-            useStablePortName();
+            useStablePortName(PortTP, m_Device->getDeviceName());
         // If permission is read-write and either the config port or baud rate are different from
         // configuration values, then save them.
         if (m_Permission != IP_RO && PortTP[0].getText() != m_ConfigPort)
@@ -344,28 +372,6 @@ bool Serial::processHandshake()
         LOG_DEBUG("Handshake failed.");
 
     return rc;
-}
-
-void Serial::useStablePortName()
-{
-    const std::string current = PortTP[0].getText();
-    const std::string stable = SerialPorts::nameToSave(current);
-    if (stable == current)
-        return;
-
-    LOGF_INFO("Using %s for %s, this name stays the same after a reboot.", stable.c_str(), current.c_str());
-    PortTP[0].setText(stable);
-    PortTP.apply();
-}
-
-bool Serial::isSystemPort(const std::string &port) const
-{
-    // The system ports are listed under their stable names, so also accept a kernel device node of one of them.
-    // A custom name (e.g. a udev symlink) is not a system port.
-    return std::any_of(m_SystemPorts.begin(), m_SystemPorts.end(), [&port](const std::string & onePort)
-    {
-        return onePort == port || (SerialPorts::isKernelNode(port) && SerialPorts::sameDevice(onePort, port));
-    });
 }
 
 bool Serial::Connect(const char *port, uint32_t baud)
