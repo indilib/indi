@@ -140,6 +140,18 @@ TARGET_LINK_LIBRARIES(test_seestar_ccd
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_seestar_ccd test_seestar_ccd)
+# Pegasus Ultimate Powerbox against a fake UPB v2 on a pseudo terminal (openpty).
+ADD_EXECUTABLE(test_pegasus_upb
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/power/pegasus_upb.cpp"
+    test_pegasus_upb.cpp
+)
+TARGET_LINK_LIBRARIES(test_pegasus_upb
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_pegasus_upb test_pegasus_upb)
 
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
