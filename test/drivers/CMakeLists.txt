@@ -30,6 +30,21 @@ TARGET_LINK_LIBRARIES(test_guide_simulator
 
 ADD_TEST(test_guide_simulator test_guide_simulator)
 
+# LX200 connection check (ACK) against fake devices on pseudo terminals (openpty).
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_lx200_connection
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200driver.cpp"
+        test_lx200_connection.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_lx200_connection
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_lx200_connection test_lx200_connection)
+ENDIF()
+
 ADD_EXECUTABLE(test_telescope_simulator
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/telescope_simulator.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/scopesim_helper.cpp"
