@@ -88,10 +88,8 @@ int check_lx200_connection(int in_fd)
         // D If scope is currently in the Downloader [Autostar II & Autostar]
         // L If scope in Land Mode
         // P If scope in Polar Mode
-#ifndef _WIN32
         // Data waiting from before (or from a device that sends on its own) is not the answer.
         tcflush(in_fd, TCIFLUSH);
-#endif
         if (write(in_fd, ack, 1) < 0)
             return -1;
         tty_read(in_fd, MountAlign, 1, LX200_TIMEOUT, &nbytes_read);
