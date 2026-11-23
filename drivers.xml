@@ -1110,7 +1110,7 @@
         </device>
         <device label="Weather Watcher" manufacturer="Others">
             <driver name="Weather Watcher">indi_watcher_weather</driver>
-            <version>2.2</version>
+            <version>2.3</version>
         </device>
         <device label="AAG Solo CloudWatcher" manufacturer="Lunatico">
             <driver name="AAG Solo CloudWatcher">indi_aagsolo_weather</driver>

@@ -99,6 +99,26 @@ TEST(FirstClientConfig, weatherWatcherKeepsTheSourceAndSeparator)
     EXPECT_EQ(text(driver, "SEPARATOR_KEYWORD"), ":");
 }
 
+// The separator was applied instead of saved, so it fell back to "=" on every start.
+TEST(FirstClientConfig, weatherWatcherSavesTheSeparator)
+{
+    writeConfig("");
+    {
+        WeatherWatcher driver;
+        driver.ISGetProperties(nullptr);
+        setText(driver, "SEPARATOR_KEYWORD", "SEPARATOR", ":");
+
+        ISState states[] = { ISS_ON };
+        char *names[] = { const_cast<char *>("CONFIG_SAVE") };
+        driver.ISNewSwitch(driver.getDeviceName(), "CONFIG_PROCESS", states, names, 1);
+    }
+
+    // The driver starts again
+    WeatherWatcher driver;
+    driver.ISGetProperties(nullptr);
+    EXPECT_EQ(text(driver, "SEPARATOR_KEYWORD"), ":");
+}
+
 TEST(FirstClientConfig, aagSoloKeepsTheHost)
 {
     writeConfig("<newTextVector device='AAG Solo Cloudwatcher' name='SOLO_HOST'>\n"

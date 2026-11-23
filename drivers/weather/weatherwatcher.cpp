@@ -44,7 +44,7 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
 
 WeatherWatcher::WeatherWatcher()
 {
-    setVersion(2, 2);
+    setVersion(2, 3);
     setWeatherConnection(CONNECTION_NONE);
 }
 
@@ -431,7 +431,7 @@ bool WeatherWatcher::saveConfigItems(FILE *fp)
     criticalSP.save(fp);
     watchFileTP.save(fp);
     keywordTP.save(fp);
-    separatorTP.apply();
+    separatorTP.save(fp);
 
     return true;
 }
