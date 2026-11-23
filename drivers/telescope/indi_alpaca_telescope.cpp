@@ -188,16 +188,16 @@ bool alpacaTelescopeDriver::Handshake()
     DeviceInfoTP.apply();
 
     // Query alignment mode to determine mount behavior
-    // 0 = algPolar (equatorial), 1 = algAltAz, 2 = algGermanPolar
+    // ASCOM AlignmentModes: 0 = algAltAz, 1 = algPolar (equatorial other than German), 2 = algGermanPolar
     if (sendAlpacaGET("/alignmentmode", response) && response.contains("Value"))
     {
         int alignmentMode = response["Value"].get<int>();
-        if (alignmentMode == 1)
+        if (alignmentMode == 0)
         {
             LOG_INFO("Telescope alignment mode: Alt-Az (no meridian flips)");
             setMountType(MOUNT_ALTAZ);
         }
-        else if (alignmentMode == 0)
+        else if (alignmentMode == 1)
         {
             LOG_INFO("Telescope alignment mode: Equatorial (Fork mount - no meridian flips)");
             setMountType(MOUNT_EQ_FORK);
