@@ -156,3 +156,19 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
     ADD_TEST(test_wanderer_eta test_wanderer_eta)
 ENDIF()
+
+# PrimaLuceLab Esatto and Esatto Arco against a fake device on a pseudo terminal (openpty).
+ADD_EXECUTABLE(test_primaluca_esatto_arco
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/primalucacommandset.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/esatto.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/esattoarco.cpp"
+    test_primaluca_esatto_arco.cpp
+)
+TARGET_LINK_LIBRARIES(test_primaluca_esatto_arco
+    indidriver
+    util
+    ${JSONLIB}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_primaluca_esatto_arco test_primaluca_esatto_arco)
