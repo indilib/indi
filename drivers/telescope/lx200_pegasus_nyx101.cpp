@@ -384,7 +384,7 @@ bool LX200NYX101::ReadScopeStatus()
     const bool statusRead = sendCommand(":GU#", status);
     if(statusRead)
     {
-        Report[0].text = status;
+        Report[0].setText(status);
         Report.apply();
         int index = 0;
         while(true)

@@ -9,6 +9,7 @@
       never fills, is not defined (#2535).
     - A GoTo is complete only once the mount has reported slewing, or after a timeout if it never did (#2540).
     - A guide pulse longer than four digits is clamped (LX200 base, #2535).
+    - The Report property keeps its own copy of the status text instead of pointing at a buffer on the stack.
 
     The driver talks to a fake NYX-101 on a pseudo terminal, connected the way a client does it. Where its replies
     come from is noted at each of them: most are copied from debug logs of a real NYX-101 (firmware 1.39.2, USB,
@@ -331,15 +332,6 @@ class NYXUnderTest : public LX200NYX101
             setDeviceName(DEVICE_NAME);
         }
 
-        ~NYXUnderTest()
-        {
-            // ReadScopeStatus() points the Report text at a local buffer (Report[0].text = status). Clear that pointer,
-            // or the destructor of the property frees it.
-            auto report = getText("Report");
-            if (report.isValid())
-                report[0].text = nullptr;
-        }
-
         // As at a client's first getProperties (this also runs initProperties()), then connect the way a client does
         // it: port, then CONNECT. Auto search is switched off so a failed connection doesn't scan the real serial
         // ports of the machine running the test.
@@ -401,6 +393,16 @@ class NYXUnderTest : public LX200NYX101
         bool parked()
         {
             return isParked();
+        }
+
+        // The text of the Report property as the driver holds it, e.g. for a client's getProperties.
+        std::string reportText()
+        {
+            auto report = getText("Report");
+            if (!report.isValid() || report[0].getText() == nullptr)
+                return "(none)";
+            std::string text = report[0].getText();
+            return text.size() > 32 ? text.substr(0, 32) + "..." : text;
         }
 
         bool trackStateIs(TelescopeStatus state) const
@@ -569,6 +571,15 @@ bool pollQuietly(NYXUnderTest &driver, FakeNyx &mount)
     bool rc = driver.poll();
     mount.takeCommands();
     return rc;
+}
+
+// Overwrites the stack below its caller, where the frames of the functions the caller called before were.
+__attribute__((noinline)) void overwriteStack()
+{
+    volatile char buffer[16384];
+    for (size_t i = 0; i < sizeof(buffer) - 1; ++i)
+        buffer[i] = 'X';
+    buffer[sizeof(buffer) - 1] = '\0';
 }
 
 std::string lastSwitch(Published &published, const char *property, const char *element)
@@ -974,6 +985,43 @@ TEST(PegasusNYX101Test, longGuidePulseIsClamped)
     published.stop();
 
     EXPECT_EQ(commands, (std::vector<std::string> {":Mgn9999#"}));
+}
+
+// The Report property must keep its own copy of the status text. With the text pointing at the local buffer of the
+// poll, a client asking for the property between two polls gets whatever has been written to that stack memory since.
+TEST(PegasusNYX101Test, reportTextIsKeptAfterThePoll)
+{
+    FakeNyx mount;
+    ASSERT_FALSE(mount.portName().empty());
+    mount.setStatus(STATUS_TRACKING);
+    NYXUnderTest driver;
+    ASSERT_TRUE(connectQuietly(driver, mount));
+
+    Published published;
+    bool polled = driver.poll();
+    overwriteStack();
+    std::string report = driver.reportText();
+    published.stop();
+
+    EXPECT_TRUE(polled);
+    EXPECT_EQ(report, STATUS_TRACKING) << "The Report text changed after the poll had returned";
+}
+
+// The destructor of the Report property frees its text. That must be the heap copy the property owns, not a stack
+// address left by a poll (the C library aborts on it). Runs in a child process so the other tests survive a crash.
+TEST(PegasusNYX101DeathTest, reportPropertyIsFreedCleanly)
+{
+    EXPECT_EXIT(
+    {
+        {
+            FakeNyx mount;
+            mount.setStatus(STATUS_TRACKING);
+            NYXUnderTest driver;
+            if (!connectQuietly(driver, mount) || !pollQuietly(driver, mount))
+                std::_Exit(2);
+        }
+        std::_Exit(0);
+    }, ::testing::ExitedWithCode(0), "");
 }
 
 int main(int argc, char **argv)
