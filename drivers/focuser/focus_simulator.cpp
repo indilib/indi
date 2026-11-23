@@ -31,6 +31,8 @@ static std::unique_ptr<FocusSim> focusSim(new FocusSim());
 ************************************************************************************/
 FocusSim::FocusSim()
 {
+    setVersion(1, 1);
+
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH |
                       FOCUSER_CAN_SYNC);
 }
@@ -68,10 +70,14 @@ void FocusSim::ISGetProperties(const char *dev)
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Focuser::ISGetProperties(dev);
 
     defineProperty(ModeSP);
-    loadConfig(true, "Mode");
+    if (firstClient)
+        loadConfig(true, "Mode");
 }
 
 /************************************************************************************

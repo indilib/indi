@@ -43,6 +43,20 @@ TARGET_LINK_LIBRARIES(test_telescope_simulator
 )
 ADD_TEST(test_telescope_simulator test_telescope_simulator)
 
+ADD_EXECUTABLE(test_first_client_config
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/focus_simulator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/weather/weatherwatcher.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/weather/aagsolo.cpp"
+    test_first_client_config.cpp
+)
+TARGET_LINK_LIBRARIES(test_first_client_config
+    indidriver
+    ${CURL}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_first_client_config test_first_client_config)
+
 ADD_EXECUTABLE(test_dome_shutter_park_policy
     test_dome_shutter_park_policy.cpp
 )

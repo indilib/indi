@@ -40,6 +40,8 @@ static std::unique_ptr<lacerta_mfoc> Lacerta_mfoc(new lacerta_mfoc());
 ************************************************************************************/
 lacerta_mfoc::lacerta_mfoc()
 {
+    setVersion(1, 1);
+
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_BACKLASH);
 }
 
@@ -59,13 +61,20 @@ void lacerta_mfoc::ISGetProperties(const char *dev)
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
+    // Load the config for the first client only. Loading these sends them to the focuser, and another
+    // client connecting must neither send commands nor revert changes made since.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Focuser::ISGetProperties(dev);
 
     defineProperty(TempTrackDirSP);
-    TempTrackDirSP.load();
-
     defineProperty(StartSavedPositionSP);
-    StartSavedPositionSP.load();
+
+    if (firstClient)
+    {
+        TempTrackDirSP.load();
+        StartSavedPositionSP.load();
+    }
 }
 
 /************************************************************************************

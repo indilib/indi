@@ -58,7 +58,7 @@ static std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
 
 SkySafari::SkySafari()
 {
-    setVersion(0, 2);
+    setVersion(0, 3);
     setDriverInterface(AUX_INTERFACE);
 
     skySafariClient.reset(new SkySafariClient());
@@ -122,6 +122,9 @@ bool SkySafari::initProperties()
 
 void SkySafari::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
@@ -129,7 +132,8 @@ void SkySafari::ISGetProperties(const char *dev)
     defineProperty(&ActiveDeviceTP);
     defineProperty(&SkyFiDiscoverySP);
 
-    loadConfig(true);
+    if (firstClient)
+        loadConfig(true);
 }
 
 bool SkySafari::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
