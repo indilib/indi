@@ -61,7 +61,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         virtual IPState UnParkCap() override;
         virtual IPState AbortCap() override;
 
-        virtual IPState updateWeather() override { return IPS_OK; }
+        virtual IPState updateWeather() override
+        {
+            return IPS_OK;
+        }
         virtual void TimerHit() override;
 
     private:
@@ -137,6 +140,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         // Hotspot, WiFi client and the login on the TCP command socket, shared with other Pegasus devices.
         PegasusAstro::WiFi wifi {this};
         bool m_IsTCP{ false };
+
+        // Polls in a row without a status reply; after MAX_FAILED_POLLS the driver disconnects.
+        int m_FailedPolls{ 0 };
+        static constexpr int MAX_FAILED_POLLS{ 3 };
 
         // Cap position requested by ParkCap()/UnParkCap(), to tell a finished move from one not started yet.
         int m_CapTarget{ 0 };

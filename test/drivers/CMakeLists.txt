@@ -100,6 +100,19 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_TEST(test_excalibur test_excalibur)
 ENDIF()
 
+ADD_EXECUTABLE(test_pegasus_flatmaster_neo
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/pegasus_flatmaster_neo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/pegasus_wifi.cpp"
+    test_pegasus_flatmaster_neo.cpp
+)
+TARGET_LINK_LIBRARIES(test_pegasus_flatmaster_neo
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_pegasus_flatmaster_neo test_pegasus_flatmaster_neo)
+
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_planewave_efa
