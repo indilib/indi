@@ -56,7 +56,8 @@ class Excalibur : public INDI::DefaultDevice, public INDI::LightBoxInterface, pu
     private:
         bool Ack();
         int PortFD{ -1 };
-        bool sendCommand(const char * cmd, char * res = nullptr);
+        // res (optional) receives the reply up to the '#' delimiter, at most resSize bytes.
+        bool sendCommand(const char * cmd, char * res = nullptr, int resSize = 0);
         void getParkingStatus();
         void getLightIntensity();
 

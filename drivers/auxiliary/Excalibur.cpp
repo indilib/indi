@@ -45,7 +45,7 @@ static std::unique_ptr<Excalibur> flatmaster(new Excalibur());
 //////////////////////////////////////////////////////////////////////
 Excalibur::Excalibur() : LightBoxInterface(this), DustCapInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -116,9 +116,9 @@ bool Excalibur::Ack()
     // Try up to 3 times before giving up
     for (int i = 0; i < 3; i++)
     {
-        if(sendCommand("#", response))
+        if(sendCommand("#", response, sizeof(response)))
         {
-            if(strstr("FLAT.FLAP!#", response) != nullptr)
+            if(strstr(response, "FLAT.FLAP!") != nullptr)
             {
                 LightSP[FLAT_LIGHT_ON].setState(ISS_OFF);
                 LightSP[FLAT_LIGHT_OFF].setState(ISS_ON);
@@ -151,7 +151,7 @@ bool Excalibur::EnableLightBox(bool enable)
     char response[20] = {0};
     char cmd[16] = {0};
     snprintf(cmd, 16, "L%d##", enable ? static_cast<int>(LightIntensityNP[0].getValue()) : 0);
-    return sendCommand(cmd, response);
+    return sendCommand(cmd, response, sizeof(response));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -271,7 +271,7 @@ void Excalibur::getLightIntensity()
     char res[DRIVER_RES] = {0};
 
     // Get Light Intensity Status
-    sendCommand("O#", res);
+    sendCommand("O#", res, sizeof(res));
 
     int32_t pos;
     int rc = sscanf(res, "%d#", &pos);
@@ -307,7 +307,7 @@ void Excalibur::getParkingStatus()
     char res[DRIVER_RES] = {0};
 
     // Get Dust Cap Status
-    sendCommand("P#", res);
+    sendCommand("P#", res, sizeof(res));
     int32_t pos2;
     sscanf(res, "%d#", &pos2);
 
@@ -328,7 +328,7 @@ void Excalibur::getParkingStatus()
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool Excalibur::sendCommand(const char *command, char *res)
+bool Excalibur::sendCommand(const char *command, char *res, int resSize)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -347,13 +347,22 @@ bool Excalibur::sendCommand(const char *command, char *res)
         LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
     }
-    if (res == nullptr)
+    if (res == nullptr || resSize <= 0)
         return true;
 
-    if ((rc = tty_read_section(PortFD, res, DRIVER_DEL, 5, &nbytes_read)) != TTY_OK)
+    // Bounded read: another device on this port (e.g. during an auto search) may send a long reply
+    // without the delimiter, which must not overrun the caller's buffer.
+    if ((rc = tty_nread_section(PortFD, res, resSize, DRIVER_DEL, 5, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("command: %s error: %s.", cmd, errstr);
+        res[resSize - 1] = 0;
+        if (rc == TTY_OVERFLOW)
+            LOGF_ERROR("command: %s error: reply longer than %d bytes without '%c'.", cmd, resSize, DRIVER_DEL);
+        else
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("command: %s error: %s.", cmd, errstr);
+        }
+        tcflush(PortFD, TCIOFLUSH);
         return  false;
     }
 
