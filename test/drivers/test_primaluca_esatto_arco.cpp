@@ -55,6 +55,7 @@
 #endif
 #include <regex>
 #include <string>
+#include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
 #include <thread>
@@ -132,6 +133,14 @@ class FakePrimaLuce
             return m_PortName;
         }
 
+        // tty_connect() puts the port in exclusive mode (TIOCEXCL) and tty_disconnect() does not clear it. A real
+        // serial port is closed completely after a disconnection, which clears it; here the fake keeps its own end
+        // open, so on Linux a second connection would be refused with EBUSY. Clear it as a closed port would be.
+        void releasePort()
+        {
+            ioctl(m_Slave, TIOCNXCL);
+        }
+
         static json stopped()
         {
             return {{"BUSY", 0}, {"MST", "stop"}};
@@ -198,17 +207,19 @@ class FakePrimaLuce
 
         // Waits (at most 2 s) until nothing is left on the line, in the receive buffer or in progress. Checks the line
         // with select(): FIONREAD on a pty master reports the slave's input queue on macOS.
+        // The line is checked under the same lock as receive() reads and stores, so bytes taken off the line but not
+        // yet stored are never missed.
         void waitUntilIdle()
         {
             for (int i = 0; i < 400; i++)
             {
-                fd_set readSet;
-                FD_ZERO(&readSet);
-                FD_SET(m_Master, &readSet);
-                struct timeval timeout = {0, 0};
-                const bool pending = select(m_Master + 1, &readSet, nullptr, nullptr, &timeout) > 0;
                 {
                     std::lock_guard<std::mutex> lock(m_RxMutex);
+                    fd_set readSet;
+                    FD_ZERO(&readSet);
+                    FD_SET(m_Master, &readSet);
+                    struct timeval timeout = {0, 0};
+                    const bool pending = select(m_Master + 1, &readSet, nullptr, nullptr, &timeout) > 0;
                     if (!pending && m_Rx.empty() && !m_Busy)
                         return;
                 }
@@ -229,12 +240,13 @@ class FakePrimaLuce
                 if (select(m_Master + 1, &readSet, nullptr, nullptr, &timeout) <= 0)
                     continue;
 
-                char chunk[256];
-                ssize_t n = read(m_Master, chunk, sizeof(chunk));
-                if (n <= 0)
-                    continue;
                 {
+                    // Read and store under one lock, see waitUntilIdle().
                     std::lock_guard<std::mutex> lock(m_RxMutex);
+                    char chunk[256];
+                    ssize_t n = read(m_Master, chunk, sizeof(chunk));
+                    if (n <= 0)
+                        continue;
                     m_Rx.append(chunk, n);
                 }
                 m_Received.notify_all();
