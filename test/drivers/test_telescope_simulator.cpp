@@ -281,6 +281,26 @@ TEST(TelescopeSimulatorTest, pacMoveFollowsTheCorrectionGain)
     EXPECT_NEAR(sim.mountModel("MM_ME"), -45, 1e-4);
 }
 
+// Every client that connects sends getProperties. A PAC move is not saved to the config, so reloading
+// the mount model for each new client discarded the corrections made during a polar alignment.
+TEST(TelescopeSimulatorTest, newClientKeepsThePACCorrection)
+{
+    MockScopeSimDriver sim;
+    sim.setLocation(LATITUDE, 0);
+    sim.setActivePAC(PAC);
+    // Saved to the config
+    sim.setPolarError(10, -10);
+
+    sim.snoop(manualAdjustment("Busy", 0, 0.5));
+    sim.snoop(manualAdjustment("Ok", 0, 0.5));
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -40, 1e-4);
+
+    // Another client connects
+    sim.ISGetProperties(sim.getDeviceName());
+    EXPECT_NEAR(sim.mountModel("MM_MA"), 10, 1e-4);
+    EXPECT_NEAR(sim.mountModel("MM_ME"), -40, 1e-4);
+}
+
 // INDI::Telescope: the dome policy is not saved when it changes. Another client connecting must not revert
 // it to the saved value: "Dome ignored" would let the mount unpark while the dome is parked.
 TEST(TelescopeSimulatorTest, newClientKeepsTheDomePolicy)

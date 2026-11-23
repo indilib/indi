@@ -225,7 +225,7 @@
         </device>
         <device label="iOptron SkyGuider Pro" manufacturer="iOptron">
             <driver name="Telescope Simulator">indi_simulator_telescope</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="iOptron iEQ30 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
@@ -361,7 +361,7 @@
         </device>
         <device label="Telescope Simulator" manufacturer="Simulator">
             <driver name="Telescope Simulator">indi_simulator_telescope</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Skywatcher Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
