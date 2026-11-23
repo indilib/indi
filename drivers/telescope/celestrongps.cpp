@@ -242,20 +242,18 @@ bool CelestronGPS::initProperties()
 
 void CelestronGPS::ISGetProperties(const char *dev)
 {
-    static bool configLoaded = false;
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
+
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
 
     INDI::Telescope::ISGetProperties(dev);
 
     defineProperty(&UseHibernateSP);
     defineProperty(&CelestronTrackModeSP);
-    if (configLoaded == false)
-    {
-        configLoaded = true;
+    if (firstClient)
         loadConfig(true, "Hibernate");
-    }
 }
 
 bool CelestronGPS::updateProperties()
