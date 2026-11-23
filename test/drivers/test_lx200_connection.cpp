@@ -238,6 +238,15 @@ TEST(LX200ConnectionCheckTest, otherReplyIsRejected)
     }
 }
 
+TEST(LX200ConnectionCheckTest, nulReplyIsRejected)
+{
+    // strchr() also finds the terminating NUL of the accepted set, so a 0x00 reply must be rejected explicitly
+    // (a Pegasus NYX-101 sends two 0x00 bytes after power-up).
+    FakeSerialDevice other(answerAck(std::string(1, char(0))));
+    ASSERT_FALSE(other.port().empty());
+    EXPECT_EQ(checkPort(other.port()), -1) << "reply 0x00";
+}
+
 TEST(LX200ConnectionCheckTest, silentPortIsRejected)
 {
     FakeSerialDevice silent(nullptr);

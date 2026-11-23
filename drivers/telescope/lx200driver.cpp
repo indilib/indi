@@ -97,7 +97,7 @@ int check_lx200_connection(int in_fd)
         tty_read(in_fd, MountAlign, 1, LX200_TIMEOUT, &nbytes_read);
         // G (German equatorial) is sent by several LX200-compatible firmwares. A '#' some of them add is left in
         // the input and flushed by the next command.
-        if (nbytes_read == 1 && strchr("ADLPG", MountAlign[0]) != nullptr)
+        if (nbytes_read == 1 && MountAlign[0] != '\0' && strchr("ADLPG", MountAlign[0]) != nullptr)
         {
             DEBUGFDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing successful! ACK reply: %c", MountAlign[0]);
             return 0;
