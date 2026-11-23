@@ -105,11 +105,11 @@
         </device>
         <device label="Pegasus NYX-88" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
-            <version>2.4</version>
+            <version>2.5</version>
         </device>
         <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
-            <version>2.4</version>
+            <version>2.5</version>
         </device>
         <device label="ZWO AM7 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>

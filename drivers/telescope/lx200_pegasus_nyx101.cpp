@@ -40,7 +40,7 @@ const char *STATUS_TAB = "Status";
 
 LX200NYX101::LX200NYX101()
 {
-    setVersion(2, 4);
+    setVersion(2, 5);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
