@@ -508,7 +508,8 @@ class Published
 
         static std::string attribute(const std::string &header, const std::string &name)
         {
-            for (const char quote : {'"', '\''})
+            static const char quotes[] = {'"', '\''};
+            for (const char quote : quotes)
             {
                 const std::string key = name + "=" + quote;
                 for (size_t start = header.find(key); start != std::string::npos; start = header.find(key, start + 1))
