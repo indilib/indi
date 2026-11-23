@@ -36,7 +36,7 @@ alpacaTelescopeDriver::alpacaTelescopeDriver()
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
-    setVersion(1, 0);
+    setVersion(1, 1);
     SetTelescopeCapability(
         TELESCOPE_CAN_GOTO |
         TELESCOPE_CAN_SYNC |
