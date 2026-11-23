@@ -54,7 +54,7 @@ class SeestarCCD : public AlpacaCCD
 
         /**
          * @brief Build Alpaca form data with Seestar-specific parameter ordering
-         * 
+         *
          * Seestar requires method parameters BEFORE ClientID/ClientTransactionID
          * (opposite of standard Alpaca ordering)
          */
@@ -62,13 +62,11 @@ class SeestarCCD : public AlpacaCCD
 
     protected:
         /**
-         * @brief Parse ImageBytes metadata with Seestar-specific workarounds
-         * 
-         * Overrides the base class method to apply Seestar quirk fixes:
-         * - Swap dimension fields to correct locations
-         * - Force Int16 element type regardless of what's reported
-         * - Fix DataStart offset
-         * 
+         * @brief Check and log the ImageBytes metadata of a Seestar frame
+         *
+         * The dimensions are taken as sent (Dimension1 = X, Dimension2 = Y); the data size is
+         * checked against them and a mismatch is logged as a warning.
+         *
          * @param metadata Pointer to ImageBytesMetadata structure (will be modified)
          * @param body_size Total size of HTTP response body
          * @return true if metadata is valid after corrections
