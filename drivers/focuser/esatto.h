@@ -48,7 +48,7 @@ class Esatto : public INDI::Focuser
     private:
         bool Ack();
 
-        bool updateTemperature();        
+        bool updateTemperature();
         bool updatePosition();
         bool updateVoltageIn();
         bool updateMaxLimit();

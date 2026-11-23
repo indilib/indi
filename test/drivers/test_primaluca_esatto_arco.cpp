@@ -359,7 +359,11 @@ class FakePrimaLuce
                     answer[lastKey(params)] = "done";
             }
 
-            json result = node.empty() ? json{{kind, answer}} : json{{kind, {{node, answer}}}};
+            json result;
+            if (node.empty())
+                result[kind] = answer;
+            else
+                result[kind][node] = answer;
             return json{{"res", result}}.dump() + "\r\n";
         }
 
