@@ -61,7 +61,10 @@ class PegasusFlatMasterNeo : public INDI::DefaultDevice, public INDI::LightBoxIn
         virtual IPState UnParkCap() override;
         virtual IPState AbortCap() override;
 
-        virtual IPState updateWeather() override { return IPS_OK; }
+        virtual IPState updateWeather() override
+        {
+            return IPS_OK;
+        }
         virtual void TimerHit() override;
 
     private:
