@@ -114,3 +114,18 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
     ADD_TEST(test_planewave_efa test_planewave_efa)
 ENDIF()
+
+# Wanderer ETA M54 handshake against fake devices on pseudo terminals (openpty).
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_wanderer_eta
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/wanderer_eta.cpp"
+        test_wanderer_eta.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_wanderer_eta
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_wanderer_eta test_wanderer_eta)
+ENDIF()
