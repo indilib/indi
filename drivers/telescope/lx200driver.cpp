@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indicom.h"
 #include "indilogger.h"
 
+#include <cctype>
 #include <cstring>
 #include <unistd.h>
 
@@ -68,6 +69,7 @@ int check_lx200_connection(int in_fd)
     char ack[1] = { 0x06 };
     char MountAlign[64];
     int nbytes_read = 0;
+    int unexpectedReply = -1;
 
     DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing telescope connection using ACK...");
 
@@ -101,12 +103,17 @@ int check_lx200_connection(int in_fd)
             return 0;
         }
         if (nbytes_read == 1)
-            DEBUGFDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Unexpected ACK reply 0x%02X.",
-                         static_cast<unsigned char>(MountAlign[0]));
+            unexpectedReply = static_cast<unsigned char>(MountAlign[0]);
         nanosleep(&timeout, nullptr);
     }
 
-    DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Failure. Telescope is not responding to ACK!");
+    // Visible to the user: if this is a mount, its reply letter is missing from the list above.
+    if (unexpectedReply >= 0)
+        DEBUGFDEVICE(lx200Name, INDI::Logger::DBG_WARNING,
+                     "Unexpected reply 0x%02X ('%c') to ACK, this is not a known LX200 alignment mode (A, D, L, P, G).",
+                     unexpectedReply, isprint(unexpectedReply) ? unexpectedReply : '?');
+    else
+        DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Failure. Telescope is not responding to ACK!");
     return -1;
 }
 
