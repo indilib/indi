@@ -2,7 +2,7 @@
   Copyright(c) 2026 Gord Tulloch. All rights reserved.
 
   Seestar CCD INDI Driver
-  
+
   This driver inherits from the generic ASCOM Alpaca CCD driver and applies
   workarounds for Seestar CCD's non-standard ImageBytes implementation.
 
@@ -32,15 +32,11 @@
 /**
  * @brief The SeestarCCD class provides Seestar specific workarounds for
  * the ASCOM Alpaca CCD driver.
- * 
- * The Seestar CCD has bugs in its ImageBytes protocol implementation:
- * 1. Rank is stored in Dimension1 field instead of Rank field
- * 2. Width is stored in Dimension3 field instead of Dimension1
- * 3. Height is correct in Dimension2
- * 4. TransmissionElementType reports Int32 (2) but actually sends Int16 data
- * 5. DataStart reports 0 but should be 44
- * 
- * This driver applies workarounds to correctly interpret Seestar images.
+ *
+ * Early Seestar firmware sent wrong ImageBytes metadata (rank, dimensions, element type and
+ * DataStart). A Seestar S50 with camera driver "Camera V3" 1.3.1-1 sends metadata as the Alpaca
+ * specification defines it (Dimension1 = X = 1080, Dimension2 = Y = 1920, UInt16, DataStart 44);
+ * this driver checks and logs it and keeps the form-data ordering the Seestar requires.
  */
 class SeestarCCD : public AlpacaCCD
 {
@@ -52,7 +48,7 @@ class SeestarCCD : public AlpacaCCD
         virtual bool initProperties() override;
         virtual bool Connect() override;
         virtual bool updateProperties() override;
-        
+
         // Disable cooler controls (Seestar doesn't have active cooling)
         virtual int SetTemperature(double temperature) override;
 
