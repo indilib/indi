@@ -567,9 +567,14 @@ bool PowerInterface::processSwitch(const char *dev, const char *name, ISState *s
         // LED Control
         if (HasLEDToggle() && LEDControlSP.isNameMatch(name))
         {
-            return m_defaultDevice->updateProperty(LEDControlSP, states, names, n, [this, names]()
+            return m_defaultDevice->updateProperty(LEDControlSP, states, names, n, [this, states, names, n]()
             {
-                bool enabled = LEDControlSP[0].isNameMatch(names[0]);
+                // Clients may send both switches, so use the one that is On rather than names[0].
+                const char *onSwitch = IUFindOnSwitchName(states, names, n);
+                // No switch On is not a valid request for this one-of-many switch: send nothing to the device.
+                if (onSwitch == nullptr)
+                    return false;
+                bool enabled = LEDControlSP[DefaultDevice::INDI_ENABLED].isNameMatch(onSwitch);
                 return SetLEDEnabled(enabled);
             }, true);
         }
