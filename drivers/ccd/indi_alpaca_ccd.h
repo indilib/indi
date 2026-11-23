@@ -103,6 +103,9 @@ class AlpacaCCD : public INDI::CCD
         void setDefaultServerAddress(const char *host, const char *port, bool force = false);
 
     private:
+        // Alpaca error number for a property or method the device does not implement.
+        static constexpr int ALPACA_NOT_IMPLEMENTED {0x400};
+
         // Config-loaded values (empty = no saved config, mirrors TCP plugin pattern)
         std::string m_ConfigHost;
         std::string m_ConfigPort;

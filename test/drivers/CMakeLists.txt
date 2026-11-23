@@ -127,6 +127,20 @@ TARGET_LINK_LIBRARIES(test_pegasus_flatmaster_neo
 )
 ADD_TEST(test_pegasus_flatmaster_neo test_pegasus_flatmaster_neo)
 
+ADD_EXECUTABLE(test_seestar_ccd
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/ccd/indi_seestar_ccd.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/ccd/indi_alpaca_ccd.cpp"
+    test_seestar_ccd.cpp
+)
+TARGET_COMPILE_DEFINITIONS(test_seestar_ccd PRIVATE INDI_ALPACA_CCD_NO_INSTANCE)
+TARGET_LINK_LIBRARIES(test_seestar_ccd
+    indidriver
+    ${HTTPLIB_LIBRARY}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_seestar_ccd test_seestar_ccd)
+
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_planewave_efa
