@@ -49,6 +49,8 @@ std::unique_ptr<JoyStick> joystick(new JoyStick());
 
 JoyStick::JoyStick()
 {
+    setVersion(1, 1);
+
     driver.reset(new JoyStickDriver());
 }
 
@@ -348,10 +350,14 @@ bool JoyStick::updateProperties()
 
 void JoyStick::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineProperty(PortTP);
-    loadConfig(true, INDI::SP::DEVICE_PORT);
+    if (firstClient)
+        loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
 bool JoyStick::ISSnoopDevice(XMLEle *root)

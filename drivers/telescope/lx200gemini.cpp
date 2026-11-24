@@ -79,9 +79,8 @@ LX200Gemini::LX200Gemini()
     setLX200Capability(LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_FLIP | TELESCOPE_CAN_GOTO |
-                           TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE |
-                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC,
+                           TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE |
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC,
                            4);
 }
 
@@ -105,11 +104,15 @@ bool LX200Gemini::Connect()
 
 void LX200Gemini::ISGetProperties(const char *dev)
 {
+    // Read the config for the first client only, so another client connecting does not revert the startup mode.
+    // Once defined, the property is defined again for every later client by DefaultDevice.
+    const bool firstClient = !isInitializationComplete();
+
     LX200Generic::ISGetProperties(dev);
 
     // Read config from file
     int index = 0;
-    if (IUGetConfigOnSwitch(&StartupModeSP, &index) == 0)
+    if (firstClient && IUGetConfigOnSwitch(&StartupModeSP, &index) == 0)
     {
         IUResetSwitch(&StartupModeSP);
         StartupModeSP.sp[index].s = ISS_ON;

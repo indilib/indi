@@ -47,7 +47,7 @@ static std::unique_ptr<PegasusFlatMasterNeo> flatmaster(new PegasusFlatMasterNeo
 
 PegasusFlatMasterNeo::PegasusFlatMasterNeo() : LightBoxInterface(this), DustCapInterface(this), WeatherInterface(this)
 {
-    setVersion(1, 4);
+    setVersion(1, 5);
 }
 
 bool PegasusFlatMasterNeo::initProperties()
@@ -253,6 +253,7 @@ bool PegasusFlatMasterNeo::Ack()
     // Over TCP, log in with the hotspot password before any command.
     m_IsTCP = getActiveConnection() == tcpConnection;
     PortFD = m_IsTCP ? tcpConnection->getPortFD() : serialConnection->getPortFD();
+    m_FailedPolls = 0;
     if (m_IsTCP && !wifi.login(PortFD))
         return false;
 
@@ -680,7 +681,26 @@ void PegasusFlatMasterNeo::TimerHit()
         return;
     }
 
-    getStatusData();
+    // Without a status reply the other queries of this poll would each wait for their timeout
+    // as well, which blocks the driver for seconds per poll, so skip them.
+    if (!getStatusData())
+    {
+        // A device that left the WiFi network (e.g. after a WiFi factory reset) keeps the TCP
+        // connection open but never answers again, so stop after a few polls in a row.
+        if (++m_FailedPolls >= MAX_FAILED_POLLS)
+        {
+            LOGF_ERROR("No reply to %d status queries in a row, disconnecting. %s", MAX_FAILED_POLLS,
+                       m_IsTCP ? "Over WiFi, check over USB that the device is still in the network (Current WiFi)." :
+                       "Check the USB connection.");
+            Disconnect();
+            setConnected(false, IPS_ALERT);
+            updateProperties();
+        }
+        SetTimer(getCurrentPollingPeriod());
+        return;
+    }
+    m_FailedPolls = 0;
+
     getWeatherData();
     getUptime();
     wifi.updateConnection();

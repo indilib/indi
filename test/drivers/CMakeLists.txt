@@ -43,6 +43,20 @@ TARGET_LINK_LIBRARIES(test_telescope_simulator
 )
 ADD_TEST(test_telescope_simulator test_telescope_simulator)
 
+ADD_EXECUTABLE(test_first_client_config
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/focus_simulator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/weather/weatherwatcher.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/weather/aagsolo.cpp"
+    test_first_client_config.cpp
+)
+TARGET_LINK_LIBRARIES(test_first_client_config
+    indidriver
+    ${CURL}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_first_client_config test_first_client_config)
+
 ADD_EXECUTABLE(test_dome_shutter_park_policy
     test_dome_shutter_park_policy.cpp
 )
@@ -119,6 +133,49 @@ TARGET_LINK_LIBRARIES(test_mount_coordinates
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_mount_coordinates test_mount_coordinates)
+
+# Excalibur handshake against fake devices on pseudo terminals (openpty).
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_excalibur
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/Excalibur.cpp"
+        test_excalibur.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_excalibur
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_excalibur test_excalibur)
+ENDIF()
+
+ADD_EXECUTABLE(test_pegasus_flatmaster_neo
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/pegasus_flatmaster_neo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/pegasus_wifi.cpp"
+    test_pegasus_flatmaster_neo.cpp
+)
+TARGET_LINK_LIBRARIES(test_pegasus_flatmaster_neo
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_pegasus_flatmaster_neo test_pegasus_flatmaster_neo)
+
+ADD_EXECUTABLE(test_seestar_ccd
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/ccd/indi_seestar_ccd.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/ccd/indi_alpaca_ccd.cpp"
+    test_seestar_ccd.cpp
+)
+TARGET_COMPILE_DEFINITIONS(test_seestar_ccd PRIVATE INDI_ALPACA_CCD_NO_INSTANCE)
+TARGET_LINK_LIBRARIES(test_seestar_ccd
+    indidriver
+    ${HTTPLIB_LIBRARY}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_seestar_ccd test_seestar_ccd)
+
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_planewave_efa
@@ -132,4 +189,19 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${CMAKE_THREAD_LIBS_INIT}
     )
     ADD_TEST(test_planewave_efa test_planewave_efa)
+ENDIF()
+
+# Wanderer ETA M54 handshake against fake devices on pseudo terminals (openpty).
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_wanderer_eta
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/wanderer_eta.cpp"
+        test_wanderer_eta.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_wanderer_eta
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_wanderer_eta test_wanderer_eta)
 ENDIF()

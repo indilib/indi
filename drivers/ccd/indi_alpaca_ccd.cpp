@@ -50,6 +50,7 @@ AlpacaCCD::AlpacaCCD()
     // HasShutter properties are known.
     SetCCDCapability(INDI::CCD::CCD_CAN_ABORT | INDI::CCD::CCD_CAN_BIN | INDI::CCD::CCD_CAN_SUBFRAME |
                      INDI::CCD::CCD_HAS_COOLER | INDI::CCD::CCD_HAS_SHUTTER);
+    setVersion(1, 1);
 }
 
 void AlpacaCCD::setDefaultServerAddress(const char *host, const char *port, bool force)
@@ -1267,9 +1268,15 @@ bool AlpacaCCD::sendAlpacaGET(const std::string& endpoint, nlohmann::json& respo
         // Check for Alpaca errors
         if (response.contains("ErrorNumber") && response["ErrorNumber"].get<int>() != 0)
         {
-            LOGF_ERROR("Alpaca error in %s: %d - %s", endpoint.c_str(),
-                       response["ErrorNumber"].get<int>(),
-                       response["ErrorMessage"].get<std::string>().c_str());
+            // A property the camera does not implement (0x400, e.g. Offsets or PercentCompleted on a
+            // Seestar) is optional: the caller falls back, so it is not an error for the user.
+            const int error = response["ErrorNumber"].get<int>();
+            if (error == ALPACA_NOT_IMPLEMENTED)
+                LOGF_DEBUG("%s is not implemented by the camera: %s", endpoint.c_str(),
+                           response["ErrorMessage"].get<std::string>().c_str());
+            else
+                LOGF_ERROR("Alpaca error in %s: %d - %s", endpoint.c_str(), error,
+                           response["ErrorMessage"].get<std::string>().c_str());
             return false;
         }
 
@@ -2160,6 +2167,10 @@ bool AlpacaCCD::processImageBytesData(uint8_t* buffer, size_t buffer_size, const
     // ImageBytes data is already in the correct coordinate system (FITS standard)
     // No need to flip coordinates like we do for JSON data
 
+    // The buffer holds 16-bit pixels whatever the capture format says. The chip starts at 8 bits
+    // until a client selects a format, and an 8-bit chip would save every byte as a pixel.
+    primary_chip->setBPP(16);
+
     // Upload to INDI
     primary_chip->setFrame(0, 0, width, height);
     primary_chip->setFrameBuffer(reinterpret_cast<uint8_t*>(indi_buffer));
@@ -2221,6 +2232,9 @@ bool AlpacaCCD::processMonoImage(uint8_t* buffer)
         LOG_ERROR("Failed to convert image data");
         return false;
     }
+
+    // The buffer holds 16-bit pixels whatever the capture format says (see processImageBytesData).
+    primary_chip->setBPP(16);
 
     // Upload to INDI
     primary_chip->setFrame(0, 0, m_CurrentImage.width, m_CurrentImage.height);

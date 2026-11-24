@@ -314,6 +314,15 @@ INDI uses [Artistic Style](http://astyle.sourceforge.net) to format all the C++ 
 
 Some IDEs (e.g. QtCreator) support automatic formatting for the code everytime you save the file to disk.
 
+Every pull request is checked against these rules, for the functions it changes in `.c`, `.cpp`, `.cxx` and `.h` files (bundled third-party libraries are not checked). Different astyle versions format some constructs differently, so the check uses the version pinned in [.astyle-version](.astyle-version). You can run the same check before you submit:
+
+```
+scripts/check-codestyle.sh <file>                   # your uncommitted changes
+scripts/check-codestyle.sh <file> upstream/master   # everything on your branch, compared with the branch it targets
+```
+
+The script refuses to run with another astyle version. If [uv](https://docs.astral.sh/uv/) is installed, it fetches the pinned version by itself; otherwise install it with `pip install astyle==$(cat .astyle-version)`, or set `ASTYLE_BIN` to a matching binary.
+
 ### How to create Github pull request (PR)
 
 [How to contribute to INDI full guide](http://indilib.org/develop/tutorials/181-how-to-contribute-to-indi-github-development.html)

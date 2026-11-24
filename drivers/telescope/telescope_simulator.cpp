@@ -43,6 +43,8 @@ static std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
 ScopeSim::ScopeSim(): GI(this)
 {
+    setVersion(1, 1);
+
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
@@ -167,29 +169,38 @@ bool ScopeSim::initProperties()
 
 void ScopeSim::ISGetProperties(const char *dev)
 {
+    // Every client sends getProperties. Load the config for the first one only, so that runtime
+    // changes such as PAC corrections to the mount model survive another client connecting.
+    // Must be checked before the parent call, which completes the initialization.
+    const bool firstClient = !isInitializationComplete();
+
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
 #ifdef USE_SIM_TAB
-    // Load mount type settings and apply immediately so axis track rates and
-    // alignment.mountType are correct before the first ReadScopeStatus tick.
-    MountTypeSP.load();
-    MountTypeSP.apply();
     defineProperty(simPierSideSP);
-    simPierSideSP.load();
-    updateMountAndPierSide();
     defineProperty(mountModelNP);
-    mountModelNP.load();
-    alignment.setCorrections(mountModelNP[MM_IH].getValue() / 60.0, mountModelNP[MM_ID].getValue() / 60.0,
-                             mountModelNP[MM_CH].getValue() / 60.0, mountModelNP[MM_NP].getValue() / 60.0,
-                             mountModelNP[MM_MA].getValue() / 60.0, mountModelNP[MM_ME].getValue() / 60.0);
     defineProperty(mountAxisNP);
     defineProperty(flipHourAngleNP);
-    flipHourAngleNP.load();
     defineProperty(guideErrorsNP);
-    guideErrorsNP.load();
     defineProperty(PACDeviceTP);
-    PACDeviceTP.load();
+
+    if (firstClient)
+    {
+        // Load mount type settings and apply immediately so axis track rates and
+        // alignment.mountType are correct before the first ReadScopeStatus tick.
+        MountTypeSP.load();
+        MountTypeSP.apply();
+        simPierSideSP.load();
+        updateMountAndPierSide();
+        mountModelNP.load();
+        alignment.setCorrections(mountModelNP[MM_IH].getValue() / 60.0, mountModelNP[MM_ID].getValue() / 60.0,
+                                 mountModelNP[MM_CH].getValue() / 60.0, mountModelNP[MM_NP].getValue() / 60.0,
+                                 mountModelNP[MM_MA].getValue() / 60.0, mountModelNP[MM_ME].getValue() / 60.0);
+        flipHourAngleNP.load();
+        guideErrorsNP.load();
+        PACDeviceTP.load();
+    }
 #endif
     m_currentAz  = axisPrimary.position.Degrees();
     m_currentAlt = axisSecondary.position.Degrees();

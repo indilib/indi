@@ -37,7 +37,7 @@ static std::unique_ptr<DragonLIGHT> dragonlight(new DragonLIGHT());
 
 DragonLIGHT::DragonLIGHT() : LightBoxInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 bool DragonLIGHT::initProperties()
@@ -69,6 +69,9 @@ bool DragonLIGHT::initProperties()
 
 void DragonLIGHT::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineProperty(IPAddressTP);
@@ -77,7 +80,8 @@ void DragonLIGHT::ISGetProperties(const char *dev)
     // Get Light box properties
     LI::ISGetProperties(dev);
 
-    loadConfig(IPAddressTP);
+    if (firstClient)
+        loadConfig(IPAddressTP);
 }
 
 bool DragonLIGHT::updateProperties()

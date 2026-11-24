@@ -378,6 +378,19 @@ class EFAUnderTest : public EFA
             char *names[1] = {abort};
             ISNewSwitch(getDeviceName(), "FOCUS_ABORT_MOTION", states, names, 1);
         }
+
+        // One poll, as the driver's timer does.
+        void poll()
+        {
+            TimerHit();
+        }
+
+        // -1 while the property is not defined.
+        double numberValue(const char *property)
+        {
+            auto number = getNumber(property);
+            return number.isValid() ? number[0].getValue() : -1;
+        }
 };
 
 std::string configFile()
@@ -511,6 +524,74 @@ TEST(PlaneWaveEFATest, absoluteMoveAndAbortStillWork)
     ASSERT_EQ(aborts.size(), 1u) << describe(aborts);
     EXPECT_EQ(aborts[0].command, EFA::MTR_GOTO_POS2);
     EXPECT_EQ(aborts[0].data, (std::vector<uint8_t> {0x13, 0x12, 0xD0}));
+}
+
+// The position in microns is the encoder position divided by the steps per micron, and follows both.
+TEST(PlaneWaveEFATest, micronPositionFollowsEncoderAndConversion)
+{
+    writeConfiguration();
+    FakeEFA efa;
+    ASSERT_FALSE(efa.port().empty());
+
+    PublishedXML published;
+    EFAUnderTest driver;
+    bool connected = driver.connectTo(efa.port());
+    double conversionAtConnect = driver.numberValue("FOCUS_STEPS_PER_MICRON");
+    double micronsAtConnect = driver.numberValue("FOCUS_MICRON_POSITION");
+
+    driver.requestNumber("ABS_FOCUS_POSITION", "FOCUS_ABSOLUTE_POSITION", 1250000);
+    driver.poll();
+    double micronsAfterMove = driver.numberValue("FOCUS_MICRON_POSITION");
+
+    efa.clearPackets();
+    driver.requestNumber("FOCUS_STEPS_PER_MICRON", "STEPS_PER_MICRON", 200);
+    double micronsAfterConversion = driver.numberValue("FOCUS_MICRON_POSITION");
+    std::vector<Packet> motion = efa.motionCommands();
+
+    // A conversion of zero would divide by zero; it must be refused.
+    driver.requestNumber("FOCUS_STEPS_PER_MICRON", "STEPS_PER_MICRON", 0);
+    double conversionAfterZero = driver.numberValue("FOCUS_STEPS_PER_MICRON");
+    std::string xml = published.finish();
+
+    ASSERT_TRUE(connected);
+    EXPECT_TRUE(definesNumber(xml, "FOCUS_STEPS_PER_MICRON"));
+    EXPECT_TRUE(definesNumber(xml, "FOCUS_MICRON_POSITION"));
+    EXPECT_NEAR(conversionAtConnect, 115.134, 1e-6);
+    EXPECT_NEAR(micronsAtConnect, START_POSITION / 115.134, 0.01);
+    EXPECT_NEAR(micronsAfterMove, 1250000 / 115.134, 0.01);
+    EXPECT_NEAR(micronsAfterConversion, 1250000 / 200.0, 0.01);
+    EXPECT_TRUE(motion.empty()) << "Changing the conversion sent motion command(s):" << describe(motion);
+    EXPECT_NEAR(conversionAfterZero, 200, 1e-6);
+}
+
+// The steps per micron are saved when changed and used again at the next connection.
+TEST(PlaneWaveEFATest, stepsPerMicronAreSavedAndLoaded)
+{
+    writeConfiguration();
+    PublishedXML published;
+    bool connectedFirst = false, connectedSecond = false;
+    double conversion = -1, microns = -1;
+    {
+        FakeEFA efa;
+        ASSERT_FALSE(efa.port().empty());
+        EFAUnderTest driver;
+        connectedFirst = driver.connectTo(efa.port());
+        driver.requestNumber("FOCUS_STEPS_PER_MICRON", "STEPS_PER_MICRON", 250);
+    }
+    {
+        FakeEFA efa;
+        ASSERT_FALSE(efa.port().empty());
+        EFAUnderTest driver;
+        connectedSecond = driver.connectTo(efa.port());
+        conversion = driver.numberValue("FOCUS_STEPS_PER_MICRON");
+        microns = driver.numberValue("FOCUS_MICRON_POSITION");
+    }
+    published.finish();
+
+    ASSERT_TRUE(connectedFirst);
+    ASSERT_TRUE(connectedSecond);
+    EXPECT_NEAR(conversion, 250, 1e-6);
+    EXPECT_NEAR(microns, START_POSITION / 250.0, 0.01);
 }
 
 int main(int argc, char **argv)

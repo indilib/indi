@@ -40,7 +40,7 @@ static std::unique_ptr<EFA> steelDrive(new EFA());
 /////////////////////////////////////////////////////////////////////////////
 EFA::EFA()
 {
-    setVersion(1, 5);
+    setVersion(1, 6);
 
     // Focuser Capabilities
     // No variable speed: the EFA has no speed setting. MTR_PMSLEW_RATE / MTR_NMSLEW_RATE start a move.
@@ -109,6 +109,16 @@ bool EFA::initProperties()
     StopDetectSP.fill(getDeviceName(), "FOCUS_STOP_DETECT", "Stop Detection",
                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Steps per micron: converts the encoder position to microns of focuser travel.
+    StepsPerMicronNP[0].fill("STEPS_PER_MICRON", "Steps/Micron", "%.3f", 0.1, 10000., 1., DEFAULT_STEPS_PER_MICRON);
+    StepsPerMicronNP.fill(getDeviceName(), "FOCUS_STEPS_PER_MICRON", "Conversion",
+                          OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Position in microns
+    MicronPositionNP[0].fill("MICRON_POSITION", "Microns", "%.2f", 0, 1e8, 0., 0.);
+    MicronPositionNP.fill(getDeviceName(), "FOCUS_MICRON_POSITION", "Position",
+                          MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
     // Setup limits
     FocusMaxPosNP[0].setValue(1e7);
     FocusMaxPosNP[0].setMax(1e7);
@@ -141,6 +151,11 @@ bool EFA::updateProperties()
     {
         getStartupValues();
 
+        // Load the saved conversion before the position in microns is first calculated
+        StepsPerMicronNP.load();
+        updateMicronPosition(false);
+        defineProperty(MicronPositionNP);
+
         defineProperty(InfoTP);
         defineProperty(CalibrationStateSP);
 
@@ -155,9 +170,11 @@ bool EFA::updateProperties()
         // Options
         defineProperty(ApproachDirectionSP);
         defineProperty(StopDetectSP);
+        defineProperty(StepsPerMicronNP);
     }
     else
     {
+        deleteProperty(MicronPositionNP);
         deleteProperty(InfoTP);
         deleteProperty(CalibrationStateSP);
 
@@ -170,6 +187,7 @@ bool EFA::updateProperties()
 
         deleteProperty(ApproachDirectionSP);
         deleteProperty(StopDetectSP);
+        deleteProperty(StepsPerMicronNP);
     }
 
     return true;
@@ -393,6 +411,23 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
             FanControlNP.apply();
             return true;
         }
+        // Steps per micron
+        else if (StepsPerMicronNP.isNameMatch(name))
+        {
+            if (StepsPerMicronNP.update(values, names, n))
+            {
+                StepsPerMicronNP.setState(IPS_OK);
+                StepsPerMicronNP.apply();
+                updateMicronPosition(isConnected());
+                saveConfig(StepsPerMicronNP);
+            }
+            else
+            {
+                StepsPerMicronNP.setState(IPS_ALERT);
+                StepsPerMicronNP.apply();
+            }
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -586,6 +621,8 @@ void EFA::TimerHit()
         FocusAbsPosNP.apply();
     }
 
+    updateMicronPosition();
+
     IN_TIMER = false;
 
     SetTimer(getCurrentPollingPeriod());
@@ -637,6 +674,7 @@ bool EFA::saveConfigItems(FILE * fp)
     if (FanControlNP.getState() == IPS_OK)
         FanControlNP.save(fp);
     FanDisconnectSP.save(fp);
+    StepsPerMicronNP.save(fp);
     // ApproachDirectionSP and StopDetectSP are stored in hardware EEPROM.
     // They are read back at startup via getStartupValues() and should not
     // be saved to or restored from config to avoid sending redundant
@@ -672,6 +710,24 @@ void EFA::getStartupValues()
         FocusAbsPosNP.updateMinMax();
         FocusMaxPosNP.updateMinMax();
     }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Update position in microns
+/// Follows the encoder position and its state, so it also tracks sync and a change of the conversion.
+/////////////////////////////////////////////////////////////////////////////
+void EFA::updateMicronPosition(bool notify)
+{
+    const double microns = FocusAbsPosNP[0].getValue() / StepsPerMicronNP[0].getValue();
+    const IPState state = (FocusAbsPosNP.getState() == IPS_BUSY) ? IPS_BUSY : IPS_OK;
+
+    if (std::fabs(microns - MicronPositionNP[0].getValue()) < 1e-6 && state == MicronPositionNP.getState())
+        return;
+
+    MicronPositionNP[0].setValue(microns);
+    MicronPositionNP.setState(state);
+    if (notify)
+        MicronPositionNP.apply();
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -9,11 +9,24 @@ To maintain a high-quality and user-friendly experience, we ask all driver autho
 
 Before submitting your driver, please ensure:
 
+- ✅ No existing driver already supports the device (see below)
 - ✅ The driver builds and runs successfully
-- ✅ It works with real hardware (or includes a simulation mode)
+- ✅ It was tested on the real hardware, and the pull request states the device model, firmware version and what was tested
+- ✅ Automated tests cover the logic that can run without the device
 - ✅ The driver is placed in the correct directory structure
-- ✅ Documentation is included in a `/doc` directory
+- ✅ The driver version is set in the driver (`setVersion`) and matches its `drivers.xml` entry
+- ✅ Documentation is submitted to the [drivers documentation repository](https://github.com/indilib/drivers-docs)
 - ✅ Licensing and coding guidelines are followed
+
+The testing and submission requirements are described in detail in [AGENTS.md](AGENTS.md) (sections 5 to 7). They apply to every submission, whether or not it was written with an AI coding agent.
+
+---
+
+## 🔎 Is a New Driver Needed?
+
+Before writing a new driver, check that the device is not already supported. Search [`drivers.xml`](drivers.xml), the [indi-3rdparty](https://github.com/indilib/indi-3rdparty/) repository and [drivers.indilib.org](https://drivers.indilib.org) by manufacturer, model and protocol. Many devices are supported under another name, for example by the LX200, OnStep or MoonLite drivers.
+
+If an existing driver supports the device, or could with a fix or an extension, please improve that driver instead of writing a new one. Two drivers for the same hardware confuse users and split bug fixes, documentation and maintenance. A second driver for an already supported device is only accepted for a very good reason, such as an incompatible protocol, and the pull request must explain why the existing driver could not be used or extended. If in doubt, ask first on the [INDI Forum](https://indilib.org/forum.html) or in a GitHub issue.
 
 ---
 
@@ -45,9 +58,7 @@ Add under: [`indi-3rdparty/`](https://github.com/indilib/indi-3rdparty/)
             ├── CMakeLists.txt
             ├── yourdevice.cpp
             ├── yourdevice.h
-            ├── yourdevice.xml
-            └── doc/
-                └── index.md
+            └── yourdevice.xml
 
     indi/
     └── drivers/
@@ -55,18 +66,21 @@ Add under: [`indi-3rdparty/`](https://github.com/indilib/indi-3rdparty/)
             ├── CMakeLists.txt
             ├── yourdevice.cpp
             ├── yourdevice.h
-            ├── ...
-            └── doc/
-                └── yourdevice
-                    └── photo.webp
-                    └── index.md
+            └── ...
+
 ---
 
 ## 📄 Documentation Requirements
 
-Your driver **must** include a `/doc/index.md` file to help users install and use the driver effectively.
+Your driver **must** come with user documentation to help users install and use the driver effectively.
 
-### Suggested Structure for `index.md`:
+Documentation for all drivers, Core and Third-Party, lives in a separate repository, [indilib/drivers-docs](https://github.com/indilib/drivers-docs), which is published at [drivers.indilib.org](https://drivers.indilib.org). Submit a pull request there and link it in your driver pull request. Do not add documentation files to the driver directory.
+
+Each driver has its own directory there, `src/content/docs/<category>/<manufacturer>/<driver>/`, with a Markdown page (`<driver>.md`), a metadata file (`<driver>.yaml`) and a 300x300 thumbnail (`<driver>.webp`). The [README of that repository](https://github.com/indilib/drivers-docs#readme) explains the layout, the image rules and how to preview the page locally.
+
+A documentation update is also required when a change to an existing driver makes its page wrong or incomplete, for example a new or renamed property, a changed default, a new connection type or a newly supported model.
+
+### Suggested Structure for the page:
 
 #### 1. 📌 Device Overview
 - Brief description of the device
@@ -92,7 +106,7 @@ Your driver **must** include a `/doc/index.md` file to help users install and us
 - Driver interface
 - Logs or sample output
 
-📚 **Example**: [indi-duino/doc](https://github.com/indilib/indi-3rdparty/tree/master/indi-duino/doc)
+📚 **Example**: [EQMod Mount](https://drivers.indilib.org/mounts/sky-watcher/eqmod)
 
 ---
 
@@ -102,7 +116,6 @@ Your `CMakeLists.txt` should:
 
 - Include the driver source files
 - Respect standard INDI CMake variables (`CMAKE_INSTALL_PREFIX`, etc.)
-- Optionally install docs (if applicable)
 
 ---
 
@@ -117,8 +130,10 @@ Please add a license header to all source files.
 
 1. Fork the appropriate INDI repository
 2. Create a new branch (e.g. `driver-yourdevice`)
-3. Add your driver code and documentation
-4. Submit a Pull Request with a clear title and description
+3. Add your driver code and tests
+4. Test the driver on the real hardware
+5. Submit the documentation as a Pull Request to [drivers-docs](https://github.com/indilib/drivers-docs)
+6. Submit a Pull Request with a clear title and description, the hardware test results and a link to the documentation Pull Request
 
 ---
 
@@ -134,7 +149,7 @@ Need help?
 
 ## 💡 For Manufacturers
 
-High-quality documentation in `/doc/index.md` makes your hardware easier to adopt and reduces your support burden.  
+High-quality documentation makes your hardware easier to adopt and reduces your support burden.  
 Consider adding:
 
 - Diagrams

@@ -137,11 +137,13 @@ bool WeatherSafetyProxy::saveConfigItems(FILE *fp)
 
 void WeatherSafetyProxy::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    // Once defined, the properties are defined again for every later client by DefaultDevice.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Weather::ISGetProperties(dev);
-    static bool once = true;
-    if (once)
+    if (firstClient)
     {
-        once = false;
         defineProperty(ScriptsTP);
         defineProperty(UrlTP);
         defineProperty(ScriptOrCurlSP);

@@ -44,7 +44,7 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
 
 WeatherWatcher::WeatherWatcher()
 {
-    setVersion(2, 1);
+    setVersion(2, 3);
     setWeatherConnection(CONNECTION_NONE);
 }
 
@@ -190,6 +190,13 @@ bool WeatherWatcher::initProperties()
 {
     INDI::Weather::initProperties();
     addDebugControl();
+
+    watchFileTP[0].fill("URL", "URL", nullptr);
+    watchFileTP.fill(getDeviceName(), "WATCH_SOURCE", "Source", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    separatorTP[0].fill("SEPARATOR", "Separator", "=");
+    separatorTP.fill(getDeviceName(), "SEPARATOR_KEYWORD", "Separator", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
     return true;
 }
 
@@ -264,20 +271,23 @@ bool WeatherWatcher::getProperties()
 
     return true;
 }
+
 // get properties from configuation
 void WeatherWatcher::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Weather::ISGetProperties(dev);
 
-    watchFileTP[0].fill("URL", "URL", nullptr);
-    watchFileTP.fill(getDeviceName(), "WATCH_SOURCE", "Source", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     defineProperty(watchFileTP);
-    loadConfig(true, "WATCH_SOURCE");
-
-    separatorTP[0].fill("SEPARATOR", "Separator", "=");
-    separatorTP.fill(getDeviceName(), "SEPARATOR_KEYWORD", "Separator", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     defineProperty(separatorTP);
-    loadConfig(true, "SEPARATOR_KEYWORD");
+
+    if (firstClient)
+    {
+        loadConfig(true, "WATCH_SOURCE");
+        loadConfig(true, "SEPARATOR_KEYWORD");
+    }
 }
 
 bool WeatherWatcher::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -421,7 +431,7 @@ bool WeatherWatcher::saveConfigItems(FILE *fp)
     criticalSP.save(fp);
     watchFileTP.save(fp);
     keywordTP.save(fp);
-    separatorTP.apply();
+    separatorTP.save(fp);
 
     return true;
 }

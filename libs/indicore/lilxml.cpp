@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -258,21 +259,29 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
                 XMLAtt *blenatt = findXMLAtt(lp->ce, "enclen");
                 if (blenatt)
                 {
-                    int blen;
-                    sscanf(valuXMLAtt(blenatt), "%d", &blen);
-
-                    // Add room for those '\n' on every 72 character line + extra half-full line.
-                    blen += (blen / 72) + 1;
-
-                    lp->ce->pcdata.s  = (char *)moremem(lp->ce->pcdata.s, blen);
-                    lp->ce->pcdata.sm = blen; // always set sm
-
-                    if (size <= blen - lp->ce->pcdata.sl)
+                    int blen = 0;
+                    // enclen is attacker-controlled and only a sizing hint: trust it to
+                    // preallocate the BLOB buffer only when it is a valid positive number
+                    // that does not overflow once we add the base64 newline slack, and never
+                    // let it shrink the buffer below what we have already buffered. Anything
+                    // else (missing/garbage/negative/too-small/too-large) falls through to the
+                    // safe, incremental parse path below, which grows the buffer as needed.
+                    if (sscanf(valuXMLAtt(blenatt), "%d", &blen) == 1 && blen > 0 &&
+                            blen <= INT_MAX - (blen / 72) - 1)
                     {
-                        memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
-                        lp->ce->pcdata.sl += size;
-                        lp->inblob = 1;
-                        return nodes;
+                        // Add room for those '\n' on every 72 character line + extra half-full line.
+                        blen += (blen / 72) + 1;
+
+                        if (blen > lp->ce->pcdata.sm && size <= blen - lp->ce->pcdata.sl)
+                        {
+                            lp->ce->pcdata.s  = (char *)moremem(lp->ce->pcdata.s, blen);
+                            lp->ce->pcdata.sm = blen;
+
+                            memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
+                            lp->ce->pcdata.sl += size;
+                            lp->inblob = 1;
+                            return nodes;
+                        }
                     }
                 }
 #endif

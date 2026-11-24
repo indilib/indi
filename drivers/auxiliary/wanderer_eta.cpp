@@ -42,7 +42,7 @@ static std::unique_ptr<WandererETA> wandererETA(new WandererETA());
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 WandererETA::WandererETA()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,6 +101,11 @@ bool WandererETA::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     serialConnection->registerHandshake([&]()
     {
+        // Every connection attempt (also a reconnect or an auto search on another port) must see a
+        // valid status line, not only the first one after the driver started. A reconnect also loads
+        // the saved positions again, which must not move the motors (same as on the first connect).
+        m_FirstRead = true;
+        m_Initializing = true;
         return getData();
     });
     registerConnection(serialConnection);

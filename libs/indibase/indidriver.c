@@ -453,9 +453,17 @@ int dispatch(XMLEle *root, char msg[])
                     }
                     // FIXME : here decode using shared buffer
                     int bloblen = pcdatalenXMLEle(ep);
-                    // enclen is optional and not required by INDI protocol
+                    // enclen is optional and not required by INDI protocol. It is
+                    // attacker-controlled, so only let it override the decode length when
+                    // it is a positive number no larger than the base64 payload actually
+                    // present; otherwise decode exactly what pcdata holds. This keeps the
+                    // malloc and the decoder bounded by the real buffer.
                     if (el)
-                        bloblen = atoi(valuXMLAtt(el));
+                    {
+                        int enclen = atoi(valuXMLAtt(el));
+                        if (enclen > 0 && enclen <= bloblen)
+                            bloblen = enclen;
+                    }
                     assert_mem(blobs[n] = (char*)malloc(3 * bloblen / 4));
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n]     = valuXMLAtt(na);

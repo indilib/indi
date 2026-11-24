@@ -51,7 +51,7 @@
 #define PMC8_DEFAULT_IP_ADDRESS "192.168.47.1"
 #define PMC8_TRACKING_AUTODETECT_INTERVAL 10
 #define PMC8_VERSION_MAJOR 0
-#define PMC8_VERSION_MINOR 5
+#define PMC8_VERSION_MINOR 6
 
 static std::unique_ptr<PMC8> scope(new PMC8());
 
@@ -397,9 +397,17 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 
 void PMC8::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only. Reloading it for every client that connects would
+    // send the saved settings to the mount again and revert any change made since.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Telescope::ISGetProperties(dev);
     defineProperty(&MountModelSP);
     defineProperty(&SerialCableTypeSP);
+
+    if (!firstClient)
+        return;
+
     loadConfig(true, SerialCableTypeSP.name);
 
     // set default connection parameters

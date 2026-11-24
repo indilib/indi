@@ -224,10 +224,13 @@ void FocusLynxBase::ISGetProperties(const char *dev)
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Focuser::ISGetProperties(dev);
 
     defineProperty(&ModelSP);
-    if (isSimulation())
+    if (firstClient && isSimulation())
         loadConfig(true, "Model");
 }
 

@@ -630,6 +630,15 @@ class DefaultDevice : public ParentDevice
          * @brief isInitializationComplete Check if driver initialization is complete.
          * @return True if driver is initialized. It is initialized after initProperties() is completed and
          *  after the first ISGetProperties() is executed.
+         * @note Every client that connects calls ISGetProperties(). To load settings from the config
+         *  for the first client only, read this before calling the parent's ISGetProperties(), which
+         *  completes the initialization:
+         * @code
+         * const bool firstClient = !isInitializationComplete();
+         * INDI::Telescope::ISGetProperties(dev);
+         * if (firstClient)
+         *     MyNP.load();
+         * @endcode
          */
         bool isInitializationComplete() const;
 
