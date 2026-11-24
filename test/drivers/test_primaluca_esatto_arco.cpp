@@ -910,7 +910,8 @@ TEST(EsattoTest, calibrationRunsUntilCalStatusStops)
 // Esatto Arco
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// The backlash stored in the focuser is read on connect, and the Arco firmware element has its proper name.
+// The backlash stored in the focuser is read on connect. The Arco firmware element keeps its published name: element
+// names are public API, so the old typo stays.
 TEST(EsattoArcoTest, connectReadsBacklashAndNamesFirmware)
 {
     FakePrimaLuce device;
@@ -926,7 +927,9 @@ TEST(EsattoArcoTest, connectReadsBacklashAndNamesFirmware)
     ASSERT_TRUE(connected);
     ASSERT_FALSE(backlash.empty());
     EXPECT_EQ(backlash.back(), 120) << "The backlash of the focuser was not read";
-    EXPECT_TRUE(contains(firmware, "ARCO_FIRMWARE_VERSION")) << "FOCUS_FIRMWARE has no element ARCO_FIRMWARE_VERSION";
+    EXPECT_TRUE(contains(firmware, "VERARCO_FIRMWARE_VERSIONSION"))
+            << "FOCUS_FIRMWARE no longer has its element VERARCO_FIRMWARE_VERSIONSION";
+    EXPECT_FALSE(contains(firmware, "ARCO_FIRMWARE_VERSION")) << "The Arco firmware element was renamed";
 }
 
 // Without 12 V the Arco cannot rotate reliably, and an Arco the driver had to enable needs a calibration: both are
