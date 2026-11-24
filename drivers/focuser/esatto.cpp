@@ -312,6 +312,10 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
+    // Nothing to send for a move to the current position
+    if (targetTicks == FocusAbsPosNP[0].getValue())
+        return IPS_OK;
+
     if (m_Esatto->goAbsolutePosition(targetTicks) == false)
         return IPS_ALERT;
 

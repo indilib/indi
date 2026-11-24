@@ -716,6 +716,10 @@ IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
+    // Nothing to send for a move to the current position
+    if (targetTicks == FocusAbsPosNP[0].getValue())
+        return IPS_OK;
+
     if (m_Esatto->goAbsolutePosition(targetTicks))
     {
         m_FocusMoveStart = FocusAbsPosNP[0].getValue();

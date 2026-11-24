@@ -15,7 +15,7 @@
     - The focuser calibration only starts at the sensor, blocks moves and a second start, and ends with CAL_STATUS.
       It is complete only if CAL_NUMOF rose; an abort ends it in Alert, and moves wait until the firmware reports
       CAL_STATUS "stop", also for a calibration started elsewhere. After an aborted or incomplete calibration moves
-      wait until a calibration has completed (CAL_NUMOF rose).
+      wait until a calibration has completed (CAL_NUMOF rose). A move to the current position sends nothing.
 
     The drivers talk to a fake device on a pseudo terminal. Requests and replies are JSON objects ({"req": ...} and
     {"res": ...}, replies end with CR LF). The replies have the shape the driver's parser expects, as in an earlier
@@ -850,6 +850,22 @@ void checkIncompleteCalibrationLocksMoves(Driver &driver, FakePrimaLuce &device)
     EXPECT_TRUE(writesTo(writes, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move was sent after an incomplete calibration";
 }
 
+// A move to the current position sends nothing to the focuser and ends Ok.
+template <class Driver>
+void checkMoveToCurrentPositionSendsNothing(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.moveTo(10000);
+    std::vector<json> writes = device.takeWrites();
+    std::vector<std::string> states = published.states("ABS_FOCUS_POSITION");
+
+    EXPECT_TRUE(writesTo(writes, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move to the current position was sent";
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Ok");
+}
+
 // A calibration the driver did not start (web interface, hand pad, or still running after an abort before a
 // reconnect) also refuses moves and a new start.
 template <class Driver>
@@ -1162,6 +1178,15 @@ TEST(EsattoTest, incompleteCalibrationLocksMoves)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkIncompleteCalibrationLocksMoves(driver, device);
+}
+
+TEST(EsattoTest, moveToCurrentPositionSendsNothing)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkMoveToCurrentPositionSendsNothing(driver, device);
 }
 
 TEST(EsattoTest, outerSensorIsRefused)
@@ -1690,6 +1715,15 @@ TEST(EsattoArcoTest, incompleteCalibrationLocksMoves)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkIncompleteCalibrationLocksMoves(*arco, device);
+}
+
+TEST(EsattoArcoTest, moveToCurrentPositionSendsNothing)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkMoveToCurrentPositionSendsNothing(*arco, device);
 }
 
 TEST(EsattoArcoTest, outerSensorIsRefused)
