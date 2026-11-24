@@ -80,6 +80,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         void updateSpeed();
         bool isFocusMoveFinished();
         bool isCalibrationCompleted();
+        bool isZeroPositionValid();
         bool isRotatorMoveFinished();
 
         uint16_t m_TemperatureCounter { 0 };
@@ -91,6 +92,8 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         // CAL_NUMOF at the start of a focuser calibration, to tell a completed one from an aborted one
         uint32_t m_CalibrationCount { 0 };
         bool m_CalibrationCountKnown { false };
+        // After an aborted or incomplete calibration the position is off: moves wait for a completed one
+        bool m_ZeroInvalid { false };
 
         // The Arco can report a stop short of the target and correct the rest a moment later.
         // The target is an angle (ABS_ROTATOR_ANGLE) or, for a move in steps (ABS_ROTATOR_POSITION), a step count.

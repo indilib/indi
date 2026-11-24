@@ -305,6 +305,13 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
+    // A move after an aborted calibration ran 60 s against the inner end of an ESATTO 2", its position counting up
+    if (!isZeroPositionValid())
+    {
+        LOG_ERROR("The position is not valid after an incomplete calibration. Calibrate the focuser before moving it.");
+        return IPS_ALERT;
+    }
+
     if (m_Esatto->goAbsolutePosition(targetTicks) == false)
         return IPS_ALERT;
 
@@ -337,6 +344,7 @@ bool Esatto::AbortFocuser()
     // count the travel of the aborted calibration: the zero position is off afterwards.
     if (CalibrationSP.getState() == IPS_BUSY)
     {
+        m_ZeroInvalid = true;
         CalibrationSP.setState(IPS_ALERT);
         CalibrationSP.apply();
         LOG_WARN("Focuser calibration aborted. Its zero position is no longer valid: calibrate again before moving.");
@@ -378,11 +386,13 @@ void Esatto::TimerHit()
             {
                 if (isCalibrationCompleted())
                 {
+                    m_ZeroInvalid = false;
                     CalibrationSP.setState(IPS_OK);
                     LOG_INFO("Focuser calibration complete.");
                 }
                 else
                 {
+                    m_ZeroInvalid = true;
                     CalibrationSP.setState(IPS_ALERT);
                     LOG_ERROR("The focuser calibration did not complete. Its zero position may be off: calibrate again.");
                 }
@@ -424,6 +434,24 @@ void Esatto::TimerHit()
     }
 
     SetTimer(getCurrentPollingPeriod());
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::isZeroPositionValid()
+{
+    if (!m_ZeroInvalid)
+        return true;
+
+    // A calibration completed since, also one started from the web interface or the hand pad
+    uint32_t count = 0;
+    if (m_CalibrationCountKnown && m_Esatto->getCalibrationCount(count) && count > m_CalibrationCount)
+    {
+        m_ZeroInvalid = false;
+        LOG_INFO("The focuser was calibrated, moves are possible again.");
+    }
+    return !m_ZeroInvalid;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -14,7 +14,8 @@
     - Esatto Arco: the final position of a move, a rotator stop short of the target, the end of the Arco calibration.
     - The focuser calibration only starts at the sensor, blocks moves and a second start, and ends with CAL_STATUS.
       It is complete only if CAL_NUMOF rose; an abort ends it in Alert, and moves wait until the firmware reports
-      CAL_STATUS "stop", also for a calibration started elsewhere.
+      CAL_STATUS "stop", also for a calibration started elsewhere. After an aborted or incomplete calibration moves
+      wait until a calibration has completed (CAL_NUMOF rose).
 
     The drivers talk to a fake device on a pseudo terminal. Requests and replies are JSON objects ({"req": ...} and
     {"res": ...}, replies end with CR LF). The replies have the shape the driver's parser expects, as in an earlier
@@ -742,8 +743,9 @@ void checkCalibrationWithoutCountIsAlert(Driver &driver, FakePrimaLuce &device)
 }
 
 // An abort sends MOT_STOP, which stops the motor, but the firmware keeps CAL_STATUS on the phase for about a minute.
-// The calibration ends in Alert with a warning about the zero position, and moves are refused until CAL_STATUS is
-// "stop": a move into a running calibration shifted the zero position.
+// The calibration ends in Alert with a warning about the zero position. Moves are refused while CAL_STATUS names the
+// phase (a move into a running calibration shifted the zero position) and also after "stop" (on an ESATTO 2" a move
+// after an aborted calibration ran 60 s against the inner end), until a calibration has completed.
 template <class Driver>
 void checkAbortDuringCalibration(Driver &driver, FakePrimaLuce &device)
 {
@@ -761,9 +763,21 @@ void checkAbortDuringCalibration(Driver &driver, FakePrimaLuce &device)
     std::vector<std::string> states = published.states("FOCUS_CALIBRATION");
     std::vector<std::string> messages = published.messages();
 
+    Published afterStopPublished;
     device.set("MOT1", "CAL_STATUS", "stop");
     driver.moveTo(30000);
     std::vector<json> afterStop = device.takeWrites();
+    std::vector<std::string> afterStopMessages = afterStopPublished.messages();
+
+    // A completed calibration (CAL_NUMOF rose) makes the position valid again
+    driver.startCalibration();
+    driver.poll();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    device.set("MOT1", "CAL_NUMOF", 18);
+    pollPastStartGrace(driver);
+    device.takeWrites();
+    driver.moveTo(30000);
+    std::vector<json> afterCalibration = device.takeWrites();
 
     EXPECT_EQ(writesTo(aborted, "cmd", "MOT1", "MOT_STOP").size(), 1u) << "The motor was not stopped";
     ASSERT_FALSE(states.empty());
@@ -772,7 +786,11 @@ void checkAbortDuringCalibration(Driver &driver, FakePrimaLuce &device)
     EXPECT_TRUE(writesTo(whileStillRunning, "cmd", "MOT1", "MOVE_ABS").empty())
             << "A move was sent while the firmware still reported the calibration";
     EXPECT_TRUE(anyContains(messages, "reports a running calibration"));
-    EXPECT_EQ(writesTo(afterStop, "cmd", "MOT1", "MOVE_ABS").size(), 1u) << "The move was refused after CAL_STATUS \"stop\"";
+    EXPECT_TRUE(writesTo(afterStop, "cmd", "MOT1", "MOVE_ABS").empty())
+            << "A move was sent after an aborted calibration, before a new one completed";
+    EXPECT_TRUE(anyContains(afterStopMessages, "position is not valid"));
+    EXPECT_EQ(writesTo(afterCalibration, "cmd", "MOT1", "MOVE_ABS").size(), 1u)
+            << "The move was refused after a completed calibration";
 }
 
 // A sensor that is active in the outer half (assumed: a model with its sensor at the outer end) is not calibrated:
@@ -792,6 +810,44 @@ void checkOuterSensorIsRefused(Driver &driver, FakePrimaLuce &device)
     ASSERT_FALSE(states.empty());
     EXPECT_EQ(states.back(), "Alert");
     EXPECT_TRUE(anyContains(messages, "not fully in"));
+}
+
+// After an aborted calibration a calibration completed elsewhere (web interface, hand pad: CAL_NUMOF rose) also makes
+// moves possible again.
+template <class Driver>
+void checkCalibrationElsewhereEndsTheLock(Driver &driver, FakePrimaLuce &device)
+{
+    driver.startCalibration();
+    driver.poll();
+    driver.abort();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    device.takeWrites();
+    driver.moveTo(30000);
+    std::vector<json> locked = device.takeWrites();
+
+    device.set("MOT1", "CAL_NUMOF", 18);
+    driver.moveTo(30000);
+    std::vector<json> unlocked = device.takeWrites();
+
+    EXPECT_TRUE(writesTo(locked, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move was sent after the abort";
+    EXPECT_EQ(writesTo(unlocked, "cmd", "MOT1", "MOVE_ABS").size(), 1u)
+            << "A calibration completed elsewhere did not end the lock";
+}
+
+// A calibration that returned to "stop" without a higher CAL_NUMOF also leaves the position invalid: moves are refused.
+template <class Driver>
+void checkIncompleteCalibrationLocksMoves(Driver &driver, FakePrimaLuce &device)
+{
+    driver.startCalibration();
+    driver.poll();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    pollPastStartGrace(driver);
+    device.takeWrites();
+    driver.moveTo(30000);
+    std::vector<json> writes = device.takeWrites();
+
+    EXPECT_EQ(driver.switchState("FOCUS_CALIBRATION"), IPS_ALERT);
+    EXPECT_TRUE(writesTo(writes, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move was sent after an incomplete calibration";
 }
 
 // A calibration the driver did not start (web interface, hand pad, or still running after an abort before a
@@ -1086,6 +1142,26 @@ TEST(EsattoTest, abortDuringCalibration)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkAbortDuringCalibration(driver, device);
+}
+
+TEST(EsattoTest, calibrationElsewhereEndsTheLock)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkCalibrationElsewhereEndsTheLock(driver, device);
+}
+
+TEST(EsattoTest, incompleteCalibrationLocksMoves)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkIncompleteCalibrationLocksMoves(driver, device);
 }
 
 TEST(EsattoTest, outerSensorIsRefused)
@@ -1594,6 +1670,26 @@ TEST(EsattoArcoTest, abortDuringFocusCalibration)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkAbortDuringCalibration(*arco, device);
+}
+
+TEST(EsattoArcoTest, calibrationElsewhereEndsTheLock)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkCalibrationElsewhereEndsTheLock(*arco, device);
+}
+
+TEST(EsattoArcoTest, incompleteCalibrationLocksMoves)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkIncompleteCalibrationLocksMoves(*arco, device);
 }
 
 TEST(EsattoArcoTest, outerSensorIsRefused)
