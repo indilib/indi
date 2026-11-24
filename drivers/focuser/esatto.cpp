@@ -142,6 +142,14 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
     {
         CalibrationSP.reset();
 
+        if (!isConnected())
+        {
+            LOG_ERROR("Connect the focuser before calibrating it.");
+            CalibrationSP.setState(IPS_ALERT);
+            CalibrationSP.apply();
+            return true;
+        }
+
         // Starting it again while it runs leaves the zero position off
         if (CalibrationSP.getState() == IPS_BUSY)
         {

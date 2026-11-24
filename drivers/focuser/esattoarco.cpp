@@ -521,6 +521,14 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
         {
             FocusCalibrationSP.reset();
 
+            if (!isConnected())
+            {
+                LOG_ERROR("Connect the focuser before calibrating it.");
+                FocusCalibrationSP.setState(IPS_ALERT);
+                FocusCalibrationSP.apply();
+                return true;
+            }
+
             // Starting it again while it runs leaves the zero position off
             if (FocusCalibrationSP.getState() == IPS_BUSY)
             {

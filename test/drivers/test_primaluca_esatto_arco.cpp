@@ -855,6 +855,19 @@ TEST(EsattoTest, calibrationNeedsTheSensor)
     EXPECT_FALSE(contains(states, "Ok"));
 }
 
+// A calibration request before the first connection has no focuser to talk to: it is refused instead of crashing.
+TEST(EsattoTest, calibrationBeforeConnectIsRefused)
+{
+    EsattoUnderTest driver(ESATTO_NAME);
+
+    Published published;
+    const bool handled = driver.startCalibration();
+    std::vector<std::string> messages = published.messages();
+
+    EXPECT_TRUE(handled);
+    EXPECT_TRUE(anyContains(messages, "Connect the focuser")) << "No error about the missing connection";
+}
+
 // At the sensor the calibration starts with CAL_STATUS. While it runs the positions stay put and the Esatto reports
 // the name of the phase in CAL_STATUS: a move and a second start are refused (a move shifted the zero position), and
 // the calibration only ends once CAL_STATUS is "stop" again, also after the 2 s the driver allows a move to start.
@@ -1287,6 +1300,20 @@ TEST(EsattoArcoTest, focusCalibrationNeedsTheSensor)
 
     EXPECT_TRUE(calibrations.empty()) << "The calibration was started away from the sensor";
     EXPECT_FALSE(contains(states, "Ok"));
+}
+
+// A focuser calibration request before the first connection is refused instead of crashing.
+TEST(EsattoArcoTest, focusCalibrationBeforeConnectIsRefused)
+{
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ArcoUnderTest &driver = *arco;
+
+    Published published;
+    const bool handled = driver.startCalibration();
+    std::vector<std::string> messages = published.messages();
+
+    EXPECT_TRUE(handled);
+    EXPECT_TRUE(anyContains(messages, "Connect the focuser")) << "No error about the missing connection";
 }
 
 // At the sensor it starts with CAL_STATUS, and a move during the calibration is refused.
