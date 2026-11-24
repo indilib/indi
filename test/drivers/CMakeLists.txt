@@ -199,6 +199,18 @@ TARGET_LINK_LIBRARIES(test_pegasus_upb
 )
 ADD_TEST(test_pegasus_upb test_pegasus_upb)
 
+ADD_EXECUTABLE(test_alpaca_telescope
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/indi_alpaca_telescope.cpp"
+    test_alpaca_telescope.cpp
+)
+TARGET_LINK_LIBRARIES(test_alpaca_telescope
+    indidriver
+    ${HTTPLIB_LIBRARY}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_alpaca_telescope test_alpaca_telescope)
+
 # The EFA test emulates the RTS/CTS lines on a pseudo terminal through Linux ioctl calls.
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_planewave_efa
