@@ -56,7 +56,7 @@ static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
 CelestronGPS::CelestronGPS() : GI(this), FI(this)
 {
-    setVersion(3, 6); // update libindi/drivers.xml as well
+    setVersion(3, 7); // update libindi/drivers.xml as well
 
 
     fwInfo.Version           = "Invalid";

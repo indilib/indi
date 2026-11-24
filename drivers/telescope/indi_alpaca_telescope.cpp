@@ -36,7 +36,7 @@ alpacaTelescopeDriver::alpacaTelescopeDriver()
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
-    setVersion(1, 0);
+    setVersion(1, 1);
     SetTelescopeCapability(
         TELESCOPE_CAN_GOTO |
         TELESCOPE_CAN_SYNC |
@@ -188,16 +188,16 @@ bool alpacaTelescopeDriver::Handshake()
     DeviceInfoTP.apply();
 
     // Query alignment mode to determine mount behavior
-    // 0 = algPolar (equatorial), 1 = algAltAz, 2 = algGermanPolar
+    // ASCOM AlignmentModes: 0 = algAltAz, 1 = algPolar (equatorial other than German), 2 = algGermanPolar
     if (sendAlpacaGET("/alignmentmode", response) && response.contains("Value"))
     {
         int alignmentMode = response["Value"].get<int>();
-        if (alignmentMode == 1)
+        if (alignmentMode == 0)
         {
             LOG_INFO("Telescope alignment mode: Alt-Az (no meridian flips)");
             setMountType(MOUNT_ALTAZ);
         }
-        else if (alignmentMode == 0)
+        else if (alignmentMode == 1)
         {
             LOG_INFO("Telescope alignment mode: Equatorial (Fork mount - no meridian flips)");
             setMountType(MOUNT_EQ_FORK);
@@ -340,7 +340,12 @@ bool alpacaTelescopeDriver::Handshake()
     TrackModeSP.resize(0);
     if (sendAlpacaGET("/trackingrates", response) && response.contains("Value") && response["Value"].is_array())
     {
-        static const struct { int rate; const char *name; const char *label; } alpacaRates[] =
+        static const struct
+        {
+            int rate;
+            const char *name;
+            const char *label;
+        } alpacaRates[] =
         {
             {0, "TRACK_SIDEREAL", "Sidereal"},
             {1, "TRACK_LUNAR", "Lunar"},

@@ -130,3 +130,13 @@ TARGET_LINK_LIBRARIES(test_indidriver_blob
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_indidriver_blob test_indidriver_blob)
+
+ADD_EXECUTABLE(test_indicom_sexagesimal
+    test_indicom_sexagesimal.cpp
+)
+TARGET_LINK_LIBRARIES(test_indicom_sexagesimal
+    indiclient
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_indicom_sexagesimal test_indicom_sexagesimal)

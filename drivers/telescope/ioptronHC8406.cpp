@@ -110,7 +110,7 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 
 ioptronHC8406::ioptronHC8406()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
                            TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION |

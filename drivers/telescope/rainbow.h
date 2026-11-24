@@ -71,6 +71,9 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         bool getDE();
         bool setRA(double ra);
         bool setDE(double de);
+        // Target azimuth and altitude
+        bool setAZ(double azimuth);
+        bool setAL(double altitude);
         // Slew to RA/DE
         bool slewToEquatorialCoords(double ra, double de);
 
@@ -148,8 +151,6 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         // Horizontal Coordinates functions.
         bool getAZ();
         bool getAL();
-        bool setAZ(double azimuth);
-        bool setAL(double altitude);
         bool slewToHorizontalCoords(double azimuth, double altitude);
 
         // Set and get slew speeds

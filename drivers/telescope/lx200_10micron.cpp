@@ -91,7 +91,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 7); // don't forget to update drivers.xml
+    setVersion(1, 8); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties

@@ -1023,7 +1023,12 @@ bool setDegreesMinutes(const int fd, const char *partialCmd, const double value)
     int degrees, minutes, seconds;
     getSexComponents(value, &degrees, &minutes, &seconds);
     char full_cmd[32];
-    snprintf(full_cmd, sizeof(full_cmd), "#:%s %03d:%02d#", partialCmd, degrees, minutes);
+    // Take the sign from the value, degrees is 0 for values between -1 and 0. Negative values keep the form
+    // %03d gives them: a minus sign and two digits.
+    if (value < 0)
+        snprintf(full_cmd, sizeof(full_cmd), "#:%s -%02d:%02d#", partialCmd, std::abs(degrees), minutes);
+    else
+        snprintf(full_cmd, sizeof(full_cmd), "#:%s %03d:%02d#", partialCmd, degrees, minutes);
     char response;
     return (PulsarTX::confirmed(fd, full_cmd, response) && response == '1');
 }
@@ -1277,7 +1282,7 @@ bool isParking(const int fd)
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 LX200Pulsar2::LX200Pulsar2() : LX200Generic(), just_started_slewing(false)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
     //setLX200Capability(0);
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 

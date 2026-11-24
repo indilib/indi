@@ -159,7 +159,7 @@ LX200_Proxisky::LX200_Proxisky() : LX200_OnStep()
 {
     // Everything else - LX200 capabilities, telescope capabilities, focuser/rotator/weather
     // interfaces - is inherited unchanged from LX200_OnStep.
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 // Deliberately no saveConfigItems() override. Every property here mirrors state held in the

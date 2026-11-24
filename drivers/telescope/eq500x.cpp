@@ -101,7 +101,7 @@ const adjustments[] =
 ***************************************************************************************/
 EQ500X::EQ500X(): LX200Generic()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Sanitize constants: epsilon of a slew rate must be smaller than distance of its smaller sibling
     for (size_t i = 0; i < sizeof(adjustments) / sizeof(adjustments[0]) - 1; i++)
@@ -1105,7 +1105,8 @@ char const * EQ500X::MechanicalPoint::toStringDEC_Sim(char *buf, size_t buf_leng
 
     char const low_digit = '0' + (std::abs(degrees) % 10);
 
-    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0 <= degrees) ? '+' : '-', high_digit, low_digit,
+    // Take the sign from the position, degrees is 0 between -1 and 0 degrees
+    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0 <= _DECm) ? '+' : '-', high_digit, low_digit,
                                  minutes, seconds);
 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
@@ -1122,7 +1123,9 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     if (degrees < -255 || +255 < degrees)
         return (char const * )0;
 
-    int const written = snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
+    // Take the sign from the position, degrees is 0 between -1 and 0 degrees
+    int const written = snprintf(buf, buf_length, "%c%02d:%02d:%02d", (0 <= _DECm) ? '+' : '-', std::abs(degrees), minutes,
+                                 seconds);
 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }

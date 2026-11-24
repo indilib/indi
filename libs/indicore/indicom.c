@@ -273,6 +273,36 @@ void getSexComponentsIID(double value, int *d, int *m, double *s)
         *d *= -1;
 }
 
+void getSexComponentsIIDRounded(double value, int *d, int *m, double *s, int decimals)
+{
+    double scale;
+
+    if (decimals < 0)
+        decimals = 0;
+    else if (decimals > 6)
+        decimals = 6;
+    scale = pow(10.0, decimals);
+
+    *d = (int32_t)fabs(value);
+    *m = (int32_t)((fabs(value) - *d) * 60.0);
+    *s = rint(((fabs(value) - *d) * 60.0 - *m) * 60.0 * scale) / scale;
+
+    // The seconds may round up to 60, carry them as getSexComponents() does
+    if (*s >= 60.0)
+    {
+        *s  = 0;
+        *m += 1;
+    }
+    if (*m >= 60)
+    {
+        *m  = 0;
+        *d += 1;
+    }
+
+    if (value < 0)
+        *d *= -1;
+}
+
 /* fill buf with properly formatted INumber string. return length */
 int numberFormat(char *buf, const char *format, double value)
 {

@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indicom.h"
 #include "indilogger.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <unistd.h>
 
@@ -954,16 +955,20 @@ int setObjectRA(int fd, double ra, bool addSpace)
         case LX200_EQ_SHORT_FORMAT:
             int frac_m;
             getSexComponents(ra, &h, &m, &s);
+            // The rounding of the seconds may carry up to 24 hours, which is 0 hours
+            h %= 24;
             frac_m = (s / 60.0) * 10.;
             snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d.%01d#", cmd, h, m, frac_m);
             break;
         case LX200_EQ_LONG_FORMAT:
             getSexComponents(ra, &h, &m, &s);
+            h %= 24;
             snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d:%02d#", cmd, h, m, s);
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
-            getSexComponentsIID(ra, &h, &m, &d_s);
+            getSexComponentsIIDRounded(ra, &h, &m, &d_s, 2);
+            h %= 24;
             snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d:%05.02f#", cmd, h, m, d_s);
             break;
         default:
@@ -1031,7 +1036,7 @@ int setObjectDEC(int fd, double dec, bool addSpace)
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
-            getSexComponentsIID(dec, &d, &m, &d_s);
+            getSexComponentsIIDRounded(dec, &d, &m, &d_s, 1);
             /* case with negative zero */
             if (!d && dec < 0)
                 snprintf(read_buffer, sizeof(read_buffer), ":%s-%02d*%02d:%04.1f#", cmd, d, m, d_s);
@@ -1176,6 +1181,17 @@ int setUTCOffset(int fd, double hours)
     return (setStandardProcedure(fd, read_buffer));
 }
 
+// Degrees of an LX200 longitude as setSiteLongitude() sends them: three digits for a West longitude, a minus
+// sign and at least two digits for an East one. The sign is taken from the longitude, since getSexComponents()
+// gives 0 degrees for longitudes between -1 and 0.
+static void formatLongitudeDegrees(char *buffer, size_t size, double LX200Longitude, int d)
+{
+    if (LX200Longitude < 0)
+        snprintf(buffer, size, "-%02d", std::abs(d));
+    else
+        snprintf(buffer, size, "%03d", d);
+}
+
 // Meade classic handset defines longitude as 0 to 360 WESTWARD. However,
 // Meade API expresses East Longitudes as negative, West Longitudes as positive.
 // Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
@@ -1185,6 +1201,7 @@ int setSiteLongitude(int fd, double CartographicLongitude, bool addSpace)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
+    char degrees[8] = {0};
     char read_buffer[RB_MAX_LEN] = {0};
     double LX200Longitude = -1.0 * CartographicLongitude;
 
@@ -1210,16 +1227,20 @@ int setSiteLongitude(int fd, double CartographicLongitude, bool addSpace)
     {
         case LX200_GEO_SHORT_FORMAT: // d m
             getSexComponents(LX200Longitude, &d, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %03d*%02d#" : ":Sg%03d*%02d#", d, m);
+            formatLongitudeDegrees(degrees, sizeof(degrees), LX200Longitude, d);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %s*%02d#" : ":Sg%s*%02d#", degrees, m);
             break;
         case LX200_GEO_LONG_FORMAT: // d m s
             getSexComponents(LX200Longitude, &d, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %03d*%02d:%02d#" : ":Sg%03d*%02d:%02d#", d, m, s);
+            formatLongitudeDegrees(degrees, sizeof(degrees), LX200Longitude, d);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %s*%02d:%02d#" : ":Sg%s*%02d:%02d#", degrees, m, s);
             break;
         case LX200_GEO_LONGER_FORMAT: // d m s.f with f being tenths
             double s_f;
-            getSexComponentsIID(LX200Longitude, &d, &m, &s_f);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %03d*%02d:%04.01lf#" : ":Sg%03d*%02d:%04.01lf#", d, m, s_f);
+            getSexComponentsIIDRounded(LX200Longitude, &d, &m, &s_f, 1);
+            formatLongitudeDegrees(degrees, sizeof(degrees), LX200Longitude, d);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":Sg %s*%02d:%04.01lf#" : ":Sg%s*%02d:%04.01lf#", degrees, m,
+                     s_f);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown geographic format <%d>", geo_format);
@@ -1257,16 +1278,20 @@ int setSiteLatitude(int fd, double Lat, bool addSpace)
     {
         case LX200_GEO_SHORT_FORMAT: // d m
             getSexComponents(Lat, &d, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %+03d*%02d#" : ":St%+03d*%02d#", d, m);
+            // Take the sign from Lat, d is 0 for latitudes between -1 and 0 degrees
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d#" : ":St%c%02d*%02d#",
+                     Lat < 0 ? '-' : '+', std::abs(d), m);
             break;
         case LX200_GEO_LONG_FORMAT: // d m s
             getSexComponents(Lat, &d, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %+03d*%02d:%02d#" : ":St%+03d*%02d:%02d#", d, m, s);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d:%02d#" : ":St%c%02d*%02d:%02d#",
+                     Lat < 0 ? '-' : '+', std::abs(d), m, s);
             break;
         case LX200_GEO_LONGER_FORMAT: // d m s.f with f being tenths
             double s_f;
-            getSexComponentsIID(Lat, &d, &m, &s_f);
-            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %+03d*%02d:%04.01lf#" : ":St%+03d*%02d:%04.01lf#", d, m, s_f);
+            getSexComponentsIIDRounded(Lat, &d, &m, &s_f, 1);
+            snprintf(read_buffer, sizeof(read_buffer), addSpace ? ":St %c%02d*%02d:%04.01lf#" : ":St%c%02d*%02d:%04.01lf#",
+                     Lat < 0 ? '-' : '+', std::abs(d), m, s_f);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown geographic format <%d>", geo_format);
@@ -1315,7 +1340,8 @@ int setObjAlt(int fd, double alt)
     // Returns:
     // 1 Object within slew range
     // 0 Object out of slew range
-    snprintf(read_buffer, sizeof(read_buffer), ":Sa%+02d*%02d#", d, m);
+    // Take the sign from alt, d is 0 for altitudes between -1 and 0 degrees
+    snprintf(read_buffer, sizeof(read_buffer), ":Sa%c%d*%02d#", alt < 0 ? '-' : '+', std::abs(d), m);
 
     return (setStandardProcedure(fd, read_buffer));
 }

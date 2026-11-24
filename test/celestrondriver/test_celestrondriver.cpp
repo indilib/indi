@@ -201,6 +201,27 @@ TEST(CelestronDriverTest, setLocation)
     EXPECT_TRUE(driver.set_location(-3.7003, 40.4167));
 }
 
+TEST(CelestronDriverTest, setLocationNearTheEquator)
+{
+    MockCelestronDriver driver;
+    driver.set_response("#");
+
+    // 0.5 degrees North: byte 5 is 0 for North and 1 for South
+    uint8_t north[] = {'W', 0, 30, 0, 0, 10, 0, 0, 0};
+    EXPECT_CALL(driver, serial_write(MemEq(north, 9), 9, _));
+    EXPECT_TRUE(driver.set_location(10.0, 0.5));
+    ::testing::Mock::VerifyAndClearExpectations(&driver);
+
+    uint8_t south[] = {'W', 0, 30, 0, 1, 3, 42, 1, 1};
+    EXPECT_CALL(driver, serial_write(MemEq(south, 9), 9, _));
+    EXPECT_TRUE(driver.set_location(-3.7003, -0.5));
+    ::testing::Mock::VerifyAndClearExpectations(&driver);
+
+    uint8_t northern[] = {'W', 45, 30, 0, 0, 10, 0, 0, 0};
+    EXPECT_CALL(driver, serial_write(MemEq(northern, 9), 9, _));
+    EXPECT_TRUE(driver.set_location(10.0, 45.5));
+}
+
 TEST(CelestronDriverTest, hibernate)
 {
     MockCelestronDriver driver;
