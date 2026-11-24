@@ -419,6 +419,19 @@ bool EsattoArco::isRotatorMoveFinished()
         m_RotatorStopTimer.start();
     }
 
+    if (m_RotatorTargetInSteps)
+    {
+        const double error = std::abs(RotatorAbsPosNP[0].getValue() - m_RotatorTarget);
+        if (error <= ROTATOR_TARGET_TOLERANCE_STEPS)
+            return true;
+
+        if (m_RotatorStopTimer.elapsed() < ROTATOR_SETTLE_MS)
+            return false;
+
+        LOGF_WARN("Arco stopped %.f steps from the target position %.f.", error, m_RotatorTarget);
+        return true;
+    }
+
     const double error = std::abs(range180(GotoRotatorNP[0].getValue() - m_RotatorTarget));
     if (error <= ROTATOR_TARGET_TOLERANCE)
         return true;
@@ -610,6 +623,9 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
         {
             m_RotatorMoveStart = RotatorAbsPosNP[0].getValue();
             m_RotatorMoveTimer.start();
+            m_RotatorTarget = values[0];
+            m_RotatorTargetInSteps = true;
+            m_RotatorStopped = false;
             RotatorAbsPosNP.setState(IPS_BUSY);
         }
         else
@@ -939,6 +955,7 @@ IPState EsattoArco::MoveRotator(double angle)
         m_RotatorMoveStart = RotatorAbsPosNP[0].getValue();
         m_RotatorMoveTimer.start();
         m_RotatorTarget = range360(angle);
+        m_RotatorTargetInSteps = false;
         m_RotatorStopped = false;
         return IPS_BUSY;
     }

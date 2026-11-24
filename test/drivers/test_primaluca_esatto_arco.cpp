@@ -1241,6 +1241,37 @@ TEST(EsattoArcoTest, rotatorStopShortOfTargetStaysBusy)
     EXPECT_DOUBLE_EQ(angles.back(), 90.0);
 }
 
+// A move in steps (ABS_ROTATOR_POSITION) ends when the Arco stops at the target steps. It used to compare the angle
+// with the target of the last angle move, so it only ended after the 3 s settle time, with a warning.
+TEST(EsattoArcoTest, rotatorStepMoveEndsAtTarget)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ArcoUnderTest &driver = *arco;
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    device.takeWrites();
+
+    Published published;
+    driver.sendNumber("ABS_ROTATOR_POSITION", "ROTATOR_ABSOLUTE_POSITION", 50000);
+    std::vector<json> moves = writesTo(device.takeWrites(), "cmd", "MOT2", "MOVE_ABS");
+    device.set("MOT2", "POSITION_STEP", 25000);
+    device.set("MOT2", "POSITION_DEG", 6.94444);
+    device.set("MOT2", "STATUS", FakePrimaLuce::moving());
+    driver.poll();
+    device.set("MOT2", "POSITION_STEP", 50000);
+    device.set("MOT2", "POSITION_DEG", 13.88889);
+    device.set("MOT2", "STATUS", FakePrimaLuce::stopped());
+    driver.poll();
+    std::vector<std::string> states = published.states("ABS_ROTATOR_POSITION");
+    std::vector<std::string> messages = published.messages();
+
+    ASSERT_EQ(moves.size(), 1u) << "The move in steps was not sent";
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Ok") << "The move in steps did not end at its target";
+    EXPECT_FALSE(anyContains(messages, "Arco stopped")) << "A move that reached its target was reported as short";
+}
+
 // The Arco reports position 0 during its whole calibration, so waiting for a position change kept it busy forever.
 // The end comes from CAL_STATUS ("exec" until "stop"), then the driver syncs the Arco to 0.
 TEST(EsattoArcoTest, arcoCalibrationEndsWithCalStatus)

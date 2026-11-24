@@ -88,11 +88,15 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         // BUSY can lag behind the command, a motor that has not moved yet may still start
         static constexpr int MOVE_START_GRACE_MS {2000};
 
-        // The Arco can report a stop short of the target and correct the rest a moment later
+        // The Arco can report a stop short of the target and correct the rest a moment later.
+        // The target is an angle (ABS_ROTATOR_ANGLE) or, for a move in steps (ABS_ROTATOR_POSITION), a step count.
         double m_RotatorTarget { 0 };
+        bool m_RotatorTargetInSteps { false };
         bool m_RotatorStopped { false };
         INDI::ElapsedTimer m_RotatorStopTimer;
         static constexpr double ROTATOR_TARGET_TOLERANCE {0.01};
+        // 0.01 degrees, the Arco has 1 arcsecond per step (ARCO user manual)
+        static constexpr double ROTATOR_TARGET_TOLERANCE_STEPS {36};
         static constexpr int ROTATOR_SETTLE_MS {3000};
 
         INDI::PropertyNumber TemperatureNP {2};
