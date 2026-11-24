@@ -123,7 +123,8 @@ ADD_EXECUTABLE(test_mount_coordinates
     ${MOUNT_COORDINATES_SOURCES}
     test_mount_coordinates.cpp
 )
-IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
+# Like indi_rainbow_telescope, but not on FreeBSD and macOS, where _XOPEN_SOURCE hides cfmakeraw() and mkdtemp()
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
     TARGET_COMPILE_DEFINITIONS(test_mount_coordinates PRIVATE _XOPEN_SOURCE=700)
 ENDIF()
 TARGET_LINK_LIBRARIES(test_mount_coordinates
