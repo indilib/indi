@@ -29,7 +29,7 @@
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
-    setVersion(2, 3);
+    setVersion(2, 4);
 
     SetTelescopeCapability(
         TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_ABORT, 4);

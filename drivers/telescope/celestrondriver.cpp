@@ -808,7 +808,7 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     cmd[1] = static_cast<char>(abs(lat_d));
     cmd[2] = static_cast<char>(lat_m);
     cmd[3] = static_cast<char>(lat_s);
-    cmd[4] = lat_d > 0 ? 0 : 1;
+    cmd[4] = latitude > 0 ? 0 : 1;   // lat_d is 0 for latitudes between 0 and 1 degree North
     cmd[5] = static_cast<char>(abs(
                                    long_d));       // not sure how the conversion from int to char will work for longtitudes > 127
     cmd[6] = static_cast<char>(long_m);

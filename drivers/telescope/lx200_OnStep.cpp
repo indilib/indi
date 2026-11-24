@@ -52,7 +52,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 32);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 33);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -3849,7 +3849,7 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
     double s;
     char read_buffer[32];
 
-    getSexComponentsIID(Long, &d, &m, &s);
+    getSexComponentsIIDRounded(Long, &d, &m, &s, 2);
     if (OSHighPrecision)
     {
         snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m, s);
@@ -3874,11 +3874,13 @@ int LX200_OnStep::setSiteLatitude(int fd, double Long)
     double s;
     char read_buffer[32];
 
-    getSexComponentsIID(Long, &d, &m, &s);
+    getSexComponentsIIDRounded(Long, &d, &m, &s, 2);
+    // Take the sign from the latitude, d is 0 for latitudes between -1 and 0 degrees
+    const char sign = Long < 0 ? '-' : '+';
 
     if(OSHighPrecision)
     {
-        snprintf(read_buffer, sizeof(read_buffer), ":St%+.02d:%02d:%.02f#", d, m, s);
+        snprintf(read_buffer, sizeof(read_buffer), ":St%c%02d:%02d:%.02f#", sign, std::abs(d), m, s);
         int result1 = setStandardProcedure(fd, read_buffer);
         if (result1 == 0)
         {
@@ -3886,11 +3888,11 @@ int LX200_OnStep::setSiteLatitude(int fd, double Long)
         }
         else
         {
-            snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
+            snprintf(read_buffer, sizeof(read_buffer), ":St%c%02d:%02d#", sign, std::abs(d), m);
             return (setStandardProcedure(fd, read_buffer));
         }
     }
-    snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
+    snprintf(read_buffer, sizeof(read_buffer), ":St%c%02d:%02d#", sign, std::abs(d), m);
     return (setStandardProcedure(fd, read_buffer));
 }
 

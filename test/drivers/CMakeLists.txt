@@ -99,6 +99,42 @@ TARGET_LINK_LIBRARIES(test_lx200_onstep
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_lx200_onstep test_lx200_onstep)
+
+ADD_EXECUTABLE(test_lx200_coordinates
+    ${LX200GENERIC_SOURCES}
+    test_lx200_coordinates.cpp
+)
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_lx200_coordinates PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_lx200_coordinates
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_lx200_coordinates test_lx200_coordinates)
+
+# Mount drivers outside indi_lx200generic
+SET(MOUNT_COORDINATES_SOURCES
+    rainbow.cpp lx200driver.cpp crux_mount.cpp)
+LIST(TRANSFORM MOUNT_COORDINATES_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/")
+ADD_EXECUTABLE(test_mount_coordinates
+    ${MOUNT_COORDINATES_SOURCES}
+    test_mount_coordinates.cpp
+)
+# Like indi_rainbow_telescope, but not on FreeBSD and macOS, where _XOPEN_SOURCE hides cfmakeraw() and mkdtemp()
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_mount_coordinates PRIVATE _XOPEN_SOURCE=700)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_mount_coordinates
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_mount_coordinates test_mount_coordinates)
+
 # Excalibur handshake against fake devices on pseudo terminals (openpty).
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_excalibur

@@ -32,7 +32,7 @@ LX200Classic::LX200Classic() : LX200Generic()
 {
     MaxReticleFlashRate = 3;
 
-    setVersion(1, 1);
+    setVersion(2, 2);
 }
 
 const char *LX200Classic::getDefaultName()

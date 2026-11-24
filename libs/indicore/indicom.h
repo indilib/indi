@@ -260,6 +260,18 @@ int fs_sexa(char *out, double a, int w, int fracbase);
  */
 int f_scansexa(const char *str0, double *dp);
 
+/** \brief Split a value into degrees (or hours), minutes and seconds, with the seconds rounded to a number of decimals.
+ *  Unlike getSexComponentsIID(), a rounding of the seconds to 60 is carried into the minutes and the degrees, so a
+ *  value printed with that many decimals never shows 60 seconds or 60 minutes. Like getSexComponents(), the sign is
+ *  stored in \e d, so it is lost for values between -1 and 0: take the sign from \e value.
+ *  \param value the value to split.
+ *  \param d degrees or hours, negative if value is negative.
+ *  \param m minutes, 0 to 59.
+ *  \param s seconds, rounded to \e decimals decimals, 0 to less than 60.
+ *  \param decimals number of decimals of the seconds, 0 to 6.
+ */
+void getSexComponentsIIDRounded(double value, int *d, int *m, double *s, int decimals);
+
 /** \brief Extract ISO 8601 time and store it in a tm struct.
  *  \param timestr a string containing date and time in ISO 8601 format.
  *  \param iso_date a pointer to a \e ln_date structure to store the extracted time and date (libnova).

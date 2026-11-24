@@ -74,7 +74,7 @@
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 7);
+    setVersion(1, 8);
 
     setLX200Capability(LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
 
