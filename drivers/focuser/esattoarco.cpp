@@ -577,6 +577,13 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
                 FocusCalibrationSP.setState(IPS_ALERT);
             }
+            // The web interface asks whether the focuser is in or out when its sensor is active and sends another
+            // request for a focuser fully out. Only the one for a focuser fully in has been seen on a device.
+            else if (FocusMaxPosNP[0].getValue() > 0 && FocusAbsPosNP[0].getValue() > FocusMaxPosNP[0].getValue() / 2)
+            {
+                LOG_ERROR("The focuser is not fully in. Move it fully in until its sensor is active, then calibrate.");
+                FocusCalibrationSP.setState(IPS_ALERT);
+            }
             else
             {
                 m_CalibrationCountKnown = m_Esatto->getCalibrationCount(m_CalibrationCount);

@@ -775,6 +775,25 @@ void checkAbortDuringCalibration(Driver &driver, FakePrimaLuce &device)
     EXPECT_EQ(writesTo(afterStop, "cmd", "MOT1", "MOVE_ABS").size(), 1u) << "The move was refused after CAL_STATUS \"stop\"";
 }
 
+// A sensor that is active in the outer half (assumed: a model with its sensor at the outer end) is not calibrated:
+// the web interface sends a different request for a focuser fully out, which was never seen on a device.
+template <class Driver>
+void checkOuterSensorIsRefused(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.startCalibration();
+    std::vector<json> writes = device.takeWrites();
+    std::vector<std::string> states = published.states("FOCUS_CALIBRATION");
+    std::vector<std::string> messages = published.messages();
+
+    EXPECT_TRUE(writesTo(writes, "set", "MOT1", "CAL_STATUS").empty()) << "A calibration was started fully out";
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Alert");
+    EXPECT_TRUE(anyContains(messages, "not fully in"));
+}
+
 // A calibration the driver did not start (web interface, hand pad, or still running after an abort before a
 // reconnect) also refuses moves and a new start.
 template <class Driver>
@@ -1067,6 +1086,17 @@ TEST(EsattoTest, abortDuringCalibration)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkAbortDuringCalibration(driver, device);
+}
+
+TEST(EsattoTest, outerSensorIsRefused)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    device.set("MOT1", "ABS_POS_STEP", 400000);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkOuterSensorIsRefused(driver, device);
 }
 
 TEST(EsattoTest, calibrationStartedElsewhereBlocks)
@@ -1564,6 +1594,17 @@ TEST(EsattoArcoTest, abortDuringFocusCalibration)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkAbortDuringCalibration(*arco, device);
+}
+
+TEST(EsattoArcoTest, outerSensorIsRefused)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    device.set("MOT1", "ABS_POS_STEP", 400000);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkOuterSensorIsRefused(*arco, device);
 }
 
 TEST(EsattoArcoTest, focusCalibrationStartedElsewhereBlocks)
