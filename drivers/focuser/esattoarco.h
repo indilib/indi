@@ -95,8 +95,8 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         bool m_RotatorStopped { false };
         INDI::ElapsedTimer m_RotatorStopTimer;
         static constexpr double ROTATOR_TARGET_TOLERANCE {0.01};
-        // 0.01 degrees, the Arco has 1 arcsecond per step (ARCO user manual)
-        static constexpr double ROTATOR_TARGET_TOLERANCE_STEPS {36};
+        // 0.01 degrees: on an Arco 2, 10000 steps were 1.75781 degrees (about 5689 steps per degree)
+        static constexpr double ROTATOR_TARGET_TOLERANCE_STEPS {57};
         static constexpr int ROTATOR_SETTLE_MS {3000};
 
         INDI::PropertyNumber TemperatureNP {2};

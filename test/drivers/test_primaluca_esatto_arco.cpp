@@ -25,9 +25,12 @@
       "ManageCalibInMinPosWithSensorAct" during an Esatto calibration, "exec" during an Arco calibration, "stop" when
       idle, Arco position 0 during its calibration, an Arco stop 0.2 degrees short of the target, HSENDET 1 at the
       inner end, position 816 after a calibration of the LP, the firmware version 3.05.28.
+    - Seen on 24.11.2026 on the same devices: an Arco 2 move to 10000 steps ends at 1.75781 degrees (about 5689
+      steps per degree); MOT_STOP during a focuser calibration stops the motor, but CAL_STATUS keeps the phase name
+      for about 60 s and CAL_NUMOF does not change; a completed calibration raises CAL_NUMOF by one.
     - Assumed: the error reply to a refused command ({"ERROR": ...}), temperatures and voltages as strings, EXT_T
       "-127.0" without the external probe (the value the driver checks for), the backlash 120, CAL_MAXPOS 406929, the
-      Arco limits of +-648000 steps (one arc second per step), the serial numbers, STATUS with only BUSY and MST, and
+      Arco limits of +-648000 steps, the serial numbers, STATUS with only BUSY and MST, and
       a pause with MST "stop" between two calibration phases. Each test sets when the positions change.
 
     SPDX-License-Identifier: LGPL-2.1-or-later
@@ -1256,11 +1259,11 @@ TEST(EsattoArcoTest, rotatorStepMoveEndsAtTarget)
     driver.sendNumber("ABS_ROTATOR_POSITION", "ROTATOR_ABSOLUTE_POSITION", 50000);
     std::vector<json> moves = writesTo(device.takeWrites(), "cmd", "MOT2", "MOVE_ABS");
     device.set("MOT2", "POSITION_STEP", 25000);
-    device.set("MOT2", "POSITION_DEG", 6.94444);
+    device.set("MOT2", "POSITION_DEG", 4.39453);
     device.set("MOT2", "STATUS", FakePrimaLuce::moving());
     driver.poll();
     device.set("MOT2", "POSITION_STEP", 50000);
-    device.set("MOT2", "POSITION_DEG", 13.88889);
+    device.set("MOT2", "POSITION_DEG", 8.78906);
     device.set("MOT2", "STATUS", FakePrimaLuce::stopped());
     driver.poll();
     std::vector<std::string> states = published.states("ABS_ROTATOR_POSITION");
