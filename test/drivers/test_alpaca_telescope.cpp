@@ -16,11 +16,14 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <iterator>
 #include <map>
 #include <mutex>
 #include <regex>
 #include <string>
 #include <thread>
+#include <vector>
 #include <unistd.h>
 
 #include <httplib.h>
@@ -63,11 +66,11 @@ class FakeAlpacaTelescope
                 {"siteelevation", "Property read SiteElevation is not implemented in this driver."}
             };
 
-            m_Server.Get(R"(/api/v1/telescope/0/(\w+))", [this](const httplib::Request & req, httplib::Response & res)
+            m_Server.Get(R"(/api/v1/telescope/(\d+)/(\w+))", [this](const httplib::Request & req, httplib::Response & res)
             {
                 get(req, res);
             });
-            m_Server.Put(R"(/api/v1/telescope/0/(\w+))", [this](const httplib::Request & req, httplib::Response & res)
+            m_Server.Put(R"(/api/v1/telescope/(\d+)/(\w+))", [this](const httplib::Request & req, httplib::Response & res)
             {
                 put(req, res);
             });
@@ -91,6 +94,12 @@ class FakeAlpacaTelescope
             return m_Port;
         }
 
+        std::vector<std::string> requests()
+        {
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            return m_Requests;
+        }
+
     private:
         static nlohmann::json reply(int transaction, int error = 0, const std::string &message = "")
         {
@@ -104,8 +113,9 @@ class FakeAlpacaTelescope
 
         void get(const httplib::Request &req, httplib::Response &res)
         {
-            const std::string property = req.matches[1];
+            const std::string property = req.matches[2];
             std::lock_guard<std::mutex> lock(m_Mutex);
+            m_Requests.push_back(req.path);
 
             nlohmann::json body = reply(transaction(req));
             if (m_NotImplemented.count(property))
@@ -122,8 +132,9 @@ class FakeAlpacaTelescope
 
         void put(const httplib::Request &req, httplib::Response &res)
         {
-            const std::string property = req.matches[1];
+            const std::string property = req.matches[2];
             std::lock_guard<std::mutex> lock(m_Mutex);
+            m_Requests.push_back(req.path);
             if (property == "connected" && req.has_param("Connected"))
                 m_Values["connected"] = req.get_param_value("Connected") == "true";
             res.set_content(reply(transaction(req)).dump(), "application/json; charset=utf-8");
@@ -133,6 +144,7 @@ class FakeAlpacaTelescope
         std::thread m_Thread;
         int m_Port {-1};
         std::mutex m_Mutex;
+        std::vector<std::string> m_Requests;
         std::map<std::string, nlohmann::json> m_Values;
         std::map<std::string, std::string> m_NotImplemented;
 };
@@ -168,6 +180,13 @@ class AlpacaTelescopeUnderTest : public alpacaTelescopeDriver
             char connect[] = "CONNECT", disconnect[] = "DISCONNECT";
             char *connectionNames[2] = {connect, disconnect};
             ISNewSwitch(getDeviceName(), "CONNECTION", connection, connectionNames, 2);
+        }
+
+        void setDeviceNumber(double value)
+        {
+            char member[] = "DEVICE_NUMBER";
+            char *names[] = {member};
+            ISNewNumber(getDeviceName(), "DEVICE_NUMBER", &value, names, 1);
         }
 };
 
@@ -256,6 +275,45 @@ ConnectResult connectWithAlignmentMode(int alignmentMode)
     return result;
 }
 
+class AlpacaDeviceNumberTest : public ::testing::Test
+{
+    protected:
+        void SetUp() override
+        {
+            const char *previous = std::getenv("INDICONFIG");
+            if (previous)
+                m_PreviousConfig = previous;
+
+            char path[] = "/tmp/test_alpaca_device_number_XXXXXX";
+            int fd = mkstemp(path);
+            ASSERT_GE(fd, 0);
+            close(fd);
+            m_ConfigFile = path;
+            ASSERT_EQ(std::remove(m_ConfigFile.c_str()), 0);
+            ASSERT_EQ(setenv("INDICONFIG", m_ConfigFile.c_str(), 1), 0);
+        }
+
+        void TearDown() override
+        {
+            INDI::Logger::getInstance().configure("", INDI::Logger::file_off,
+                                                  INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
+            if (!m_ConfigFile.empty())
+            {
+                std::remove(m_ConfigFile.c_str());
+                std::remove((m_ConfigFile + ".default").c_str());
+            }
+            if (!m_PreviousConfig.empty())
+                setenv("INDICONFIG", m_PreviousConfig.c_str(), 1);
+            else
+                unsetenv("INDICONFIG");
+        }
+
+        std::string m_ConfigFile;
+
+    private:
+        std::string m_PreviousConfig;
+};
+
 }
 
 // AlignmentMode 0 is algAltAz: a Seestar S50 in Alt-Az mode is an Alt-Az mount, not an equatorial fork mount.
@@ -286,6 +344,102 @@ TEST(AlpacaTelescopeTest, alignmentModeGermanPolarIsReportedAsGerman)
     ASSERT_TRUE(result.connected);
     EXPECT_EQ(result.mountType, INDI::Telescope::MOUNT_EQ_GEM);
     EXPECT_EQ(result.published, "EQ_GEM");
+}
+
+TEST_F(AlpacaDeviceNumberTest, routesRequestsAndRefusesConnectedChanges)
+{
+    FakeAlpacaTelescope telescope(0);
+    AlpacaTelescopeUnderTest driver;
+    driver.setDeviceNumber(1);
+    auto number = driver.getNumber("DEVICE_NUMBER");
+    ASSERT_TRUE(number.isValid());
+    ASSERT_DOUBLE_EQ(number[0].getValue(), 1);
+    ASSERT_TRUE(driver.connectTo(telescope.port()));
+
+    INDI::Logger::getInstance().configure("", INDI::Logger::file_off | INDI::Logger::screen_on,
+                                          INDI::Logger::DBG_ERROR,
+                                          INDI::Logger::DBG_ERROR | INDI::Logger::DBG_WARNING);
+    const std::string warning = "Cannot change Alpaca device number while connected.";
+    Published sameValue;
+    driver.setDeviceNumber(1);
+    EXPECT_EQ(sameValue.text().find(warning), std::string::npos);
+
+    Published differentValue;
+    driver.setDeviceNumber(2);
+    EXPECT_NE(differentValue.text().find(warning), std::string::npos);
+    EXPECT_DOUBLE_EQ(number[0].getValue(), 1);
+
+    driver.disconnect();
+    const auto requests = telescope.requests();
+    ASSERT_FALSE(requests.empty());
+    EXPECT_EQ(requests.back(), "/api/v1/telescope/1/connected");
+    for (const auto &path : requests)
+        EXPECT_EQ(path.find("/api/v1/telescope/1/"), 0U) << path;
+}
+
+TEST_F(AlpacaDeviceNumberTest, defaultsToDeviceZero)
+{
+    FakeAlpacaTelescope telescope(0);
+    AlpacaTelescopeUnderTest driver;
+    ASSERT_TRUE(driver.connectTo(telescope.port()));
+    driver.disconnect();
+    const auto requests = telescope.requests();
+    ASSERT_FALSE(requests.empty());
+    for (const auto &path : requests)
+        EXPECT_EQ(path.find("/api/v1/telescope/0/"), 0U) << path;
+}
+
+TEST_F(AlpacaDeviceNumberTest, savesAndRestoresDeviceNumber)
+{
+    {
+        AlpacaTelescopeUnderTest driver;
+        driver.setDeviceNumber(1);
+    }
+
+    FakeAlpacaTelescope telescope(0);
+    AlpacaTelescopeUnderTest restored;
+    auto number = restored.getNumber("DEVICE_NUMBER");
+    ASSERT_TRUE(number.isValid());
+    EXPECT_DOUBLE_EQ(number[0].getValue(), 1);
+    ASSERT_TRUE(restored.connectTo(telescope.port()));
+    restored.disconnect();
+    const auto requests = telescope.requests();
+    ASSERT_FALSE(requests.empty());
+    for (const auto &path : requests)
+        EXPECT_EQ(path.find("/api/v1/telescope/1/"), 0U) << path;
+}
+
+TEST_F(AlpacaDeviceNumberTest, rejectsOutOfRangeDeviceNumberWithoutSaving)
+{
+    {
+        AlpacaTelescopeUnderTest driver;
+        driver.setDeviceNumber(1);
+        auto number = driver.getNumber("DEVICE_NUMBER");
+        ASSERT_TRUE(number.isValid());
+
+        std::ofstream marker(m_ConfigFile, std::ios::app);
+        ASSERT_TRUE(marker.is_open());
+        marker << "<!-- unchanged configuration -->\n";
+        marker.close();
+        ASSERT_FALSE(marker.fail());
+
+        Published published;
+        driver.setDeviceNumber(11);
+        const std::string output = published.text();
+        EXPECT_EQ(number.getState(), IPS_ALERT);
+        EXPECT_DOUBLE_EQ(number[0].getValue(), 1);
+        EXPECT_NE(output.find("Invalid range"), std::string::npos);
+
+        std::ifstream config(m_ConfigFile);
+        ASSERT_TRUE(config.is_open());
+        const std::string contents((std::istreambuf_iterator<char>(config)), std::istreambuf_iterator<char>());
+        EXPECT_NE(contents.find("<!-- unchanged configuration -->"), std::string::npos);
+    }
+
+    AlpacaTelescopeUnderTest restored;
+    auto number = restored.getNumber("DEVICE_NUMBER");
+    ASSERT_TRUE(number.isValid());
+    EXPECT_DOUBLE_EQ(number[0].getValue(), 1);
 }
 
 int main(int argc, char **argv)

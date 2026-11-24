@@ -36,7 +36,7 @@ alpacaTelescopeDriver::alpacaTelescopeDriver()
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
-    setVersion(1, 1);
+    setVersion(1, 2);
     SetTelescopeCapability(
         TELESCOPE_CAN_GOTO |
         TELESCOPE_CAN_SYNC |
@@ -97,16 +97,19 @@ bool alpacaTelescopeDriver::ISNewNumber(const char *dev, const char *name, doubl
     {
         if (isConnected())
         {
-            LOG_WARN("Cannot change Alpaca device number while connected.");
+            // Loading the config after connecting can send the current value again.
+            if (n > 0 && values[0] != DeviceNumberNP[0].getValue())
+                LOG_WARN("Cannot change Alpaca device number while connected.");
             DeviceNumberNP.setState(IPS_IDLE);
         }
-        else
+        else if (DeviceNumberNP.update(values, names, n))
         {
-            DeviceNumberNP.update(values, names, n);
             DeviceNumberNP.setState(IPS_OK);
             saveConfig();
             LOG_INFO("Alpaca device number updated.");
         }
+        else
+            DeviceNumberNP.setState(IPS_ALERT);
 
         DeviceNumberNP.apply();
         return true;
