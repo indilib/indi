@@ -274,6 +274,8 @@ class Esatto : public Focuser
         // Calibration as the ESATTO web interface starts it, with the focuser fully in on its sensor
         bool calibrate();
         bool isCalibrating();
+        // CAL_NUMOF rises by one with each completed calibration, not with an aborted one
+        bool getCalibrationCount(uint32_t &count);
 };
 
 /*****************************************************************************************

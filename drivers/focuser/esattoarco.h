@@ -79,6 +79,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         void hexDump(char * buf, const char * data, int size);
         void updateSpeed();
         bool isFocusMoveFinished();
+        bool isCalibrationCompleted();
         bool isRotatorMoveFinished();
 
         uint16_t m_TemperatureCounter { 0 };
@@ -87,6 +88,9 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         INDI::ElapsedTimer m_FocusMoveTimer, m_RotatorMoveTimer;
         // BUSY can lag behind the command, a motor that has not moved yet may still start
         static constexpr int MOVE_START_GRACE_MS {2000};
+        // CAL_NUMOF at the start of a focuser calibration, to tell a completed one from an aborted one
+        uint32_t m_CalibrationCount { 0 };
+        bool m_CalibrationCountKnown { false };
 
         // The Arco can report a stop short of the target and correct the rest a moment later.
         // The target is an angle (ABS_ROTATOR_ANGLE) or, for a move in steps (ABS_ROTATOR_POSITION), a step count.

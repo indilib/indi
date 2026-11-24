@@ -165,22 +165,31 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             LOG_ERROR("Wait until the focuser stopped, then calibrate.");
             CalibrationSP.setState(IPS_ALERT);
         }
+        else if (m_Esatto->isCalibrating())
+        {
+            LOG_ERROR("The focuser reports a running calibration. Wait until it is done.");
+            CalibrationSP.setState(IPS_ALERT);
+        }
         else if (!m_Esatto->isHallSensorDetected(atSensor) || !atSensor)
         {
             LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
             CalibrationSP.setState(IPS_ALERT);
         }
-        else if (m_Esatto->calibrate())
-        {
-            LOG_INFO("Calibrating the focuser. Please wait.");
-            m_MoveStartPosition = FocusAbsPosNP[0].getValue();
-            m_MoveTimer.start();
-            CalibrationSP.setState(IPS_BUSY);
-            FocusAbsPosNP.setState(IPS_BUSY);
-            FocusAbsPosNP.apply();
-        }
         else
-            CalibrationSP.setState(IPS_ALERT);
+        {
+            m_CalibrationCountKnown = m_Esatto->getCalibrationCount(m_CalibrationCount);
+            if (m_Esatto->calibrate())
+            {
+                LOG_INFO("Calibrating the focuser. Please wait.");
+                m_MoveStartPosition = FocusAbsPosNP[0].getValue();
+                m_MoveTimer.start();
+                CalibrationSP.setState(IPS_BUSY);
+                FocusAbsPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply();
+            }
+            else
+                CalibrationSP.setState(IPS_ALERT);
+        }
 
         CalibrationSP.apply();
         return true;
@@ -282,6 +291,13 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
+    // Also one started elsewhere, or one that still runs in the firmware after an abort
+    if (m_Esatto->isCalibrating())
+    {
+        LOG_ERROR("The focuser reports a running calibration. Wait until it is done.");
+        return IPS_ALERT;
+    }
+
     if (m_Esatto->goAbsolutePosition(targetTicks) == false)
         return IPS_ALERT;
 
@@ -310,10 +326,13 @@ bool Esatto::AbortFocuser()
     if (isSimulation())
         return true;
 
+    // MOT_STOP stops the motor, but the firmware keeps the calibration running for about a minute and does not
+    // count the travel of the aborted calibration: the zero position is off afterwards.
     if (CalibrationSP.getState() == IPS_BUSY)
     {
-        CalibrationSP.setState(IPS_IDLE);
+        CalibrationSP.setState(IPS_ALERT);
         CalibrationSP.apply();
+        LOG_WARN("Focuser calibration aborted. Its zero position is no longer valid: calibrate again before moving.");
     }
 
     return m_Esatto->stop();
@@ -350,9 +369,17 @@ void Esatto::TimerHit()
 
             if (CalibrationSP.getState() == IPS_BUSY)
             {
-                CalibrationSP.setState(IPS_OK);
+                if (isCalibrationCompleted())
+                {
+                    CalibrationSP.setState(IPS_OK);
+                    LOG_INFO("Focuser calibration complete.");
+                }
+                else
+                {
+                    CalibrationSP.setState(IPS_ALERT);
+                    LOG_ERROR("The focuser calibration did not complete. Its zero position may be off: calibrate again.");
+                }
                 CalibrationSP.apply();
-                LOG_INFO("Focuser calibration complete.");
             }
         }
 
@@ -390,6 +417,16 @@ void Esatto::TimerHit()
     }
 
     SetTimer(getCurrentPollingPeriod());
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::isCalibrationCompleted()
+{
+    // CAL_STATUS also returns to "stop" when the firmware gives up, e.g. 120 s without reaching the sensor
+    uint32_t count = 0;
+    return !m_CalibrationCountKnown || (m_Esatto->getCalibrationCount(count) && count > m_CalibrationCount);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

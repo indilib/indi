@@ -387,6 +387,16 @@ void EsattoArco::updateSpeed()
 /************************************************************************************************************
  *
 *************************************************************************************************************/
+bool EsattoArco::isCalibrationCompleted()
+{
+    // CAL_STATUS also returns to "stop" when the firmware gives up, e.g. 120 s without reaching the sensor
+    uint32_t count = 0;
+    return !m_CalibrationCountKnown || (m_Esatto->getCalibrationCount(count) && count > m_CalibrationCount);
+}
+
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
 bool EsattoArco::isFocusMoveFinished()
 {
     if (m_Esatto->isBusy())
@@ -557,22 +567,31 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 LOG_ERROR("Wait until the focuser stopped, then calibrate.");
                 FocusCalibrationSP.setState(IPS_ALERT);
             }
+            else if (m_Esatto->isCalibrating())
+            {
+                LOG_ERROR("The focuser reports a running calibration. Wait until it is done.");
+                FocusCalibrationSP.setState(IPS_ALERT);
+            }
             else if (!m_Esatto->isHallSensorDetected(atSensor) || !atSensor)
             {
                 LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
                 FocusCalibrationSP.setState(IPS_ALERT);
             }
-            else if (m_Esatto->calibrate())
-            {
-                LOG_INFO("Calibrating the focuser. Please wait.");
-                m_FocusMoveStart = FocusAbsPosNP[0].getValue();
-                m_FocusMoveTimer.start();
-                FocusCalibrationSP.setState(IPS_BUSY);
-                FocusAbsPosNP.setState(IPS_BUSY);
-                FocusAbsPosNP.apply();
-            }
             else
-                FocusCalibrationSP.setState(IPS_ALERT);
+            {
+                m_CalibrationCountKnown = m_Esatto->getCalibrationCount(m_CalibrationCount);
+                if (m_Esatto->calibrate())
+                {
+                    LOG_INFO("Calibrating the focuser. Please wait.");
+                    m_FocusMoveStart = FocusAbsPosNP[0].getValue();
+                    m_FocusMoveTimer.start();
+                    FocusCalibrationSP.setState(IPS_BUSY);
+                    FocusAbsPosNP.setState(IPS_BUSY);
+                    FocusAbsPosNP.apply();
+                }
+                else
+                    FocusCalibrationSP.setState(IPS_ALERT);
+            }
 
             FocusCalibrationSP.apply();
             return true;
@@ -658,6 +677,13 @@ IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
+    // Also one started elsewhere, or one that still runs in the firmware after an abort
+    if (m_Esatto->isCalibrating())
+    {
+        LOG_ERROR("The focuser reports a running calibration. Wait until it is done.");
+        return IPS_ALERT;
+    }
+
     if (m_Esatto->goAbsolutePosition(targetTicks))
     {
         m_FocusMoveStart = FocusAbsPosNP[0].getValue();
@@ -684,10 +710,13 @@ IPState EsattoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 *************************************************************************************************************/
 bool EsattoArco::AbortFocuser()
 {
+    // MOT_STOP stops the motor, but the firmware keeps the calibration running for about a minute and does not
+    // count the travel of the aborted calibration: the zero position is off afterwards.
     if (FocusCalibrationSP.getState() == IPS_BUSY)
     {
-        FocusCalibrationSP.setState(IPS_IDLE);
+        FocusCalibrationSP.setState(IPS_ALERT);
         FocusCalibrationSP.apply();
+        LOG_WARN("Focuser calibration aborted. Its zero position is no longer valid: calibrate again before moving.");
     }
 
     return m_Esatto->stop();
@@ -740,9 +769,17 @@ void EsattoArco::TimerHit()
 
             if (FocusCalibrationSP.getState() == IPS_BUSY)
             {
-                FocusCalibrationSP.setState(IPS_OK);
+                if (isCalibrationCompleted())
+                {
+                    FocusCalibrationSP.setState(IPS_OK);
+                    LOG_INFO("Focuser calibration complete.");
+                }
+                else
+                {
+                    FocusCalibrationSP.setState(IPS_ALERT);
+                    LOG_ERROR("The focuser calibration did not complete. Its zero position may be off: calibrate again.");
+                }
                 FocusCalibrationSP.apply();
-                LOG_INFO("Focuser calibration complete.");
             }
         }
         else if (std::abs(currentFocusPosition - FocusAbsPosNP[0].getValue()) > 0)

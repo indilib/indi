@@ -838,6 +838,11 @@ bool Esatto::isCalibrating()
     return false;
 }
 
+bool Esatto::getCalibrationCount(uint32_t &count)
+{
+    return m_Communication->get(MOT_1, "CAL_NUMOF", count);
+}
+
 /******************************************************************************************************
  * Arco
 *******************************************************************************************************/

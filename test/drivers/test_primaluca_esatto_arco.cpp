@@ -13,6 +13,8 @@
     - A motor still braking (BUSY 0, MST "dec") is busy.
     - Esatto Arco: the final position of a move, a rotator stop short of the target, the end of the Arco calibration.
     - The focuser calibration only starts at the sensor, blocks moves and a second start, and ends with CAL_STATUS.
+      It is complete only if CAL_NUMOF rose; an abort ends it in Alert, and moves wait until the firmware reports
+      CAL_STATUS "stop", also for a calibration started elsewhere.
 
     The drivers talk to a fake device on a pseudo terminal. Requests and replies are JSON objects ({"req": ...} and
     {"res": ...}, replies end with CR LF). The replies have the shape the driver's parser expects, as in an earlier
@@ -96,7 +98,7 @@ class FakePrimaLuce
                 {
                     "MOT1", {
                         {"ABS_POS_STEP", 10000}, {"CAL_MAXPOS", 406929}, {"BKLASH", 120}, {"NTC_T", "21.5"},
-                        {"SPEED", 0}, {"HSENDET", 0}, {"CAL_STATUS", "stop"}, {"STATUS", stopped()}
+                        {"SPEED", 0}, {"HSENDET", 0}, {"CAL_STATUS", "stop"}, {"CAL_NUMOF", 17}, {"STATUS", stopped()}
                     }
                 },
                 {
@@ -481,6 +483,11 @@ class UnderTest : public Driver
         {
             this->TimerHit();
         }
+
+        bool abort()
+        {
+            return sendSwitch("FOCUS_ABORT_MOTION", {{"ABORT", ISS_ON}});
+        }
 };
 
 using EsattoUnderTest = UnderTest<Esatto>;
@@ -675,6 +682,115 @@ bool anyContains(const std::vector<std::string> &texts, const std::string &part)
 void pause(int milliseconds)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+}
+
+// Polls for 2.3 s, past the 2 s the driver allows a move or a calibration to start.
+template <class Driver>
+void pollPastStartGrace(Driver &driver)
+{
+    const auto start = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start < std::chrono::milliseconds(2300))
+    {
+        driver.poll();
+        pause(100);
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Focuser calibration checks, the same in both drivers. The focuser starts on its sensor (HSENDET 1).
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// A calibration that raises CAL_NUMOF has completed.
+template <class Driver>
+void checkCompletedCalibrationIsOk(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.startCalibration();
+    driver.poll();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    device.set("MOT1", "CAL_NUMOF", 18);
+    pollPastStartGrace(driver);
+    std::vector<std::string> states = published.states("FOCUS_CALIBRATION");
+    std::vector<std::string> messages = published.messages();
+
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Ok");
+    EXPECT_TRUE(anyContains(messages, "Focuser calibration complete."));
+}
+
+// CAL_STATUS also returns to "stop" when the firmware gives up (on an LP: 120 s without reaching the sensor, after an
+// abort: about 60 s). Without a higher CAL_NUMOF the calibration is reported as failed, not as complete.
+template <class Driver>
+void checkCalibrationWithoutCountIsAlert(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.startCalibration();
+    driver.poll();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    pollPastStartGrace(driver);
+    std::vector<std::string> states = published.states("FOCUS_CALIBRATION");
+    std::vector<std::string> messages = published.messages();
+
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Alert") << "A calibration that did not raise CAL_NUMOF was reported as complete";
+    EXPECT_FALSE(anyContains(messages, "Focuser calibration complete."));
+    EXPECT_TRUE(anyContains(messages, "did not complete"));
+}
+
+// An abort sends MOT_STOP, which stops the motor, but the firmware keeps CAL_STATUS on the phase for about a minute.
+// The calibration ends in Alert with a warning about the zero position, and moves are refused until CAL_STATUS is
+// "stop": a move into a running calibration shifted the zero position.
+template <class Driver>
+void checkAbortDuringCalibration(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.startCalibration();
+    driver.poll();
+    device.takeWrites();
+    driver.abort();
+    std::vector<json> aborted = device.takeWrites();
+    driver.poll();
+    driver.moveTo(30000);
+    std::vector<json> whileStillRunning = device.takeWrites();
+    std::vector<std::string> states = published.states("FOCUS_CALIBRATION");
+    std::vector<std::string> messages = published.messages();
+
+    device.set("MOT1", "CAL_STATUS", "stop");
+    driver.moveTo(30000);
+    std::vector<json> afterStop = device.takeWrites();
+
+    EXPECT_EQ(writesTo(aborted, "cmd", "MOT1", "MOT_STOP").size(), 1u) << "The motor was not stopped";
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Alert") << "An aborted calibration did not end in Alert";
+    EXPECT_TRUE(anyContains(messages, "zero position is no longer valid")) << "No warning about the zero position";
+    EXPECT_TRUE(writesTo(whileStillRunning, "cmd", "MOT1", "MOVE_ABS").empty())
+            << "A move was sent while the firmware still reported the calibration";
+    EXPECT_TRUE(anyContains(messages, "reports a running calibration"));
+    EXPECT_EQ(writesTo(afterStop, "cmd", "MOT1", "MOVE_ABS").size(), 1u) << "The move was refused after CAL_STATUS \"stop\"";
+}
+
+// A calibration the driver did not start (web interface, hand pad, or still running after an abort before a
+// reconnect) also refuses moves and a new start.
+template <class Driver>
+void checkCalibrationStartedElsewhereBlocks(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.moveTo(30000);
+    driver.startCalibration();
+    std::vector<json> writes = device.takeWrites();
+    std::vector<std::string> messages = published.messages();
+
+    EXPECT_TRUE(writesTo(writes, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move was sent into a running calibration";
+    EXPECT_TRUE(writesTo(writes, "set", "MOT1", "CAL_STATUS").empty()) << "A second calibration was started";
+    EXPECT_TRUE(anyContains(messages, "reports a running calibration"));
 }
 
 }
@@ -901,6 +1017,7 @@ TEST(EsattoTest, calibrationRunsUntilCalStatusStops)
 
     Published done;
     device.set("MOT1", "CAL_STATUS", "stop");
+    device.set("MOT1", "CAL_NUMOF", 18);
     device.set("MOT1", "ABS_POS_STEP", 816);
     driver.poll();
     std::vector<std::string> calibrationStates = done.states("FOCUS_CALIBRATION");
@@ -920,6 +1037,47 @@ TEST(EsattoTest, calibrationRunsUntilCalStatusStops)
     EXPECT_EQ(positionStates.back(), "Ok");
     ASSERT_FALSE(positions.empty());
     EXPECT_EQ(positions.back(), 816);
+}
+
+TEST(EsattoTest, completedCalibrationIsOk)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkCompletedCalibrationIsOk(driver, device);
+}
+
+TEST(EsattoTest, calibrationWithoutCountIsAlert)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkCalibrationWithoutCountIsAlert(driver, device);
+}
+
+TEST(EsattoTest, abortDuringCalibration)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkAbortDuringCalibration(driver, device);
+}
+
+TEST(EsattoTest, calibrationStartedElsewhereBlocks)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    device.set("MOT1", "CAL_STATUS", CALIBRATION_PHASE);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkCalibrationStartedElsewhereBlocks(driver, device);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1376,6 +1534,47 @@ TEST(EsattoArcoTest, focusCalibrationBlocksMoves)
     EXPECT_TRUE(writesTo(refused, "set", "MOT1", "CAL_STATUS").empty()) << "The calibration was started twice";
     ASSERT_FALSE(states.empty());
     EXPECT_EQ(states.back(), "Busy");
+}
+
+TEST(EsattoArcoTest, completedFocusCalibrationIsOk)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkCompletedCalibrationIsOk(*arco, device);
+}
+
+TEST(EsattoArcoTest, focusCalibrationWithoutCountIsAlert)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkCalibrationWithoutCountIsAlert(*arco, device);
+}
+
+TEST(EsattoArcoTest, abortDuringFocusCalibration)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkAbortDuringCalibration(*arco, device);
+}
+
+TEST(EsattoArcoTest, focusCalibrationStartedElsewhereBlocks)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    device.set("MOT1", "CAL_STATUS", CALIBRATION_PHASE);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkCalibrationStartedElsewhereBlocks(*arco, device);
 }
 
 int main(int argc, char **argv)

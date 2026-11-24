@@ -58,6 +58,7 @@ class Esatto : public INDI::Focuser
 
         bool getStartupValues();
         bool isMoveFinished();
+        bool isCalibrationCompleted();
         void hexDump(char * buf, const char * data, int size);
 
         uint16_t m_TemperatureCounter { 0 };
@@ -66,6 +67,9 @@ class Esatto : public INDI::Focuser
         INDI::ElapsedTimer m_MoveTimer;
         // BUSY can lag behind the command, a motor that has not moved yet may still start
         static constexpr int MOVE_START_GRACE_MS {2000};
+        // CAL_NUMOF at the start of a focuser calibration, to tell a completed one from an aborted one
+        uint32_t m_CalibrationCount { 0 };
+        bool m_CalibrationCountKnown { false };
         double m_LastTemperature[2] = {-1, -1};
         double m_LastVoltage[2] = {-1, -1};
 
