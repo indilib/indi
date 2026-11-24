@@ -260,6 +260,9 @@ class Esatto : public Focuser
     public:
         Esatto(const std::string &name, int port);
 
+        // Motion
+        bool isBusy();                                 // Checks BUSY + MST fields
+
         // Backlash
         bool setBacklash(uint32_t steps);
         bool getBacklash(uint32_t &steps);

@@ -379,7 +379,9 @@ bool Focuser::isBusy()
 {
     json status;
     if (m_Communication->get(MOT_1, "STATUS", status))
-        return isMotorBusy(status);
+    {
+        return status["BUSY"] == 1;
+    }
     return false;
 }
 
@@ -787,6 +789,16 @@ bool SestoSenso3::stopCalibration()
  * Esatto functions
 *******************************************************************************************************/
 Esatto::Esatto(const std::string &name, int port) : Focuser(name, port) {}
+bool Esatto::isBusy()
+{
+    json status;
+    // The Esatto (firmware 3.05.28) reports BUSY=0 while MST is still "dec"
+    // and goes on braking for up to ~800 steps.
+    if (m_Communication->get(MOT_1, "STATUS", status))
+        return isMotorBusy(status);
+    return false;
+}
+
 bool Esatto::setBacklash(uint32_t steps)
 {
     return m_Communication->set(MOT_1, {{"BKLASH", steps}});
