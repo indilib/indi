@@ -67,6 +67,16 @@ TARGET_LINK_LIBRARIES(test_dome_shutter_park_policy
 )
 ADD_TEST(test_dome_shutter_park_policy test_dome_shutter_park_policy)
 
+ADD_EXECUTABLE(test_power_interface
+    test_power_interface.cpp
+)
+TARGET_LINK_LIBRARIES(test_power_interface
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_power_interface test_power_interface)
+
 ADD_EXECUTABLE(test_connection_serial
     test_connection_serial.cpp
 )
