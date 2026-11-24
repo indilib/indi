@@ -110,6 +110,22 @@ TARGET_LINK_LIBRARIES(test_lx200_onstep
 )
 ADD_TEST(test_lx200_onstep test_lx200_onstep)
 
+# The Pegasus NYX-101 driver lives in indi_lx200generic as well.
+ADD_EXECUTABLE(test_lx200_pegasus_nyx101
+    ${LX200GENERIC_SOURCES}
+    test_lx200_pegasus_nyx101.cpp
+)
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_lx200_pegasus_nyx101 PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_lx200_pegasus_nyx101
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_lx200_pegasus_nyx101 test_lx200_pegasus_nyx101)
+
 ADD_EXECUTABLE(test_lx200_coordinates
     ${LX200GENERIC_SOURCES}
     test_lx200_coordinates.cpp
