@@ -49,6 +49,7 @@ class Beaver : public INDI::Dome
         virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
         virtual bool SetCurrentPark() override;
         virtual bool SetDefaultPark() override;
+        virtual bool Sync(double az) override;
 
         // Shutter
         virtual IPState ControlShutter(ShutterOperation operation) override;
@@ -93,7 +94,6 @@ class Beaver : public INDI::Dome
         ///////////////////////////////////////////////////////////////////////////////
         bool rotatorGotoAz(double az);
         bool rotatorGetAz();
-        bool rotatorSyncAZ(double az);
         bool rotatorSetHome(double az);
         bool rotatorSetPark(double az);
         bool rotatorGotoPark();
@@ -110,6 +110,10 @@ class Beaver : public INDI::Dome
 
         bool rotatorGetSettings();
         bool rotatorSetSettings(double maxSpeed, double minSpeed, double acceleration, double timeout);
+        bool rotatorGetMotorPower();
+        bool rotatorSetMotorPower(double movePower, double stopPower);
+        bool rotatorApplyMotorPower(bool parked);
+        bool rotatorApplyStopPower(double stopPower);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Shutter Motion Control
@@ -193,10 +197,24 @@ class Beaver : public INDI::Dome
             ROTATOR_TIMEOUT
         };
 
+        // Rotator Motor Power
+        INDI::PropertyNumber MotorPowerNP {2};
+        enum
+        {
+            MOTOR_MOVE_POWER,
+            MOTOR_STOP_POWER
+        };
+        // Rotator disable holding power before parking
+        INDI::PropertySwitch ParkHoldOffSP {2};
+
         ///////////////////////////////////////////////////////////////////////
         /// Private Variables
         ///////////////////////////////////////////////////////////////////////
         double m_TargetRotatorAz {-1};
+        bool m_HasMotorPower {false};
+        // Motor power currently set in the controller
+        double m_MovePower {-1};
+        double m_StopPower {-1};
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
