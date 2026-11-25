@@ -72,6 +72,8 @@ class Esatto : public INDI::Focuser
         uint32_t m_CalibrationCount { 0 };
         bool m_CalibrationCountKnown { false };
         // After an aborted or incomplete calibration the position is off: moves wait for a completed one
+        // (in memory only: after an abort the focuser reports CAL_STATUS "stop" and a CAL_NUMOF like at any other
+        // time, so a restarted driver cannot tell)
         bool m_ZeroInvalid { false };
         double m_LastTemperature[2] = {-1, -1};
         double m_LastVoltage[2] = {-1, -1};

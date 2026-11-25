@@ -31,6 +31,11 @@ static std::unique_ptr<Esatto> sesto(new Esatto());
 
 static const char *ENVIRONMENT_TAB  = "Environment";
 
+// The way out of the lock after an incomplete calibration. The web interface also calibrates away from the sensor.
+static const char *CALIBRATE_HINT = "Calibrate it from the ESATTO web interface, or here with the focuser still fully "
+                                    "in at its sensor. Restarting the driver lifts the lock, but does not correct the "
+                                    "position.";
+
 Esatto::Esatto()
 {
     setVersion(1, 1);
@@ -172,14 +177,23 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
         else if (!m_Esatto->isHallSensorDetected(atSensor) || !atSensor)
         {
-            LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
+            // After an incomplete calibration the focuser cannot be moved to its sensor from here
+            if (isZeroPositionValid())
+                LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
+            else
+                LOGF_ERROR("The focuser is not at its sensor, and moves are locked after an incomplete calibration. %s",
+                           CALIBRATE_HINT);
             CalibrationSP.setState(IPS_ALERT);
         }
         // The web interface asks whether the focuser is in or out when its sensor is active and sends another
         // request for a focuser fully out. Only the one for a focuser fully in has been seen on a device.
         else if (FocusMaxPosNP[0].getValue() > 0 && FocusAbsPosNP[0].getValue() > FocusMaxPosNP[0].getValue() / 2)
         {
-            LOG_ERROR("The focuser is not fully in. Move it fully in until its sensor is active, then calibrate.");
+            if (isZeroPositionValid())
+                LOG_ERROR("The focuser is not fully in. Move it fully in until its sensor is active, then calibrate.");
+            else
+                LOGF_ERROR("The focuser is not fully in, and moves are locked after an incomplete calibration. %s",
+                           CALIBRATE_HINT);
             CalibrationSP.setState(IPS_ALERT);
         }
         else
@@ -308,7 +322,7 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
     // A move after an aborted calibration ran 60 s against the inner end of an ESATTO 2", its position counting up
     if (!isZeroPositionValid())
     {
-        LOG_ERROR("The position is not valid after an incomplete calibration. Calibrate the focuser before moving it.");
+        LOGF_ERROR("The position is not valid after an incomplete calibration. %s", CALIBRATE_HINT);
         return IPS_ALERT;
     }
 
@@ -354,7 +368,8 @@ bool Esatto::AbortFocuser()
         m_ZeroInvalid = true;
         CalibrationSP.setState(IPS_ALERT);
         CalibrationSP.apply();
-        LOG_WARN("Focuser calibration aborted. Its zero position is no longer valid: calibrate again before moving.");
+        LOGF_WARN("Focuser calibration aborted. Its zero position is no longer valid, moves are locked. %s",
+                  CALIBRATE_HINT);
     }
 
     return m_Esatto->stop();
@@ -401,7 +416,8 @@ void Esatto::TimerHit()
                 {
                     m_ZeroInvalid = true;
                     CalibrationSP.setState(IPS_ALERT);
-                    LOG_ERROR("The focuser calibration did not complete. Its zero position may be off: calibrate again.");
+                    LOGF_ERROR("The focuser calibration did not complete. Its zero position may be off, moves are "
+                               "locked. %s", CALIBRATE_HINT);
                 }
                 CalibrationSP.apply();
             }

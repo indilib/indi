@@ -15,8 +15,9 @@
     - The focuser calibration only starts at the sensor, blocks moves and a second start, and ends with CAL_STATUS.
       It is complete only if CAL_NUMOF rose; an abort ends it in Alert, and moves wait until the firmware reports
       CAL_STATUS "stop", also for a calibration started elsewhere. After an aborted or incomplete calibration moves
-      wait until a calibration has completed (CAL_NUMOF rose). A move to the current position sends nothing, but one
-      to the last polled position while the focuser moves or brakes, or after it stopped elsewhere, is sent.
+      wait until a calibration has completed (CAL_NUMOF rose), and the messages name the web interface as the way out.
+      A move to the current position sends nothing, but one to the last polled position while the focuser moves or
+      brakes, or after it stopped elsewhere, is sent.
 
     The drivers talk to a fake device on a pseudo terminal. Requests and replies are JSON objects ({"req": ...} and
     {"res": ...}, replies end with CR LF). The replies have the shape the driver's parser expects, as in an earlier
@@ -835,6 +836,32 @@ void checkCalibrationElsewhereEndsTheLock(Driver &driver, FakePrimaLuce &device)
             << "A calibration completed elsewhere did not end the lock";
 }
 
+// After an aborted calibration away from the sensor, moves are locked and the calibration needs the sensor: the
+// messages name the way out (the web interface) instead of asking to move the focuser to its sensor.
+template <class Driver>
+void checkLockedAwayFromSensorNamesWayOut(Driver &driver, FakePrimaLuce &device)
+{
+    driver.startCalibration();
+    driver.poll();
+    driver.abort();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    device.set("MOT1", "HSENDET", 0);
+    device.takeWrites();
+
+    Published published;
+    driver.moveTo(30000);
+    driver.startCalibration();
+    std::vector<json> writes = device.takeWrites();
+    std::vector<std::string> messages = published.messages();
+
+    EXPECT_TRUE(writesTo(writes, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move was sent after the abort";
+    EXPECT_TRUE(writesTo(writes, "set", "MOT1", "CAL_STATUS").empty()) << "A calibration was started off the sensor";
+    EXPECT_EQ(driver.switchState("FOCUS_CALIBRATION"), IPS_ALERT);
+    EXPECT_TRUE(anyContains(messages, "moves are locked after an incomplete calibration"));
+    EXPECT_FALSE(anyContains(messages, "Move the focuser fully in")) << "Asked for a move that is refused";
+    EXPECT_TRUE(anyContains(messages, "ESATTO web interface")) << "No way out was named";
+}
+
 // A calibration that returned to "stop" without a higher CAL_NUMOF also leaves the position invalid: moves are refused.
 template <class Driver>
 void checkIncompleteCalibrationLocksMoves(Driver &driver, FakePrimaLuce &device)
@@ -1232,6 +1259,16 @@ TEST(EsattoTest, moveToCurrentPositionSendsNothing)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkMoveToCurrentPositionSendsNothing(driver, device);
+}
+
+TEST(EsattoTest, lockedAwayFromSensorNamesWayOut)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkLockedAwayFromSensorNamesWayOut(driver, device);
 }
 
 TEST(EsattoTest, moveBackWhileMovingIsSent)
@@ -1778,6 +1815,16 @@ TEST(EsattoArcoTest, moveToCurrentPositionSendsNothing)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkMoveToCurrentPositionSendsNothing(*arco, device);
+}
+
+TEST(EsattoArcoTest, lockedAwayFromSensorNamesWayOut)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkLockedAwayFromSensorNamesWayOut(*arco, device);
 }
 
 TEST(EsattoArcoTest, moveBackWhileMovingIsSent)

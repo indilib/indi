@@ -93,6 +93,8 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         uint32_t m_CalibrationCount { 0 };
         bool m_CalibrationCountKnown { false };
         // After an aborted or incomplete calibration the position is off: moves wait for a completed one
+        // (in memory only: after an abort the focuser reports CAL_STATUS "stop" and a CAL_NUMOF like at any other
+        // time, so a restarted driver cannot tell)
         bool m_ZeroInvalid { false };
 
         // The Arco can report a stop short of the target and correct the rest a moment later.
