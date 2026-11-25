@@ -64,7 +64,7 @@ static const char *calibrateHint(bool lowProfile)
 
 EsattoArco::EsattoArco() : RotatorInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Focuser capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -965,16 +965,17 @@ bool EsattoArco::Ack()
         return false;
     }
 
-    const bool wasEnabled = m_Arco->isEnabled();
-
-    if (m_Arco->setEnabled(true) && !m_Arco->isEnabled())
+    // Connecting writes nothing the focuser already has: only enable a disabled Arco
+    if (!m_Arco->isEnabled())
     {
-        LOG_ERROR("Failed to enable ARCO rotator. Please check it is powered and connected.");
-        return false;
-    }
+        if (m_Arco->setEnabled(true) && !m_Arco->isEnabled())
+        {
+            LOG_ERROR("Failed to enable ARCO rotator. Please check it is powered and connected.");
+            return false;
+        }
 
-    if (!wasEnabled)
         LOG_WARN("The Arco was disabled and is enabled now. It has to be calibrated before use.");
+    }
 
     bool rc1 = m_Esatto->getSerialNumber(serial);
     bool rc2 = m_Esatto->getFirmwareVersion(firmware);

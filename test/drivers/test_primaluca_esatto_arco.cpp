@@ -1425,6 +1425,25 @@ TEST(EsattoArcoTest, connectWarnsAboutPowerAndDisabledArco)
     EXPECT_TRUE(anyContains(messages, "has to be calibrated")) << "No warning about the Arco calibration";
 }
 
+// Connecting writes nothing the focuser already has: an Arco that reports ARCO 1 is not enabled again. Seen on an
+// ESATTO 2" LP with an ARCO 2 (firmware 3.05.28): {"get":{"ARCO":1}}, then the driver sent {"set":{"ARCO":1}}.
+TEST(EsattoArcoTest, connectLeavesEnabledArcoAlone)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ArcoUnderTest &driver = *arco;
+
+    Published published;
+    bool connected = driver.connectTo(device.portName());
+    std::vector<std::string> messages = published.messages();
+    std::vector<json> writes = device.takeWrites();
+
+    ASSERT_TRUE(connected);
+    EXPECT_TRUE(writesTo(writes, "set", "", "ARCO").empty()) << "The enabled Arco was enabled again at connect";
+    EXPECT_FALSE(anyContains(messages, "has to be calibrated"));
+}
+
 // GoTo and Sync angles were cut to whole degrees although the Arco resolves one arc second.
 TEST(EsattoArcoTest, rotatorAnglesKeepTheirFraction)
 {
