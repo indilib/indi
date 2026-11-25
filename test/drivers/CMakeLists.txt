@@ -256,3 +256,18 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
     ADD_TEST(test_wanderer_eta test_wanderer_eta)
 ENDIF()
+
+# NexDome Beaver sync and motor power against a fake controller on a pseudo terminal (openpty).
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_nexdome_beaver
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/dome/nexdome_beaver.cpp"
+        test_nexdome_beaver.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_nexdome_beaver
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_nexdome_beaver test_nexdome_beaver)
+ENDIF()

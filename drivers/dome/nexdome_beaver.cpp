@@ -40,8 +40,8 @@ static std::unique_ptr<Beaver> dome(new Beaver());
 
 Beaver::Beaver()
 {
-    setVersion(1, 1);
-    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK);
+    setVersion(1, 2);
+    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_CAN_SYNC);
 
     setDomeConnection(CONNECTION_TCP | CONNECTION_SERIAL);
 }
@@ -102,6 +102,17 @@ bool Beaver::initProperties()
     RotatorSettingsNP[ROTATOR_ACCELERATION].fill("ROTATOR_ACCELERATION", "Acceleration (m/s^2)", "%.f", 1, 1000, 10, 500);
     RotatorSettingsNP[ROTATOR_TIMEOUT].fill("ROTATOR_TIMEOUT", "Timeout (s)", "%.f", 1, 1000, 10, 83);
     RotatorSettingsNP.fill(getDeviceName(), "ROTATOR_SETTINGS", "Settings", ROTATOR_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Rotator motor power
+    MotorPowerNP[MOTOR_MOVE_POWER].fill("MOTOR_MOVE_POWER", "Moving (%)", "%.f", 0, 100, 5, 100);
+    MotorPowerNP[MOTOR_STOP_POWER].fill("MOTOR_STOP_POWER", "Holding (%)", "%.f", 0, 30, 5, 0);
+    MotorPowerNP.fill(getDeviceName(), "ROTATOR_MOTOR_POWER", "Motor Power", ROTATOR_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Rotator disable holding power before parking
+    ParkHoldOffSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
+    ParkHoldOffSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
+    ParkHoldOffSP.fill(getDeviceName(), "ROTATOR_PARK_HOLD_OFF", "Hold Off on Park", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Shutter settings tab
@@ -169,6 +180,11 @@ bool Beaver::updateProperties()
         defineProperty(RotatorAbortSP);
         defineProperty(GotoHomeSP);
         defineProperty(RotatorSettingsNP);
+        if (m_HasMotorPower)
+        {
+            defineProperty(MotorPowerNP);
+            defineProperty(ParkHoldOffSP);
+        }
         defineProperty(RotatorStatusTP);
         if (shutterOnLine())
         {
@@ -189,6 +205,8 @@ bool Beaver::updateProperties()
         deleteProperty(HomePositionNP.getName());
         deleteProperty(HomeOptionsSP.getName());
         deleteProperty(RotatorSettingsNP.getName());
+        deleteProperty(MotorPowerNP.getName());
+        deleteProperty(ParkHoldOffSP.getName());
         deleteProperty(ShutterSettingsTimeoutNP.getName());
         deleteProperty(RotatorStatusTP.getName());
         deleteProperty(ShutterCalibrationSP.getName());
@@ -292,6 +310,14 @@ bool Beaver::echo()
     if (!rotatorGetSettings())
         return false;
 
+    // get current rotator motor power (only on controllers with a TMC2660 driver)
+    m_HasMotorPower = rotatorGetMotorPower();
+    // prefer the saved holding power, while parked the controller only reports the parked power
+    double savedStopPower = 0;
+    if (m_HasMotorPower && IUGetConfigNumber(getDeviceName(), MotorPowerNP.getName(),
+            MotorPowerNP[MOTOR_STOP_POWER].getName(), &savedStopPower) == 0)
+        MotorPowerNP[MOTOR_STOP_POWER].setValue(savedStopPower);
+
     // get current shutter settings
     if (shutterOnLine())
     {
@@ -346,6 +372,18 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     break;
             }
             RotatorCalibrationSP.apply();
+            return true;
+        }
+
+        /////////////////////////////////////////////
+        // Rotator Hold Off on Park
+        /////////////////////////////////////////////
+        if (ParkHoldOffSP.isNameMatch(name))
+        {
+            ParkHoldOffSP.update(states, names, n);
+            ParkHoldOffSP.setState(rotatorApplyMotorPower(isParked()) ? IPS_OK : IPS_ALERT);
+            ParkHoldOffSP.apply();
+            saveConfig(ParkHoldOffSP);
             return true;
         }
 
@@ -452,6 +490,18 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
                                        RotatorSettingsNP[ROTATOR_TIMEOUT].getValue()
                                                          ) ? IPS_OK : IPS_ALERT);
             RotatorSettingsNP.apply();
+            return true;
+        }
+
+        /////////////////////////////////////////////
+        // Rotator Motor Power
+        /////////////////////////////////////////////
+        if (MotorPowerNP.isNameMatch(name))
+        {
+            MotorPowerNP.update(values, names, n);
+            MotorPowerNP.setState(rotatorApplyMotorPower(isParked()) ? IPS_OK : IPS_ALERT);
+            MotorPowerNP.apply();
+            saveConfig(MotorPowerNP);
             return true;
         }
 
@@ -787,6 +837,12 @@ IPState Beaver::ControlShutter(ShutterOperation operation)
 bool Beaver::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
+    // Saved here as well, while parked the controller only holds the parked power
+    if (m_HasMotorPower)
+    {
+        MotorPowerNP.save(fp);
+        ParkHoldOffSP.save(fp);
+    }
     return true;
 }
 
@@ -821,6 +877,30 @@ bool Beaver::rotatorGetAz()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// sync rotator az position (no motion)
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::Sync(double az)
+{
+    uint16_t domeStatus = 0;
+    if (!getDomeStatus(domeStatus) || (domeStatus & DOME_STATUS_ROTATOR_MOVING))
+    {
+        LOG_ERROR("Cannot sync while rotator is moving");
+        return false;
+    }
+
+    char cmd[DRIVER_LEN] = {0};
+    double res = -1;
+    snprintf(cmd, DRIVER_LEN, "!dome setaz %.2f#", range360(az));
+    if (sendCommand(cmd, res) && res == 0)
+    {
+        LOGF_INFO("Dome synced to: %.2f", az);
+        return rotatorGetAz();
+    }
+    LOGF_ERROR("Problem syncing dome to: %.2f", az);
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// Set home offset
 /////////////////////////////////////////////////////////////////////////////
 bool Beaver::rotatorSetHome(double az)
@@ -842,6 +922,14 @@ bool Beaver::rotatorSetHome(double az)
 IPState Beaver::Park()
 {
     double res;
+    // set parked holding power first, applied at once and again when the park motion ends.
+    // Save the holding power to config before that, while parked the controller only reports the parked power.
+    if (m_HasMotorPower)
+    {
+        saveConfig(MotorPowerNP);
+        if (!rotatorApplyMotorPower(true))
+            LOG_WARN("Could not set parked holding power");
+    }
     if (sendCommand("!dome gopark#", res))
     {
         std::string rStatus = "Parking";
@@ -857,6 +945,9 @@ IPState Beaver::Park()
 /////////////////////////////////////////////////////////////////////////////
 IPState Beaver::UnPark()
 {
+    // restore holding power, applied at once while the rotator is idle
+    if (m_HasMotorPower && !rotatorApplyMotorPower(false))
+        LOG_WARN("Could not restore holding power");
     std::string rStatus = "unParked";
     RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
@@ -1340,6 +1431,117 @@ bool Beaver::rotatorGetSettings()
     RotatorSettingsNP.apply();
 
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Rotator get motor power
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorGetMotorPower()
+{
+    double res;
+    if (!sendCommand("!tmc2660 getmovepow#", res))
+    {
+        LOG_DEBUG("Rotator does not report motor power");
+        return false;
+    }
+    else
+    {
+        MotorPowerNP[MOTOR_MOVE_POWER].setValue(res);
+        m_MovePower = res;
+        LOGF_DEBUG("Rotator reports moving power of: %.f", res);
+    }
+    if (!sendCommand("!tmc2660 getstoppow#", res))
+    {
+        LOG_ERROR("Problem getting rotator holding power");
+        return false;
+    }
+    else
+    {
+        MotorPowerNP[MOTOR_STOP_POWER].setValue(res);
+        m_StopPower = res;
+        LOGF_DEBUG("Rotator reports holding power of: %.f", res);
+    }
+    MotorPowerNP.apply();
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Rotator set motor power
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorSetMotorPower(double movePower, double stopPower)
+{
+    char cmd[DRIVER_LEN] = {0};
+    double res;
+
+    // nothing to write if the controller already has these values
+    if (movePower == m_MovePower && stopPower == m_StopPower)
+        return true;
+
+    snprintf(cmd, DRIVER_LEN, "!tmc2660 setmovepow %.f#", movePower);
+    if (!sendCommand(cmd, res))
+    {
+        LOG_ERROR("Problem setting rotator moving power");
+        return false;
+    }
+    m_MovePower = movePower;
+    snprintf(cmd, DRIVER_LEN, "!tmc2660 setstoppow %.f#", stopPower);
+    if (!sendCommand(cmd, res))
+    {
+        LOG_ERROR("Problem setting rotator holding power");
+        return false;
+    }
+    m_StopPower = stopPower;
+    if(!sendCommand("!seletek savefs#", res))
+    {
+        LOG_ERROR("dome could not savefs");
+        return false;
+    }
+
+    // the controller applies holding power when a motion ends, apply it now if the rotator is idle.
+    // Not while loading the configuration, that must never power the motor.
+    uint16_t domeStatus = 0;
+    if (!isConfigLoading() && getDomeStatus(domeStatus) && !(domeStatus & DOME_STATUS_ROTATOR_MOVING))
+    {
+        if (!rotatorApplyStopPower(stopPower))
+        {
+            LOG_ERROR("Problem applying rotator holding power");
+            return false;
+        }
+        LOGF_INFO("Rotator motor power set to moving %.f%%, holding %.f%%", movePower, stopPower);
+    }
+    else
+        LOGF_INFO("Rotator motor power set to moving %.f%%, holding %.f%%. Holding power applies when the move ends.",
+                  movePower, stopPower);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Rotator apply holding power now (rotator must be idle)
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorApplyStopPower(double stopPower)
+{
+    double res;
+    // disable switches the motor driver off
+    if (stopPower == 0)
+        return sendCommand("!tmc2660 disable#", res) && res >= 0;
+
+    // estop while idle only applies the holding current, enable switches the driver on if it was off
+    if (!sendCommand("!tmc2660 estop#", res) || res < 0)
+        return false;
+    return sendCommand("!tmc2660 enable#", res) && res >= 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Rotator apply motor power for parked or unparked state
+/////////////////////////////////////////////////////////////////////////////
+bool Beaver::rotatorApplyMotorPower(bool parked)
+{
+    double stopPower = MotorPowerNP[MOTOR_STOP_POWER].getValue();
+    if (parked && ParkHoldOffSP[INDI_ENABLED].getState() == ISS_ON)
+        stopPower = 0;
+    return rotatorSetMotorPower(MotorPowerNP[MOTOR_MOVE_POWER].getValue(), stopPower);
 }
 
 /////////////////////////////////////////////////////////////////////////////
