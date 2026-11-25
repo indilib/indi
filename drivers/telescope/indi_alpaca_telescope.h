@@ -39,6 +39,8 @@ class alpacaTelescopeDriver : public INDI::Telescope
 
         virtual const char *getDefaultName() override;
         virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool updateProperties() override;
         virtual bool Connect() override;
         virtual bool Disconnect() override;
@@ -108,7 +110,7 @@ class alpacaTelescopeDriver : public INDI::Telescope
 
         // HTTP client for Alpaca communication
         std::unique_ptr<httplib::Client> httpClient;
-        int m_DeviceNumber{0};
+        INDI::PropertyNumber DeviceNumberNP {1};
         int m_ClientID;
         int m_TransactionID{0};
 
