@@ -716,8 +716,11 @@ IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
-    // Nothing to send for a move to the current position
-    if (targetTicks == FocusAbsPosNP[0].getValue())
+    // Nothing to send for a move to where the focuser stands. The last poll is not where it ends while it moves, or
+    // brakes after an abort: only skip for a motor at rest whose position, read again, is the target.
+    uint32_t position = 0;
+    if (targetTicks == FocusAbsPosNP[0].getValue() && FocusAbsPosNP.getState() != IPS_BUSY && !m_Esatto->isBusy()
+            && m_Esatto->getAbsolutePosition(position) && position == targetTicks)
         return IPS_OK;
 
     if (m_Esatto->goAbsolutePosition(targetTicks))

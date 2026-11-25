@@ -15,7 +15,8 @@
     - The focuser calibration only starts at the sensor, blocks moves and a second start, and ends with CAL_STATUS.
       It is complete only if CAL_NUMOF rose; an abort ends it in Alert, and moves wait until the firmware reports
       CAL_STATUS "stop", also for a calibration started elsewhere. After an aborted or incomplete calibration moves
-      wait until a calibration has completed (CAL_NUMOF rose). A move to the current position sends nothing.
+      wait until a calibration has completed (CAL_NUMOF rose). A move to the current position sends nothing, but one
+      to the last polled position while the focuser moves or brakes, or after it stopped elsewhere, is sent.
 
     The drivers talk to a fake device on a pseudo terminal. Requests and replies are JSON objects ({"req": ...} and
     {"res": ...}, replies end with CR LF). The replies have the shape the driver's parser expects, as in an earlier
@@ -866,6 +867,50 @@ void checkMoveToCurrentPositionSendsNothing(Driver &driver, FakePrimaLuce &devic
     EXPECT_EQ(states.back(), "Ok");
 }
 
+// A move back to the start while the focuser still moves, or right after an abort while it still brakes, is sent:
+// the last polled position is not where the focuser ends. Without it the focuser stayed at the old target, and the
+// move was reported Ok.
+template <class Driver>
+void checkMoveBackWhileMovingIsSent(Driver &driver, FakePrimaLuce &device)
+{
+    driver.moveTo(30000);
+    device.set("MOT1", "STATUS", FakePrimaLuce::moving());
+    driver.poll();
+    device.takeWrites();
+
+    Published whileMoving;
+    driver.moveTo(10000);
+    std::vector<json> movingWrites = device.takeWrites();
+    std::vector<std::string> movingStates = whileMoving.states("ABS_FOCUS_POSITION");
+
+    // Abort at 20000, the motor brakes on: the position property is no longer Busy, but the motor still moves
+    device.set("MOT1", "ABS_POS_STEP", 20000);
+    driver.poll();
+    driver.abort();
+    device.set("MOT1", "STATUS", {{"BUSY", 0}, {"MST", "dec"}});
+    device.takeWrites();
+    driver.moveTo(20000);
+    std::vector<json> brakingWrites = device.takeWrites();
+
+    // Stopped at 20400 after the abort, the last poll saw 20000
+    device.set("MOT1", "ABS_POS_STEP", 20400);
+    device.set("MOT1", "STATUS", FakePrimaLuce::stopped());
+    driver.abort();
+    device.takeWrites();
+    driver.moveTo(20000);
+    std::vector<json> stoppedWrites = device.takeWrites();
+
+    std::vector<json> moves = writesTo(movingWrites, "cmd", "MOT1", "MOVE_ABS");
+    ASSERT_EQ(moves.size(), 1u) << "A move back to the start was not sent while the focuser moved";
+    EXPECT_EQ(moves[0]["STEP"], 10000);
+    ASSERT_FALSE(movingStates.empty());
+    EXPECT_EQ(movingStates.back(), "Busy") << "A move that was not sent was reported";
+    EXPECT_EQ(writesTo(brakingWrites, "cmd", "MOT1", "MOVE_ABS").size(), 1u)
+            << "A move to the last polled position was not sent while the motor braked after an abort";
+    EXPECT_EQ(writesTo(stoppedWrites, "cmd", "MOT1", "MOVE_ABS").size(), 1u)
+            << "A move to the last polled position was not sent although the focuser stopped elsewhere";
+}
+
 // A calibration the driver did not start (web interface, hand pad, or still running after an abort before a
 // reconnect) also refuses moves and a new start.
 template <class Driver>
@@ -1187,6 +1232,15 @@ TEST(EsattoTest, moveToCurrentPositionSendsNothing)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkMoveToCurrentPositionSendsNothing(driver, device);
+}
+
+TEST(EsattoTest, moveBackWhileMovingIsSent)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkMoveBackWhileMovingIsSent(driver, device);
 }
 
 TEST(EsattoTest, outerSensorIsRefused)
@@ -1724,6 +1778,15 @@ TEST(EsattoArcoTest, moveToCurrentPositionSendsNothing)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkMoveToCurrentPositionSendsNothing(*arco, device);
+}
+
+TEST(EsattoArcoTest, moveBackWhileMovingIsSent)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkMoveBackWhileMovingIsSent(*arco, device);
 }
 
 TEST(EsattoArcoTest, outerSensorIsRefused)
