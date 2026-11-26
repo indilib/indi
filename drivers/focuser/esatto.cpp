@@ -31,12 +31,11 @@ static std::unique_ptr<Esatto> sesto(new Esatto());
 
 static const char *ENVIRONMENT_TAB  = "Environment";
 
-// The way out of the lock after an incomplete calibration. The web interface also calibrates away from the sensor.
-// Only an LP can also be calibrated here: a model with a sensor at each end is told apart only by the position, which
-// the lock calls invalid.
-static const char *CALIBRATE_HINT_LP = "Calibrate it from the ESATTO web interface, or here with the focuser still "
-                                       "fully in at its sensor. Restarting the driver lifts the lock, but does not "
-                                       "correct the position.";
+// The way out of the lock after an incomplete calibration. An LP is also calibrated here, away from its sensor with
+// "exec". A model with a sensor at each end only from the web interface: while locked, only the position tells its
+// two ends apart, and the lock calls it invalid.
+static const char *CALIBRATE_HINT_LP = "Calibrate it here or from the ESATTO web interface. Restarting the driver "
+                                       "lifts the lock, but does not correct the position.";
 static const char *CALIBRATE_HINT = "Calibrate it from the ESATTO web interface. Restarting the driver lifts the lock, "
                                     "but does not correct the position.";
 
@@ -47,7 +46,7 @@ static const char *calibrateHint(bool lowProfile)
 
 Esatto::Esatto()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -172,7 +171,9 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             return true;
         }
 
-        // The web interface only calibrates with the focuser fully in, where its sensor is active
+        // Like the web interface: at the active sensor with the focuser fully in, or away from the sensor with
+        // "exec", which on an LP moves in to the sensor first. Away from the sensor the other models calibrate
+        // the whole travel, which was never tried, so they still have to be moved in by hand.
         bool atSensor = false;
         if (FocusAbsPosNP.getState() == IPS_BUSY)
         {
@@ -192,7 +193,7 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                        "tell at which end the focuser is. %s", calibrateHint(false));
             CalibrationSP.setState(IPS_ALERT);
         }
-        else if (!m_Esatto->isHallSensorDetected(atSensor) || !atSensor)
+        else if (!m_Esatto->isHallSensorDetected(atSensor) || (!atSensor && !m_LowProfile))
         {
             // After an incomplete calibration the focuser cannot be moved to its sensor from here
             if (isZeroPositionValid())
@@ -204,7 +205,8 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
         // The web interface asks whether the focuser is in or out when its sensor is active and sends another
         // request for a focuser fully out. Only the one for a focuser fully in has been seen on a device.
-        else if (FocusMaxPosNP[0].getValue() > 0 && FocusAbsPosNP[0].getValue() > FocusMaxPosNP[0].getValue() / 2)
+        else if (atSensor && FocusMaxPosNP[0].getValue() > 0 &&
+                 FocusAbsPosNP[0].getValue() > FocusMaxPosNP[0].getValue() / 2)
         {
             if (isZeroPositionValid())
                 LOG_ERROR("The focuser is not fully in. Move it fully in until its sensor is active, then calibrate.");
@@ -216,9 +218,10 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         else
         {
             m_CalibrationCountKnown = m_Esatto->getCalibrationCount(m_CalibrationCount);
-            if (m_Esatto->calibrate())
+            if (atSensor ? m_Esatto->calibrate() : m_Esatto->calibrateToSensor())
             {
-                LOG_INFO("Calibrating the focuser. Please wait.");
+                LOG_INFO(atSensor ? "Calibrating the focuser. Please wait." :
+                         "The focuser moves in to its sensor and calibrates there. Please wait.");
                 m_MoveStartPosition = FocusAbsPosNP[0].getValue();
                 m_MoveTimer.start();
                 CalibrationSP.setState(IPS_BUSY);
