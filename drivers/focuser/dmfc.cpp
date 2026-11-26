@@ -38,7 +38,7 @@ static std::unique_ptr<DMFC> dmfc(new DMFC());
 
 DMFC::DMFC()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
@@ -114,24 +114,33 @@ bool DMFC::initProperties()
 
 void DMFC::ISGetProperties(const char *dev)
 {
+    // Read the config for the first client only. A motor type change takes effect on the next
+    // connection, so another client connecting must not change the capability of a connected focuser.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Focuser::ISGetProperties(dev);
-    int configSwitch = MOTOR_STEPPER;
 
-    // Try to read config value for motor type
-    // If relative, then update the capability of the focuser as such.
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), MotorTypeSP.getName(), &configSwitch) == 0)
+    if (firstClient)
     {
-        // We are only relative focuser now.
-        if (configSwitch == MOTOR_DC)
-            FI::SetCapability(GetCapability() & ~(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
-        else
-            FI::SetCapability(GetCapability() | (FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+        int configSwitch = MOTOR_STEPPER;
 
-        MotorTypeSP.setState(IPS_OK);
+        // Try to read config value for motor type
+        // If relative, then update the capability of the focuser as such.
+        if (IUGetConfigOnSwitchIndex(getDeviceName(), MotorTypeSP.getName(), &configSwitch) == 0)
+        {
+            // We are only relative focuser now.
+            if (configSwitch == MOTOR_DC)
+                FI::SetCapability(GetCapability() & ~(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+            else
+                FI::SetCapability(GetCapability() | (FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+
+            MotorTypeSP.setState(IPS_OK);
+        }
+
+        MotorTypeSP.reset();
+        MotorTypeSP[configSwitch].setState(ISS_ON);
     }
 
-    MotorTypeSP.reset();
-    MotorTypeSP[configSwitch].setState(ISS_ON);
     defineProperty(MotorTypeSP);
 }
 

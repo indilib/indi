@@ -43,6 +43,20 @@ TARGET_LINK_LIBRARIES(test_telescope_simulator
 )
 ADD_TEST(test_telescope_simulator test_telescope_simulator)
 
+ADD_EXECUTABLE(test_first_client_config
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/focuser/focus_simulator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/weather/weatherwatcher.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/weather/aagsolo.cpp"
+    test_first_client_config.cpp
+)
+TARGET_LINK_LIBRARIES(test_first_client_config
+    indidriver
+    ${CURL}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_first_client_config test_first_client_config)
+
 ADD_EXECUTABLE(test_dome_shutter_park_policy
     test_dome_shutter_park_policy.cpp
 )
@@ -52,6 +66,16 @@ TARGET_LINK_LIBRARIES(test_dome_shutter_park_policy
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_dome_shutter_park_policy test_dome_shutter_park_policy)
+
+ADD_EXECUTABLE(test_power_interface
+    test_power_interface.cpp
+)
+TARGET_LINK_LIBRARIES(test_power_interface
+    indidriver
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_power_interface test_power_interface)
 
 ADD_EXECUTABLE(test_connection_serial
     test_connection_serial.cpp
@@ -85,6 +109,58 @@ TARGET_LINK_LIBRARIES(test_lx200_onstep
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_lx200_onstep test_lx200_onstep)
+
+# The Pegasus NYX-101 driver lives in indi_lx200generic as well.
+ADD_EXECUTABLE(test_lx200_pegasus_nyx101
+    ${LX200GENERIC_SOURCES}
+    test_lx200_pegasus_nyx101.cpp
+)
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_lx200_pegasus_nyx101 PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_lx200_pegasus_nyx101
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_lx200_pegasus_nyx101 test_lx200_pegasus_nyx101)
+
+ADD_EXECUTABLE(test_lx200_coordinates
+    ${LX200GENERIC_SOURCES}
+    test_lx200_coordinates.cpp
+)
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_lx200_coordinates PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_lx200_coordinates
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_lx200_coordinates test_lx200_coordinates)
+
+# Mount drivers outside indi_lx200generic
+SET(MOUNT_COORDINATES_SOURCES
+    rainbow.cpp lx200driver.cpp crux_mount.cpp)
+LIST(TRANSFORM MOUNT_COORDINATES_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/")
+ADD_EXECUTABLE(test_mount_coordinates
+    ${MOUNT_COORDINATES_SOURCES}
+    test_mount_coordinates.cpp
+)
+# Like indi_rainbow_telescope, but not on FreeBSD and macOS, where _XOPEN_SOURCE hides cfmakeraw() and mkdtemp()
+IF(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD|FreeBSD|Darwin")
+    TARGET_COMPILE_DEFINITIONS(test_mount_coordinates PRIVATE _XOPEN_SOURCE=700)
+ENDIF()
+TARGET_LINK_LIBRARIES(test_mount_coordinates
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_mount_coordinates test_mount_coordinates)
+
 # Excalibur handshake against fake devices on pseudo terminals (openpty).
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ADD_EXECUTABLE(test_excalibur
@@ -112,6 +188,44 @@ TARGET_LINK_LIBRARIES(test_pegasus_flatmaster_neo
     ${CMAKE_THREAD_LIBS_INIT}
 )
 ADD_TEST(test_pegasus_flatmaster_neo test_pegasus_flatmaster_neo)
+
+ADD_EXECUTABLE(test_seestar_ccd
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/ccd/indi_seestar_ccd.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/ccd/indi_alpaca_ccd.cpp"
+    test_seestar_ccd.cpp
+)
+TARGET_COMPILE_DEFINITIONS(test_seestar_ccd PRIVATE INDI_ALPACA_CCD_NO_INSTANCE)
+TARGET_LINK_LIBRARIES(test_seestar_ccd
+    indidriver
+    ${HTTPLIB_LIBRARY}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_seestar_ccd test_seestar_ccd)
+# Pegasus Ultimate Powerbox against a fake UPB v2 on a pseudo terminal (openpty).
+ADD_EXECUTABLE(test_pegasus_upb
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/power/pegasus_upb.cpp"
+    test_pegasus_upb.cpp
+)
+TARGET_LINK_LIBRARIES(test_pegasus_upb
+    indidriver
+    util
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_pegasus_upb test_pegasus_upb)
+
+ADD_EXECUTABLE(test_alpaca_telescope
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/indi_alpaca_telescope.cpp"
+    test_alpaca_telescope.cpp
+)
+TARGET_LINK_LIBRARIES(test_alpaca_telescope
+    indidriver
+    ${HTTPLIB_LIBRARY}
+    ${GTEST_BOTH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+ADD_TEST(test_alpaca_telescope test_alpaca_telescope)
 
 ADD_EXECUTABLE(test_avalon_upas
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/auxiliary/avalon_upas.cpp"

@@ -40,7 +40,7 @@ std::unique_ptr<SeestarCCD> seestar_ccd(new SeestarCCD());
 ////////////////////////////////////////////////////////////////////////////////////////////
 SeestarCCD::SeestarCCD()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,15 +180,14 @@ bool SeestarCCD::parseImageBytesMetadata(ImageBytesMetadata* metadata, size_t bo
               metadata->Rank, metadata->Dimension1, metadata->Dimension2, metadata->Dimension3,
               metadata->TransmissionElementType, metadata->DataStart);
 
-    // Apply Seestar-specific workarounds
-    // Bug #1: Dimension1 and Dimension2 are swapped
-    // - Rank field is correct (2 for monochrome)
-    // - Dimension1 contains Height (1080) instead of Width
-    // - Dimension2 contains Width (1920) instead of Height
-    // - Dimension3 is correct (0 for 2D images)
-    int32_t actual_rank = metadata->Rank;           // Rank is correct
-    int32_t actual_width = metadata->Dimension2;    // Width is in Dimension2
-    int32_t actual_height = metadata->Dimension1;   // Height is in Dimension1
+    // Dimensions follow the Alpaca specification: Dimension1 is X (width, 1080 = CameraXSize) and
+    // Dimension2 is Y (height, 1920 = CameraYSize), with Y varying fastest in the data. A real S50
+    // (camera driver "Camera V3" 1.3.1-1) sends each 1920-pixel sensor line as one block of Y values.
+    // They were swapped here while the base class copied the data without transposing it; since the
+    // base class transposes ImageBytes data as the specification requires, a swap cuts the lines apart.
+    int32_t actual_rank = metadata->Rank;
+    int32_t actual_width = metadata->Dimension1;
+    int32_t actual_height = metadata->Dimension2;
 
     // Validate the corrected values
     if (actual_rank < 2 || actual_rank > 3)

@@ -38,7 +38,7 @@
 
 LX200GotoNova::LX200GotoNova()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     setLX200Capability(LX200_HAS_FOCUS);
 

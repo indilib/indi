@@ -27,7 +27,8 @@ if [[ -n "${2}" ]]; then
     fi
 fi
 
-if [[ ! -f "${FILE_TO_CHECK}" ]] || [[ ! "${FILE_TO_CHECK}" =~ (.*?)\.(cxx|cpp|c|h)$ ]]; then
+# No "(.*?)" here: the macOS regex library rejects it as invalid, and the test then fails for every file.
+if [[ ! -f "${FILE_TO_CHECK}" ]] || [[ ! "${FILE_TO_CHECK}" =~ \.(cxx|cpp|c|h)$ ]]; then
     exit ${RC}
 fi
 

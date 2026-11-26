@@ -97,15 +97,14 @@ SpectraCyber::SpectraCyber()
 *****************************************************************/
 void SpectraCyber::ISGetProperties(const char *dev)
 {
-    static int propInit = 0;
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
 
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    if (propInit == 0)
+    if (firstClient)
     {
         loadConfig();
-
-        propInit = 1;
 
         auto tProp = getText("ACTIVE_DEVICES");
 

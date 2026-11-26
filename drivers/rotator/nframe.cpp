@@ -36,7 +36,7 @@ static std::unique_ptr<nFrameRotator> rotator(new nFrameRotator());
 
 nFrameRotator::nFrameRotator()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     RI::SetCapability(ROTATOR_CAN_ABORT |
                       ROTATOR_CAN_SYNC
                      );
@@ -661,8 +661,12 @@ bool nFrameRotator::setSpeedRange(uint32_t min, uint32_t max)
 
 void nFrameRotator::ISGetProperties(const char *dev)
 {
+    // Load the config for the first client only, so another client connecting does not revert changes.
+    const bool firstClient = !isInitializationComplete();
+
     INDI::Rotator::ISGetProperties(dev);
 
-    SettingNP.load();
+    if (firstClient)
+        SettingNP.load();
 }
 

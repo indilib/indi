@@ -36,7 +36,7 @@ alpacaTelescopeDriver::alpacaTelescopeDriver()
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
-    setVersion(1, 0);
+    setVersion(1, 2);
     SetTelescopeCapability(
         TELESCOPE_CAN_GOTO |
         TELESCOPE_CAN_SYNC |
@@ -63,6 +63,10 @@ bool alpacaTelescopeDriver::initProperties()
     tcpConnection->setDefaultHost("alpaca.local");
     tcpConnection->setDefaultPort(32323);
 
+    DeviceNumberNP[0].fill("DEVICE_NUMBER", "Device Number", "%.0f", 0, 10, 1, 0);
+    DeviceNumberNP.fill(getDeviceName(), "DEVICE_NUMBER", "Alpaca Device", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+    DeviceNumberNP.load();
+
     // Device info
     DeviceInfoTP[DESCRIPTION].fill("DESCRIPTION", "Description", "");
     DeviceInfoTP[DRIVER_INFO].fill("DRIVER_INFO", "Driver Info", "");
@@ -79,6 +83,39 @@ bool alpacaTelescopeDriver::initProperties()
     addDebugControl();
 
     return true;
+}
+
+void alpacaTelescopeDriver::ISGetProperties(const char *dev)
+{
+    INDI::Telescope::ISGetProperties(dev);
+    defineProperty(DeviceNumberNP);
+}
+
+bool alpacaTelescopeDriver::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (isDeviceNameMatch(dev) && DeviceNumberNP.isNameMatch(name))
+    {
+        if (isConnected())
+        {
+            // Loading the config after connecting can send the current value again.
+            if (n > 0 && values[0] != DeviceNumberNP[0].getValue())
+                LOG_WARN("Cannot change Alpaca device number while connected.");
+            DeviceNumberNP.setState(IPS_IDLE);
+        }
+        else if (DeviceNumberNP.update(values, names, n))
+        {
+            DeviceNumberNP.setState(IPS_OK);
+            saveConfig();
+            LOG_INFO("Alpaca device number updated.");
+        }
+        else
+            DeviceNumberNP.setState(IPS_ALERT);
+
+        DeviceNumberNP.apply();
+        return true;
+    }
+
+    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
 bool alpacaTelescopeDriver::updateProperties()
@@ -188,16 +225,16 @@ bool alpacaTelescopeDriver::Handshake()
     DeviceInfoTP.apply();
 
     // Query alignment mode to determine mount behavior
-    // 0 = algPolar (equatorial), 1 = algAltAz, 2 = algGermanPolar
+    // ASCOM AlignmentModes: 0 = algAltAz, 1 = algPolar (equatorial other than German), 2 = algGermanPolar
     if (sendAlpacaGET("/alignmentmode", response) && response.contains("Value"))
     {
         int alignmentMode = response["Value"].get<int>();
-        if (alignmentMode == 1)
+        if (alignmentMode == 0)
         {
             LOG_INFO("Telescope alignment mode: Alt-Az (no meridian flips)");
             setMountType(MOUNT_ALTAZ);
         }
-        else if (alignmentMode == 0)
+        else if (alignmentMode == 1)
         {
             LOG_INFO("Telescope alignment mode: Equatorial (Fork mount - no meridian flips)");
             setMountType(MOUNT_EQ_FORK);
@@ -340,7 +377,12 @@ bool alpacaTelescopeDriver::Handshake()
     TrackModeSP.resize(0);
     if (sendAlpacaGET("/trackingrates", response) && response.contains("Value") && response["Value"].is_array())
     {
-        static const struct { int rate; const char *name; const char *label; } alpacaRates[] =
+        static const struct
+        {
+            int rate;
+            const char *name;
+            const char *label;
+        } alpacaRates[] =
         {
             {0, "TRACK_SIDEREAL", "Sidereal"},
             {1, "TRACK_LUNAR", "Lunar"},
@@ -846,6 +888,7 @@ bool alpacaTelescopeDriver::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand comma
 bool alpacaTelescopeDriver::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
+    DeviceNumberNP.save(fp);
     return true;
 }
 
@@ -911,7 +954,7 @@ bool alpacaTelescopeDriver::updateTime(ln_date *utc, double utc_offset)
 // Alpaca helper methods
 std::string alpacaTelescopeDriver::getAlpacaURL(const std::string& endpoint)
 {
-    return "/api/v1/telescope/" + std::to_string(m_DeviceNumber) + endpoint;
+    return "/api/v1/telescope/" + std::to_string(static_cast<int>(DeviceNumberNP[0].getValue())) + endpoint;
 }
 
 bool alpacaTelescopeDriver::sendAlpacaGET(const std::string& endpoint, nlohmann::json& response)

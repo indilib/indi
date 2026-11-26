@@ -211,7 +211,7 @@ static class Loader
 
 LX200Generic::LX200Generic()
 {
-    setVersion(2, 1);
+    setVersion(2, 2);
 
     currentSiteNum = 1;
     trackingMode   = LX200_TRACK_SIDEREAL;

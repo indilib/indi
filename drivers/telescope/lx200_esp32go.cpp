@@ -32,9 +32,9 @@ extern std::mutex lx200CommsLock;
 
 LX200_esp32go::LX200_esp32go() : LX200Generic()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     trackingMode   = TRACK_SIDEREAL;
-    
+
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
