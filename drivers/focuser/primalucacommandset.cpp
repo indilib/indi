@@ -41,6 +41,28 @@
 namespace PrimalucaLabs
 {
 
+// The motor is still moving if BUSY=1 or MST is not yet "stop". The firmware can
+// report BUSY=0 while MST is still "dec", e.g. the Esatto braking at the end of a move.
+static bool isMotorBusy(const json &status)
+{
+    if (!status.is_object())
+        return false;
+
+    std::string mst;
+    if (status.contains("MST") && status["MST"].is_string())
+        status["MST"].get_to(mst);
+
+    const bool busy = status.contains("BUSY") && status["BUSY"] == 1;
+    return busy || (!mst.empty() && mst != "stop");
+}
+
+// CAL_STATUS is "stop" when idle. While calibrating the Arco reports "exec", the Esatto
+// the name of the running phase, e.g. "ManageCalibInMinPosWithSensorAct".
+static bool isCalibrationRunning(const std::string &status)
+{
+    return !status.empty() && status != "stop";
+}
+
 std::vector<std::string> split(const std::string &input, const std::string &regex)
 {
     // passing -1 as the submatch index parameter performs splitting
@@ -78,11 +100,12 @@ bool Communication::sendRequest(const json &command, json *response)
     do
     {
         memset(read_buf, 0, sizeof(read_buf));
-        if ( (tty_rc = tty_read_section(m_PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) != TTY_OK)
+        if ( (tty_rc = tty_nread_section(m_PortFD, read_buf, sizeof(read_buf) - 1, DRIVER_STOP_CHAR, DRIVER_TIMEOUT,
+                                         &nbytes_read)) != TTY_OK)
         {
             char errorMessage[MAXRBUF] = {0};
             tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-            LOGF_ERROR("Serial write error: %s", errorMessage);
+            LOGF_ERROR("Serial read error: %s", errorMessage);
             return false;
         }
     }
@@ -114,8 +137,7 @@ bool Communication::getStringAsDouble(NodeType type, const std::string &paramete
     std::string response;
     if (get(type, parameter, response))
     {
-        sscanf(response.c_str(), "%lf", &value);
-        return true;
+        return sscanf(response.c_str(), "%lf", &value) == 1;
     }
     return false;
 }
@@ -403,7 +425,15 @@ bool Focuser::getFirmwareVersion(std::string &response)
     json versions;
     if (m_Communication->get(GENERIC_NODE, "SWVERS", versions))
     {
-        versions["SWAPP"].get_to(response);
+        try
+        {
+            versions["SWAPP"].get_to(response);
+        }
+        catch (json::exception &e)
+        {
+            DEBUGFDEVICE(m_Communication->getDeviceName(), INDI::Logger::DBG_ERROR, "Unexpected firmware version reply: %s", e.what());
+            return false;
+        }
         return true;
     }
     return false;
@@ -580,18 +610,10 @@ bool SestoSenso3::goAbsolutePosition(uint32_t position)
 bool SestoSenso3::isBusy()
 {
     json status;
+    // The SS3 can transiently assert BUSY=0 while MST is still
+    // "CstSpeed" or "dec" during encoder-feedback transitions.
     if (m_Communication->get(MOT_1, "STATUS", status))
-    {
-        bool busy = (status["BUSY"] == 1);
-        std::string mst;
-        if (status.contains("MST"))
-            status["MST"].get_to(mst);
-        // Motor is still moving if BUSY=1, or if MST is not yet "stop".
-        // The SS3 can transiently assert BUSY=0 while MST is still
-        // "CstSpeed" or "dec" during encoder-feedback transitions.
-        bool motorStopped = mst.empty() || (mst == "stop");
-        return busy || !motorStopped;
-    }
+        return isMotorBusy(status);
     return false;
 }
 
@@ -767,6 +789,16 @@ bool SestoSenso3::stopCalibration()
  * Esatto functions
 *******************************************************************************************************/
 Esatto::Esatto(const std::string &name, int port) : Focuser(name, port) {}
+bool Esatto::isBusy()
+{
+    json status;
+    // The Esatto (firmware 3.05.28) reports BUSY=0 while MST is still "dec"
+    // and goes on braking for up to ~800 steps.
+    if (m_Communication->get(MOT_1, "STATUS", status))
+        return isMotorBusy(status);
+    return false;
+}
+
 bool Esatto::setBacklash(uint32_t steps)
 {
     return m_Communication->set(MOT_1, {{"BKLASH", steps}});
@@ -791,6 +823,35 @@ bool Esatto::getVoltageUSB(double &value)
 bool Esatto::getModel(std::string &model)
 {
     return m_Communication->get(GENERIC_NODE, "MODNAME", model);
+}
+
+bool Esatto::calibrate()
+{
+    return m_Communication->set(MOT_1, {{"CAL_STATUS", "ManageCalibInMinPosWithSensorAct"}});
+}
+
+bool Esatto::calibrateToSensor()
+{
+    return m_Communication->set(MOT_1, {{"CAL_STATUS", "exec"}});
+}
+
+bool Esatto::isLowProfile()
+{
+    std::string model;
+    return getModel(model) && model.find("LP") != std::string::npos;
+}
+
+bool Esatto::isCalibrating()
+{
+    std::string value;
+    if (m_Communication->get(MOT_1, "CAL_STATUS", value))
+        return isCalibrationRunning(value);
+    return false;
+}
+
+bool Esatto::getCalibrationCount(uint32_t &count)
+{
+    return m_Communication->get(MOT_1, "CAL_NUMOF", count);
 }
 
 /******************************************************************************************************
@@ -893,9 +954,7 @@ bool Arco::isBusy()
 {
     json status;
     if (m_Communication->get(MOT_2, "STATUS", status))
-    {
-        return status["BUSY"] == 1;
-    }
+        return isMotorBusy(status);
     return false;
 }
 
@@ -930,9 +989,7 @@ bool Arco::isCalibrating()
 {
     std::string value;
     if (m_Communication->get(MOT_2, "CAL_STATUS", value))
-    {
-        return value == "exec";
-    }
+        return isCalibrationRunning(value);
     return false;
 }
 

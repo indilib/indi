@@ -260,6 +260,9 @@ class Esatto : public Focuser
     public:
         Esatto(const std::string &name, int port);
 
+        // Motion
+        bool isBusy();                                 // Checks BUSY + MST fields
+
         // Backlash
         bool setBacklash(uint32_t steps);
         bool getBacklash(uint32_t &steps);
@@ -267,6 +270,18 @@ class Esatto : public Focuser
         // Sensors
         bool getVoltageUSB(double &value);
         bool getModel(std::string &model); // Added to Esatto
+
+        // Calibration as the ESATTO web interface starts it, with the focuser fully in on its sensor
+        bool calibrate();
+        // Calibration as the web interface starts it with the sensor not active ("exec"). On an LP the
+        // firmware moves in to the sensor and sets the zero position there.
+        bool calibrateToSensor();
+        // The LP models (MODNAME e.g. "ESATTO2LP") have their sensor at the inner end only. The standard ESATTO 2"
+        // (MODNAME "ESATTO2") has one at each end.
+        bool isLowProfile();
+        bool isCalibrating();
+        // CAL_NUMOF rises by one with each completed calibration, not with an aborted one
+        bool getCalibrationCount(uint32_t &count);
 };
 
 /*****************************************************************************************
