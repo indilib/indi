@@ -16,6 +16,7 @@
       It is complete only if CAL_NUMOF rose; an abort ends it in Alert, and moves wait until the firmware reports
       CAL_STATUS "stop", also for a calibration started elsewhere. After an aborted or incomplete calibration moves
       wait until a calibration has completed (CAL_NUMOF rose), and the messages name the web interface as the way out.
+      While moves are locked, a model with a sensor at each end (no "LP" in MODNAME) is not calibrated by the driver.
       A move to the current position sends nothing, but one to the last polled position while the focuser moves or
       brakes, or after it stopped elsewhere, is sent.
 
@@ -33,7 +34,9 @@
     - Seen on 24.11.2026 on the same devices: an Arco 2 move to 10000 steps ends at 1.75781 degrees (about 5689
       steps per degree); MOT_STOP during a focuser calibration stops the motor, but CAL_STATUS keeps the phase name
       for about 60 s and CAL_NUMOF does not change; a completed calibration raises CAL_NUMOF by one.
-    - Assumed: the error reply to a refused command ({"ERROR": ...}), temperatures and voltages as strings, EXT_T
+    - Seen on a standard ESATTO 2" (ESATTO20582, firmware 3.05.28): HSENDET 1 at both ends (24.11.2026), MODNAME
+      "ESATTO2" (26.11.2026).
+    - Assumed: MODNAME "ESATTO2LP" for the LP (its serial number is ESATTO2LP0027), the error reply to a refused command ({"ERROR": ...}), temperatures and voltages as strings, EXT_T
       "-127.0" without the external probe (the value the driver checks for), the backlash 120, CAL_MAXPOS 406929, the
       Arco limits of +-648000 steps, the serial numbers, STATUS with only BUSY and MST, and
       a pause with MST "stop" between two calibration phases. Each test sets when the positions change.
@@ -94,7 +97,7 @@ class FakePrimaLuce
             {
                 {
                     "", {
-                        {"SN", "ESATTO2LP0027"}, {"SWVERS", {{"SWAPP", "3.05.28"}}}, {"EXT_T", "-127.0"},
+                        {"SN", "ESATTO2LP0027"}, {"MODNAME", "ESATTO2LP"}, {"SWVERS", {{"SWAPP", "3.05.28"}}}, {"EXT_T", "-127.0"},
                         {"VIN_12V", "12.1"}, {"VIN_USB", "5.0"}, {"ARCO", 1}, {"ARCO_SN", "ARCO20001"}
                     }
                 },
@@ -862,6 +865,38 @@ void checkLockedAwayFromSensorNamesWayOut(Driver &driver, FakePrimaLuce &device)
     EXPECT_TRUE(anyContains(messages, "ESATTO web interface")) << "No way out was named";
 }
 
+// A standard ESATTO 2" reports HSENDET 1 at both ends, and while moves are locked only the position, which the lock
+// calls invalid, would tell them apart. At the outer end the web interface sends another request. So after an
+// aborted calibration the driver refuses to calibrate it, also at the sensor in the inner half, and names only the
+// web interface. Unlocked, it is calibrated at its sensor as before.
+template <class Driver>
+void checkLockedTwoSensorModelNamesOnlyWebInterface(Driver &driver, FakePrimaLuce &device)
+{
+    device.takeWrites();
+
+    Published published;
+    driver.startCalibration();
+    std::vector<json> unlocked = device.takeWrites();
+    driver.poll();
+    driver.abort();
+    device.set("MOT1", "CAL_STATUS", "stop");
+    device.takeWrites();
+
+    driver.moveTo(30000);
+    driver.startCalibration();
+    std::vector<json> locked = device.takeWrites();
+    std::vector<std::string> messages = published.messages();
+
+    EXPECT_EQ(writesTo(unlocked, "set", "MOT1", "CAL_STATUS").size(), 1u) << "Not calibrated at the sensor";
+    EXPECT_TRUE(writesTo(locked, "cmd", "MOT1", "MOVE_ABS").empty()) << "A move was sent after the abort";
+    EXPECT_TRUE(writesTo(locked, "set", "MOT1", "CAL_STATUS").empty())
+            << "A model with a sensor at each end was calibrated while its position was invalid";
+    EXPECT_EQ(driver.switchState("FOCUS_CALIBRATION"), IPS_ALERT);
+    EXPECT_TRUE(anyContains(messages, "cannot tell at which end"));
+    EXPECT_TRUE(anyContains(messages, "ESATTO web interface")) << "No way out was named";
+    EXPECT_FALSE(anyContains(messages, "or here with the focuser")) << "Offered a calibration the driver refuses";
+}
+
 // A calibration that returned to "stop" without a higher CAL_NUMOF also leaves the position invalid: moves are refused.
 template <class Driver>
 void checkIncompleteCalibrationLocksMoves(Driver &driver, FakePrimaLuce &device)
@@ -1269,6 +1304,17 @@ TEST(EsattoTest, lockedAwayFromSensorNamesWayOut)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkLockedAwayFromSensorNamesWayOut(driver, device);
+}
+
+TEST(EsattoTest, lockedTwoSensorModelNamesOnlyWebInterface)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("", "MODNAME", "ESATTO2");
+    device.set("MOT1", "HSENDET", 1);
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkLockedTwoSensorModelNamesOnlyWebInterface(driver, device);
 }
 
 TEST(EsattoTest, moveBackWhileMovingIsSent)
@@ -1825,6 +1871,17 @@ TEST(EsattoArcoTest, lockedAwayFromSensorNamesWayOut)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkLockedAwayFromSensorNamesWayOut(*arco, device);
+}
+
+TEST(EsattoArcoTest, lockedTwoSensorModelNamesOnlyWebInterface)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    device.set("", "MODNAME", "ESATTO2");
+    device.set("MOT1", "HSENDET", 1);
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkLockedTwoSensorModelNamesOnlyWebInterface(*arco, device);
 }
 
 TEST(EsattoArcoTest, moveBackWhileMovingIsSent)

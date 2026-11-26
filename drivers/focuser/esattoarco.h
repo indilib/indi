@@ -96,6 +96,8 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         // (in memory only: after an abort the focuser reports CAL_STATUS "stop" and a CAL_NUMOF like at any other
         // time, so a restarted driver cannot tell)
         bool m_ZeroInvalid { false };
+        // MODNAME names an LP, read at connect. On the other models HSENDET is also 1 at the outer end.
+        bool m_LowProfile { false };
 
         // The Arco can report a stop short of the target and correct the rest a moment later.
         // The target is an angle (ABS_ROTATOR_ANGLE) or, for a move in steps (ABS_ROTATOR_POSITION), a step count.

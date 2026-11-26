@@ -75,6 +75,8 @@ class Esatto : public INDI::Focuser
         // (in memory only: after an abort the focuser reports CAL_STATUS "stop" and a CAL_NUMOF like at any other
         // time, so a restarted driver cannot tell)
         bool m_ZeroInvalid { false };
+        // MODNAME names an LP, read at connect. On the other models HSENDET is also 1 at the outer end.
+        bool m_LowProfile { false };
         double m_LastTemperature[2] = {-1, -1};
         double m_LastVoltage[2] = {-1, -1};
 

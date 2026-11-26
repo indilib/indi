@@ -273,6 +273,9 @@ class Esatto : public Focuser
 
         // Calibration as the ESATTO web interface starts it, with the focuser fully in on its sensor
         bool calibrate();
+        // The LP models (MODNAME e.g. "ESATTO2LP") have their sensor at the inner end only. The standard ESATTO 2"
+        // (MODNAME "ESATTO2") has one at each end.
+        bool isLowProfile();
         bool isCalibrating();
         // CAL_NUMOF rises by one with each completed calibration, not with an aborted one
         bool getCalibrationCount(uint32_t &count);
