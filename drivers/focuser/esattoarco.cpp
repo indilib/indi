@@ -51,12 +51,15 @@ static const char *ROTATOR_TAB = "Rotator";
 // The way out of the lock after an incomplete calibration. The web interface also calibrates away from the sensor.
 // Only an LP can also be calibrated here: a model with a sensor at each end is told apart only by the position, which
 // the lock calls invalid.
+static const char *CALIBRATE_HINT_LP = "Calibrate it from the ESATTO web interface, or here with the focuser still "
+                                       "fully in at its sensor. Restarting the driver lifts the lock, but does not "
+                                       "correct the position.";
+static const char *CALIBRATE_HINT = "Calibrate it from the ESATTO web interface. Restarting the driver lifts the lock, "
+                                    "but does not correct the position.";
+
 static const char *calibrateHint(bool lowProfile)
 {
-    return lowProfile ? "Calibrate it from the ESATTO web interface, or here with the focuser still fully in at its "
-           "sensor. Restarting the driver lifts the lock, but does not correct the position." :
-           "Calibrate it from the ESATTO web interface. Restarting the driver lifts the lock, but does not "
-           "correct the position.";
+    return lowProfile ? CALIBRATE_HINT_LP : CALIBRATE_HINT;
 }
 
 EsattoArco::EsattoArco() : RotatorInterface(this)
