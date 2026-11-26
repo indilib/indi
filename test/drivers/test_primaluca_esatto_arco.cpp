@@ -18,7 +18,7 @@
       wait until a calibration has completed (CAL_NUMOF rose), and the messages name the web interface as the way out.
       While moves are locked, a model with a sensor at each end (no "LP" in MODNAME) is not calibrated by the driver.
       A move to the current position sends nothing, but one to the last polled position while the focuser moves or
-      brakes, or after it stopped elsewhere, is sent.
+      brakes, also before the motor reports that it moves, or after it stopped elsewhere, is sent.
 
     The drivers talk to a fake device on a pseudo terminal. Requests and replies are JSON objects ({"req": ...} and
     {"res": ...}, replies end with CR LF). The replies have the shape the driver's parser expects, as in an earlier
@@ -973,6 +973,26 @@ void checkMoveBackWhileMovingIsSent(Driver &driver, FakePrimaLuce &device)
             << "A move to the last polled position was not sent although the focuser stopped elsewhere";
 }
 
+// Right after MOVE_ABS the focuser can still report BUSY 0, MST "stop" and the old position (the driver allows
+// MOVE_START_GRACE_MS for the start). A move back to the start then is sent too: the motor is about to leave it.
+template <class Driver>
+void checkMoveBackBeforeMotorStartsIsSent(Driver &driver, FakePrimaLuce &device)
+{
+    driver.moveTo(30000);
+    device.takeWrites();
+
+    Published published;
+    driver.moveTo(10000);
+    std::vector<json> writes = device.takeWrites();
+    std::vector<std::string> states = published.states("ABS_FOCUS_POSITION");
+
+    std::vector<json> moves = writesTo(writes, "cmd", "MOT1", "MOVE_ABS");
+    ASSERT_EQ(moves.size(), 1u) << "A move back to the start was not sent before the motor reported moving";
+    EXPECT_EQ(moves[0]["STEP"], 10000);
+    ASSERT_FALSE(states.empty());
+    EXPECT_EQ(states.back(), "Busy") << "A move that was not sent was reported";
+}
+
 // A calibration the driver did not start (web interface, hand pad, or still running after an abort before a
 // reconnect) also refuses moves and a new start.
 template <class Driver>
@@ -1315,6 +1335,15 @@ TEST(EsattoTest, lockedTwoSensorModelNamesOnlyWebInterface)
     EsattoUnderTest driver(ESATTO_NAME);
     ASSERT_TRUE(driver.connectTo(device.portName()));
     checkLockedTwoSensorModelNamesOnlyWebInterface(driver, device);
+}
+
+TEST(EsattoTest, moveBackBeforeMotorStartsIsSent)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkMoveBackBeforeMotorStartsIsSent(driver, device);
 }
 
 TEST(EsattoTest, moveBackWhileMovingIsSent)
@@ -1882,6 +1911,15 @@ TEST(EsattoArcoTest, lockedTwoSensorModelNamesOnlyWebInterface)
     auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
     ASSERT_TRUE(arco->connectTo(device.portName()));
     checkLockedTwoSensorModelNamesOnlyWebInterface(*arco, device);
+}
+
+TEST(EsattoArcoTest, moveBackBeforeMotorStartsIsSent)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkMoveBackBeforeMotorStartsIsSent(*arco, device);
 }
 
 TEST(EsattoArcoTest, moveBackWhileMovingIsSent)
