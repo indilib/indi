@@ -25,6 +25,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "indielapsedtimer.h"
 #include "inditimer.h"
 #include "indirotatorinterface.h"
 #include "primalucacommandset.h"
@@ -76,9 +77,38 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
 
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
-        bool isMotionComplete();
+        void updateSpeed();
+        bool isFocusMoveFinished();
+        bool isCalibrationCompleted();
+        bool isZeroPositionValid();
+        bool isRotatorMoveFinished();
 
         uint16_t m_TemperatureCounter { 0 };
+
+        double m_FocusMoveStart { 0 }, m_RotatorMoveStart { 0 };
+        INDI::ElapsedTimer m_FocusMoveTimer, m_RotatorMoveTimer;
+        // BUSY can lag behind the command, a motor that has not moved yet may still start
+        static constexpr int MOVE_START_GRACE_MS {2000};
+        // CAL_NUMOF at the start of a focuser calibration, to tell a completed one from an aborted one
+        uint32_t m_CalibrationCount { 0 };
+        bool m_CalibrationCountKnown { false };
+        // After an aborted or incomplete calibration the position is off: moves wait for a completed one
+        // (in memory only: after an abort the focuser reports CAL_STATUS "stop" and a CAL_NUMOF like at any other
+        // time, so a restarted driver cannot tell)
+        bool m_ZeroInvalid { false };
+        // MODNAME names an LP, read at connect. On the other models HSENDET is also 1 at the outer end.
+        bool m_LowProfile { false };
+
+        // The Arco can report a stop short of the target and correct the rest a moment later.
+        // The target is an angle (ABS_ROTATOR_ANGLE) or, for a move in steps (ABS_ROTATOR_POSITION), a step count.
+        double m_RotatorTarget { 0 };
+        bool m_RotatorTargetInSteps { false };
+        bool m_RotatorStopped { false };
+        INDI::ElapsedTimer m_RotatorStopTimer;
+        static constexpr double ROTATOR_TARGET_TOLERANCE {0.01};
+        // 0.01 degrees: on an Arco 2, 10000 steps were 1.75781 degrees (about 5689 steps per degree)
+        static constexpr double ROTATOR_TARGET_TOLERANCE_STEPS {57};
+        static constexpr int ROTATOR_SETTLE_MS {3000};
 
         INDI::PropertyNumber TemperatureNP {2};
         enum
@@ -106,14 +136,6 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         };
 
 
-        INDI::PropertySwitch FastMoveSP {3};
-        enum
-        {
-            FASTMOVE_IN,
-            FASTMOVE_OUT,
-            FASTMOVE_STOP
-        };
-
         INDI::PropertySwitch BacklashMeasurementSP {2};
         enum
         {
@@ -140,6 +162,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         typedef enum { RotCalIdle, RotCalComplete } RotCalibrationStage;
         RotCalibrationStage rcStage { RotCalIdle };
 
+        INDI::PropertySwitch FocusCalibrationSP {1};
         INDI::PropertySwitch RotatorCalibrationSP {1};
         // ISwitchVectorProperty RotatorCalibrationSP;
         enum

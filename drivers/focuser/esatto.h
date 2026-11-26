@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "indielapsedtimer.h"
 #include "inditimer.h"
 #include "primalucacommandset.h"
 
@@ -47,7 +48,7 @@ class Esatto : public INDI::Focuser
     private:
         bool Ack();
 
-        bool updateTemperature();        
+        bool updateTemperature();
         bool updatePosition();
         bool updateVoltageIn();
         bool updateMaxLimit();
@@ -56,11 +57,30 @@ class Esatto : public INDI::Focuser
         bool initCommandSet();
 
         bool getStartupValues();
+        bool isMoveFinished();
+        bool isCalibrationCompleted();
+        bool isZeroPositionValid();
         void hexDump(char * buf, const char * data, int size);
 
         uint16_t m_TemperatureCounter { 0 };
+
+        double m_MoveStartPosition { 0 };
+        INDI::ElapsedTimer m_MoveTimer;
+        // BUSY can lag behind the command, a motor that has not moved yet may still start
+        static constexpr int MOVE_START_GRACE_MS {2000};
+        // CAL_NUMOF at the start of a focuser calibration, to tell a completed one from an aborted one
+        uint32_t m_CalibrationCount { 0 };
+        bool m_CalibrationCountKnown { false };
+        // After an aborted or incomplete calibration the position is off: moves wait for a completed one
+        // (in memory only: after an abort the focuser reports CAL_STATUS "stop" and a CAL_NUMOF like at any other
+        // time, so a restarted driver cannot tell)
+        bool m_ZeroInvalid { false };
+        // MODNAME names an LP, read at connect. On the other models HSENDET is also 1 at the outer end.
+        bool m_LowProfile { false };
         double m_LastTemperature[2] = {-1, -1};
         double m_LastVoltage[2] = {-1, -1};
+
+        INDI::PropertySwitch CalibrationSP {1};
 
         INDI::PropertyNumber TemperatureNP {2};
         enum
@@ -81,14 +101,6 @@ class Esatto : public INDI::Focuser
         {
             VOLTAGE_12V,
             VOLTAGE_USB
-        };
-
-        INDI::PropertySwitch FastMoveSP {3};
-        enum
-        {
-            FASTMOVE_IN,
-            FASTMOVE_OUT,
-            FASTMOVE_STOP
         };
 
         std::unique_ptr<PrimalucaLabs::Esatto> m_Esatto;

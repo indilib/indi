@@ -31,9 +31,23 @@ static std::unique_ptr<Esatto> sesto(new Esatto());
 
 static const char *ENVIRONMENT_TAB  = "Environment";
 
+// The way out of the lock after an incomplete calibration. The web interface also calibrates away from the sensor.
+// Only an LP can also be calibrated here: a model with a sensor at each end is told apart only by the position, which
+// the lock calls invalid.
+static const char *CALIBRATE_HINT_LP = "Calibrate it from the ESATTO web interface, or here with the focuser still "
+                                       "fully in at its sensor. Restarting the driver lifts the lock, but does not "
+                                       "correct the position.";
+static const char *CALIBRATE_HINT = "Calibrate it from the ESATTO web interface. Restarting the driver lifts the lock, "
+                                    "but does not correct the position.";
+
+static const char *calibrateHint(bool lowProfile)
+{
+    return lowProfile ? CALIBRATE_HINT_LP : CALIBRATE_HINT;
+}
+
 Esatto::Esatto()
 {
-    setVersion(1, 0);
+    setVersion(1, 2);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -70,11 +84,8 @@ bool Esatto::initProperties()
     TemperatureNP[TEMPERATURE_EXTERNAL].fill("TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Speed Moves
-    FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
-    FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
-    FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
-    FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    CalibrationSP[0].fill("CALIBRATION_START", "Start", ISS_OFF);
+    CalibrationSP.fill(getDeviceName(), "FOCUS_CALIBRATION", "Calibrate", OPTIONS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Override the default Max. Position to make it Read-Only
     FocusMaxPosNP.setPermission(IP_RO);
@@ -121,6 +132,8 @@ bool Esatto::updateProperties()
 
         if (updateTemperature())
             defineProperty(TemperatureNP);
+
+        defineProperty(CalibrationSP);
     }
     else
     {
@@ -128,9 +141,99 @@ bool Esatto::updateProperties()
             deleteProperty(TemperatureNP);
         deleteProperty(FirmwareTP);
         deleteProperty(VoltageNP.getName());
+        deleteProperty(CalibrationSP);
     }
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0 && CalibrationSP.isNameMatch(name))
+    {
+        CalibrationSP.reset();
+
+        if (!isConnected())
+        {
+            LOG_ERROR("Connect the focuser before calibrating it.");
+            CalibrationSP.setState(IPS_ALERT);
+            CalibrationSP.apply();
+            return true;
+        }
+
+        // Starting it again while it runs leaves the zero position off
+        if (CalibrationSP.getState() == IPS_BUSY)
+        {
+            LOG_ERROR("The focuser is calibrating. Wait until it is done.");
+            CalibrationSP.apply();
+            return true;
+        }
+
+        // The web interface only calibrates with the focuser fully in, where its sensor is active
+        bool atSensor = false;
+        if (FocusAbsPosNP.getState() == IPS_BUSY)
+        {
+            LOG_ERROR("Wait until the focuser stopped, then calibrate.");
+            CalibrationSP.setState(IPS_ALERT);
+        }
+        else if (m_Esatto->isCalibrating())
+        {
+            LOG_ERROR("The focuser reports a running calibration. Wait until it is done.");
+            CalibrationSP.setState(IPS_ALERT);
+        }
+        // Locked, a model with a sensor at each end could be at the outer one: only the position tells, and it is
+        // not valid. There the web interface sends another request, never seen on a device.
+        else if (!m_LowProfile && !isZeroPositionValid())
+        {
+            LOGF_ERROR("Moves are locked after an incomplete calibration, and on this model the driver cannot "
+                       "tell at which end the focuser is. %s", calibrateHint(false));
+            CalibrationSP.setState(IPS_ALERT);
+        }
+        else if (!m_Esatto->isHallSensorDetected(atSensor) || !atSensor)
+        {
+            // After an incomplete calibration the focuser cannot be moved to its sensor from here
+            if (isZeroPositionValid())
+                LOG_ERROR("Move the focuser fully in until its sensor is active, then calibrate.");
+            else
+                LOGF_ERROR("The focuser is not at its sensor, and moves are locked after an incomplete calibration. %s",
+                           calibrateHint(m_LowProfile));
+            CalibrationSP.setState(IPS_ALERT);
+        }
+        // The web interface asks whether the focuser is in or out when its sensor is active and sends another
+        // request for a focuser fully out. Only the one for a focuser fully in has been seen on a device.
+        else if (FocusMaxPosNP[0].getValue() > 0 && FocusAbsPosNP[0].getValue() > FocusMaxPosNP[0].getValue() / 2)
+        {
+            if (isZeroPositionValid())
+                LOG_ERROR("The focuser is not fully in. Move it fully in until its sensor is active, then calibrate.");
+            else
+                LOGF_ERROR("The focuser is not fully in, and moves are locked after an incomplete calibration. %s",
+                           calibrateHint(m_LowProfile));
+            CalibrationSP.setState(IPS_ALERT);
+        }
+        else
+        {
+            m_CalibrationCountKnown = m_Esatto->getCalibrationCount(m_CalibrationCount);
+            if (m_Esatto->calibrate())
+            {
+                LOG_INFO("Calibrating the focuser. Please wait.");
+                m_MoveStartPosition = FocusAbsPosNP[0].getValue();
+                m_MoveTimer.start();
+                CalibrationSP.setState(IPS_BUSY);
+                FocusAbsPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply();
+            }
+            else
+                CalibrationSP.setState(IPS_ALERT);
+        }
+
+        CalibrationSP.apply();
+        return true;
+    }
+
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,13 +279,10 @@ bool Esatto::updateTemperature()
     TemperatureNP.setState(IPS_OK);
 
     // External temperature - Optional
-    if (m_Esatto->getExternalTemp(temperature))
-    {
-        if (temperature < 90)
-            TemperatureNP[TEMPERATURE_EXTERNAL].setValue(temperature);
-        else
-            TemperatureNP[TEMPERATURE_EXTERNAL].setValue(-273.15);
-    }
+    if (m_Esatto->getExternalTemp(temperature) && temperature > -127 && temperature < 90)
+        TemperatureNP[TEMPERATURE_EXTERNAL].setValue(temperature);
+    else
+        TemperatureNP[TEMPERATURE_EXTERNAL].setValue(-273.15);
 
     return true;
 }
@@ -207,7 +307,7 @@ bool Esatto::updatePosition()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Esatto::updateVoltageIn()
 {
-    double voltage;
+    double voltage = 0;
     if (m_Esatto->getVoltage12v(voltage))
         VoltageNP[VOLTAGE_12V].setValue(voltage);
 
@@ -220,47 +320,41 @@ bool Esatto::updateVoltageIn()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // Fast motion
-        if (FastMoveSP.isNameMatch(name))
-        {
-            FastMoveSP.update(states, names, n);
-            auto current_switch = FastMoveSP.findOnSwitchIndex();
-
-            switch (current_switch)
-            {
-                case FASTMOVE_IN:
-                    m_Esatto->fastMoveIn();
-                    break;
-                case FASTMOVE_OUT:
-                    m_Esatto->fastMoveOut();
-                    break;
-                case FASTMOVE_STOP:
-                    m_Esatto->stop();
-                    break;
-                default:
-                    break;
-            }
-
-            FastMoveSP.setState(IPS_BUSY);
-            FastMoveSP.apply();
-            return true;
-        }
-    }
-    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
 {
+    // A move during the calibration leaves the zero position off
+    if (CalibrationSP.getState() == IPS_BUSY)
+    {
+        LOG_ERROR("The focuser is calibrating. Wait until it is done.");
+        return IPS_ALERT;
+    }
+
+    // Also one started elsewhere, or one that still runs in the firmware after an abort
+    if (m_Esatto->isCalibrating())
+    {
+        LOG_ERROR("The focuser reports a running calibration. Wait until it is done.");
+        return IPS_ALERT;
+    }
+
+    // A move after an aborted calibration ran 60 s against the inner end of an ESATTO 2", its position counting up
+    if (!isZeroPositionValid())
+    {
+        LOGF_ERROR("The position is not valid after an incomplete calibration. %s", calibrateHint(m_LowProfile));
+        return IPS_ALERT;
+    }
+
+    // Nothing to send for a move to where the focuser stands. The last poll is not where it ends while it moves, or
+    // brakes after an abort: only skip for a motor at rest whose position, read again, is the target.
+    uint32_t position = 0;
+    if (targetTicks == FocusAbsPosNP[0].getValue() && FocusAbsPosNP.getState() != IPS_BUSY && !m_Esatto->isBusy()
+            && m_Esatto->getAbsolutePosition(position) && position == targetTicks)
+        return IPS_OK;
+
     if (m_Esatto->goAbsolutePosition(targetTicks) == false)
         return IPS_ALERT;
 
+    m_MoveStartPosition = FocusAbsPosNP[0].getValue();
+    m_MoveTimer.start();
     return IPS_BUSY;
 }
 
@@ -273,9 +367,7 @@ IPState Esatto::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
-    bool rc = MoveAbsFocuser(newPosition);
-
-    return (rc ? IPS_BUSY : IPS_ALERT);
+    return MoveAbsFocuser(newPosition);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,6 +377,17 @@ bool Esatto::AbortFocuser()
 {
     if (isSimulation())
         return true;
+
+    // MOT_STOP stops the motor, but the firmware keeps the calibration running for about a minute and does not
+    // count the travel of the aborted calibration: the zero position is off afterwards.
+    if (CalibrationSP.getState() == IPS_BUSY)
+    {
+        m_ZeroInvalid = true;
+        CalibrationSP.setState(IPS_ALERT);
+        CalibrationSP.apply();
+        LOGF_WARN("Focuser calibration aborted. Its zero position is no longer valid, moves are locked. %s",
+                  calibrateHint(m_LowProfile));
+    }
 
     return m_Esatto->stop();
 }
@@ -303,9 +406,13 @@ void Esatto::TimerHit()
 
     auto lastPos = FocusAbsPosNP[0].getValue();
     bool rc = updatePosition();
-    if (rc && (std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 0))
+    if (rc)
     {
-        if (FocusAbsPosNP.getState() == IPS_BUSY && m_Esatto->isBusy() == false)
+        const bool moved = std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 0;
+        const bool finished = (FocusAbsPosNP.getState() == IPS_BUSY || CalibrationSP.getState() == IPS_BUSY)
+                              && isMoveFinished();
+
+        if (finished)
         {
             // To prevent reporting a bit too old position as the final one
             updatePosition();
@@ -313,9 +420,28 @@ void Esatto::TimerHit()
             FocusAbsPosNP.setState(IPS_OK);
             FocusRelPosNP.setState(IPS_OK);
             FocusRelPosNP.apply();
+
+            if (CalibrationSP.getState() == IPS_BUSY)
+            {
+                if (isCalibrationCompleted())
+                {
+                    m_ZeroInvalid = false;
+                    CalibrationSP.setState(IPS_OK);
+                    LOG_INFO("Focuser calibration complete.");
+                }
+                else
+                {
+                    m_ZeroInvalid = true;
+                    CalibrationSP.setState(IPS_ALERT);
+                    LOGF_ERROR("The focuser calibration did not complete. Its zero position may be off, moves are "
+                               "locked. %s", calibrateHint(m_LowProfile));
+                }
+                CalibrationSP.apply();
+            }
         }
 
-        FocusAbsPosNP.apply();
+        if (moved || finished)
+            FocusAbsPosNP.apply();
     }
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
@@ -353,15 +479,58 @@ void Esatto::TimerHit()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::isZeroPositionValid()
+{
+    if (!m_ZeroInvalid)
+        return true;
+
+    // A calibration completed since, also one started from the web interface or the hand pad
+    uint32_t count = 0;
+    if (m_CalibrationCountKnown && m_Esatto->getCalibrationCount(count) && count > m_CalibrationCount)
+    {
+        m_ZeroInvalid = false;
+        LOG_INFO("The focuser was calibrated, moves are possible again.");
+    }
+    return !m_ZeroInvalid;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::isCalibrationCompleted()
+{
+    // CAL_STATUS also returns to "stop" when the firmware gives up, e.g. 120 s without reaching the sensor
+    uint32_t count = 0;
+    return !m_CalibrationCountKnown || (m_Esatto->getCalibrationCount(count) && count > m_CalibrationCount);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::isMoveFinished()
+{
+    if (m_Esatto->isBusy())
+        return false;
+
+    // The position stays put during the calibration, CAL_STATUS tells when it is done
+    if (CalibrationSP.getState() == IPS_BUSY)
+        return m_MoveTimer.elapsed() >= MOVE_START_GRACE_MS && !m_Esatto->isCalibrating();
+
+    return FocusAbsPosNP[0].getValue() != m_MoveStartPosition || m_MoveTimer.elapsed() >= MOVE_START_GRACE_MS;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Esatto::getStartupValues()
 {
+    // updateMaxLimit() resets the position, so it has to come first
+    auto rc3 = updateMaxLimit();
     auto rc1 = updatePosition();
     uint32_t steps {0};
     auto rc2 = m_Esatto->getBacklash(steps);
     if (rc2)
         FocusBacklashNP[0].setValue(steps);
-
-    auto rc3 = updateMaxLimit();
 
     return rc1 && rc2 && rc3;
 }
@@ -396,6 +565,8 @@ bool Esatto::Ack()
         IUSaveText(&FirmwareTP[FIRMWARE_VERSION], response.c_str());
     }
 
+    m_LowProfile = m_Esatto->isLowProfile();
+
     return true;
 }
 
@@ -413,6 +584,14 @@ void Esatto::setConnectionParams()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Esatto::SetFocuserBacklash(int32_t steps)
 {
+    // A configuration load sends the backlash once for the switch and once for the value. The focuser keeps it
+    // itself, so nothing is written when it already has it. Without a reading the value is sent as before.
+    uint32_t current = 0;
+    if (steps >= 0 && m_Esatto->getBacklash(current) && current == static_cast<uint32_t>(steps))
+    {
+        LOGF_DEBUG("The focuser backlash is already %u steps, nothing sent.", current);
+        return true;
+    }
     return m_Esatto->setBacklash(steps);
 }
 
