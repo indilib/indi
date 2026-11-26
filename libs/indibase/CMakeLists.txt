@@ -200,6 +200,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indicontroller.cpp
     connectionplugins/connectioninterface.cpp
     connectionplugins/connectionserial.cpp
+    connectionplugins/serialportnames.cpp
     connectionplugins/connectiontcp.cpp
     connectionplugins/connectioni2c.cpp
     dsp/manager.cpp

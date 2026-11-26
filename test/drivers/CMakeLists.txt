@@ -87,6 +87,20 @@ TARGET_LINK_LIBRARIES(test_connection_serial
 )
 ADD_TEST(test_connection_serial test_connection_serial)
 
+# Stable port names use a fake /dev + /sys tree, the auto search fake devices on pseudo terminals (openpty).
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    ADD_EXECUTABLE(test_serial_port_names
+        test_serial_port_names.cpp
+    )
+    TARGET_LINK_LIBRARIES(test_serial_port_names
+        indidriver
+        util
+        ${GTEST_BOTH_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    ADD_TEST(test_serial_port_names test_serial_port_names)
+ENDIF()
+
 # The OnStep driver lives in indi_lx200generic, whose loader references every LX200 driver.
 SET(LX200GENERIC_SOURCES
     lx200driver.cpp lx200autostar.cpp lx200_16.cpp lx200gps.cpp lx200generic.cpp lx200telescope.cpp

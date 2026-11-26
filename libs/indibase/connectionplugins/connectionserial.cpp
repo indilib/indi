@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "connectionserial.h"
+#include "serialportnames.h"
 #include "indistandardproperty.h"
 #include "indicom.h"
 #include "indilogger.h"
@@ -30,13 +31,70 @@
 #include <chrono>
 #include <regex>
 #include <random>
+#include <map>
+#include <mutex>
 
 namespace Connection
 {
 extern const char *CONNECTION_TAB;
 
+namespace
+{
+// Per connection state, kept outside the class so that its size stays the same for drivers built against
+// an older header.
+struct SerialState
+{
+    // Port opened by the last successful Connect(port, baud)
+    std::string openedPort;
+    // USB vendor:product ID of the adapter last talked to, searched first by an auto search
+    std::string adapterType;
+    // While an auto search runs, busy and missing ports are expected and only counted
+    bool searching {false};
+    int busyPorts {0};
+};
+
+std::mutex stateMutex;
+std::map<const Serial *, SerialState> states;
+
+SerialState &state(const Serial *serial)
+{
+    std::lock_guard<std::mutex> lock(stateMutex);
+    return states[serial];
+}
+
+// True if port is one of the system ports, which are listed under their stable names, or the kernel device node
+// of one of them. A custom name (e.g. a udev symlink) is not a system port.
+bool isSystemPort(const std::vector<std::string> &systemPorts, const std::string &port)
+{
+    return std::any_of(systemPorts.begin(), systemPorts.end(), [&port](const std::string & onePort)
+    {
+        return onePort == port || (SerialPorts::isKernelNode(port) && SerialPorts::sameDevice(onePort, port));
+    });
+}
+
+// Replace a port name that can change after a reboot (e.g. /dev/ttyUSB0) by a stable one.
+void useStablePortName(INDI::PropertyText &portTP, const char *deviceName)
+{
+    const std::string current = portTP[0].getText();
+    const std::string stable = SerialPorts::nameToSave(current);
+    if (stable == current)
+        return;
+
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_SESSION, "Using %s for %s, this name stays the same after a reboot.",
+                 stable.c_str(), current.c_str());
+    portTP[0].setText(stable);
+    portTP.apply();
+}
+}
+
 Serial::Serial(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION_SERIAL), m_Permission(permission)
 {
+    // State of a connection that used the same address before.
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        states.erase(this);
+    }
+
     char configPort[256] = {0};
     // Try to load the port from the config file. If that fails, use default port.
     if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, 256) == 0)
@@ -103,11 +161,11 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             PortTP.setState(IPS_OK);
             PortTP.apply();
 
-            auto pos = std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText());
             // Auto search only makes sense when the user is not using a custom (non-system) port.
             // Only act (and report it) when auto search is currently enabled, so that no redundant
             // message is sent and no property update is pushed when it is already disabled.
-            if (pos == m_SystemPorts.end() && AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
+            if (!isSystemPort(m_SystemPorts, PortTP[0].getText())
+                    && AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
             {
                 LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortTP[0].getText());
                 AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].setState(ISS_OFF);
@@ -198,7 +256,7 @@ bool Serial::Connect()
     for (const auto &onePort : m_SystemPorts)
     {
         // Only try the same port last again.
-        if (onePort == PortTP[0].getText())
+        if (onePort == PortTP[0].getText() || SerialPorts::sameDevice(onePort, PortTP[0].getText()))
             continue;
 
         systemPorts.push_back(onePort);
@@ -218,6 +276,9 @@ bool Serial::Connect()
         std::minstd_rand g(rd());
         std::shuffle(systemPorts.begin(), systemPorts.end(), g);
 
+        // Look for the same kind of adapter first (see SerialPorts::searchOrder).
+        systemPorts = SerialPorts::searchOrder(systemPorts, PortTP[0].getText(), state(this).adapterType);
+
         std::vector<std::string> doubleSearch = systemPorts;
 
         // Try the current port as LAST port again
@@ -226,32 +287,37 @@ bool Serial::Connect()
         // Double search just in case some items were BUSY in the first pass
         systemPorts.insert(systemPorts.end(), doubleSearch.begin(), doubleSearch.end());
 
+        SerialState &search = state(this);
+        search.searching = true;
+        search.busyPorts = 0;
         for (const auto &port : systemPorts)
         {
-            LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
+            LOGF_DEBUG("Trying connecting to %s @ %d ...", port.c_str(), baud);
             if (Connect(port.c_str(), baud) && processHandshake())
             {
+                search.searching = false;
                 PortTP[0].setText(port);
                 PortTP.apply();
 
 #ifdef __linux__
-                // Disable auto-search on Linux if not disabled already
-                if (AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].getState() == ISS_ON)
+                // Save the port under a name that survives a reboot. Auto search stays enabled (also in the
+                // configuration), so the device is found again if it is moved to another USB socket.
+                if (m_Permission != IP_RO)
                 {
-                    AutoSearchSP[INDI::DefaultDevice::INDI_ENABLED].setState(ISS_OFF);
-                    AutoSearchSP[INDI::DefaultDevice::INDI_DISABLED].setState(ISS_ON);
-                    AutoSearchSP.apply();
+                    useStablePortName(PortTP, m_Device->getDeviceName());
+                    if (m_ConfigPort != PortTP[0].getText())
+                    {
+                        m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
+                        m_ConfigPort = PortTP[0].getText();
+                    }
                     m_Device->saveConfig(true, AutoSearchSP.getName());
                 }
-
-                // Save device port if different from configuration value and read-write.
-                if (m_Permission != IP_RO && m_ConfigPort != PortTP[0].getText())
-                    m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #else
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
-                if (m_Permission != IP_RO && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText()) != m_SystemPorts.end())
+                if (m_Permission != IP_RO
+                        && std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortTP[0].getText()) != m_SystemPorts.end())
                     m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
 #endif
 
@@ -268,6 +334,11 @@ bool Serial::Connect()
             // This enables different competing devices to connect
             std::this_thread::sleep_for(std::chrono::milliseconds(500 + (rand() % 1000)));
         }
+        search.searching = false;
+
+        LOGF_WARN("Auto Search: %s was not found on %d port(s) (%d attempt(s) found a port in use by another driver). "
+                  "Check that the device is powered and plugged in.", getDeviceName(),
+                  static_cast<int>(doubleSearch.size() + 1), search.busyPorts);
     }
 
     return false;
@@ -280,10 +351,19 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
+        SerialState &connection = state(this);
+        connection.adapterType = SerialPorts::adapterType(connection.openedPort);
+        // The configured port answered (during an auto search Connect() handles the port it found): store it
+        // under a name that survives a reboot.
+        if (m_Permission != IP_RO && connection.openedPort == PortTP[0].getText())
+            useStablePortName(PortTP, m_Device->getDeviceName());
         // If permission is read-write and either the config port or baud rate are different from
         // configuration values, then save them.
         if (m_Permission != IP_RO && PortTP[0].getText() != m_ConfigPort)
+        {
             m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
+            m_ConfigPort = PortTP[0].getText();
+        }
 
         if (m_Permission != IP_RO && BaudRateSP.findOnSwitchIndex() != m_ConfigBaudRate)
             m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
@@ -304,20 +384,32 @@ bool Serial::Connect(const char *port, uint32_t baud)
 
     LOGF_DEBUG("Connecting to %s @ %d", port, baud);
 
+    SerialState &connection = state(this);
     if ((connectrc = tty_connect(port, baud, wordSize, parity, stopBits, &PortFD)) != TTY_OK)
     {
+        // During an auto search busy and missing ports are expected, Connect() reports the result once.
         if (connectrc == TTY_PORT_BUSY)
         {
-            LOGF_WARN("Port %s is already used by another driver or process.", port);
+            if (connection.searching)
+            {
+                connection.busyPorts++;
+                LOGF_DEBUG("Port %s is already used by another driver or process.", port);
+            }
+            else
+                LOGF_WARN("Port %s is already used by another driver or process.", port);
             return false;
         }
 
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
-        LOGF_ERROR("Failed to connect to port (%s). Error: %s", port, errorMsg);
+        if (connection.searching)
+            LOGF_DEBUG("Failed to connect to port (%s). Error: %s", port, errorMsg);
+        else
+            LOGF_ERROR("Failed to connect to port (%s). Error: %s", port, errorMsg);
         return false;
     }
 
     LOGF_DEBUG("Port FD %d", PortFD);
+    connection.openedPort = port;
 
     return true;
 }
@@ -425,21 +517,6 @@ int serial_dev_file_select(const dirent *entry)
     return (false);
 }
 
-int usb_dev_file_select(const dirent *entry)
-{
-    static const char *filter_names[] = { "usb-", nullptr };
-    const char **filter;
-
-    for (filter = filter_names; *filter; ++filter)
-    {
-        if (strstr(entry->d_name, *filter) != nullptr)
-        {
-            return (true);
-        }
-    }
-    return (false);
-}
-
 int bluetooth_dev_file_select(const dirent *entry)
 {
     static const char *filter_names[] = {"rfcomm", nullptr };
@@ -467,8 +544,6 @@ bool Serial::Refresh(bool silent)
         int devCount = 0;
         if (searchType == SERIAL_DEV)
             devCount = scandir(prefix.c_str(), &namelist, serial_dev_file_select, alphasort);
-        else if (searchType == USB_ID_DEV)
-            devCount = scandir(prefix.c_str(), &namelist, usb_dev_file_select, alphasort);
         else
             devCount = scandir(prefix.c_str(), &namelist, bluetooth_dev_file_select, alphasort);
         if (devCount > 0)
@@ -495,19 +570,11 @@ bool Serial::Refresh(bool silent)
     };
 
 #ifdef __linux__
-    // Search for serial, usb, and bluetooth devices.
-    const std::vector<std::string> serialDevices = searchPath("/dev/", SERIAL_DEV);
-    const std::vector<std::string> usbIDDevices = searchPath("/dev/serial/by-id/", USB_ID_DEV);
+    // Bluetooth and USB serial devices, the latter under names that stay the same after a reboot.
     const std::vector<std::string> btDevices = searchPath("/dev/", BLUETOOTH_DEV);
+    const std::vector<std::string> usbDevices = SerialPorts::list();
     m_Ports.insert(m_Ports.end(), btDevices.begin(), btDevices.end());
-    // Linux Kernel does not add identical VID:PID adapter to serial/by-id
-    // Therefore, we check if there is a 1:1 correspondence between serial/by-id and /dev/ttyUSBX nodes
-    // In case we have more by-id devices then /dev/ttyUSBX, we use them since these symlinks are more reusable in subsequence
-    // sessions
-    if (usbIDDevices.size() >= serialDevices.size())
-        m_Ports.insert(m_Ports.end(), usbIDDevices.begin(), usbIDDevices.end());
-    else
-        m_Ports.insert(m_Ports.end(), serialDevices.begin(), serialDevices.end());
+    m_Ports.insert(m_Ports.end(), usbDevices.begin(), usbDevices.end());
 #else
     const std::vector<std::string> serialDevices = searchPath("/dev/", SERIAL_DEV);
     m_Ports.insert(m_Ports.end(), serialDevices.begin(), serialDevices.end());
@@ -551,7 +618,10 @@ bool Serial::Refresh(bool silent)
 #ifdef __linux__
         std::regex re("usb-(.[^-]+)");
         std::smatch match;
-        if (std::regex_search(onePort, match, re))
+        const std::string socketLabel = SerialPorts::label(onePort);
+        if (!socketLabel.empty())
+            label = socketLabel;
+        else if (std::regex_search(onePort, match, re))
         {
             name = label = match.str(1);
             // Simplify further by removing non-unique strings
