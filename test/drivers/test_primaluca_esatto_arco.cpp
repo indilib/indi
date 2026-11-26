@@ -1953,6 +1953,52 @@ TEST(EsattoArcoTest, focusCalibrationStartedElsewhereBlocks)
     checkCalibrationStartedElsewhereBlocks(*arco, device);
 }
 
+// The focuser keeps its backlash (BKLASH) itself and the driver reads it at connect; the reply has the shape seen on
+// an ESATTO 2" LP ({"res":{"get":{"MOT1":{"BKLASH":0}}}}, 24.11.2026). A configuration load used to send the saved
+// backlash twice, for the switch and for the value, also when the focuser had it. Now it is sent only when the
+// focuser reports another value, e.g. after a change in the web interface, and then once.
+template <class Driver>
+void checkConfigLoadSendsBacklashOnlyWhenChanged(Driver &driver, FakePrimaLuce &device)
+{
+    driver.sendSwitch("FOCUS_BACKLASH_TOGGLE", {{"INDI_ENABLED", ISS_ON}, {"INDI_DISABLED", ISS_OFF}});
+    driver.sendNumber("FOCUS_BACKLASH_STEPS", "FOCUS_BACKLASH_VALUE", 200);
+    std::vector<json> userWrites = writesTo(device.takeWrites(), "set", "MOT1", "BKLASH");
+    driver.sendSwitch("CONFIG_PROCESS", {{"CONFIG_SAVE", ISS_ON}});
+    device.takeWrites();
+
+    driver.sendSwitch("CONFIG_PROCESS", {{"CONFIG_LOAD", ISS_ON}});
+    std::vector<json> unchanged = writesTo(device.takeWrites(), "set", "MOT1", "BKLASH");
+
+    device.set("MOT1", "BKLASH", 50);
+    driver.sendSwitch("CONFIG_PROCESS", {{"CONFIG_LOAD", ISS_ON}});
+    std::vector<json> changed = writesTo(device.takeWrites(), "set", "MOT1", "BKLASH");
+
+    // The configuration file is shared by all tests
+    driver.sendSwitch("CONFIG_PROCESS", {{"CONFIG_PURGE", ISS_ON}});
+
+    EXPECT_EQ(userWrites, std::vector<json> {200}) << "Enabling the backlash the focuser had already sent it again";
+    EXPECT_TRUE(unchanged.empty()) << "A configuration load sent the backlash the focuser already had";
+    EXPECT_EQ(changed, std::vector<json> {200}) << "The saved backlash was not sent exactly once after a change";
+}
+
+TEST(EsattoTest, configLoadSendsBacklashOnlyWhenChanged)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    EsattoUnderTest driver(ESATTO_NAME);
+    ASSERT_TRUE(driver.connectTo(device.portName()));
+    checkConfigLoadSendsBacklashOnlyWhenChanged(driver, device);
+}
+
+TEST(EsattoArcoTest, configLoadSendsBacklashOnlyWhenChanged)
+{
+    FakePrimaLuce device;
+    ASSERT_FALSE(device.portName().empty());
+    auto arco = makeDriver<ArcoUnderTest>(ARCO_NAME);
+    ASSERT_TRUE(arco->connectTo(device.portName()));
+    checkConfigLoadSendsBacklashOnlyWhenChanged(*arco, device);
+}
+
 int main(int argc, char **argv)
 {
     // Never touch the user's real ~/.indi or driver configuration: HOME and INDICONFIG point to a temporary folder.

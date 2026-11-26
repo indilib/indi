@@ -64,7 +64,7 @@ static const char *calibrateHint(bool lowProfile)
 
 EsattoArco::EsattoArco() : RotatorInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Focuser capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -334,6 +334,14 @@ bool EsattoArco::updateMaxLimit()
 *************************************************************************************************************/
 bool EsattoArco::SetFocuserBacklash(int32_t steps)
 {
+    // A configuration load sends the backlash once for the switch and once for the value. The focuser keeps it
+    // itself, so nothing is written when it already has it. Without a reading the value is sent as before.
+    uint32_t current = 0;
+    if (steps >= 0 && m_Esatto->getBacklash(current) && current == static_cast<uint32_t>(steps))
+    {
+        LOGF_DEBUG("The focuser backlash is already %u steps, nothing sent.", current);
+        return true;
+    }
     return m_Esatto->setBacklash(steps);
 }
 
