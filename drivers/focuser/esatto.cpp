@@ -381,8 +381,8 @@ bool Esatto::AbortFocuser()
     if (isSimulation())
         return true;
 
-    // MOT_STOP stops the motor, but the firmware keeps the calibration running for about a minute and does not
-    // count the travel of the aborted calibration: the zero position is off afterwards.
+    // MOT_STOP stops the motor, but the firmware keeps the calibration running (about 1 min at the sensor, about
+    // 2 min with "exec") and does not count the travel of the aborted calibration: the zero position is off afterwards.
     if (CalibrationSP.getState() == IPS_BUSY)
     {
         m_ZeroInvalid = true;
